@@ -16,6 +16,10 @@ Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for workflow, `docs/automove-major-reset-pla
 
 ## Latest No-Source Summary
 
+- 2026-06-18 reset work stayed no-source. The retained changes are diagnostic/postprocess only: policy-matrix and cross-budget skip offsets, gated post-move budget/reply/value-reply axes, and workbench JSONL coverage for `first_move_goal` axes.
+- Reprocessed focused and aggregate 2026-06-18 logs still had `source_candidate_axis_count=0` and `source_candidate_rollups=0`. Post-move reply/value-reply and move-goal rows were singleton-heavy, fragmented by policy/branch/first-move pair, or contaminated by guarded baseline saves.
+- Temporary budget/width/root-pool/root-policy scouts were pruned. The strongest sampled Pro repair (`11-1`) immediately rotated into sampled Normal failure (`7-5`), while other candidates stayed at `8-4` or worse, failed cost, or failed sampled dashboards.
+- Current skip controls and gated axes are retained only as feature-discovery tools. Do not rerun `post_move_budget`, `post_move_reply_budget`, `post_move_value_reply_budget`, current root-pool slices, or first-move goal rows as source work.
 - 2026-06-11 `frontier_pro_v4_targeted_arbitration` was built as a test-only stitched arbitration scout and pruned. It combined an inner-wedge early-white raw repair, measured shipping-save turn shapes, one forward-bridge Pro oracle root, and three sampled Normal oracle roots. The best version fixed sampled Pro to `11-1` and sampled Normal to `12-0`, but sampled Fast collapsed to `5-7` (`win_rate=0.4167`, `confidence=0.0000`, max dashboard average `257.23ms`) with `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`.
 - This confirms direct sampled-row stitching still rotates the failure into another budget. Do not promote or reopen targeted arbitration, approved-vs-ordered root patches, or sampled Pro/Normal oracle first moves as source; Fast losses remained broad across center-spoke, corner-chain, offset-arc, inner-wedge, and forward-bridge.
 - 2026-06-11 `frontier_pro_v4_adaptive_reply_progress` was built as a test-only frontier-execute root override and pruned. It tried to balance safe mana-progress roots against SpiritImpact roots using reply-floor, follow-up floor, safety, setup, rank, and utility evidence, but sampled Pro collapsed to `6-6` (`win_rate=0.5000`, `confidence=0.0000`, `229.66ms`). It fired `148` safety overrides and only `3` spirit overrides, damaging `inner_wedge_mana_rows`, `center_spoke_mana_rows`, `alternating_mana_rows`, and `forward_bridge_mana_rows`.
@@ -86,11 +90,12 @@ First validate local hygiene:
 ./scripts/check-automove-hygiene.sh
 ```
 
-Then continue only after adding or exposing another new below-fragmented measured corpus/root feature that is not already in the retired evidence list:
+Then continue only after adding or exposing another new below-fragmented measured corpus/root feature that is not already in the retired evidence list. Do not rerun `post_move_budget`, `post_move_reply_budget`, `post_move_value_reply_budget`, or current root-pool slices as source work:
 
 ```sh
 SMART_PRO_POLICY_MATRIX_PANEL_FILTER=<focused_panel> \
 SMART_PRO_POLICY_MATRIX_DUEL_FILTER=<focused_duel> \
+SMART_PRO_POLICY_MATRIX_SKIP_STATES=<opening_pair_offset_or_0> \
 SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=<new_feature_token> \
 ./scripts/run-automove-structural-scout.sh --outcome-corpus frontier_pro_v2_guarded
 ```

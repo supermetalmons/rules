@@ -4,6 +4,16 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-18 Budget/Reply Corpus And Move-Goal Workbench No-Source
+
+- No runtime or test-only Pro challenger survived this iteration. The retained code is diagnostic/postprocess only: sampled policy-matrix skip offsets, cross-budget skip offsets, gated post-move budget/reply/value-reply axes, and workbench JSONL alignment for first-move goal axes.
+- `SMART_PRO_POLICY_MATRIX_SKIP_STATES` and `SMART_PRO_POLICY_CROSS_BUDGET_SKIP_STATES` were added so later generated opening-side states can be inspected without widening the whole corpus. The sampled skip slices found center-spoke and split-flank guarded shared wins or baseline-save pressure; forward-bridge slices stayed baseline-save risk or singleton pressure.
+- Gated `post_move_budget`, `post_move_reply_budget`, and `post_move_value_reply_budget` axes measured post-divergence value and reply-risk stability across Pro, Normal, and Fast budgets. Focused sampled Pro slices still had `source_candidate_axis_count=0` and `source_candidate_rollups=0`; repeated reply-threat rows mixed five candidate repairs with six baseline-save states, and the only all-budget value/reply lift was a singleton forward-bridge shipping-control repair.
+- Workbench JSONL now emits the already-computed `first_move_goal` axes in `policy_axis` rows, matching `corpus_axis_summary`. Reprocessing the latest sampled Pro skip-6 log stayed no-source (`blocked_candidate_axis_count=58`), and aggregating the 2026-06-18 logs with corrected rows still had no source candidates; move-goal rows were singleton-heavy or baseline-save contaminated.
+- Temporary direct candidates were pruned. Broad guarded budget/width tuning failed sampled Pro at `6-6`; the deeper guarded search variant reached sampled Pro `10-2`, then a black danger-window fallback moved Pro to `11-1` but failed sampled Normal `7-5`; post-move budget-lift and unified-root-pool scouts failed sampled dashboards or cost gates; the inner-wedge black shipping bridge and spirit-reply-lift scouts only reached `8-4`.
+- Batch dashboarding the reset portfolio did not reveal a promotion base. `frontier_pro_v3_alternating_white_edge_mana` was best at sampled Pro `8-4` but still lost both inner-wedge games; the other reset candidates stayed at or below `7-5` except `frontier_pro_v3_full_scored_reply_guard`, which remained `1-11`.
+- Durable outcome: keep the new skip controls and gated budget/reply axes as feature-discovery tools, and keep first-move goal rows visible in workbench output. Do not promote or write runtime selectors from current post-move budget/reply/value-reply, move-goal, root-pool, exact-pressure, policy, branch, first-move, or singleton-heavy rows.
+
 ## 2026-06-11 Targeted Arbitration ProV4 No-Go
 
 - A test-only `frontier_pro_v4_targeted_arbitration` scout was built and pruned from the active sweep surface. It preserved the guarded Pro wrapper by default, then stitched in measured sampled-row repairs: an inner-wedge early-white raw repair, black/white shipping-save turn-shape gates, a forward-bridge Pro oracle root, and three sampled Normal oracle roots.

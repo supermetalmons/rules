@@ -2207,6 +2207,10 @@ def policy_axis_items(record, record_class):
         (axis, "first_move_local_pressure")
         for axis in corpus_move_local_pressure_axes(record, record_class)
     )
+    items.extend(
+        (axis, "first_move_goal")
+        for axis in corpus_move_goal_axes(record, record_class)
+    )
     items.extend((axis, "source_board") for axis in source_board_axes(record))
     items.extend((axis, "portfolio_support") for axis in portfolio_support_axes(record))
     items.extend(

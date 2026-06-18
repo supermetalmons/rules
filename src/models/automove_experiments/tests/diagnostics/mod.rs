@@ -1104,6 +1104,404 @@ fn pro_policy_matrix_continuation_rejoin_bucket(
     }
 }
 
+fn pro_policy_matrix_eval_bucket(value: i32) -> &'static str {
+    match value {
+        i32::MIN..=-513 => "crisis",
+        -512..=-129 => "bad",
+        -128..=-33 => "behind",
+        -32..=32 => "even",
+        33..=128 => "ahead",
+        _ => "strong",
+    }
+}
+
+fn pro_policy_matrix_eval_delta_bucket(delta: i32) -> &'static str {
+    match delta {
+        i32::MIN..=-257 => "drop_large",
+        -256..=-65 => "drop",
+        -64..=-1 => "drop_small",
+        0 => "flat",
+        1..=64 => "lift_small",
+        65..=256 => "lift",
+        _ => "lift_large",
+    }
+}
+
+fn pro_policy_matrix_budget_delta_shape(
+    pro_delta: i32,
+    normal_delta: i32,
+    fast_delta: i32,
+) -> &'static str {
+    let deltas = [pro_delta, normal_delta, fast_delta];
+    let positive = deltas.iter().filter(|delta| **delta > 64).count();
+    let nonnegative = deltas.iter().filter(|delta| **delta >= 0).count();
+    let negative = deltas.iter().filter(|delta| **delta < 0).count();
+    let strongly_negative = deltas.iter().filter(|delta| **delta < -64).count();
+
+    if positive == 3 {
+        "all_budget_lift"
+    } else if nonnegative == 3 {
+        "all_budget_nonregress"
+    } else if strongly_negative == 3 {
+        "all_budget_drop"
+    } else if pro_delta > 64 && normal_delta < 0 && fast_delta < 0 {
+        "pro_only_lift"
+    } else if normal_delta > 64 && pro_delta < 0 && fast_delta < 0 {
+        "normal_only_lift"
+    } else if fast_delta > 64 && pro_delta < 0 && normal_delta < 0 {
+        "fast_only_lift"
+    } else if negative > 0 && positive > 0 {
+        "mixed_budget"
+    } else if negative > 0 {
+        "narrow_drop"
+    } else {
+        "flat"
+    }
+}
+
+fn pro_policy_matrix_budget_spread_bucket(
+    pro_delta: i32,
+    normal_delta: i32,
+    fast_delta: i32,
+) -> &'static str {
+    let max_delta = pro_delta.max(normal_delta).max(fast_delta);
+    let min_delta = pro_delta.min(normal_delta).min(fast_delta);
+    match max_delta.saturating_sub(min_delta) {
+        0..=64 => "spread_low",
+        65..=192 => "spread_mid",
+        _ => "spread_high",
+    }
+}
+
+fn pro_policy_matrix_reply_threat_count_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "threats0",
+        1 => "threats1",
+        2 => "threats2",
+        _ => "threats3",
+    }
+}
+
+fn pro_policy_matrix_reply_threat_delta_bucket(baseline: usize, candidate: usize) -> &'static str {
+    match candidate.cmp(&baseline) {
+        std::cmp::Ordering::Less => "threat_reduced",
+        std::cmp::Ordering::Equal => "threat_same",
+        std::cmp::Ordering::Greater => "threat_added",
+    }
+}
+
+fn pro_policy_matrix_post_move_budget_axes(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> Vec<String> {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return vec!["axis=post_move_budget_eval unavailable=board".to_string()];
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let Some(baseline_after) = MonsGameModel::apply_inputs_for_search(&board, &baseline_inputs)
+    else {
+        return vec!["axis=post_move_budget_eval unavailable=baseline_move".to_string()];
+    };
+    let Some(candidate_after) = MonsGameModel::apply_inputs_for_search(&board, &candidate_inputs)
+    else {
+        return vec!["axis=post_move_budget_eval unavailable=candidate_move".to_string()];
+    };
+
+    let eval_after = |state: &MonsGame, mode| {
+        let config = SearchBudget::from_preference(mode).runtime_config_for_game(state);
+        MonsGameModel::evaluate_search_preferability(state, divergence.active_color, config)
+    };
+    let baseline_pro = eval_after(&baseline_after, SmartAutomovePreference::Pro);
+    let baseline_normal = eval_after(&baseline_after, SmartAutomovePreference::Normal);
+    let baseline_fast = eval_after(&baseline_after, SmartAutomovePreference::Fast);
+    let candidate_pro = eval_after(&candidate_after, SmartAutomovePreference::Pro);
+    let candidate_normal = eval_after(&candidate_after, SmartAutomovePreference::Normal);
+    let candidate_fast = eval_after(&candidate_after, SmartAutomovePreference::Fast);
+    let pro_delta = candidate_pro.saturating_sub(baseline_pro);
+    let normal_delta = candidate_normal.saturating_sub(baseline_normal);
+    let fast_delta = candidate_fast.saturating_sub(baseline_fast);
+    let baseline_floor = baseline_pro.min(baseline_normal).min(baseline_fast);
+    let candidate_floor = candidate_pro.min(candidate_normal).min(candidate_fast);
+    let floor_delta = candidate_floor.saturating_sub(baseline_floor);
+
+    vec![
+        format!(
+            "axis=post_move_budget_eval baseline_floor={} candidate_floor={} floor_delta={} shape={} spread={}",
+            pro_policy_matrix_eval_bucket(baseline_floor),
+            pro_policy_matrix_eval_bucket(candidate_floor),
+            pro_policy_matrix_eval_delta_bucket(floor_delta),
+            pro_policy_matrix_budget_delta_shape(pro_delta, normal_delta, fast_delta),
+            pro_policy_matrix_budget_spread_bucket(pro_delta, normal_delta, fast_delta),
+        ),
+        format!(
+            "axis=post_move_budget_modes pro_delta={} normal_delta={} fast_delta={}",
+            pro_policy_matrix_eval_delta_bucket(pro_delta),
+            pro_policy_matrix_eval_delta_bucket(normal_delta),
+            pro_policy_matrix_eval_delta_bucket(fast_delta),
+        ),
+    ]
+}
+
+fn pro_policy_matrix_post_move_reply_budget_axes(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> Vec<String> {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return vec!["axis=post_move_reply_budget unavailable=board".to_string()];
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let Some(baseline_after) = MonsGameModel::apply_inputs_for_search(&board, &baseline_inputs)
+    else {
+        return vec!["axis=post_move_reply_budget unavailable=baseline_move".to_string()];
+    };
+    let Some(candidate_after) = MonsGameModel::apply_inputs_for_search(&board, &candidate_inputs)
+    else {
+        return vec!["axis=post_move_reply_budget unavailable=candidate_move".to_string()];
+    };
+
+    let reply_after = |state: &MonsGame, mode| {
+        let config = SearchBudget::from_preference(mode).runtime_config_for_game(state);
+        MonsGameModel::root_reply_risk_snapshot(
+            state,
+            divergence.active_color,
+            config,
+            config.root_reply_risk_reply_limit.clamp(1, 24),
+        )
+    };
+    let baseline_pro = reply_after(&baseline_after, SmartAutomovePreference::Pro);
+    let baseline_normal = reply_after(&baseline_after, SmartAutomovePreference::Normal);
+    let baseline_fast = reply_after(&baseline_after, SmartAutomovePreference::Fast);
+    let candidate_pro = reply_after(&candidate_after, SmartAutomovePreference::Pro);
+    let candidate_normal = reply_after(&candidate_after, SmartAutomovePreference::Normal);
+    let candidate_fast = reply_after(&candidate_after, SmartAutomovePreference::Fast);
+
+    let pro_delta = candidate_pro
+        .worst_reply_score
+        .saturating_sub(baseline_pro.worst_reply_score);
+    let normal_delta = candidate_normal
+        .worst_reply_score
+        .saturating_sub(baseline_normal.worst_reply_score);
+    let fast_delta = candidate_fast
+        .worst_reply_score
+        .saturating_sub(baseline_fast.worst_reply_score);
+    let baseline_floor = baseline_pro
+        .worst_reply_score
+        .min(baseline_normal.worst_reply_score)
+        .min(baseline_fast.worst_reply_score);
+    let candidate_floor = candidate_pro
+        .worst_reply_score
+        .min(candidate_normal.worst_reply_score)
+        .min(candidate_fast.worst_reply_score);
+    let floor_delta = candidate_floor.saturating_sub(baseline_floor);
+    let baseline_win_threats = [baseline_pro, baseline_normal, baseline_fast]
+        .iter()
+        .filter(|snapshot| snapshot.allows_immediate_opponent_win)
+        .count();
+    let candidate_win_threats = [candidate_pro, candidate_normal, candidate_fast]
+        .iter()
+        .filter(|snapshot| snapshot.allows_immediate_opponent_win)
+        .count();
+    let baseline_match_point_threats = [baseline_pro, baseline_normal, baseline_fast]
+        .iter()
+        .filter(|snapshot| snapshot.opponent_reaches_match_point)
+        .count();
+    let candidate_match_point_threats = [candidate_pro, candidate_normal, candidate_fast]
+        .iter()
+        .filter(|snapshot| snapshot.opponent_reaches_match_point)
+        .count();
+
+    vec![
+        format!(
+            "axis=post_move_reply_budget_floor baseline_floor={} candidate_floor={} floor_delta={} shape={} spread={}",
+            pro_policy_matrix_eval_bucket(baseline_floor),
+            pro_policy_matrix_eval_bucket(candidate_floor),
+            pro_policy_matrix_eval_delta_bucket(floor_delta),
+            pro_policy_matrix_budget_delta_shape(pro_delta, normal_delta, fast_delta),
+            pro_policy_matrix_budget_spread_bucket(pro_delta, normal_delta, fast_delta),
+        ),
+        format!(
+            "axis=post_move_reply_budget_modes pro_delta={} normal_delta={} fast_delta={}",
+            pro_policy_matrix_eval_delta_bucket(pro_delta),
+            pro_policy_matrix_eval_delta_bucket(normal_delta),
+            pro_policy_matrix_eval_delta_bucket(fast_delta),
+        ),
+        format!(
+            "axis=post_move_reply_budget_threats win={} match_point={}",
+            pro_policy_matrix_reply_threat_delta_bucket(
+                baseline_win_threats,
+                candidate_win_threats,
+            ),
+            pro_policy_matrix_reply_threat_delta_bucket(
+                baseline_match_point_threats,
+                candidate_match_point_threats,
+            ),
+        ),
+        format!(
+            "axis=post_move_reply_budget_threat_counts baseline_win={} candidate_win={} baseline_match_point={} candidate_match_point={}",
+            pro_policy_matrix_reply_threat_count_bucket(baseline_win_threats),
+            pro_policy_matrix_reply_threat_count_bucket(candidate_win_threats),
+            pro_policy_matrix_reply_threat_count_bucket(baseline_match_point_threats),
+            pro_policy_matrix_reply_threat_count_bucket(candidate_match_point_threats),
+        ),
+    ]
+}
+
+fn pro_policy_matrix_post_move_value_reply_budget_axes(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> Vec<String> {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return vec!["axis=post_move_value_reply_budget unavailable=board".to_string()];
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let Some(baseline_after) = MonsGameModel::apply_inputs_for_search(&board, &baseline_inputs)
+    else {
+        return vec!["axis=post_move_value_reply_budget unavailable=baseline_move".to_string()];
+    };
+    let Some(candidate_after) = MonsGameModel::apply_inputs_for_search(&board, &candidate_inputs)
+    else {
+        return vec!["axis=post_move_value_reply_budget unavailable=candidate_move".to_string()];
+    };
+
+    let eval_after = |state: &MonsGame, mode| {
+        let config = SearchBudget::from_preference(mode).runtime_config_for_game(state);
+        MonsGameModel::evaluate_search_preferability(state, divergence.active_color, config)
+    };
+    let reply_after = |state: &MonsGame, mode| {
+        let config = SearchBudget::from_preference(mode).runtime_config_for_game(state);
+        MonsGameModel::root_reply_risk_snapshot(
+            state,
+            divergence.active_color,
+            config,
+            config.root_reply_risk_reply_limit.clamp(1, 24),
+        )
+    };
+
+    let baseline_eval_pro = eval_after(&baseline_after, SmartAutomovePreference::Pro);
+    let baseline_eval_normal = eval_after(&baseline_after, SmartAutomovePreference::Normal);
+    let baseline_eval_fast = eval_after(&baseline_after, SmartAutomovePreference::Fast);
+    let candidate_eval_pro = eval_after(&candidate_after, SmartAutomovePreference::Pro);
+    let candidate_eval_normal = eval_after(&candidate_after, SmartAutomovePreference::Normal);
+    let candidate_eval_fast = eval_after(&candidate_after, SmartAutomovePreference::Fast);
+    let eval_pro_delta = candidate_eval_pro.saturating_sub(baseline_eval_pro);
+    let eval_normal_delta = candidate_eval_normal.saturating_sub(baseline_eval_normal);
+    let eval_fast_delta = candidate_eval_fast.saturating_sub(baseline_eval_fast);
+    let baseline_eval_floor = baseline_eval_pro
+        .min(baseline_eval_normal)
+        .min(baseline_eval_fast);
+    let candidate_eval_floor = candidate_eval_pro
+        .min(candidate_eval_normal)
+        .min(candidate_eval_fast);
+    let eval_floor_delta = candidate_eval_floor.saturating_sub(baseline_eval_floor);
+
+    let baseline_reply_pro = reply_after(&baseline_after, SmartAutomovePreference::Pro);
+    let baseline_reply_normal = reply_after(&baseline_after, SmartAutomovePreference::Normal);
+    let baseline_reply_fast = reply_after(&baseline_after, SmartAutomovePreference::Fast);
+    let candidate_reply_pro = reply_after(&candidate_after, SmartAutomovePreference::Pro);
+    let candidate_reply_normal = reply_after(&candidate_after, SmartAutomovePreference::Normal);
+    let candidate_reply_fast = reply_after(&candidate_after, SmartAutomovePreference::Fast);
+    let reply_pro_delta = candidate_reply_pro
+        .worst_reply_score
+        .saturating_sub(baseline_reply_pro.worst_reply_score);
+    let reply_normal_delta = candidate_reply_normal
+        .worst_reply_score
+        .saturating_sub(baseline_reply_normal.worst_reply_score);
+    let reply_fast_delta = candidate_reply_fast
+        .worst_reply_score
+        .saturating_sub(baseline_reply_fast.worst_reply_score);
+    let baseline_reply_floor = baseline_reply_pro
+        .worst_reply_score
+        .min(baseline_reply_normal.worst_reply_score)
+        .min(baseline_reply_fast.worst_reply_score);
+    let candidate_reply_floor = candidate_reply_pro
+        .worst_reply_score
+        .min(candidate_reply_normal.worst_reply_score)
+        .min(candidate_reply_fast.worst_reply_score);
+    let reply_floor_delta = candidate_reply_floor.saturating_sub(baseline_reply_floor);
+    let baseline_win_threats = [
+        baseline_reply_pro,
+        baseline_reply_normal,
+        baseline_reply_fast,
+    ]
+    .iter()
+    .filter(|snapshot| snapshot.allows_immediate_opponent_win)
+    .count();
+    let candidate_win_threats = [
+        candidate_reply_pro,
+        candidate_reply_normal,
+        candidate_reply_fast,
+    ]
+    .iter()
+    .filter(|snapshot| snapshot.allows_immediate_opponent_win)
+    .count();
+    let baseline_match_point_threats = [
+        baseline_reply_pro,
+        baseline_reply_normal,
+        baseline_reply_fast,
+    ]
+    .iter()
+    .filter(|snapshot| snapshot.opponent_reaches_match_point)
+    .count();
+    let candidate_match_point_threats = [
+        candidate_reply_pro,
+        candidate_reply_normal,
+        candidate_reply_fast,
+    ]
+    .iter()
+    .filter(|snapshot| snapshot.opponent_reaches_match_point)
+    .count();
+
+    vec![
+        format!(
+            "axis=post_move_value_reply_budget eval_floor_delta={} eval_shape={} eval_spread={} reply_floor_delta={} reply_shape={} reply_spread={} win_threat={} match_point={}",
+            pro_policy_matrix_eval_delta_bucket(eval_floor_delta),
+            pro_policy_matrix_budget_delta_shape(eval_pro_delta, eval_normal_delta, eval_fast_delta),
+            pro_policy_matrix_budget_spread_bucket(eval_pro_delta, eval_normal_delta, eval_fast_delta),
+            pro_policy_matrix_eval_delta_bucket(reply_floor_delta),
+            pro_policy_matrix_budget_delta_shape(reply_pro_delta, reply_normal_delta, reply_fast_delta),
+            pro_policy_matrix_budget_spread_bucket(reply_pro_delta, reply_normal_delta, reply_fast_delta),
+            pro_policy_matrix_reply_threat_delta_bucket(
+                baseline_win_threats,
+                candidate_win_threats,
+            ),
+            pro_policy_matrix_reply_threat_delta_bucket(
+                baseline_match_point_threats,
+                candidate_match_point_threats,
+            ),
+        ),
+        format!(
+            "axis=post_move_value_reply_budget_modes eval_pro={} eval_normal={} eval_fast={} reply_pro={} reply_normal={} reply_fast={}",
+            pro_policy_matrix_eval_delta_bucket(eval_pro_delta),
+            pro_policy_matrix_eval_delta_bucket(eval_normal_delta),
+            pro_policy_matrix_eval_delta_bucket(eval_fast_delta),
+            pro_policy_matrix_eval_delta_bucket(reply_pro_delta),
+            pro_policy_matrix_eval_delta_bucket(reply_normal_delta),
+            pro_policy_matrix_eval_delta_bucket(reply_fast_delta),
+        ),
+    ]
+}
+
+fn pro_policy_matrix_include_post_move_budget_axes() -> bool {
+    env_bool("SMART_PRO_POLICY_MATRIX_INCLUDE_POST_MOVE_BUDGET_AXES").unwrap_or(false)
+        || env::var("SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER")
+            .ok()
+            .is_some_and(|filter| filter.contains("post_move_budget"))
+}
+
+fn pro_policy_matrix_include_post_move_reply_budget_axes() -> bool {
+    env_bool("SMART_PRO_POLICY_MATRIX_INCLUDE_POST_MOVE_REPLY_BUDGET_AXES").unwrap_or(false)
+        || env::var("SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER")
+            .ok()
+            .is_some_and(|filter| filter.contains("post_move_reply_budget"))
+}
+
+fn pro_policy_matrix_include_post_move_value_reply_budget_axes() -> bool {
+    env_bool("SMART_PRO_POLICY_MATRIX_INCLUDE_POST_MOVE_VALUE_REPLY_BUDGET_AXES").unwrap_or(false)
+        || env::var("SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER")
+            .ok()
+            .is_some_and(|filter| filter.contains("post_move_value_reply_budget"))
+}
+
 fn pro_policy_matrix_timing_continuation_axes(
     first_divergence: Option<&ProProfileSweepFirstDivergence>,
     baseline_trace: &ProProfileSweepAttributionTrace,
@@ -1138,7 +1536,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         "different_final"
     };
 
-    [
+    let mut axes = vec![
         format!(
             "axis=decision_timing ply_bucket={} color={} turn_bucket={} mons_moves={} can_action={} can_mana={}",
             pro_policy_matrix_ply_bucket(divergence.ply),
@@ -1163,8 +1561,19 @@ fn pro_policy_matrix_timing_continuation_axes(
             pro_policy_matrix_followup_count_bucket(baseline_followups),
             pro_policy_matrix_followup_count_bucket(candidate_followups),
         ),
-    ]
-    .join("|")
+    ];
+    if pro_policy_matrix_include_post_move_budget_axes() {
+        axes.extend(pro_policy_matrix_post_move_budget_axes(divergence));
+    }
+    if pro_policy_matrix_include_post_move_reply_budget_axes() {
+        axes.extend(pro_policy_matrix_post_move_reply_budget_axes(divergence));
+    }
+    if pro_policy_matrix_include_post_move_value_reply_budget_axes() {
+        axes.extend(pro_policy_matrix_post_move_value_reply_budget_axes(
+            divergence,
+        ));
+    }
+    axes.join("|")
 }
 
 fn select_profile_sweep_candidate_inputs_with_branch(
@@ -19991,6 +20400,7 @@ fn smart_automove_pro_policy_matrix_probe() {
     let state_limit = env_usize("SMART_PRO_POLICY_MATRIX_STATE_LIMIT").map(|limit| limit.max(1));
     let total_state_limit =
         env_usize("SMART_PRO_POLICY_MATRIX_TOTAL_STATE_LIMIT").map(|limit| limit.max(1));
+    let skip_states = env_usize("SMART_PRO_POLICY_MATRIX_SKIP_STATES").unwrap_or(0);
     let aggregate_limit = env_usize("SMART_PRO_POLICY_MATRIX_AGGREGATE_LIMIT")
         .unwrap_or(64)
         .max(1);
@@ -20126,7 +20536,7 @@ fn smart_automove_pro_policy_matrix_probe() {
     };
 
     println!(
-        "pro policy matrix: baseline={} candidates={} panels={} duels={} max_plies={} state_limit={:?} total_state_limit={:?} include_decision_probe={} include_mechanism_class={} include_portfolio_mechanism_class={} include_corpus_records={} include_pro_v4_root_pool={} pro_v4_root_pool_record_limit={} pro_v4_root_pool_root_limit={} global_only={} record_axis_filter={}",
+        "pro policy matrix: baseline={} candidates={} panels={} duels={} max_plies={} state_limit={:?} total_state_limit={:?} skip_states={} include_decision_probe={} include_mechanism_class={} include_portfolio_mechanism_class={} include_corpus_records={} include_pro_v4_root_pool={} pro_v4_root_pool_record_limit={} pro_v4_root_pool_root_limit={} global_only={} record_axis_filter={}",
         baseline.id,
         candidate_ids,
         pro_policy_matrix_panel_specs(&panel_filter)
@@ -20144,6 +20554,7 @@ fn smart_automove_pro_policy_matrix_probe() {
         max_plies,
         state_limit,
         total_state_limit,
+        skip_states,
         include_decision_probe,
         include_mechanism_class,
         include_portfolio_mechanism_class,
@@ -20167,6 +20578,7 @@ fn smart_automove_pro_policy_matrix_probe() {
         BTreeMap::<String, PolicyMatrixMechanismRouteCoverage>::new();
     let mut record_filter_stats = PolicyMatrixRecordFilterStats::default();
     let mut global_state_limit_hit = false;
+    let mut total_states_visited = 0usize;
     let mut total_states_seen = 0usize;
     let mut pro_v4_root_pool_records_printed = 0usize;
 
@@ -20233,6 +20645,10 @@ fn smart_automove_pro_policy_matrix_probe() {
                             .expect("valid opening fen")
                             .variant();
                         for candidate_is_white in [true, false] {
+                            if total_states_visited < skip_states {
+                                total_states_visited += 1;
+                                continue;
+                            }
                             if state_limit.is_some_and(|limit| portfolio_stats.total_games >= limit)
                             {
                                 state_limit_hit = true;
@@ -20294,6 +20710,7 @@ fn smart_automove_pro_policy_matrix_probe() {
                                 automove_variant_label(variant),
                                 candidate_is_white,
                             );
+                            total_states_visited += 1;
                             total_states_seen += 1;
                             let portfolio_state_key = format!(
                                 "panel={} duel={} seed_tag={} repeat={} opening_index={} variant={} candidate_is_white={}",
@@ -21880,6 +22297,7 @@ fn smart_automove_pro_policy_cross_budget_probe() {
         .max(1);
     let state_limit =
         env_usize("SMART_PRO_POLICY_CROSS_BUDGET_STATE_LIMIT").map(|limit| limit.max(1));
+    let skip_states = env_usize("SMART_PRO_POLICY_CROSS_BUDGET_SKIP_STATES").unwrap_or(0);
     let include_mechanism_class =
         env_bool("SMART_PRO_POLICY_CROSS_BUDGET_INCLUDE_MECHANISM_CLASS").unwrap_or(false);
     let mechanism_class_filter =
@@ -21917,7 +22335,7 @@ fn smart_automove_pro_policy_cross_budget_probe() {
     ];
 
     println!(
-        "pro policy cross budget: baseline={} candidates={} panels={} max_plies={} seed_opponent_mode={} duels={} include_mechanism_class={} mechanism_class_filter={} mechanism_class_limit={}",
+        "pro policy cross budget: baseline={} candidates={} panels={} max_plies={} state_limit={:?} skip_states={} seed_opponent_mode={} duels={} include_mechanism_class={} mechanism_class_filter={} mechanism_class_limit={}",
         baseline.id,
         candidates
             .iter()
@@ -21932,6 +22350,8 @@ fn smart_automove_pro_policy_cross_budget_probe() {
             .collect::<Vec<_>>()
             .join(","),
         max_plies,
+        state_limit,
+        skip_states,
         seed_opponent_mode.as_api_value(),
         duel_specs
             .iter()
@@ -21943,6 +22363,7 @@ fn smart_automove_pro_policy_cross_budget_probe() {
         mechanism_class_limit,
     );
 
+    let mut total_states_visited = 0usize;
     for panel in pro_promotion_dashboard_panel_specs()
         .into_iter()
         .filter(|panel| pro_sweep_filter_allows(&panel_filter, panel.label))
@@ -21980,10 +22401,15 @@ fn smart_automove_pro_policy_cross_budget_probe() {
                         .expect("valid opening fen")
                         .variant();
                     for candidate_is_white in [true, false] {
+                        if total_states_visited < skip_states {
+                            total_states_visited += 1;
+                            continue;
+                        }
                         if state_limit.is_some_and(|limit| stats.total_states >= limit) {
                             stats.state_limit_hit = true;
                             break 'cross_budget_samples;
                         }
+                        total_states_visited += 1;
                         stats.total_states += 1;
                         let outcomes = candidates
                             .iter()
@@ -22260,7 +22686,7 @@ fn smart_automove_pro_policy_cross_budget_probe() {
             }
 
             println!(
-                "PRO_POLICY_CROSS_BUDGET_SUMMARY {{\"panel\":\"{}\",\"seed_tag\":\"{}\",\"baseline\":\"{}\",\"candidates\":\"{}\",\"seed_opponent_mode\":\"{}\",\"total_states\":{},\"baseline_all_budget_wins\":{},\"candidate_any_all_budget_wins\":{},\"shared_all_budget_win_states\":{},\"baseline_only_all_budget_win_states\":{},\"candidate_only_all_budget_win_states\":{},\"clean_repair_states\":{},\"nonregressing_repair_states\":{},\"budget_conflict_states\":{},\"no_policy_help_states\":{},\"state_limit_hit\":{}}}",
+                "PRO_POLICY_CROSS_BUDGET_SUMMARY {{\"panel\":\"{}\",\"seed_tag\":\"{}\",\"baseline\":\"{}\",\"candidates\":\"{}\",\"seed_opponent_mode\":\"{}\",\"skip_states\":{},\"total_states\":{},\"baseline_all_budget_wins\":{},\"candidate_any_all_budget_wins\":{},\"shared_all_budget_win_states\":{},\"baseline_only_all_budget_win_states\":{},\"candidate_only_all_budget_win_states\":{},\"clean_repair_states\":{},\"nonregressing_repair_states\":{},\"budget_conflict_states\":{},\"no_policy_help_states\":{},\"state_limit_hit\":{}}}",
                 json_escape(panel.label),
                 json_escape(panel_seed_tag.as_str()),
                 json_escape(baseline.id),
@@ -22273,6 +22699,7 @@ fn smart_automove_pro_policy_cross_budget_probe() {
                         .join(",")
                 ),
                 seed_opponent_mode.as_api_value(),
+                skip_states,
                 stats.total_states,
                 stats.baseline_all_budget_wins,
                 stats.candidate_any_all_budget_wins,
