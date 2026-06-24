@@ -1263,6 +1263,79 @@ fn pro_policy_matrix_followup_count_bucket(count: usize) -> &'static str {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProPolicyMatrixInitiativeDebt {
+    NoFollowup,
+    ReadyFirstFollowup,
+    ReadySecondFollowup,
+    ReadyThirdOrLaterFollowup,
+    NoRecovery,
+}
+
+fn pro_policy_matrix_initiative_debt_bucket(debt: ProPolicyMatrixInitiativeDebt) -> &'static str {
+    match debt {
+        ProPolicyMatrixInitiativeDebt::NoFollowup => "no_followup",
+        ProPolicyMatrixInitiativeDebt::ReadyFirstFollowup => "ready_followup1",
+        ProPolicyMatrixInitiativeDebt::ReadySecondFollowup => "ready_followup2",
+        ProPolicyMatrixInitiativeDebt::ReadyThirdOrLaterFollowup => "ready_followup3_plus",
+        ProPolicyMatrixInitiativeDebt::NoRecovery => "no_recovery",
+    }
+}
+
+fn pro_policy_matrix_initiative_debt_rank(debt: ProPolicyMatrixInitiativeDebt) -> Option<usize> {
+    match debt {
+        ProPolicyMatrixInitiativeDebt::NoFollowup => None,
+        ProPolicyMatrixInitiativeDebt::ReadyFirstFollowup => Some(1),
+        ProPolicyMatrixInitiativeDebt::ReadySecondFollowup => Some(2),
+        ProPolicyMatrixInitiativeDebt::ReadyThirdOrLaterFollowup => Some(3),
+        ProPolicyMatrixInitiativeDebt::NoRecovery => Some(4),
+    }
+}
+
+fn pro_policy_matrix_initiative_debt_delta_bucket(
+    baseline: ProPolicyMatrixInitiativeDebt,
+    candidate: ProPolicyMatrixInitiativeDebt,
+) -> &'static str {
+    match (
+        pro_policy_matrix_initiative_debt_rank(baseline),
+        pro_policy_matrix_initiative_debt_rank(candidate),
+    ) {
+        (None, None) => "same_no_followup",
+        (None, Some(_)) => "candidate_only_followup",
+        (Some(_), None) => "baseline_only_followup",
+        (Some(baseline), Some(candidate)) if baseline == candidate => "same_recovery",
+        (Some(baseline), Some(candidate)) if candidate < baseline => "candidate_faster",
+        (Some(_), Some(_)) => "baseline_faster",
+    }
+}
+
+fn pro_policy_matrix_post_diff_initiative_debt(
+    trace: &ProProfileSweepAttributionTrace,
+    divergence: &ProProfileSweepFirstDivergence,
+) -> ProPolicyMatrixInitiativeDebt {
+    let mut saw_followup = false;
+    for (index, turn) in trace
+        .candidate_turns
+        .iter()
+        .filter(|turn| turn.ply > divergence.ply)
+        .enumerate()
+    {
+        saw_followup = true;
+        if turn.can_use_action && turn.can_move_mana {
+            return match index {
+                0 => ProPolicyMatrixInitiativeDebt::ReadyFirstFollowup,
+                1 => ProPolicyMatrixInitiativeDebt::ReadySecondFollowup,
+                _ => ProPolicyMatrixInitiativeDebt::ReadyThirdOrLaterFollowup,
+            };
+        }
+    }
+    if saw_followup {
+        ProPolicyMatrixInitiativeDebt::NoRecovery
+    } else {
+        ProPolicyMatrixInitiativeDebt::NoFollowup
+    }
+}
+
 fn pro_policy_matrix_continuation_rejoin_bucket(
     left: &ProProfileSweepAttributionTrace,
     right: &ProProfileSweepAttributionTrace,
@@ -1924,6 +1997,10 @@ fn pro_policy_matrix_timing_continuation_axes(
     } else {
         "different_final"
     };
+    let baseline_initiative_debt =
+        pro_policy_matrix_post_diff_initiative_debt(baseline_trace, divergence);
+    let candidate_initiative_debt =
+        pro_policy_matrix_post_diff_initiative_debt(candidate_trace, divergence);
 
     let mut axes = vec![
         pro_policy_matrix_pre_diff_entry_axis(
@@ -1954,6 +2031,15 @@ fn pro_policy_matrix_timing_continuation_axes(
             final_state,
             pro_policy_matrix_followup_count_bucket(baseline_followups),
             pro_policy_matrix_followup_count_bucket(candidate_followups),
+        ),
+        format!(
+            "axis=post_diff_initiative_debt baseline={} candidate={} delta={}",
+            pro_policy_matrix_initiative_debt_bucket(baseline_initiative_debt),
+            pro_policy_matrix_initiative_debt_bucket(candidate_initiative_debt),
+            pro_policy_matrix_initiative_debt_delta_bucket(
+                baseline_initiative_debt,
+                candidate_initiative_debt,
+            ),
         ),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(

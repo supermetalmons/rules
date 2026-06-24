@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Post-Diff Initiative-Debt Timing No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=post_diff_initiative_debt`, a trace bucket for how many post-divergence candidate turns each side needs before it next has both action and mana.
+- A focused one-state active Fast probe compiled the harness and emitted the new axis with `delta=candidate_faster` on the initial sampled record.
+- The active Fast structural-scout slice (`20260625-021138`, dashboard `20260625-020916`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=post_diff_initiative_debt`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- The `post_diff_initiative_debt` filter matched all seven corpus records, including six candidate-better records across two states. The route still fragmented across four candidate policies, four branch transitions, seven first-move pairs, and one same-outcome record.
+- The top exact bucket, `axis=post_diff_initiative_debt baseline=ready_followup1 candidate=ready_followup3_plus delta=baseline_faster`, was repeated but not source: two candidate-better states, one same-outcome state, two candidate policies, two branch transitions, and three first-move pairs.
+- Durable outcome: initiative-debt timing can describe post-divergence recovery shape, but it did not separate active Fast repairs from guarded saves or same-outcome rows. Do not promote or write runtime selectors from post-diff initiative-debt buckets.
+
 ## 2026-06-25 Save-Aware Utility Calibration ProV4 No-Go
 
 - A temporary test-only `frontier_pro_v4_save_aware_utility_calibration` scout was built and pruned from the active sweep surface in the same session.
