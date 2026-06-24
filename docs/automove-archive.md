@@ -4,6 +4,14 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Save-Aware Utility Calibration ProV4 No-Go
+
+- A temporary test-only `frontier_pro_v4_save_aware_utility_calibration` scout was built and pruned from the active sweep surface in the same session.
+- The candidate preserved guarded fallback unless the guarded branch was `frontier_execute`, then scored top ProV2 roots with reply-risk/save-aware vetoes and a hand-calibrated utility delta over selected-override utility, root score, reply floor, rank, and progress signals.
+- The structural scout dashboard killed it on the sampled panel: log `target/experiment-runs/frontier_pro_v4_save_aware_utility_calibration/20260625-015146_pro_promotion_dashboard_frontier_pro_v4_save_aware_utility_calibration.log` ended `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`, min shipping win rate `0.4167`, confidence `0.0000`, max candidate average `240.31ms`, and two weak variant rows.
+- The follow-on policy-corpus step was stopped after the dashboard kill, because the candidate had already failed the promotion gate.
+- Durable outcome: hand-calibrated save-aware utility over existing root score/utility/reply fields is not a promotable Pro mode. Do not reopen this shape without corpus-trained weights or a new below-fragmented discriminator that is not just another shallow root-policy comparator.
+
 ## 2026-06-25 Decision-Effort Timing No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=decision_effort` and `axis=decision_effort_stage`, using per-candidate selector, exact-query, and turn-engine diagnostic deltas captured around the candidate decision.
