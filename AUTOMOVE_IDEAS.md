@@ -16,6 +16,8 @@ Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for workflow, `docs/automove-major-reset-pla
 
 ## Latest No-Source Summary
 
+- 2026-06-25 root class-vector and root-budget stability work stayed no-source. The retained changes are diagnostic/postprocess only: root-pool `class_vector`/`class_family`/`class_priority`, root-level Pro/Normal/Fast eval/reply/value-reply stability buckets, and workbench sample-root visibility for class/root-budget/root-input-goal fields.
+- The focused sampled Pro candidate-bearing root-budget slice (`20260625-010722`) ended `corpus_decision=singleton_no_source`, `source_candidate_axis_count=0`, `root_pool_decision=contaminated_root_pool_signals`, and `low_fragmentation_repeated_candidate_signal_count=0`. The `root_budget_stability` family had `rollup_status=contaminated_no_source` with `candidate_state_count=2`, `blocker_root_count=85`, `guarded_blocker_root_count=70`, and `same_state_blocker_root_count=38`. Do not promote or write selectors from root class-vector or root-budget stability buckets.
 - 2026-06-18 reset work stayed no-source. The retained changes are diagnostic/postprocess only: policy-matrix and cross-budget skip offsets, gated post-move budget/reply/value-reply axes, and workbench JSONL coverage for `first_move_goal` axes.
 - Reprocessed focused and aggregate 2026-06-18 logs still had `source_candidate_axis_count=0` and `source_candidate_rollups=0`. Post-move reply/value-reply and move-goal rows were singleton-heavy, fragmented by policy/branch/first-move pair, or contaminated by guarded baseline saves.
 - Temporary budget/width/root-pool/root-policy scouts were pruned. The strongest sampled Pro repair (`11-1`) immediately rotated into sampled Normal failure (`7-5`), while other candidates stayed at `8-4` or worse, failed cost, or failed sampled dashboards.
@@ -90,7 +92,7 @@ First validate local hygiene:
 ./scripts/check-automove-hygiene.sh
 ```
 
-Then continue only after adding or exposing another new below-fragmented measured corpus/root feature that is not already in the retired evidence list. Do not rerun `post_move_budget`, `post_move_reply_budget`, `post_move_value_reply_budget`, or current root-pool slices as source work:
+Then continue only after adding or exposing another new below-fragmented measured corpus/root feature that is not already in the retired evidence list. Do not rerun `post_move_budget`, `post_move_reply_budget`, `post_move_value_reply_budget`, root class-vector, root-budget stability, or current root-pool slices as source work:
 
 ```sh
 SMART_PRO_POLICY_MATRIX_PANEL_FILTER=<focused_panel> \

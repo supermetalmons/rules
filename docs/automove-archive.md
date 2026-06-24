@@ -4,6 +4,14 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Root Class-Vector And Root-Budget Stability No-Source
+
+- Retained changes are diagnostic/postprocess only. Root-pool rows now emit move-class buckets (`class_vector`, `class_family`, `class_priority`) and root-level budget-stability buckets over Pro/Normal/Fast eval, reply floor, and combined value/reply shape. Workbench sample roots now show class, root-budget, and canonical `root_input_goal` values.
+- The cross-budget class-vector corpus (`20260624-235530`) stayed no-source: `source_candidate_axis_count=0`, `blocked_candidate_axis_count=193`, `root_pool_decision=singleton_root_pool_signal`, `low_fragmentation_repeated_candidate_signal_count=0`, and class-vector field rollups were `contaminated_no_source`.
+- A focused sampled Fast validation slice (`20260625-010417`) verified the new fields emitted into JSONL, but it had `corpus_decision=no_candidate_route` and no candidate-only root-pool roots, so it was validation-only.
+- The focused sampled Pro candidate-bearing root-budget slice (`20260625-010722`) also stayed no-source: `corpus_decision=singleton_no_source`, `source_candidate_axis_count=0`, `root_pool_decision=contaminated_root_pool_signals`, `guarded_delta_decision=fragmented_repeated_root_pool_guarded_delta`, and `root_budget_stability` had `rollup_status=contaminated_no_source` with `candidate_state_count=2`, `blocker_root_count=85`, `guarded_blocker_root_count=70`, `same_state_blocker_root_count=38`, and zero low-fragmentation repeated signals.
+- Durable outcome: do not promote or write selectors from root class-vector, root-budget stability, or their current compounds. They are retained only to make future corpus/root-pool work less blind.
+
 ## 2026-06-18 Budget/Reply Corpus And Move-Goal Workbench No-Source
 
 - No runtime or test-only Pro challenger survived this iteration. The retained code is diagnostic/postprocess only: sampled policy-matrix skip offsets, cross-budget skip offsets, gated post-move budget/reply/value-reply axes, and workbench JSONL alignment for first-move goal axes.
