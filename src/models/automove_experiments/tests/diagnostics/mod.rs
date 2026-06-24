@@ -1104,6 +1104,78 @@ fn pro_policy_matrix_continuation_rejoin_bucket(
     }
 }
 
+fn pro_policy_matrix_pre_diff_entry_axis(
+    first_divergence: Option<&ProProfileSweepFirstDivergence>,
+    baseline_trace: &ProProfileSweepAttributionTrace,
+    candidate_trace: &ProProfileSweepAttributionTrace,
+) -> String {
+    let hidden_same_move_without_first_diff = || {
+        baseline_trace
+            .candidate_turns
+            .iter()
+            .zip(candidate_trace.candidate_turns.iter())
+            .any(|(baseline, candidate)| {
+                baseline.board_fen == candidate.board_fen
+                    && baseline.move_fen == candidate.move_fen
+                    && baseline.candidate_branch != candidate.candidate_branch
+            })
+    };
+
+    let Some(divergence) = first_divergence else {
+        return format!(
+            "axis=pre_diff_entry lead=none hidden_same_move={} first_diff=none",
+            hidden_same_move_without_first_diff()
+        );
+    };
+
+    let mut first_diff_index = None;
+    let mut latest_hidden_same_move_index = None;
+    let mut same_turn_entry_changed = false;
+    for (index, (baseline, candidate)) in baseline_trace
+        .candidate_turns
+        .iter()
+        .zip(candidate_trace.candidate_turns.iter())
+        .enumerate()
+    {
+        if baseline.board_fen != candidate.board_fen {
+            continue;
+        }
+        if baseline.ply < divergence.ply
+            && baseline.move_fen == candidate.move_fen
+            && baseline.candidate_branch != candidate.candidate_branch
+        {
+            latest_hidden_same_move_index = Some(index);
+        }
+        if baseline.ply == divergence.ply
+            && baseline.move_fen == divergence.left_move_fen
+            && candidate.move_fen == divergence.right_move_fen
+        {
+            first_diff_index = Some(index);
+            same_turn_entry_changed = baseline.candidate_branch != candidate.candidate_branch;
+            break;
+        }
+    }
+
+    let lead = if same_turn_entry_changed {
+        "same_turn"
+    } else if let (Some(first_diff_index), Some(hidden_index)) =
+        (first_diff_index, latest_hidden_same_move_index)
+    {
+        match first_diff_index.saturating_sub(hidden_index) {
+            0 | 1 => "one_candidate_turn",
+            _ => "two_plus_candidate_turns",
+        }
+    } else {
+        "none"
+    };
+
+    format!(
+        "axis=pre_diff_entry lead={} hidden_same_move={} first_diff=present",
+        lead,
+        latest_hidden_same_move_index.is_some()
+    )
+}
+
 fn pro_policy_matrix_eval_bucket(value: i32) -> &'static str {
     match value {
         i32::MIN..=-513 => "crisis",
@@ -1509,6 +1581,7 @@ fn pro_policy_matrix_timing_continuation_axes(
 ) -> String {
     let Some(divergence) = first_divergence else {
         return [
+            pro_policy_matrix_pre_diff_entry_axis(None, baseline_trace, candidate_trace),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -1537,6 +1610,11 @@ fn pro_policy_matrix_timing_continuation_axes(
     };
 
     let mut axes = vec![
+        pro_policy_matrix_pre_diff_entry_axis(
+            first_divergence,
+            baseline_trace,
+            candidate_trace,
+        ),
         format!(
             "axis=decision_timing ply_bucket={} color={} turn_bucket={} mons_moves={} can_action={} can_mana={}",
             pro_policy_matrix_ply_bucket(divergence.ply),

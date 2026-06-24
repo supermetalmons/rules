@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Pre-Diff Entry Timing No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=pre_diff_entry`, a coarse trace bucket for whether baseline and candidate traces had hidden same-move branch/path disagreement before the first visible move divergence.
+- The active Fast structural-scout slice (`20260625-012426`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=pre_diff_entry`, `panel=active_blockers`, `duel=vs_shipping_fast`, and one state. It stayed no-source: dashboard `not_promising`, `corpus_decision=singleton_no_source`, `source_candidate_axis_count=0`, `blocked_candidate_axis_count=134`, and `source_candidate_rollups=0`.
+- In that active Fast slice, `axis=pre_diff_entry lead=same_turn hidden_same_move=true first_diff=present` had two candidate-better records in one state but was `fragmented_no_source` by candidate policy, branch, and first-move pair. `lead=none hidden_same_move=false first_diff=present` was only a singleton non-regressing route.
+- The sampled Pro follow-up (`20260625-012712`) ran direct `pro-policy-outcome-corpus` with two sampled `vs_shipping_pro` states and the same record filter. It also stayed no-source: `corpus_decision=no_source`, `source_candidate_axis_count=0`, `blocked_candidate_axis_count=100`, and `source_candidate_rollups=0`.
+- In sampled Pro, `axis=pre_diff_entry lead=same_turn hidden_same_move=true first_diff=present` repeated across two joined states but mixed one candidate-better state with two same-outcome states and remained fragmented by candidate policy, branch, and first-move pair. `lead=same_turn hidden_same_move=false first_diff=present` was also fragmented.
+- Durable outcome: pre-diff entry timing supports the reset hypothesis that hidden policy entry can precede visible move divergence, but it did not separate wins from guarded saves. Do not promote or write runtime selectors from pre-diff timing buckets.
+
 ## 2026-06-25 Root Class-Vector And Root-Budget Stability No-Source
 
 - Retained changes are diagnostic/postprocess only. Root-pool rows now emit move-class buckets (`class_vector`, `class_family`, `class_priority`) and root-level budget-stability buckets over Pro/Normal/Fast eval, reply floor, and combined value/reply shape. Workbench sample roots now show class, root-budget, and canonical `root_input_goal` values.
