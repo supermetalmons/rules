@@ -4,6 +4,16 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Prompt Topology No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_prompt_topology_delta`, a coarse bucket for first-divergence move input depth, prompt count, max legal prompt options, and validity status on the source board.
+- The feature uses the same source board and compared move input sequences already present in corpus records, but the emitted key does not include policy id, branch id, exact move strings, variant, or post-root rollout state.
+- A focused one-state active Fast probe over the reset portfolio compiled the harness and emitted representative rows such as `baseline_depth=count2 candidate_depth=count3 depth_delta=candidate_more ... status=valid`.
+- The active Fast structural-scout slice (`20260625-024546`, dashboard `20260625-024349`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_prompt_topology_delta`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- The filter matched 14 corpus records, including six candidate-better records across two states, but also eight same-outcome records across two states. Permission stayed `fragmented_no_source`: seven candidate policies, five branch transitions, and eight first-move pairs.
+- The visible exact topology row was singleton/non-source: one candidate-better state plus one same-outcome state, still split across two candidate policies, two branches, and two first-move pairs.
+- Durable outcome: prompt topology helps describe input-flow shape, but it does not separate active Fast repairs below policy/branch/pair. Do not promote or write runtime selectors from source-prompt topology buckets.
+
 ## 2026-06-25 Source-Start Option-Profile No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_mechanism_axes_for_moves` now emits `axis=source_start_option_profile`, a source-time bucket for legal first start locations on the first-divergence board before either compared move is applied.

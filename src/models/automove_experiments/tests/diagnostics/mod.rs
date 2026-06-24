@@ -1962,6 +1962,119 @@ fn pro_policy_matrix_decision_effort_axes(
     ]
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+struct ProPolicyMatrixSourcePromptTopology {
+    input_depth: usize,
+    prompt_count: usize,
+    max_option_count: usize,
+    invalid_prefix: bool,
+}
+
+fn pro_policy_matrix_source_prompt_topology(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourcePromptTopology {
+    let mut topology = ProPolicyMatrixSourcePromptTopology {
+        input_depth: inputs.len(),
+        ..Default::default()
+    };
+    let mut prefix = Vec::new();
+    for input in inputs {
+        let mut probe = board.clone();
+        match probe.process_input_with_start_options_slice(
+            &prefix,
+            true,
+            false,
+            Some(SuggestedStartInputOptions::for_automove()),
+        ) {
+            Output::LocationsToStartFrom(options) => {
+                topology.prompt_count += 1;
+                topology.max_option_count = topology.max_option_count.max(options.len());
+            }
+            Output::NextInputOptions(options) => {
+                topology.prompt_count += 1;
+                topology.max_option_count = topology.max_option_count.max(options.len());
+            }
+            Output::Events(_) | Output::InvalidInput => {
+                topology.invalid_prefix = true;
+                break;
+            }
+        }
+        prefix.push(*input);
+    }
+    topology
+}
+
+fn pro_policy_matrix_source_prompt_count_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "count0",
+        1 => "count1",
+        2 => "count2",
+        3 => "count3",
+        _ => "count4_plus",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_option_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "opts0",
+        1 => "opts1",
+        2..=4 => "opts2_4",
+        5..=8 => "opts5_8",
+        9..=16 => "opts9_16",
+        _ => "opts17_plus",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_delta_bucket(baseline: usize, candidate: usize) -> &'static str {
+    match candidate.cmp(&baseline) {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_status(
+    baseline: ProPolicyMatrixSourcePromptTopology,
+    candidate: ProPolicyMatrixSourcePromptTopology,
+) -> &'static str {
+    match (baseline.invalid_prefix, candidate.invalid_prefix) {
+        (false, false) => "valid",
+        (true, false) => "baseline_invalid",
+        (false, true) => "candidate_invalid",
+        (true, true) => "both_invalid",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_topology_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_prompt_topology_delta unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_prompt_topology(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_prompt_topology(&board, &candidate_inputs);
+
+    format!(
+        "axis=source_prompt_topology_delta baseline_depth={} candidate_depth={} depth_delta={} baseline_prompts={} candidate_prompts={} prompt_delta={} baseline_max_options={} candidate_max_options={} option_delta={} status={}",
+        pro_policy_matrix_source_prompt_count_bucket(baseline.input_depth),
+        pro_policy_matrix_source_prompt_count_bucket(candidate.input_depth),
+        pro_policy_matrix_source_prompt_delta_bucket(baseline.input_depth, candidate.input_depth),
+        pro_policy_matrix_source_prompt_count_bucket(baseline.prompt_count),
+        pro_policy_matrix_source_prompt_count_bucket(candidate.prompt_count),
+        pro_policy_matrix_source_prompt_delta_bucket(baseline.prompt_count, candidate.prompt_count),
+        pro_policy_matrix_source_prompt_option_bucket(baseline.max_option_count),
+        pro_policy_matrix_source_prompt_option_bucket(candidate.max_option_count),
+        pro_policy_matrix_source_prompt_delta_bucket(
+            baseline.max_option_count,
+            candidate.max_option_count,
+        ),
+        pro_policy_matrix_source_prompt_status(baseline, candidate),
+    )
+}
+
 fn pro_policy_matrix_timing_continuation_axes(
     first_divergence: Option<&ProProfileSweepFirstDivergence>,
     baseline_trace: &ProProfileSweepAttributionTrace,
@@ -1971,6 +2084,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         return [
             pro_policy_matrix_pre_diff_entry_axis(None, baseline_trace, candidate_trace),
             "axis=decision_effort first_diff=none".to_string(),
+            "axis=source_prompt_topology_delta first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -2041,6 +2155,7 @@ fn pro_policy_matrix_timing_continuation_axes(
                 candidate_initiative_debt,
             ),
         ),
+        pro_policy_matrix_source_prompt_topology_axis(divergence),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,
