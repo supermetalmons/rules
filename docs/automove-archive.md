@@ -4,6 +4,14 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Decision-Effort Timing No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=decision_effort` and `axis=decision_effort_stage`, using per-candidate selector, exact-query, and turn-engine diagnostic deltas captured around the candidate decision.
+- The focused active Fast structural-scout slice (`20260625-014317`, dashboard `20260625-014120`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=decision_effort`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- The `decision_effort` filter matched 14 corpus records, including six candidate-better records across two states, but permission was `fragmented_no_source`: seven candidate policies, five branch transitions, eight first-move pairs, and eight same-outcome records.
+- Detailed `axis=decision_effort ...` bucket rollups existed in workbench JSONL, but each candidate-bearing rollup was singleton non-regressing; the remaining rows were shared/no-candidate-signal.
+- Durable outcome: decision-effort counters are useful corpus diagnostics, but they did not separate active Fast repairs from guarded saves or same-outcome rows. Do not promote or write runtime selectors from decision-effort timing buckets.
+
 ## 2026-06-25 Pre-Diff Entry Timing No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=pre_diff_entry`, a coarse trace bucket for whether baseline and candidate traces had hidden same-move branch/path disagreement before the first visible move divergence.

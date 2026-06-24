@@ -986,6 +986,205 @@ fn print_pro_promotion_dashboard_variants(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct ProPolicyMatrixDecisionEffort {
+    selector_child_calls: usize,
+    selector_children: usize,
+    selector_fully_scored: usize,
+    selector_shortlist: usize,
+    selector_full_pass: usize,
+    selector_move_efficiency_builds: usize,
+    selector_move_efficiency_hits: usize,
+    selector_preferability_builds: usize,
+    selector_preferability_hits: usize,
+    selector_head_calls: usize,
+    selector_head_hits: usize,
+    selector_followup_floor_calls: usize,
+    exact_attack_calls: usize,
+    exact_payload_calls: usize,
+    exact_tactical_spirit_calls: usize,
+    exact_immediate_window_queries: usize,
+    exact_secure_mana_calls: usize,
+    exact_pickup_calls: usize,
+    engine_cache_misses: usize,
+    engine_accepted_plans: usize,
+    engine_reply_calls: usize,
+    engine_compile_attempts: usize,
+    selector_last_stage: &'static str,
+    selector_top_level_last_stage: &'static str,
+    selector_disable_reason: &'static str,
+    selector_top_level_disable_reason: &'static str,
+}
+
+#[derive(Clone, Copy)]
+struct ProPolicyMatrixDecisionEffortSnapshot {
+    selector: TurnEngineSelectorDiagnostics,
+    exact: ExactQueryDiagnostics,
+    engine: TurnEngineDiagnostics,
+}
+
+fn pro_policy_matrix_counter_delta_usize(before: usize, after: usize) -> usize {
+    if after >= before {
+        after - before
+    } else {
+        after
+    }
+}
+
+fn pro_policy_matrix_counter_delta_u32(before: u32, after: u32) -> usize {
+    if after >= before {
+        (after - before) as usize
+    } else {
+        after as usize
+    }
+}
+
+impl ProPolicyMatrixDecisionEffortSnapshot {
+    fn capture() -> Self {
+        Self {
+            selector: turn_engine_selector_diagnostics_snapshot(),
+            exact: exact_query_diagnostics_snapshot(),
+            engine: turn_engine_diagnostics_snapshot(),
+        }
+    }
+}
+
+impl ProPolicyMatrixDecisionEffort {
+    fn from_snapshots(
+        before: ProPolicyMatrixDecisionEffortSnapshot,
+        after: ProPolicyMatrixDecisionEffortSnapshot,
+    ) -> Self {
+        Self {
+            selector_child_calls: pro_policy_matrix_counter_delta_usize(
+                before.selector.ranked_child_states_calls,
+                after.selector.ranked_child_states_calls,
+            ),
+            selector_children: pro_policy_matrix_counter_delta_usize(
+                before.selector.ranked_child_states_children_enumerated,
+                after.selector.ranked_child_states_children_enumerated,
+            ),
+            selector_fully_scored: pro_policy_matrix_counter_delta_usize(
+                before.selector.ranked_child_states_children_fully_scored,
+                after.selector.ranked_child_states_children_fully_scored,
+            ),
+            selector_shortlist: pro_policy_matrix_counter_delta_usize(
+                before.selector.child_ordering_shortlist_children,
+                after.selector.child_ordering_shortlist_children,
+            ),
+            selector_full_pass: pro_policy_matrix_counter_delta_usize(
+                before.selector.child_ordering_full_pass_children,
+                after.selector.child_ordering_full_pass_children,
+            ),
+            selector_move_efficiency_builds: pro_policy_matrix_counter_delta_usize(
+                before.selector.move_efficiency_snapshot_builds,
+                after.selector.move_efficiency_snapshot_builds,
+            ),
+            selector_move_efficiency_hits: pro_policy_matrix_counter_delta_usize(
+                before.selector.move_efficiency_snapshot_cache_hits,
+                after.selector.move_efficiency_snapshot_cache_hits,
+            ),
+            selector_preferability_builds: pro_policy_matrix_counter_delta_usize(
+                before.selector.search_preferability_builds,
+                after.selector.search_preferability_builds,
+            ),
+            selector_preferability_hits: pro_policy_matrix_counter_delta_usize(
+                before.selector.search_preferability_cache_hits,
+                after.selector.search_preferability_cache_hits,
+            ),
+            selector_head_calls: pro_policy_matrix_counter_delta_usize(
+                before.selector.head_plan_calls,
+                after.selector.head_plan_calls,
+            ),
+            selector_head_hits: pro_policy_matrix_counter_delta_usize(
+                before.selector.head_plan_hits,
+                after.selector.head_plan_hits,
+            ),
+            selector_followup_floor_calls: pro_policy_matrix_counter_delta_usize(
+                before.selector.followup_floor_calls,
+                after.selector.followup_floor_calls,
+            ),
+            exact_attack_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.attack_reach_calls,
+                after.exact.attack_reach_calls,
+            ),
+            exact_payload_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.actor_payload_after_move_calls,
+                after.exact.actor_payload_after_move_calls,
+            ),
+            exact_tactical_spirit_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.tactical_spirit_summary_calls,
+                after.exact.tactical_spirit_summary_calls,
+            ),
+            exact_immediate_window_queries: pro_policy_matrix_counter_delta_u32(
+                before.exact.immediate_tactical_window_queries,
+                after.exact.immediate_tactical_window_queries,
+            ),
+            exact_secure_mana_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.exact_secure_mana_calls,
+                after.exact.exact_secure_mana_calls,
+            ),
+            exact_pickup_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.pickup_path_calls,
+                after.exact.pickup_path_calls,
+            ),
+            engine_cache_misses: pro_policy_matrix_counter_delta_usize(
+                before.engine.cache_misses,
+                after.engine.cache_misses,
+            ),
+            engine_accepted_plans: pro_policy_matrix_counter_delta_usize(
+                before.engine.accepted_plans,
+                after.engine.accepted_plans,
+            ),
+            engine_reply_calls: pro_policy_matrix_counter_delta_usize(
+                before.engine.reply_search_calls,
+                after.engine.reply_search_calls,
+            ),
+            engine_compile_attempts: pro_policy_matrix_counter_delta_usize(
+                before.engine.compile_attempts,
+                after.engine.compile_attempts,
+            ),
+            selector_last_stage: after.selector.last_return_stage,
+            selector_top_level_last_stage: after.selector.top_level_last_return_stage,
+            selector_disable_reason: after.selector.selector_disable_reason,
+            selector_top_level_disable_reason: after.selector.top_level_selector_disable_reason,
+        }
+    }
+
+    fn selector_work(self) -> usize {
+        self.selector_child_calls
+            + self.selector_children
+            + self.selector_fully_scored
+            + self.selector_shortlist
+            + self.selector_full_pass
+            + self.selector_move_efficiency_builds
+            + self.selector_preferability_builds
+            + self.selector_head_calls
+            + self.selector_followup_floor_calls
+    }
+
+    fn selector_cache_work(self) -> usize {
+        self.selector_move_efficiency_hits
+            + self.selector_preferability_hits
+            + self.selector_head_hits
+    }
+
+    fn exact_work(self) -> usize {
+        self.exact_attack_calls
+            + self.exact_payload_calls
+            + self.exact_tactical_spirit_calls
+            + self.exact_immediate_window_queries
+            + self.exact_secure_mana_calls
+            + self.exact_pickup_calls
+    }
+
+    fn engine_work(self) -> usize {
+        self.engine_cache_misses
+            + self.engine_accepted_plans
+            + self.engine_reply_calls
+            + self.engine_compile_attempts
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ProProfileSweepAttributionTurn {
     ply: usize,
@@ -998,6 +1197,7 @@ struct ProProfileSweepAttributionTurn {
     can_use_action: bool,
     can_move_mana: bool,
     exact_context: String,
+    decision_effort: ProPolicyMatrixDecisionEffort,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1021,6 +1221,8 @@ struct ProProfileSweepFirstDivergence {
     can_use_action: bool,
     can_move_mana: bool,
     exact_context: String,
+    left_decision_effort: ProPolicyMatrixDecisionEffort,
+    right_decision_effort: ProPolicyMatrixDecisionEffort,
 }
 
 fn pro_profile_sweep_color_label(color: Color) -> &'static str {
@@ -1574,6 +1776,119 @@ fn pro_policy_matrix_include_post_move_value_reply_budget_axes() -> bool {
             .is_some_and(|filter| filter.contains("post_move_value_reply_budget"))
 }
 
+fn pro_policy_matrix_effort_bucket(value: usize) -> &'static str {
+    match value {
+        0 => "none",
+        1..=4 => "tiny",
+        5..=24 => "low",
+        25..=99 => "medium",
+        100..=399 => "high",
+        _ => "very_high",
+    }
+}
+
+fn pro_policy_matrix_effort_delta_bucket(baseline: usize, candidate: usize) -> &'static str {
+    let delta = candidate as i64 - baseline as i64;
+    match delta {
+        0 => "same",
+        1..=4 => "candidate_more_1_4",
+        5..=24 => "candidate_more_5_24",
+        25..=99 => "candidate_more_25_99",
+        100.. => "candidate_more_100_plus",
+        -4..=-1 => "candidate_less_1_4",
+        -24..=-5 => "candidate_less_5_24",
+        -99..=-25 => "candidate_less_25_99",
+        _ => "candidate_less_100_plus",
+    }
+}
+
+fn pro_policy_matrix_selector_stage_bucket(stage: &str) -> &'static str {
+    if stage.is_empty() {
+        "unset"
+    } else if stage.contains("allowed_head") {
+        "engine_head"
+    } else if stage.contains("cached") {
+        "engine_cached"
+    } else if stage.contains("prepass") {
+        "engine_prepass"
+    } else if stage.contains("post_search") {
+        "engine_post_search"
+    } else if stage.contains("search_only") {
+        "search_only"
+    } else if stage.contains("fallback") {
+        "fallback"
+    } else {
+        "other"
+    }
+}
+
+fn pro_policy_matrix_selector_disable_bucket(reason: &str) -> &'static str {
+    if reason.is_empty() {
+        "none"
+    } else if reason.contains("guard") {
+        "guard"
+    } else if reason.contains("disabled") {
+        "disabled"
+    } else {
+        "other"
+    }
+}
+
+fn pro_policy_matrix_decision_effort_axes(
+    baseline: ProPolicyMatrixDecisionEffort,
+    candidate: ProPolicyMatrixDecisionEffort,
+) -> Vec<String> {
+    let baseline_selector = baseline.selector_work();
+    let candidate_selector = candidate.selector_work();
+    let baseline_cache = baseline.selector_cache_work();
+    let candidate_cache = candidate.selector_cache_work();
+    let baseline_exact = baseline.exact_work();
+    let candidate_exact = candidate.exact_work();
+    let baseline_engine = baseline.engine_work();
+    let candidate_engine = candidate.engine_work();
+    let baseline_stage = pro_policy_matrix_selector_stage_bucket(baseline.selector_last_stage);
+    let candidate_stage = pro_policy_matrix_selector_stage_bucket(candidate.selector_last_stage);
+    let baseline_top_stage =
+        pro_policy_matrix_selector_stage_bucket(baseline.selector_top_level_last_stage);
+    let candidate_top_stage =
+        pro_policy_matrix_selector_stage_bucket(candidate.selector_top_level_last_stage);
+    let baseline_disable =
+        pro_policy_matrix_selector_disable_bucket(baseline.selector_disable_reason);
+    let candidate_disable =
+        pro_policy_matrix_selector_disable_bucket(candidate.selector_disable_reason);
+    let baseline_top_disable =
+        pro_policy_matrix_selector_disable_bucket(baseline.selector_top_level_disable_reason);
+    let candidate_top_disable =
+        pro_policy_matrix_selector_disable_bucket(candidate.selector_top_level_disable_reason);
+
+    vec![
+        format!(
+            "axis=decision_effort selector_delta={} exact_delta={} engine_delta={} cache_delta={} baseline_selector={} candidate_selector={} baseline_exact={} candidate_exact={} baseline_engine={} candidate_engine={}",
+            pro_policy_matrix_effort_delta_bucket(baseline_selector, candidate_selector),
+            pro_policy_matrix_effort_delta_bucket(baseline_exact, candidate_exact),
+            pro_policy_matrix_effort_delta_bucket(baseline_engine, candidate_engine),
+            pro_policy_matrix_effort_delta_bucket(baseline_cache, candidate_cache),
+            pro_policy_matrix_effort_bucket(baseline_selector),
+            pro_policy_matrix_effort_bucket(candidate_selector),
+            pro_policy_matrix_effort_bucket(baseline_exact),
+            pro_policy_matrix_effort_bucket(candidate_exact),
+            pro_policy_matrix_effort_bucket(baseline_engine),
+            pro_policy_matrix_effort_bucket(candidate_engine),
+        ),
+        format!(
+            "axis=decision_effort_stage selector_stage={}->{} top_stage={}->{} disable={}->{} top_disable={}->{}",
+            baseline_stage,
+            candidate_stage,
+            baseline_top_stage,
+            candidate_top_stage,
+            baseline_disable,
+            candidate_disable,
+            baseline_top_disable,
+            candidate_top_disable,
+        ),
+    ]
+}
+
 fn pro_policy_matrix_timing_continuation_axes(
     first_divergence: Option<&ProProfileSweepFirstDivergence>,
     baseline_trace: &ProProfileSweepAttributionTrace,
@@ -1582,6 +1897,7 @@ fn pro_policy_matrix_timing_continuation_axes(
     let Some(divergence) = first_divergence else {
         return [
             pro_policy_matrix_pre_diff_entry_axis(None, baseline_trace, candidate_trace),
+            "axis=decision_effort first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -1640,6 +1956,10 @@ fn pro_policy_matrix_timing_continuation_axes(
             pro_policy_matrix_followup_count_bucket(candidate_followups),
         ),
     ];
+    axes.extend(pro_policy_matrix_decision_effort_axes(
+        divergence.left_decision_effort,
+        divergence.right_decision_effort,
+    ));
     if pro_policy_matrix_include_post_move_budget_axes() {
         axes.extend(pro_policy_matrix_post_move_budget_axes(divergence));
     }
@@ -1704,11 +2024,18 @@ fn play_profile_sweep_attribution_trace(
         } else {
             game.active_color == Color::Black
         };
-        let (inputs, guarded_branch) = if candidate_to_move {
-            select_profile_sweep_candidate_inputs_with_branch(
+        let (inputs, guarded_branch, decision_effort) = if candidate_to_move {
+            let effort_before = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            let (inputs, guarded_branch) = select_profile_sweep_candidate_inputs_with_branch(
                 candidate,
                 &game,
                 pro_budget().runtime_config_for_game(&game),
+            );
+            let effort_after = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            (
+                inputs,
+                guarded_branch,
+                ProPolicyMatrixDecisionEffort::from_snapshots(effort_before, effort_after),
             )
         } else {
             (
@@ -1718,6 +2045,7 @@ fn play_profile_sweep_attribution_trace(
                     opponent_budget.runtime_config_for_game(&game),
                 ),
                 "opponent_execute",
+                ProPolicyMatrixDecisionEffort::default(),
             )
         };
 
@@ -1733,6 +2061,7 @@ fn play_profile_sweep_attribution_trace(
                 can_use_action: game.player_can_use_action(),
                 can_move_mana: game.player_can_move_mana(),
                 exact_context: exact_opportunity_context_probe(&game),
+                decision_effort,
             });
         }
 
@@ -1803,14 +2132,25 @@ fn play_profile_sweep_forced_first_candidate_turn(
         } else {
             game.active_color == Color::Black
         };
-        let (inputs, guarded_branch) = if candidate_to_move && !forced_turn_spent {
+        let (inputs, guarded_branch, decision_effort) = if candidate_to_move && !forced_turn_spent {
             forced_turn_spent = true;
-            (forced_inputs.to_vec(), "forced_root")
+            (
+                forced_inputs.to_vec(),
+                "forced_root",
+                ProPolicyMatrixDecisionEffort::default(),
+            )
         } else if candidate_to_move {
-            select_profile_sweep_candidate_inputs_with_branch(
+            let effort_before = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            let (inputs, guarded_branch) = select_profile_sweep_candidate_inputs_with_branch(
                 candidate,
                 &game,
                 pro_budget().runtime_config_for_game(&game),
+            );
+            let effort_after = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            (
+                inputs,
+                guarded_branch,
+                ProPolicyMatrixDecisionEffort::from_snapshots(effort_before, effort_after),
             )
         } else {
             (
@@ -1820,6 +2160,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
                     opponent_budget.runtime_config_for_game(&game),
                 ),
                 "opponent_execute",
+                ProPolicyMatrixDecisionEffort::default(),
             )
         };
 
@@ -1835,6 +2176,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
                 can_use_action: game.player_can_use_action(),
                 can_move_mana: game.player_can_move_mana(),
                 exact_context: exact_opportunity_context_probe(&game),
+                decision_effort,
             });
         }
 
@@ -1899,6 +2241,8 @@ fn first_profile_sweep_candidate_divergence(
                 can_use_action: left_turn.can_use_action,
                 can_move_mana: left_turn.can_move_mana,
                 exact_context: left_turn.exact_context.clone(),
+                left_decision_effort: left_turn.decision_effort,
+                right_decision_effort: right_turn.decision_effort,
             })
         })
 }

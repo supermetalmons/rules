@@ -16,6 +16,8 @@ Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for workflow, `docs/automove-major-reset-pla
 
 ## Latest No-Source Summary
 
+- 2026-06-25 decision-effort timing work stayed no-source. The retained change is diagnostic-only: `timing_continuation_axes` now emits `axis=decision_effort ...` and `axis=decision_effort_stage ...`, using selector, exact-query, and turn-engine counter deltas captured around each candidate decision. The axes bucket decision work and stage changes without policy ids, exact boards, or move pairs in the axis key.
+- The focused active Fast structural scout (`20260625-014317`, dashboard `20260625-014120`) ended `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `source_candidate_rollups=0`, and `source_blocker.kind=fragmented_routes` with `clean_low_fragmentation_routes=0`. The `decision_effort` filter matched 14 corpus records with six candidate-better records across two states, but permission was `fragmented_no_source`: seven candidate policies, five branch transitions, eight first-move pairs, and eight same-outcome records. Detailed `axis=decision_effort ...` rollups were singleton non-regressing or shared/no-candidate-signal. Do not promote or write selectors from decision-effort buckets.
 - 2026-06-25 pre-diff entry timing work stayed no-source. The retained change is diagnostic only: `timing_continuation_axes` now emits `axis=pre_diff_entry ...`, which buckets hidden same-move branch/path disagreement before the first visible move divergence without policy ids, exact boards, or move pairs in the axis key.
 - The focused active Fast slice (`20260625-012426`) ended `corpus_decision=singleton_no_source`, `source_candidate_axis_count=0`, and no root-pool rows. Its candidate-bearing pre-diff rows were either singleton or fragmented by candidate policy, branch, and first-move pair. The focused sampled Pro slice (`20260625-012712`) ended `corpus_decision=no_source`, `source_candidate_axis_count=0`, and `blocked_candidate_axis_count=100`; `axis=pre_diff_entry lead=same_turn hidden_same_move=true first_diff=present` repeated across two states but mixed one candidate-better state with two same-outcome states and remained fragmented by candidate policy, branch, and first-move pair. Do not promote or write selectors from pre-diff entry timing buckets.
 - 2026-06-25 root class-vector and root-budget stability work stayed no-source. The retained changes are diagnostic/postprocess only: root-pool `class_vector`/`class_family`/`class_priority`, root-level Pro/Normal/Fast eval/reply/value-reply stability buckets, and workbench sample-root visibility for class/root-budget/root-input-goal fields.
@@ -94,7 +96,7 @@ First validate local hygiene:
 ./scripts/check-automove-hygiene.sh
 ```
 
-Then continue only after adding or exposing another new below-fragmented measured corpus/root feature that is not already in the retired evidence list. Do not rerun `pre_diff_entry`, `post_move_budget`, `post_move_reply_budget`, `post_move_value_reply_budget`, root class-vector, root-budget stability, or current root-pool slices as source work:
+Then continue only after adding or exposing another new below-fragmented measured corpus/root feature that is not already in the retired evidence list. Do not rerun `decision_effort`, `pre_diff_entry`, `post_move_budget`, `post_move_reply_budget`, `post_move_value_reply_budget`, root class-vector, root-budget stability, or current root-pool slices as source work:
 
 ```sh
 SMART_PRO_POLICY_MATRIX_PANEL_FILTER=<focused_panel> \
