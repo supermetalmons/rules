@@ -23489,6 +23489,62 @@ fn pro_policy_matrix_mechanism_axis_key(key: &str) -> &str {
     key.find("axis=").map(|index| &key[index..]).unwrap_or(key)
 }
 
+fn pro_policy_matrix_source_start_count_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "start0",
+        1 => "start1",
+        2 => "start2",
+        3..=4 => "start3_4",
+        5..=8 => "start5_8",
+        _ => "start9_plus",
+    }
+}
+
+fn pro_policy_matrix_source_start_mix(mon_starts: usize, mana_starts: usize) -> &'static str {
+    match (mon_starts > 0, mana_starts > 0) {
+        (false, false) => "none",
+        (true, false) => "mon_only",
+        (false, true) => "mana_only",
+        (true, true) => "mixed",
+    }
+}
+
+fn pro_policy_matrix_source_start_option_axes(game: &MonsGame) -> Vec<String> {
+    let mut probe = game.clone();
+    let starts = match probe.process_input_with_start_options_slice(
+        &[],
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::LocationsToStartFrom(starts) => starts,
+        _ => Vec::new(),
+    };
+    let mut mon_starts = 0usize;
+    let mut mana_starts = 0usize;
+    for start in &starts {
+        match game.board.item(*start) {
+            Some(item) if item.mon().is_some_and(|mon| mon.color == game.active_color) => {
+                mon_starts += 1;
+            }
+            Some(Item::Mana {
+                mana: Mana::Regular(color),
+            }) if *color == game.active_color => {
+                mana_starts += 1;
+            }
+            _ => {}
+        }
+    }
+
+    vec![format!(
+        "axis=source_start_option_profile total={} mon={} mana={} mix={}",
+        pro_policy_matrix_source_start_count_bucket(starts.len()),
+        pro_policy_matrix_source_start_count_bucket(mon_starts),
+        pro_policy_matrix_source_start_count_bucket(mana_starts),
+        pro_policy_matrix_source_start_mix(mon_starts, mana_starts),
+    )]
+}
+
 fn pro_policy_matrix_mechanism_axes_for_moves(
     baseline_id: &str,
     board_fen: &str,
@@ -23512,6 +23568,7 @@ fn pro_policy_matrix_mechanism_axes_for_moves(
         candidate_move_fen,
     )
     .into_iter()
+    .chain(pro_policy_matrix_source_start_option_axes(&board))
     .map(|key| pro_policy_matrix_mechanism_axis_key(&key).to_string())
     .collect::<Vec<_>>()
     .join("|")

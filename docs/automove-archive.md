@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Start Option-Profile No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_mechanism_axes_for_moves` now emits `axis=source_start_option_profile`, a source-time bucket for legal first start locations on the first-divergence board before either compared move is applied.
+- The feature counts total legal starts, active-color mon starts, active-color regular-mana starts, and a coarse mon/mana mix flag. It does not use policy id, branch id, exact move strings, variant, or post-root rollout state.
+- A focused one-state active Fast probe over the reset portfolio compiled the harness and emitted `axis=source_start_option_profile total=start5_8 mon=start5_8 mana=start0 mix=mon_only` in mechanism axes.
+- The active Fast structural-scout slice (`20260625-022801`, dashboard `20260625-022605`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_start_option`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- The source-start row matched all seven filtered corpus records, including six candidate-better records across two states, but it remained `fragmented_no_source`: four candidate policies, four branch transitions, seven first-move pairs, and one same-outcome record.
+- Durable outcome: source-start option shape is useful for corpus visibility, but the active Fast repairs still do not separate below policy/branch/pair. Do not promote or write runtime selectors from source-start option-profile buckets.
+
 ## 2026-06-25 Post-Diff Initiative-Debt Timing No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=post_diff_initiative_debt`, a trace bucket for how many post-divergence candidate turns each side needs before it next has both action and mana.
