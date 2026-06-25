@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Move Order Commutation No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_move_order_commutation`, a first-divergence source-board bucket that applies baseline-then-candidate and candidate-then-baseline using real event application and compares the resulting search-state hashes when both orders complete.
+- The feature buckets unavailable boards, invalid/incomplete first or second moves, terminal/turn-closed states, same-turn states, and whether both completed orders reach the same state. It does not use policy id, branch id, exact move strings, variant, budget eval, reply floor, root-pool rows, or rollout outcome fields.
+- The focused active Fast structural scout (`20260625-081231`, dashboard `20260625-081034`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_move_order_commutation`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=singleton_no_source`, `route_permission=no_source`, and `source_candidate_rollups=0`.
+- In active Fast, the only concrete candidate-bearing row was singleton and mixed with same-outcome evidence: `axis=source_move_order_commutation relation=same_state baseline_then_candidate=same_turn candidate_then_baseline=same_turn shared_start=false`.
+- The focused sampled Pro follow-up (`20260625-081556`, dashboard `20260625-081400`) also stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=no_candidate_route`, `route_permission=no_source`, and `source_candidate_rollups=0`.
+- Durable outcome: source move-order commutation improves visibility into whether two compared first-divergence moves are independent or order-sensitive, but it did not separate sampled or active candidate wins from guarded saves. Do not promote or write runtime selectors from source-move-order commutation buckets.
+
 ## 2026-06-25 Rotation-Equivariance ProV4 No-Go
 
 - A temporary test-only `frontier_pro_v4_rotation_equivariance_scout` was built and pruned from the active sweep surface. It rotated the source board 180 degrees while swapping colors, ran guarded Pro on the rotated board, mapped the rotated output back, and only overrode guarded when the mapped move was legal for automove and present on the guarded root surface.

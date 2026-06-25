@@ -2327,6 +2327,131 @@ fn pro_policy_matrix_source_move_interference_axis(
     )
 }
 
+struct ProPolicyMatrixSourceMoveOrderOutcome {
+    status: &'static str,
+    state_hash: Option<u64>,
+}
+
+fn pro_policy_matrix_source_move_order_sequence(
+    board: &MonsGame,
+    first_inputs: &[Input],
+    second_inputs: &[Input],
+) -> ProPolicyMatrixSourceMoveOrderOutcome {
+    let initial_color = board.active_color;
+    let initial_turn = board.turn_number;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        first_inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "first_invalid",
+                state_hash: None,
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "first_incomplete",
+                state_hash: None,
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceMoveOrderOutcome {
+            status: "first_terminal",
+            state_hash: None,
+        };
+    }
+    if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        return ProPolicyMatrixSourceMoveOrderOutcome {
+            status: "first_turn_closed",
+            state_hash: None,
+        };
+    }
+
+    match probe.process_input_with_start_options_slice(
+        second_inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "second_invalid",
+                state_hash: None,
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "second_incomplete",
+                state_hash: None,
+            };
+        }
+    }
+
+    let status = if probe.winner_color().is_some() {
+        "terminal"
+    } else if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        "turn_closed"
+    } else {
+        "same_turn"
+    };
+
+    ProPolicyMatrixSourceMoveOrderOutcome {
+        status,
+        state_hash: Some(MonsGameModel::search_state_hash(&probe)),
+    }
+}
+
+fn pro_policy_matrix_source_move_order_relation(
+    baseline_then_candidate: &ProPolicyMatrixSourceMoveOrderOutcome,
+    candidate_then_baseline: &ProPolicyMatrixSourceMoveOrderOutcome,
+) -> &'static str {
+    match (
+        baseline_then_candidate.state_hash,
+        candidate_then_baseline.state_hash,
+    ) {
+        (Some(left), Some(right)) if left == right => "same_state",
+        (Some(_), Some(_)) => "different_state",
+        (Some(_), None) => "baseline_order_only",
+        (None, Some(_)) => "candidate_order_only",
+        (None, None) if baseline_then_candidate.status == candidate_then_baseline.status => {
+            "neither_complete_same_status"
+        }
+        (None, None) => "neither_complete_mixed_status",
+    }
+}
+
+fn pro_policy_matrix_source_move_order_commutation_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_move_order_commutation unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline_then_candidate =
+        pro_policy_matrix_source_move_order_sequence(&board, &baseline_inputs, &candidate_inputs);
+    let candidate_then_baseline =
+        pro_policy_matrix_source_move_order_sequence(&board, &candidate_inputs, &baseline_inputs);
+    format!(
+        "axis=source_move_order_commutation relation={} baseline_then_candidate={} candidate_then_baseline={} shared_start={}",
+        pro_policy_matrix_source_move_order_relation(
+            &baseline_then_candidate,
+            &candidate_then_baseline,
+        ),
+        baseline_then_candidate.status,
+        candidate_then_baseline.status,
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+    )
+}
+
 #[derive(Debug)]
 struct ProPolicyMatrixSourceResidualAgency {
     status: &'static str,
@@ -2851,6 +2976,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             "axis=source_prompt_topology_delta first_diff=none".to_string(),
             "axis=source_prefix_completion_profile first_diff=none".to_string(),
             "axis=source_move_interference first_diff=none".to_string(),
+            "axis=source_move_order_commutation first_diff=none".to_string(),
             "axis=source_mana_corridor_topology first_diff=none".to_string(),
             "axis=source_residual_agency first_diff=none".to_string(),
             "axis=source_handoff_opponent_mobility first_diff=none".to_string(),
@@ -2928,6 +3054,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         pro_policy_matrix_source_prompt_topology_axis(divergence),
         pro_policy_matrix_source_prefix_completion_axis(divergence),
         pro_policy_matrix_source_move_interference_axis(divergence),
+        pro_policy_matrix_source_move_order_commutation_axis(divergence),
         pro_policy_matrix_source_mana_corridor_topology_axis(divergence),
         pro_policy_matrix_source_residual_agency_axis(divergence),
         pro_policy_matrix_source_handoff_opponent_mobility_axis(divergence),
