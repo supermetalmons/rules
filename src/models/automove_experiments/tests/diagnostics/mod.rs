@@ -2075,6 +2075,170 @@ fn pro_policy_matrix_source_prompt_topology_axis(
     )
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+struct ProPolicyMatrixSourcePrefixCompletionProfile {
+    start_completions: usize,
+    tail_completions: usize,
+    invalid_prefix: bool,
+    capped: bool,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct ProPolicyMatrixSourcePrefixCompletionCount {
+    completions: usize,
+    invalid_prefix: bool,
+    capped: bool,
+}
+
+fn pro_policy_matrix_source_prefix_completion_count(
+    board: &MonsGame,
+    prefix: &[Input],
+    cap: usize,
+) -> ProPolicyMatrixSourcePrefixCompletionCount {
+    let mut count = ProPolicyMatrixSourcePrefixCompletionCount::default();
+    let mut stack = vec![prefix.to_vec()];
+    while let Some(current) = stack.pop() {
+        if count.completions >= cap {
+            count.capped = true;
+            break;
+        }
+        let mut probe = board.clone();
+        match probe.process_input_with_start_options_slice(
+            &current,
+            true,
+            false,
+            Some(SuggestedStartInputOptions::for_automove()),
+        ) {
+            Output::Events(_) => {
+                count.completions += 1;
+            }
+            Output::LocationsToStartFrom(options) => {
+                if options.is_empty() {
+                    count.invalid_prefix = true;
+                }
+                for option in options {
+                    let mut next = current.clone();
+                    next.push(Input::Location(option));
+                    stack.push(next);
+                }
+            }
+            Output::NextInputOptions(options) => {
+                if options.is_empty() {
+                    count.invalid_prefix = true;
+                }
+                for option in options {
+                    let mut next = current.clone();
+                    next.push(option.input);
+                    stack.push(next);
+                }
+            }
+            Output::InvalidInput => {
+                count.invalid_prefix = true;
+            }
+        }
+    }
+    if count.completions >= cap && !stack.is_empty() {
+        count.capped = true;
+    }
+    count
+}
+
+fn pro_policy_matrix_source_prefix_completion_profile(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourcePrefixCompletionProfile {
+    const COMPLETION_CAP: usize = 64;
+    let start_len = inputs.len().min(1);
+    let tail_len = if inputs.len() > 1 {
+        inputs.len() - 1
+    } else {
+        inputs.len()
+    };
+    let start_count = pro_policy_matrix_source_prefix_completion_count(
+        board,
+        &inputs[..start_len],
+        COMPLETION_CAP,
+    );
+    let tail_count = pro_policy_matrix_source_prefix_completion_count(
+        board,
+        &inputs[..tail_len],
+        COMPLETION_CAP,
+    );
+
+    ProPolicyMatrixSourcePrefixCompletionProfile {
+        start_completions: start_count.completions,
+        tail_completions: tail_count.completions,
+        invalid_prefix: start_count.invalid_prefix || tail_count.invalid_prefix,
+        capped: start_count.capped || tail_count.capped,
+    }
+}
+
+fn pro_policy_matrix_source_prefix_completion_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "complete0",
+        1 => "complete1",
+        2..=4 => "complete2_4",
+        5..=8 => "complete5_8",
+        9..=16 => "complete9_16",
+        17..=32 => "complete17_32",
+        _ => "complete33_plus",
+    }
+}
+
+fn pro_policy_matrix_source_prefix_completion_status(
+    baseline: ProPolicyMatrixSourcePrefixCompletionProfile,
+    candidate: ProPolicyMatrixSourcePrefixCompletionProfile,
+) -> &'static str {
+    if baseline.capped || candidate.capped {
+        "capped"
+    } else if baseline.invalid_prefix || candidate.invalid_prefix {
+        "invalid"
+    } else {
+        "valid"
+    }
+}
+
+fn pro_policy_matrix_source_prefix_shared_start(
+    baseline_inputs: &[Input],
+    candidate_inputs: &[Input],
+) -> &'static str {
+    match (baseline_inputs.first(), candidate_inputs.first()) {
+        (Some(baseline), Some(candidate)) if baseline == candidate => "true",
+        (Some(_), Some(_)) => "false",
+        _ => "missing",
+    }
+}
+
+fn pro_policy_matrix_source_prefix_completion_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_prefix_completion_profile unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_prefix_completion_profile(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_prefix_completion_profile(&board, &candidate_inputs);
+
+    format!(
+        "axis=source_prefix_completion_profile shared_start={} baseline_start={} candidate_start={} start_delta={} baseline_tail={} candidate_tail={} tail_delta={} status={}",
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+        pro_policy_matrix_source_prefix_completion_bucket(baseline.start_completions),
+        pro_policy_matrix_source_prefix_completion_bucket(candidate.start_completions),
+        pro_policy_matrix_source_prompt_delta_bucket(
+            baseline.start_completions,
+            candidate.start_completions,
+        ),
+        pro_policy_matrix_source_prefix_completion_bucket(baseline.tail_completions),
+        pro_policy_matrix_source_prefix_completion_bucket(candidate.tail_completions),
+        pro_policy_matrix_source_prompt_delta_bucket(
+            baseline.tail_completions,
+            candidate.tail_completions,
+        ),
+        pro_policy_matrix_source_prefix_completion_status(baseline, candidate),
+    )
+}
+
 fn pro_policy_matrix_timing_continuation_axes(
     first_divergence: Option<&ProProfileSweepFirstDivergence>,
     baseline_trace: &ProProfileSweepAttributionTrace,
@@ -2085,6 +2249,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             pro_policy_matrix_pre_diff_entry_axis(None, baseline_trace, candidate_trace),
             "axis=decision_effort first_diff=none".to_string(),
             "axis=source_prompt_topology_delta first_diff=none".to_string(),
+            "axis=source_prefix_completion_profile first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -2156,6 +2321,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             ),
         ),
         pro_policy_matrix_source_prompt_topology_axis(divergence),
+        pro_policy_matrix_source_prefix_completion_axis(divergence),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,

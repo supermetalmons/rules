@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Prefix Completion No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_prefix_completion_profile`, a source-board bucket for legal completion fanout after each compared move's first input and pre-final tail prefix.
+- The feature uses the same first-divergence board and compared move inputs already present in corpus records. It does not include policy id, branch id, exact move strings, variant, or post-root rollout state.
+- A focused one-state active Fast probe over the reset portfolio compiled the harness and emitted representative rows such as `shared_start=false baseline_start=complete2_4 candidate_start=complete9_16 start_delta=candidate_more ... status=valid`.
+- The active Fast structural-scout slice (`20260625-030124`, dashboard `20260625-025928`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_prefix_completion_profile`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- The filter matched 14 corpus records, including six candidate-better records across two states, but also eight same-outcome records across two states. Permission stayed `fragmented_no_source`: seven candidate policies, five branch transitions, and eight first-move pairs.
+- Durable outcome: source-prefix completion fanout helps describe how constrained the compared move prefixes are, but it does not separate active Fast repairs below policy/branch/pair. Do not promote or write runtime selectors from source-prefix completion buckets.
+
 ## 2026-06-25 Source-Prompt Topology No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_prompt_topology_delta`, a coarse bucket for first-divergence move input depth, prompt count, max legal prompt options, and validity status on the source board.
