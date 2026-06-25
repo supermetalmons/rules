@@ -217,6 +217,7 @@ ROOT_POOL_SIGNAL_FIELDS = [
     "worst_reply_effect",
     "post_reply_spectrum",
     "post_reply_spectrum_effect",
+    "post_reply_reversal_profile",
 ]
 ROOT_POOL_COMPOUND_SIGNAL_FIELDS = [
     ("family_rank", ("family", "rank_bucket")),
@@ -689,6 +690,9 @@ ROOT_POOL_COMPOUND_SIGNAL_FIELDS = [
     ("family_reply_spectrum", ("family", "post_reply_spectrum")),
     ("progress_reply_spectrum_effect", ("progress", "post_reply_spectrum_effect")),
     ("path_reply_spectrum_effect", ("path", "post_reply_spectrum_effect")),
+    ("family_reply_reversal", ("family", "post_reply_reversal_profile")),
+    ("progress_reply_reversal", ("progress", "post_reply_reversal_profile")),
+    ("path_reply_reversal", ("path", "post_reply_reversal_profile")),
 ]
 ROOT_POOL_GUARDED_ORIGIN_KINDS = {
     "guarded_selected",
@@ -874,6 +878,7 @@ ROOT_POOL_DELTA_CATEGORICAL_FIELDS = [
     "worst_reply_effect",
     "post_reply_spectrum",
     "post_reply_spectrum_effect",
+    "post_reply_reversal_profile",
 ]
 ROOT_POOL_DELTA_NUMERIC_FIELDS = [
     "rank",
@@ -2876,6 +2881,8 @@ def root_pool_signal_field_family(field):
         return "root_input_goal"
     if "worst_reply" in field:
         return "worst_reply_event_footprint"
+    if "reply_reversal" in field:
+        return "reply_reversal"
     if "root_transition" in field:
         return "root_transition_event_footprint"
     if "root_origin_profile" in field:
@@ -3365,6 +3372,7 @@ def root_pool_sample_root(row):
         "root_transition_effect": row.get("root_transition_effect", ""),
         "worst_reply_transition": row.get("worst_reply_transition", ""),
         "worst_reply_effect": row.get("worst_reply_effect", ""),
+        "post_reply_reversal_profile": row.get("post_reply_reversal_profile", ""),
     }
 
 

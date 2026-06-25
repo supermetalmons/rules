@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 ProV4 Post-Reply Reversal No-Source
+
+- Retained change is diagnostic/postprocess-only. ProV4 root-pool rows now emit `post_reply_reversal_profile`, a source-vs-post-root vector over score differential, high-value custody, own-regular custody, and material. When a root hands the turn to the opponent, the diagnostic enumerates bounded immediate replies and buckets whether replies reverse any or all gained vector components.
+- The field is wired into root-pool summary/postprocess sample roots and compound signal families as `family_reply_reversal`, `progress_reply_reversal`, and `path_reply_reversal`.
+- The focused active Fast one-state root-pool scout (`20260625-082759`, dashboard `20260625-082127`) ran with `SMART_PRO_POLICY_MATRIX_INCLUDE_PROV4_ROOT_POOL=true`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: `root_pool_decision=singleton_root_pool_signal`, `root_pool_source_permission=no_source`, `guarded_delta_decision=singleton_root_pool_guarded_delta`, `source_candidate_rollups=0`, and `promotion_decision=do_not_promote`.
+- The two-state follow-up (`20260625-083323`, dashboard `20260625-083127`) also stayed no-source: `corpus_decision=baseline_save_risk`, `source_blocker.kind=baseline_save_risk`, `route_permission=no_source`, `root_pool_source_permission=diagnostic_only`, `guarded_delta_source_permission=no_source`, `source_candidate_rollups=0`, and `promotion_decision=do_not_promote`.
+- The feature did not reach its intended opponent-reply surface in these active slices. JSONL counts were 111 rows of `state=same_active;cap=false;total=count0;gain=none;reversal=none;full=none;score=same;high_value=same;own_regular=same;material=same`, one same-active own-regular gain with `total=count0`, and one omitted row. Candidate-only winning root counts were only the same-active no-reply bucket.
+- Durable outcome: post-reply reversal can describe future root-pool rows that actually hand the turn to the opponent, but the current active repairs are same-turn root continuations and this field does not separate candidate wins from guarded saves. Do not promote or write runtime selectors from post-reply reversal buckets.
+
 ## 2026-06-25 Source-Move Order Commutation No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_move_order_commutation`, a first-divergence source-board bucket that applies baseline-then-candidate and candidate-then-baseline using real event application and compares the resulting search-state hashes when both orders complete.

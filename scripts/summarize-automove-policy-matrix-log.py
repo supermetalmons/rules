@@ -2587,6 +2587,7 @@ def summarize_pro_v4_root_pool(events, limit=8):
                 "root_transition_effect",
                 "worst_reply_transition",
                 "worst_reply_effect",
+                "post_reply_reversal_profile",
             ]:
                 winning_root_field_counts[field][root.get(field, "")] += 1
                 if root.get("portfolio_class", "") == "candidate_only_win":
