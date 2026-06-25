@@ -2209,6 +2209,142 @@ fn pro_policy_matrix_source_prefix_shared_start(
     }
 }
 
+fn pro_policy_matrix_source_common_prefix_len(
+    baseline_inputs: &[Input],
+    candidate_inputs: &[Input],
+) -> usize {
+    baseline_inputs
+        .iter()
+        .zip(candidate_inputs.iter())
+        .take_while(|(baseline, candidate)| baseline == candidate)
+        .count()
+}
+
+fn pro_policy_matrix_source_prefix_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "prefix0",
+        1 => "prefix1",
+        2 => "prefix2",
+        _ => "prefix3_plus",
+    }
+}
+
+fn pro_policy_matrix_source_divergence_prompt_kind(output: &Output) -> &'static str {
+    match output {
+        Output::LocationsToStartFrom(_) => "locations",
+        Output::NextInputOptions(_) => "next_input",
+        Output::Events(_) => "complete",
+        Output::InvalidInput => "invalid",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_option_kind(
+    output: &Output,
+    token: Option<Input>,
+) -> Option<&'static str> {
+    let token = token?;
+    match output {
+        Output::LocationsToStartFrom(locations) => match token {
+            Input::Location(location) if locations.contains(&location) => Some("location"),
+            _ => None,
+        },
+        Output::NextInputOptions(options) => options
+            .iter()
+            .find(|option| option.input == token)
+            .map(|option| match option.kind {
+                NextInputKind::MonMove => "mon_move",
+                NextInputKind::ManaMove => "mana_move",
+                NextInputKind::MysticAction => "mystic_action",
+                NextInputKind::DemonAction => "demon_action",
+                NextInputKind::DemonAdditionalStep => "demon_extra_step",
+                NextInputKind::SpiritTargetCapture => "spirit_capture",
+                NextInputKind::SpiritTargetMove => "spirit_move",
+                NextInputKind::SelectConsumable => "select_consumable",
+                NextInputKind::BombAttack => "bomb_attack",
+            }),
+        Output::Events(_) | Output::InvalidInput => None,
+    }
+}
+
+fn pro_policy_matrix_source_prompt_legality(
+    baseline_kind: Option<&'static str>,
+    candidate_kind: Option<&'static str>,
+    prompt_kind: &'static str,
+) -> &'static str {
+    if matches!(prompt_kind, "complete" | "invalid") {
+        return "no_prompt";
+    }
+    match (baseline_kind.is_some(), candidate_kind.is_some()) {
+        (true, true) => "both_legal",
+        (true, false) => "baseline_only",
+        (false, true) => "candidate_only",
+        (false, false) => "neither",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_token_relation(
+    baseline_kind: Option<&'static str>,
+    candidate_kind: Option<&'static str>,
+) -> &'static str {
+    match (baseline_kind, candidate_kind) {
+        (Some(baseline), Some(candidate)) if baseline == candidate => "same_kind",
+        (Some(_), Some(_)) => "different_kind",
+        (Some(_), None) => "candidate_missing",
+        (None, Some(_)) => "baseline_missing",
+        (None, None) => "both_missing",
+    }
+}
+
+fn pro_policy_matrix_source_tail_delta(
+    baseline_inputs: &[Input],
+    candidate_inputs: &[Input],
+    common_prefix_len: usize,
+) -> &'static str {
+    let baseline_tail = baseline_inputs.len().saturating_sub(common_prefix_len);
+    let candidate_tail = candidate_inputs.len().saturating_sub(common_prefix_len);
+    match candidate_tail.cmp(&baseline_tail) {
+        std::cmp::Ordering::Less => "candidate_shorter",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_longer",
+    }
+}
+
+fn pro_policy_matrix_source_divergence_prompt_relation_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_divergence_prompt_relation unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let common_prefix_len =
+        pro_policy_matrix_source_common_prefix_len(&baseline_inputs, &candidate_inputs);
+    let prefix = &baseline_inputs[..common_prefix_len.min(baseline_inputs.len())];
+    let mut probe = board.clone();
+    let output = probe.process_input_with_start_options_slice(
+        prefix,
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    );
+    let prompt_kind = pro_policy_matrix_source_divergence_prompt_kind(&output);
+    let baseline_token = baseline_inputs.get(common_prefix_len).copied();
+    let candidate_token = candidate_inputs.get(common_prefix_len).copied();
+    let baseline_kind = pro_policy_matrix_source_prompt_option_kind(&output, baseline_token);
+    let candidate_kind = pro_policy_matrix_source_prompt_option_kind(&output, candidate_token);
+
+    format!(
+        "axis=source_divergence_prompt_relation prefix={} diverge={} prompt={} legal={} token={} tail_delta={} shared_start={}",
+        pro_policy_matrix_source_prefix_bucket(common_prefix_len),
+        if common_prefix_len == 0 { "start" } else { "tail" },
+        prompt_kind,
+        pro_policy_matrix_source_prompt_legality(baseline_kind, candidate_kind, prompt_kind),
+        pro_policy_matrix_source_prompt_token_relation(baseline_kind, candidate_kind),
+        pro_policy_matrix_source_tail_delta(&baseline_inputs, &candidate_inputs, common_prefix_len),
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+    )
+}
+
 fn pro_policy_matrix_source_prefix_completion_axis(
     divergence: &ProProfileSweepFirstDivergence,
 ) -> String {
@@ -2974,6 +3110,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             pro_policy_matrix_pre_diff_entry_axis(None, baseline_trace, candidate_trace),
             "axis=decision_effort first_diff=none".to_string(),
             "axis=source_prompt_topology_delta first_diff=none".to_string(),
+            "axis=source_divergence_prompt_relation first_diff=none".to_string(),
             "axis=source_prefix_completion_profile first_diff=none".to_string(),
             "axis=source_move_interference first_diff=none".to_string(),
             "axis=source_move_order_commutation first_diff=none".to_string(),
@@ -3052,6 +3189,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             ),
         ),
         pro_policy_matrix_source_prompt_topology_axis(divergence),
+        pro_policy_matrix_source_divergence_prompt_relation_axis(divergence),
         pro_policy_matrix_source_prefix_completion_axis(divergence),
         pro_policy_matrix_source_move_interference_axis(divergence),
         pro_policy_matrix_source_move_order_commutation_axis(divergence),

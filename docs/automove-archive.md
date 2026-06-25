@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Divergence Prompt-Relation No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_divergence_prompt_relation`, a source-board bucket for the exact first divergent prompt between the compared moves. It records common-prefix length, whether divergence is at the start or tail, prompt kind, sibling legality, token-kind relation, tail length delta, and shared-start relation without policy id, branch id, exact move strings, variant, or rollout outcome fields.
+- The focused one-state active Fast structural scout (`20260625-085651`, dashboard `20260625-085453`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_divergence_prompt_relation`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: `corpus_decision=singleton_no_source`, `route_permission=no_source`, `source_candidate_rollups=0`, and `promotion_decision=do_not_promote`.
+- In the one-state slice, the candidate-better prompt-relation rows were singleton: `prefix0 diverge=start prompt=locations legal=both_legal token=same_kind tail_delta=same shared_start=false` and `prefix1 diverge=tail prompt=next_input legal=both_legal token=different_kind tail_delta=candidate_shorter shared_start=true`.
+- The two-state follow-up (`20260625-090012`, dashboard `20260625-085814`) reproduced the known save blocker: `corpus_decision=baseline_save_risk`, `source_blocker.kind=baseline_save_risk`, `route_permission=no_source`, `source_candidate_rollups=0`, and `promotion_decision=do_not_promote`.
+- In that wider slice, `prefix0/start/locations/both_legal/same_kind/tail_delta=same/shared_start=false` mixed one candidate-better state with one baseline-better state and one same-outcome state. The `prefix1/tail/next_input/different_kind` candidate-better row stayed singleton.
+- Durable outcome: prompt-relation improves visibility into whether compared moves diverge as legal siblings at the same source prompt, but it did not separate active candidate wins from guarded saves. Do not promote or write runtime selectors from source-divergence prompt-relation buckets.
+
 ## 2026-06-25 Reply-Recovery Envelope ProV4 No-Go
 
 - A temporary test-only `frontier_pro_v4_reply_recovery_envelope` scout was built and pruned from the active sweep surface. It preserved guarded fallback unless the guarded branch reached `frontier_execute`, then compared the guarded root against top scored challengers using a bounded lower-tail envelope: opponent replies, one own recovery after each reply, terminal-loss count, match-point count, minimum recovery eval, and lower-quartile recovery eval.
