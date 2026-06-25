@@ -4,6 +4,14 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Unified Root-Policy ProV4 No-Go
+
+- A temporary test-only `frontier_pro_v4_unified_root_policy_v2` scaffold was built and pruned from the active sweep surface. It preserved the public guarded Pro wrapper by default, then compared the guarded selected root against filtered scored challengers using existing root family, utility, reply-risk, follow-up floor, safety, setup, score, and rank fields.
+- The broad comparator compiled and reached only sampled Pro `9-3` against `shipping_pro_search`: `win_rate=0.7500`, `confidence=0.9270`, candidate average `282.97ms`, and `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`.
+- Attribution against guarded showed the broad comparator mixed four repairs with two guarded-save regressions on the same sampled panel. A source-scoped revision over opening, drainer-safety, and inner-wedge mana-chain contexts dropped to `6-6`; rank/delta vetoes over lower-confidence safety/score/utility replacements only recovered to `8-4`.
+- The useful repairs and regressions stayed entangled in the already-retired shallow root-field family. Branch-tier tracing showed safety, safe-progress, score-delta, utility-floor, and tactical-compete overrides could each be helpful or harmful depending on context, and direct context gates rotated losses instead of creating a stable sampled floor.
+- Durable outcome: do not reopen a unified root-policy comparator over the current root fields alone. The next ProV4/root-policy attempt needs a new measured feature or corpus-trained discriminator below root family/rank/score/utility/reply-floor fields before runtime source work.
+
 ## 2026-06-25 Source-Move Interference No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_move_interference`, a source-board bucket for whether each compared move stays legal after applying the other move first.
