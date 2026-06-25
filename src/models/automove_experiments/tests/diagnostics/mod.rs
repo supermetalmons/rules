@@ -2239,6 +2239,94 @@ fn pro_policy_matrix_source_prefix_completion_axis(
     )
 }
 
+fn pro_policy_matrix_source_move_interference_status(
+    board: &MonsGame,
+    first_inputs: &[Input],
+    second_inputs: &[Input],
+) -> &'static str {
+    let initial_color = board.active_color;
+    let initial_turn = board.turn_number;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        first_inputs,
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => return "first_invalid",
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return "first_incomplete";
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return "terminal";
+    }
+    if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        return "turn_closed";
+    }
+
+    match probe.process_input_with_start_options_slice(
+        second_inputs,
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => "legal",
+        Output::InvalidInput => "blocked",
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => "incomplete",
+    }
+}
+
+fn pro_policy_matrix_source_move_interference_relation(
+    baseline_after_candidate: &'static str,
+    candidate_after_baseline: &'static str,
+) -> &'static str {
+    match (baseline_after_candidate, candidate_after_baseline) {
+        ("first_invalid", _) | (_, "first_invalid") => "invalid",
+        ("first_incomplete", _)
+        | (_, "first_incomplete")
+        | ("incomplete", _)
+        | (_, "incomplete") => "incomplete",
+        ("terminal", _) | (_, "terminal") => "terminal",
+        ("turn_closed", _) | (_, "turn_closed") => "turn_closed",
+        ("legal", "legal") => "both_legal",
+        ("blocked", "blocked") => "mutual_block",
+        ("blocked", "legal") => "candidate_blocks_baseline",
+        ("legal", "blocked") => "baseline_blocks_candidate",
+        _ => "mixed",
+    }
+}
+
+fn pro_policy_matrix_source_move_interference_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_move_interference unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline_after_candidate = pro_policy_matrix_source_move_interference_status(
+        &board,
+        &candidate_inputs,
+        &baseline_inputs,
+    );
+    let candidate_after_baseline = pro_policy_matrix_source_move_interference_status(
+        &board,
+        &baseline_inputs,
+        &candidate_inputs,
+    );
+    format!(
+        "axis=source_move_interference relation={} shared_start={}",
+        pro_policy_matrix_source_move_interference_relation(
+            baseline_after_candidate,
+            candidate_after_baseline,
+        ),
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+    )
+}
+
 fn pro_policy_matrix_timing_continuation_axes(
     first_divergence: Option<&ProProfileSweepFirstDivergence>,
     baseline_trace: &ProProfileSweepAttributionTrace,
@@ -2250,6 +2338,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             "axis=decision_effort first_diff=none".to_string(),
             "axis=source_prompt_topology_delta first_diff=none".to_string(),
             "axis=source_prefix_completion_profile first_diff=none".to_string(),
+            "axis=source_move_interference first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -2322,6 +2411,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         ),
         pro_policy_matrix_source_prompt_topology_axis(divergence),
         pro_policy_matrix_source_prefix_completion_axis(divergence),
+        pro_policy_matrix_source_move_interference_axis(divergence),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,

@@ -4,6 +4,17 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Move Interference No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_move_interference`, a source-board bucket for whether each compared move stays legal after applying the other move first.
+- The feature uses only the first-divergence board and compared move inputs already present in corpus records. It does not include policy id, branch id, exact move strings, variant, or post-root rollout state.
+- A focused one-state active Fast probe over the reset portfolio compiled the harness and emitted `axis=source_move_interference relation=both_legal shared_start=false` on a candidate-better row.
+- The active Fast structural-scout slice (`20260625-031655`, dashboard `20260625-031459`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_move_interference`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- The filter matched 14 corpus records, including six candidate-better records across two states, but also eight same-outcome records across two states. Permission stayed `fragmented_no_source`: seven candidate policies, five branch transitions, and eight first-move pairs.
+- The top concrete row, `axis=source_move_interference relation=both_legal shared_start=false`, had five candidate-better records across two states, but also one same-outcome state and fragmentation across four candidate policies, four branch transitions, and six first-move pairs.
+- The closest direct reset toggle, `frontier_pro_v2_no_selected_followup_projection`, was also dashboarded (`20260625-030857`) and killed immediately on sampled `vs_shipping_pro`: `6-6`, `win_rate=0.5000`, `confidence=0.0000`, `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`, with `inner_wedge_mana_rows` at `0-2`.
+- Durable outcome: relative legality/order interference did not explain active Fast repairs below policy/branch/pair, and no-selected-followup is not a promotion candidate. Do not promote or write runtime selectors from source-move interference buckets.
+
 ## 2026-06-25 Source-Prefix Completion No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_prefix_completion_profile`, a source-board bucket for legal completion fanout after each compared move's first input and pre-final tail prefix.
