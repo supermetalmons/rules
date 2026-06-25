@@ -4,6 +4,16 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Remaining Budget No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_remaining_budget`, a first-divergence source-board bucket that applies each compared move and records remaining action, mana, and mon-move budget only when the active player keeps the turn.
+- The feature buckets invalid, incomplete, terminal, turn-closed, and same-turn budget shapes. It does not use policy id, branch id, exact move strings, variant, budget eval, reply floor, root-pool rows, or rollout outcome fields.
+- The focused active Fast structural scout (`20260625-074051`, dashboard `20260625-073854`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_remaining_budget`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `route_permission=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- In active Fast, the only concrete candidate-bearing row was singleton: `axis=source_remaining_budget baseline=same_turn:action=true:mana=true:mons_left3_plus candidate=same_turn:action=false:mana=true:mons_left3_plus delta=candidate_less`. It had one candidate-better state and one same-outcome state, and it spent more source budget than guarded rather than exposing a cleaner residual-budget advantage.
+- The focused sampled Pro follow-up (`20260625-074557`, dashboard `20260625-074401`) also stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=singleton_no_source`, `route_permission=no_source`, and `source_candidate_rollups=0`.
+- In sampled Pro, the filter matched 14 corpus records and seven trace records across two states. It had two candidate-better records and 12 same-outcome records; candidate-bearing budget rows were singleton or shared with same-outcome evidence.
+- Durable outcome: source remaining budget improves visibility into whether compared moves leave the player with same-turn resources, but it did not separate sampled or active candidate wins from guarded saves. Do not promote or write runtime selectors from source-remaining-budget buckets.
+
 ## 2026-06-25 Source-Handoff Opponent-Mobility No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_handoff_opponent_mobility`, a first-divergence source-board bucket that applies each compared move and counts the opponent's immediate legal response fanout only when the move hands over the turn.

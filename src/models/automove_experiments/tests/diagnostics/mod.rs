@@ -2624,6 +2624,137 @@ fn pro_policy_matrix_source_handoff_opponent_mobility_axis(
     )
 }
 
+#[derive(Debug)]
+struct ProPolicyMatrixSourceRemainingBudget {
+    status: &'static str,
+    can_action: bool,
+    can_mana: bool,
+    remaining_mons: i32,
+}
+
+fn pro_policy_matrix_source_remaining_budget_after_move(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourceRemainingBudget {
+    let initial_color = board.active_color;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceRemainingBudget {
+                status: "invalid",
+                can_action: false,
+                can_mana: false,
+                remaining_mons: 0,
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceRemainingBudget {
+                status: "incomplete",
+                can_action: false,
+                can_mana: false,
+                remaining_mons: 0,
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceRemainingBudget {
+            status: "terminal",
+            can_action: false,
+            can_mana: false,
+            remaining_mons: 0,
+        };
+    }
+    if probe.active_color != initial_color {
+        return ProPolicyMatrixSourceRemainingBudget {
+            status: "turn_closed",
+            can_action: false,
+            can_mana: false,
+            remaining_mons: 0,
+        };
+    }
+
+    ProPolicyMatrixSourceRemainingBudget {
+        status: "same_turn",
+        can_action: probe.player_can_use_action(),
+        can_mana: probe.player_can_move_mana(),
+        remaining_mons: (Config::MONS_MOVES_PER_TURN - probe.mons_moves_count).max(0),
+    }
+}
+
+fn pro_policy_matrix_source_remaining_mons_bucket(remaining_mons: i32) -> &'static str {
+    match remaining_mons {
+        ..=0 => "mons_left0",
+        1 => "mons_left1",
+        2 => "mons_left2",
+        _ => "mons_left3_plus",
+    }
+}
+
+fn pro_policy_matrix_source_remaining_budget_bucket(
+    budget: &ProPolicyMatrixSourceRemainingBudget,
+) -> String {
+    if budget.status != "same_turn" {
+        return budget.status.to_string();
+    }
+    format!(
+        "{}:action={}:mana={}:{}",
+        budget.status,
+        budget.can_action,
+        budget.can_mana,
+        pro_policy_matrix_source_remaining_mons_bucket(budget.remaining_mons),
+    )
+}
+
+fn pro_policy_matrix_source_remaining_budget_score(
+    budget: &ProPolicyMatrixSourceRemainingBudget,
+) -> i32 {
+    if budget.status != "same_turn" {
+        return -1;
+    }
+    i32::from(budget.can_action) + i32::from(budget.can_mana) + budget.remaining_mons.clamp(0, 3)
+}
+
+fn pro_policy_matrix_source_remaining_budget_delta(
+    baseline: &ProPolicyMatrixSourceRemainingBudget,
+    candidate: &ProPolicyMatrixSourceRemainingBudget,
+) -> &'static str {
+    if baseline.status != candidate.status {
+        return "status_changed";
+    }
+    match pro_policy_matrix_source_remaining_budget_score(candidate)
+        .cmp(&pro_policy_matrix_source_remaining_budget_score(baseline))
+    {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_remaining_budget_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_remaining_budget unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_remaining_budget_after_move(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_remaining_budget_after_move(&board, &candidate_inputs);
+    format!(
+        "axis=source_remaining_budget baseline={} candidate={} delta={}",
+        pro_policy_matrix_source_remaining_budget_bucket(&baseline),
+        pro_policy_matrix_source_remaining_budget_bucket(&candidate),
+        pro_policy_matrix_source_remaining_budget_delta(&baseline, &candidate),
+    )
+}
+
 fn pro_policy_matrix_source_mana_corridor(location: Location, perspective: Color) -> String {
     let forward = forced_root_oracle_forward_index(perspective, location);
     let band = if forward <= 2 {
@@ -2723,6 +2854,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             "axis=source_mana_corridor_topology first_diff=none".to_string(),
             "axis=source_residual_agency first_diff=none".to_string(),
             "axis=source_handoff_opponent_mobility first_diff=none".to_string(),
+            "axis=source_remaining_budget first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -2799,6 +2931,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         pro_policy_matrix_source_mana_corridor_topology_axis(divergence),
         pro_policy_matrix_source_residual_agency_axis(divergence),
         pro_policy_matrix_source_handoff_opponent_mobility_axis(divergence),
+        pro_policy_matrix_source_remaining_budget_axis(divergence),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,
