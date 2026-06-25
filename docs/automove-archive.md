@@ -4,6 +4,16 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Realized-Reply Event-Profile No-Source
+
+- Retained change is diagnostic-only. `ProProfileSweepAttributionTrace` now keeps compact `played_turns` records for every processed ply, and `pro_policy_matrix_timing_continuation_axes` emits `axis=realized_reply_event_profile`, comparing the first realized opponent turn after the first candidate divergence. The axis records reply presence, latency, score/faint/pickup/action/movement flags, control-return or terminal shape, and a coarse delta bucket.
+- The postprocessors treat this axis as future-only/no-source because it observes the actual rollout reply rather than source-board legal information. `scripts/summarize-automove-policy-matrix-log.py` classifies `axis=realized_reply_event_profile` as `future_only_no_source`, and the JSONL workbench maps that status to no-source.
+- The focused active Fast run (`20260625-092018`) used `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=realized_reply_event_profile`, `panel=active_blockers`, `duel=vs_shipping_fast`, and one total state. It stayed no-source: `corpus_decision=no_source`, `workbench_decision=blocked_candidate_axes`, `source_candidate_axis_count=0`, `source_candidate_rollups=0`, and `record_filters.permission=fragmented_no_source`.
+- In active Fast, the filter matched seven corpus records on `outer_edge_mana_rows`: two candidate-better records, five same-outcome records, one candidate-better state, seven policies, four branch transitions, and four first-move pairs. The axis decision was only `singleton_candidate_axis`; workbench blockers included `future_only_no_source`.
+- The sampled Pro cross-check (`20260625-092146`) used the same filter with `panel=sampled`, `duel=vs_shipping_pro`, and one total state. It also stayed no-source: `corpus_decision=no_source`, `workbench_decision=no_candidate_axis`, `source_candidate_axis_count=0`, and `source_candidate_rollups=0`.
+- In sampled Pro, the realized-reply axis was baseline-better-only on `inner_wedge_mana_rows`: three baseline-better records, four same-outcome records, zero candidate-better records, seven policies, four branch transitions, and three first-move pairs.
+- Durable outcome: realized reply event profiles expose the opponent turn actually chosen after divergence, which is distinct from source-board opponent-mobility fanout, but the first active signal was singleton/fragmented and the sampled check was baseline-better-only. Do not promote or write runtime selectors from realized-reply event-profile buckets.
+
 ## 2026-06-25 Source-Divergence Prompt-Relation No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_divergence_prompt_relation`, a source-board bucket for the exact first divergent prompt between the compared moves. It records common-prefix length, whether divergence is at the start or tail, prompt kind, sibling legality, token-kind relation, tail length delta, and shared-start relation without policy id, branch id, exact move strings, variant, or rollout outcome fields.

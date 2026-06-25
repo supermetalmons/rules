@@ -1568,7 +1568,11 @@ def cross_budget_fragmented_dimensions(row):
 
 def future_only_axis(axis):
     value = str(axis or "")
-    return value.startswith("terminal_") or value.startswith("portfolio_")
+    return (
+        value.startswith("terminal_")
+        or value.startswith("portfolio_")
+        or value.startswith("axis=realized_reply_event_profile")
+    )
 
 
 def cross_budget_source_status(row):

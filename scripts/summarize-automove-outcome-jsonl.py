@@ -20,6 +20,7 @@ NO_SOURCE_STATUSES = {
     "baseline_save_risk",
     "coverage_gap",
     "fragmented_no_source",
+    "future_only_no_source",
     "singleton_candidate",
     "singleton_non_regressing",
 }

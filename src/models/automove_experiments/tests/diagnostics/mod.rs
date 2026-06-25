@@ -1200,11 +1200,36 @@ struct ProProfileSweepAttributionTurn {
     decision_effort: ProPolicyMatrixDecisionEffort,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct ProProfileSweepEventProfile {
+    own_regular_score: bool,
+    opponent_regular_score: bool,
+    supermana_score: bool,
+    own_faint: bool,
+    opponent_faint: bool,
+    pickup: bool,
+    action: bool,
+    mon_move: bool,
+    mana_move: bool,
+    game_over: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProProfileSweepPlayedTurn {
+    ply: usize,
+    candidate_to_move: bool,
+    active_color: Color,
+    move_fen: String,
+    event_profile: ProProfileSweepEventProfile,
+    control_after: &'static str,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ProProfileSweepAttributionTrace {
     result: MatchResult,
     final_fen: String,
     candidate_turns: Vec<ProProfileSweepAttributionTurn>,
+    played_turns: Vec<ProProfileSweepPlayedTurn>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1448,6 +1473,221 @@ fn pro_policy_matrix_pre_diff_entry_axis(
         "axis=pre_diff_entry lead={} hidden_same_move={} first_diff=present",
         lead,
         latest_hidden_same_move_index.is_some()
+    )
+}
+
+fn pro_profile_sweep_event_profile(
+    events: &[Event],
+    candidate_color: Color,
+) -> ProProfileSweepEventProfile {
+    let mut profile = ProProfileSweepEventProfile::default();
+    for event in events {
+        match event {
+            Event::ManaScored { mana, .. } => match mana {
+                Mana::Regular(color) if *color == candidate_color => {
+                    profile.own_regular_score = true;
+                }
+                Mana::Regular(_) => {
+                    profile.opponent_regular_score = true;
+                }
+                Mana::Supermana => {
+                    profile.supermana_score = true;
+                }
+            },
+            Event::MonFainted { mon, .. } => {
+                if mon.color == candidate_color {
+                    profile.own_faint = true;
+                } else {
+                    profile.opponent_faint = true;
+                }
+            }
+            Event::PickupBomb { .. } | Event::PickupPotion { .. } | Event::PickupMana { .. } => {
+                profile.pickup = true;
+            }
+            Event::MysticAction { .. }
+            | Event::DemonAction { .. }
+            | Event::DemonAdditionalStep { .. }
+            | Event::SpiritTargetMove { .. }
+            | Event::UsePotion { .. }
+            | Event::BombAttack { .. }
+            | Event::BombExplosion { .. } => {
+                profile.action = true;
+            }
+            Event::MonMove { .. } => {
+                profile.mon_move = true;
+            }
+            Event::ManaMove { .. }
+            | Event::ManaDropped { .. }
+            | Event::SupermanaBackToBase { .. } => {
+                profile.mana_move = true;
+            }
+            Event::GameOver { .. } => {
+                profile.game_over = true;
+            }
+            Event::NextTurn { .. } | Event::MonAwake { .. } | Event::Takeback => {}
+        }
+    }
+    profile
+}
+
+fn pro_profile_sweep_control_after(game: &MonsGame, candidate_color: Color) -> &'static str {
+    if let Some(winner) = game.winner_color() {
+        if winner == candidate_color {
+            "terminal_candidate"
+        } else {
+            "terminal_opponent"
+        }
+    } else if game.active_color == candidate_color {
+        "return_candidate"
+    } else {
+        "stay_opponent"
+    }
+}
+
+fn pro_policy_matrix_score_event_bucket(profile: ProProfileSweepEventProfile) -> &'static str {
+    match (
+        profile.own_regular_score,
+        profile.opponent_regular_score,
+        profile.supermana_score,
+    ) {
+        (false, false, false) => "score_none",
+        (true, false, false) => "score_own_regular",
+        (false, true, false) => "score_opp_regular",
+        (false, false, true) => "score_super",
+        _ => "score_mixed",
+    }
+}
+
+fn pro_policy_matrix_faint_event_bucket(profile: ProProfileSweepEventProfile) -> &'static str {
+    match (profile.own_faint, profile.opponent_faint) {
+        (false, false) => "faint_none",
+        (true, false) => "faint_own",
+        (false, true) => "faint_opp",
+        (true, true) => "faint_both",
+    }
+}
+
+fn pro_policy_matrix_movement_event_bucket(profile: ProProfileSweepEventProfile) -> &'static str {
+    match (profile.mon_move, profile.mana_move) {
+        (false, false) => "move_none",
+        (true, false) => "move_mon",
+        (false, true) => "move_mana",
+        (true, true) => "move_both",
+    }
+}
+
+fn pro_policy_matrix_reply_latency_bucket(latency: usize) -> &'static str {
+    match latency {
+        0 => "reply_same_ply",
+        1 => "reply_next_ply",
+        2 => "reply_after2",
+        _ => "reply_after3_plus",
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ProPolicyMatrixRealizedReplyProfile {
+    present: bool,
+    latency: &'static str,
+    score: &'static str,
+    faint: &'static str,
+    pickup: bool,
+    action: bool,
+    movement: &'static str,
+    control: &'static str,
+}
+
+fn pro_policy_matrix_realized_reply_profile(
+    trace: &ProProfileSweepAttributionTrace,
+    divergence: &ProProfileSweepFirstDivergence,
+) -> ProPolicyMatrixRealizedReplyProfile {
+    if let Some(reply) = trace
+        .played_turns
+        .iter()
+        .find(|turn| turn.ply > divergence.ply && !turn.candidate_to_move)
+    {
+        return ProPolicyMatrixRealizedReplyProfile {
+            present: true,
+            latency: pro_policy_matrix_reply_latency_bucket(reply.ply - divergence.ply),
+            score: pro_policy_matrix_score_event_bucket(reply.event_profile),
+            faint: pro_policy_matrix_faint_event_bucket(reply.event_profile),
+            pickup: reply.event_profile.pickup,
+            action: reply.event_profile.action,
+            movement: pro_policy_matrix_movement_event_bucket(reply.event_profile),
+            control: reply.control_after,
+        };
+    }
+
+    let control = trace
+        .played_turns
+        .iter()
+        .find(|turn| turn.ply == divergence.ply && turn.candidate_to_move)
+        .map(|turn| turn.control_after)
+        .filter(|control| control.starts_with("terminal_"))
+        .unwrap_or("no_reply");
+
+    ProPolicyMatrixRealizedReplyProfile {
+        present: false,
+        latency: "reply_none",
+        score: "score_none",
+        faint: "faint_none",
+        pickup: false,
+        action: false,
+        movement: "move_none",
+        control,
+    }
+}
+
+fn pro_policy_matrix_realized_reply_delta(
+    baseline: ProPolicyMatrixRealizedReplyProfile,
+    candidate: ProPolicyMatrixRealizedReplyProfile,
+) -> &'static str {
+    if baseline == candidate {
+        "same"
+    } else if baseline.present != candidate.present {
+        "presence_changed"
+    } else if baseline.control != candidate.control {
+        "control_changed"
+    } else if baseline.latency != candidate.latency {
+        "latency_changed"
+    } else if baseline.score != candidate.score || baseline.faint != candidate.faint {
+        "material_event_changed"
+    } else if baseline.pickup != candidate.pickup
+        || baseline.action != candidate.action
+        || baseline.movement != candidate.movement
+    {
+        "event_shape_changed"
+    } else {
+        "changed"
+    }
+}
+
+fn pro_policy_matrix_realized_reply_event_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+    baseline_trace: &ProProfileSweepAttributionTrace,
+    candidate_trace: &ProProfileSweepAttributionTrace,
+) -> String {
+    let baseline = pro_policy_matrix_realized_reply_profile(baseline_trace, divergence);
+    let candidate = pro_policy_matrix_realized_reply_profile(candidate_trace, divergence);
+    format!(
+        "axis=realized_reply_event_profile baseline_present={} candidate_present={} baseline_latency={} candidate_latency={} baseline_score={} candidate_score={} baseline_faint={} candidate_faint={} baseline_pickup={} candidate_pickup={} baseline_action={} candidate_action={} baseline_movement={} candidate_movement={} baseline_control={} candidate_control={} delta={}",
+        baseline.present,
+        candidate.present,
+        baseline.latency,
+        candidate.latency,
+        baseline.score,
+        candidate.score,
+        baseline.faint,
+        candidate.faint,
+        baseline.pickup,
+        candidate.pickup,
+        baseline.action,
+        candidate.action,
+        baseline.movement,
+        candidate.movement,
+        baseline.control,
+        candidate.control,
+        pro_policy_matrix_realized_reply_delta(baseline, candidate),
     )
 }
 
@@ -3120,6 +3360,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             "axis=source_remaining_budget first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
+            "axis=realized_reply_event_profile first_diff=none".to_string(),
         ]
         .join("|");
     };
@@ -3197,6 +3438,11 @@ fn pro_policy_matrix_timing_continuation_axes(
         pro_policy_matrix_source_residual_agency_axis(divergence),
         pro_policy_matrix_source_handoff_opponent_mobility_axis(divergence),
         pro_policy_matrix_source_remaining_budget_axis(divergence),
+        pro_policy_matrix_realized_reply_event_axis(
+            divergence,
+            baseline_trace,
+            candidate_trace,
+        ),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,
@@ -3244,6 +3490,11 @@ fn play_profile_sweep_attribution_trace(
     max_plies: usize,
 ) -> ProProfileSweepAttributionTrace {
     let mut game = MonsGame::from_fen(opening_fen, false).expect("valid opening fen");
+    let candidate_color = if candidate_is_white {
+        Color::White
+    } else {
+        Color::Black
+    };
     clear_exact_state_analysis_cache();
     clear_exact_query_diagnostics();
     clear_turn_engine_plan_cache();
@@ -3251,21 +3502,20 @@ fn play_profile_sweep_attribution_trace(
     clear_turn_engine_selector_diagnostics();
 
     let mut candidate_turns = Vec::new();
+    let mut played_turns = Vec::new();
     for ply in 0..max_plies {
         if let Some(winner_color) = game.winner_color() {
             return ProProfileSweepAttributionTrace {
                 result: match_result_from_winner(winner_color, candidate_is_white),
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
 
         let board_fen = game.fen();
-        let candidate_to_move = if candidate_is_white {
-            game.active_color == Color::White
-        } else {
-            game.active_color == Color::Black
-        };
+        let active_color = game.active_color;
+        let candidate_to_move = active_color == candidate_color;
         let (inputs, guarded_branch, decision_effort) = if candidate_to_move {
             let effort_before = ProPolicyMatrixDecisionEffortSnapshot::capture();
             let (inputs, guarded_branch) = select_profile_sweep_candidate_inputs_with_branch(
@@ -3316,18 +3566,36 @@ fn play_profile_sweep_attribution_trace(
                 },
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
-        if !matches!(game.process_input(inputs, false, false), Output::Events(_)) {
-            return ProProfileSweepAttributionTrace {
-                result: if candidate_to_move {
-                    MatchResult::ProfileBWin
-                } else {
-                    MatchResult::ProfileAWin
-                },
-                final_fen: game.fen(),
-                candidate_turns,
-            };
+        let move_fen = Input::fen_from_array(&inputs);
+        match game.process_input(inputs, false, false) {
+            Output::Events(events) => {
+                played_turns.push(ProProfileSweepPlayedTurn {
+                    ply,
+                    candidate_to_move,
+                    active_color,
+                    move_fen,
+                    event_profile: pro_profile_sweep_event_profile(
+                        events.as_slice(),
+                        candidate_color,
+                    ),
+                    control_after: pro_profile_sweep_control_after(&game, candidate_color),
+                });
+            }
+            _ => {
+                return ProProfileSweepAttributionTrace {
+                    result: if candidate_to_move {
+                        MatchResult::ProfileBWin
+                    } else {
+                        MatchResult::ProfileAWin
+                    },
+                    final_fen: game.fen(),
+                    candidate_turns,
+                    played_turns,
+                };
+            }
         }
     }
 
@@ -3338,6 +3606,7 @@ fn play_profile_sweep_attribution_trace(
         },
         final_fen: game.fen(),
         candidate_turns,
+        played_turns,
     }
 }
 
@@ -3351,6 +3620,11 @@ fn play_profile_sweep_forced_first_candidate_turn(
     forced_inputs: &[Input],
 ) -> ProProfileSweepAttributionTrace {
     let mut game = MonsGame::from_fen(opening_fen, false).expect("valid opening fen");
+    let candidate_color = if candidate_is_white {
+        Color::White
+    } else {
+        Color::Black
+    };
     clear_exact_state_analysis_cache();
     clear_exact_query_diagnostics();
     clear_turn_engine_plan_cache();
@@ -3358,6 +3632,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
     clear_turn_engine_selector_diagnostics();
 
     let mut candidate_turns = Vec::new();
+    let mut played_turns = Vec::new();
     let mut forced_turn_spent = false;
     for ply in 0..max_plies {
         if let Some(winner_color) = game.winner_color() {
@@ -3365,15 +3640,13 @@ fn play_profile_sweep_forced_first_candidate_turn(
                 result: match_result_from_winner(winner_color, candidate_is_white),
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
 
         let board_fen = game.fen();
-        let candidate_to_move = if candidate_is_white {
-            game.active_color == Color::White
-        } else {
-            game.active_color == Color::Black
-        };
+        let active_color = game.active_color;
+        let candidate_to_move = active_color == candidate_color;
         let (inputs, guarded_branch, decision_effort) = if candidate_to_move && !forced_turn_spent {
             forced_turn_spent = true;
             (
@@ -3431,18 +3704,36 @@ fn play_profile_sweep_forced_first_candidate_turn(
                 },
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
-        if !matches!(game.process_input(inputs, false, false), Output::Events(_)) {
-            return ProProfileSweepAttributionTrace {
-                result: if candidate_to_move {
-                    MatchResult::ProfileBWin
-                } else {
-                    MatchResult::ProfileAWin
-                },
-                final_fen: game.fen(),
-                candidate_turns,
-            };
+        let move_fen = Input::fen_from_array(&inputs);
+        match game.process_input(inputs, false, false) {
+            Output::Events(events) => {
+                played_turns.push(ProProfileSweepPlayedTurn {
+                    ply,
+                    candidate_to_move,
+                    active_color,
+                    move_fen,
+                    event_profile: pro_profile_sweep_event_profile(
+                        events.as_slice(),
+                        candidate_color,
+                    ),
+                    control_after: pro_profile_sweep_control_after(&game, candidate_color),
+                });
+            }
+            _ => {
+                return ProProfileSweepAttributionTrace {
+                    result: if candidate_to_move {
+                        MatchResult::ProfileBWin
+                    } else {
+                        MatchResult::ProfileAWin
+                    },
+                    final_fen: game.fen(),
+                    candidate_turns,
+                    played_turns,
+                };
+            }
         }
     }
 
@@ -3453,6 +3744,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
         },
         final_fen: game.fen(),
         candidate_turns,
+        played_turns,
     }
 }
 
