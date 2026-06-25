@@ -4,6 +4,15 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Reply-Recovery Envelope ProV4 No-Go
+
+- A temporary test-only `frontier_pro_v4_reply_recovery_envelope` scout was built and pruned from the active sweep surface. It preserved guarded fallback unless the guarded branch reached `frontier_execute`, then compared the guarded root against top scored challengers using a bounded lower-tail envelope: opponent replies, one own recovery after each reply, terminal-loss count, match-point count, minimum recovery eval, and lower-quartile recovery eval.
+- Same-active partial roots were given one bounded own continuation before measuring opponent replies so the scout would not be a pure no-op on the current root surface. Save vetoes rejected challengers that increased terminal-loss or match-point exposure, and override candidates also had score/eval-drop guards.
+- The sampled Pro dashboard killed it immediately against `shipping_pro_search`: `5-7`, `win_rate=0.4167`, `confidence=0.0000`, candidate average `203.69ms`, and `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`.
+- Weak sampled rows were broad: `center_spoke_mana_rows` was `0-2`; `alternating_mana_rows`, `inner_wedge_mana_rows`, `split_flank_mana_rows`, and `forward_bridge_mana_rows` all split.
+- Branch counts showed the mechanism was active enough to hurt but not enough to repair: `reply_recovery_guarded_fallback=72`, `reply_recovery_no_challenger=466`, and `reply_recovery_override_floor=33`.
+- Durable outcome: lower-tail reply-recovery envelope overrides over the current root surface are not promotable. Do not reopen this selector without corpus evidence that recovery floors separate candidate wins from guarded saves below existing root fields.
+
 ## 2026-06-25 ProV4 Post-Reply Reversal No-Source
 
 - Retained change is diagnostic/postprocess-only. ProV4 root-pool rows now emit `post_reply_reversal_profile`, a source-vs-post-root vector over score differential, high-value custody, own-regular custody, and material. When a root hands the turn to the opponent, the diagnostic enumerates bounded immediate replies and buckets whether replies reverse any or all gained vector components.
