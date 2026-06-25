@@ -4,6 +4,24 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Opponent-Plan Suppression ProV4 No-Go
+
+- A temporary test-only `frontier_pro_v4_opponent_plan_suppression` scout was built and pruned from the active sweep surface. It preserved guarded Pro by default and only considered overrides after the guarded branch reached `frontier_execute`.
+- The selector compared guarded selected roots against safe scored challengers by estimating the opponent's next turn-engine plan after each root. Roots that materially weakened reply floor, spirit follow-up floor, drainer safety, or handoff safety were vetoed before opponent-plan pressure was considered.
+- The sampled dashboard killed it before promotion: Pro vs `shipping_pro_search` was `8-4`, `win_rate=0.6667`, `confidence=0.8062`, candidate average `212.74ms`, and `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`.
+- The weak row was decisive: `inner_wedge_mana_rows` stayed `0-2`; `alternating_mana_rows` split `1-1`; only center-spoke and split-flank were `2-0`.
+- Branch counts showed the mechanism was too sparse to explain broad strength: `opponent_plan_suppression_override` fired only six turns, while guarded fallback fired 494 turns, with retained early-white and late-black fallbacks still active.
+- Durable outcome: opponent next-plan pressure is not a promotable direct selector in this shape. Do not reopen it without corpus evidence that opponent-plan pressure separates candidate wins from guarded saves below branch/policy labels.
+
+## 2026-06-25 Source-Residual Agency No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_residual_agency`, a first-divergence source-board bucket for same-turn legal continuation count and event mix after applying each compared move.
+- The feature applies the baseline and candidate move to cloned source boards, then only counts continuations when the active player still has the turn. It buckets closed, terminal, invalid, incomplete, and same-turn continuation fanout without policy id, branch id, exact move strings, variant, or rollout outcome fields.
+- The focused sampled Pro structural scout (`20260625-070216`, dashboard `20260625-070019`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_residual_agency`, `panel=sampled`, and `duel=vs_shipping_pro`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=singleton_no_source`, `route_permission=no_source`, and `source_candidate_rollups=0`.
+- The filter matched 14 corpus records and seven trace records across two sampled states. It had two candidate-better records and 12 same-outcome records, all in `inner_wedge_mana_rows`, with seven candidate policies, five branch transitions, and six first-move pairs.
+- Candidate-better residual-agency rows were singleton: one `delta=same` row and one `delta=candidate_more` row. The `delta=same` shape also appeared in same-outcome evidence, so widening would only continue the retired branch/pair fragmentation.
+- Durable outcome: residual same-turn agency is useful corpus visibility, but it did not separate sampled candidate wins from same-outcome rows. Do not promote or write runtime selectors from source-residual-agency buckets.
+
 ## 2026-06-25 Eval-Effort Root-Policy ProV4 No-Go
 
 - A temporary test-only `frontier_pro_v4_eval_effort_stable_root_policy` scout was built and pruned from the active sweep surface. It preserved guarded behavior by default and tried to use root-local marginal eval effort as a stability signal for replacing guarded roots.

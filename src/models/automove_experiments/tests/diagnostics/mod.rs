@@ -2327,6 +2327,175 @@ fn pro_policy_matrix_source_move_interference_axis(
     )
 }
 
+#[derive(Debug)]
+struct ProPolicyMatrixSourceResidualAgency {
+    status: &'static str,
+    total: usize,
+    capped: bool,
+    mix: String,
+}
+
+fn pro_policy_matrix_source_residual_count_bucket(count: usize, capped: bool) -> &'static str {
+    if capped {
+        "total32_plus"
+    } else {
+        match count {
+            0 => "total0",
+            1 => "total1",
+            2..=4 => "total2_4",
+            5..=8 => "total5_8",
+            9..=16 => "total9_16",
+            _ => "total17_31",
+        }
+    }
+}
+
+fn pro_policy_matrix_source_residual_agency_mix(events: &[Event]) -> Vec<&'static str> {
+    let mut tokens = Vec::new();
+    for event in events {
+        match event {
+            Event::MonMove { .. } | Event::MonAwake { .. } => tokens.push("mon"),
+            Event::ManaMove { .. }
+            | Event::PickupMana { .. }
+            | Event::ManaDropped { .. }
+            | Event::SupermanaBackToBase { .. } => tokens.push("mana"),
+            Event::ManaScored { .. } => {
+                tokens.push("mana");
+                tokens.push("score");
+            }
+            Event::MysticAction { .. }
+            | Event::DemonAction { .. }
+            | Event::DemonAdditionalStep { .. }
+            | Event::SpiritTargetMove { .. }
+            | Event::UsePotion { .. }
+            | Event::BombAttack { .. }
+            | Event::BombExplosion { .. } => tokens.push("action"),
+            Event::PickupBomb { .. } | Event::PickupPotion { .. } => tokens.push("item"),
+            Event::MonFainted { .. } => tokens.push("faint"),
+            Event::GameOver { .. } => tokens.push("score"),
+            Event::NextTurn { .. } | Event::Takeback => {}
+        }
+    }
+    tokens
+}
+
+fn pro_policy_matrix_source_residual_agency_after_move(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourceResidualAgency {
+    let initial_color = board.active_color;
+    let initial_turn = board.turn_number;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceResidualAgency {
+                status: "invalid",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceResidualAgency {
+                status: "incomplete",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceResidualAgency {
+            status: "terminal",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+    if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        return ProPolicyMatrixSourceResidualAgency {
+            status: "closed",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+
+    let cap = 32;
+    let transitions = MonsGameModel::enumerate_legal_transitions(
+        &probe,
+        cap,
+        SuggestedStartInputOptions::for_automove(),
+    );
+    let mut mix = BTreeSet::<&'static str>::new();
+    for transition in &transitions {
+        for token in pro_policy_matrix_source_residual_agency_mix(&transition.events) {
+            mix.insert(token);
+        }
+    }
+    ProPolicyMatrixSourceResidualAgency {
+        status: "same_turn",
+        total: transitions.len(),
+        capped: transitions.len() >= cap,
+        mix: if mix.is_empty() {
+            "none".to_string()
+        } else {
+            mix.into_iter().collect::<Vec<_>>().join("_")
+        },
+    }
+}
+
+fn pro_policy_matrix_source_residual_agency_bucket(
+    agency: &ProPolicyMatrixSourceResidualAgency,
+) -> String {
+    if agency.status != "same_turn" {
+        return agency.status.to_string();
+    }
+    format!(
+        "{}:{}:mix={}",
+        agency.status,
+        pro_policy_matrix_source_residual_count_bucket(agency.total, agency.capped),
+        agency.mix,
+    )
+}
+
+fn pro_policy_matrix_source_residual_agency_delta(
+    baseline: &ProPolicyMatrixSourceResidualAgency,
+    candidate: &ProPolicyMatrixSourceResidualAgency,
+) -> &'static str {
+    match candidate.total.cmp(&baseline.total) {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal if candidate.status == baseline.status => "same",
+        std::cmp::Ordering::Equal => "same_total_status_changed",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_residual_agency_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_residual_agency unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_residual_agency_after_move(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_residual_agency_after_move(&board, &candidate_inputs);
+    format!(
+        "axis=source_residual_agency baseline={} candidate={} delta={}",
+        pro_policy_matrix_source_residual_agency_bucket(&baseline),
+        pro_policy_matrix_source_residual_agency_bucket(&candidate),
+        pro_policy_matrix_source_residual_agency_delta(&baseline, &candidate),
+    )
+}
+
 fn pro_policy_matrix_source_mana_corridor(location: Location, perspective: Color) -> String {
     let forward = forced_root_oracle_forward_index(perspective, location);
     let band = if forward <= 2 {
@@ -2424,6 +2593,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             "axis=source_prefix_completion_profile first_diff=none".to_string(),
             "axis=source_move_interference first_diff=none".to_string(),
             "axis=source_mana_corridor_topology first_diff=none".to_string(),
+            "axis=source_residual_agency first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -2498,6 +2668,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         pro_policy_matrix_source_prefix_completion_axis(divergence),
         pro_policy_matrix_source_move_interference_axis(divergence),
         pro_policy_matrix_source_mana_corridor_topology_axis(divergence),
+        pro_policy_matrix_source_residual_agency_axis(divergence),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,
