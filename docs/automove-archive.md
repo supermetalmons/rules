@@ -4,6 +4,14 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Rotation-Equivariance ProV4 No-Go
+
+- A temporary test-only `frontier_pro_v4_rotation_equivariance_scout` was built and pruned from the active sweep surface. It rotated the source board 180 degrees while swapping colors, ran guarded Pro on the rotated board, mapped the rotated output back, and only overrode guarded when the mapped move was legal for automove and present on the guarded root surface.
+- The sampled Pro dashboard killed it immediately against `shipping_pro_search`: `2-2`, `win_rate=0.5000`, `confidence=0.0000`, candidate average `292.21ms`, and `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`.
+- The weak row was decisive: `inner_wedge_mana_rows` was `0-2`; `center_spoke_mana_rows` was `2-0`. Branch counts were `rotation_agrees=117`, `rotation_override=57`, and `rotation_off_surface=11`.
+- Cost was also a blocker. Shipping Pro averaged `57.06ms`, so the rotation scout was roughly 5x slower while failing the first sampled gate.
+- Durable outcome: color/rotation symmetry disagreement is not a promotable direct selector in this shape. Do not reopen it without corpus evidence that symmetry disagreement separates candidate wins from guarded saves below root fields and without a cheaper implementation plan.
+
 ## 2026-06-25 Source-Remaining Budget No-Source
 
 - Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_remaining_budget`, a first-divergence source-board bucket that applies each compared move and records remaining action, mana, and mon-move budget only when the active player keeps the turn.
