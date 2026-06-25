@@ -4,6 +4,24 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Eval-Effort Root-Policy ProV4 No-Go
+
+- A temporary test-only `frontier_pro_v4_eval_effort_stable_root_policy` scout was built and pruned from the active sweep surface. It preserved guarded behavior by default and tried to use root-local marginal eval effort as a stability signal for replacing guarded roots.
+- The structural scout dashboard killed it immediately on sampled Pro against `shipping_pro_search`: `6-6`, `win_rate=0.5000`, `confidence=0.0000`, candidate average `193.89ms`, and `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`.
+- Weak sampled rows were broad rather than a single repairable pocket: `alternating_mana_rows` was `0-2`; `center_spoke_mana_rows`, `inner_wedge_mana_rows`, and `forward_bridge_mana_rows` each split; only `split_flank_mana_rows` reached `2-0`.
+- Branch counts showed the candidate was active enough to matter but not selective enough to promote: `eval_effort_stable_root_override` fired `82` turns, while guarded fallback still fired `417` turns, plus retained early-white and late-black fallbacks.
+- Durable outcome: root-eval effort deltas over the current root surface are not a promotable ProV4 discriminator. Do not reopen this shape as a direct selector without a new measured feature that separates candidate wins from guarded saves below existing root fields.
+
+## 2026-06-25 Source-Mana Corridor Topology No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_mana_corridor_topology`, a first-divergence source-board bucket for active-perspective mana pool, mana base, and supermana base layout.
+- The feature buckets each mana square by forward band (`home`, `near_mid`, `far_mid`, `far`) and lane (`center`, `inner`, `edge`). It does not include policy id, branch id, exact move strings, variant, or post-root rollout state.
+- The focused sampled Pro structural scout (`20260625-063814`, dashboard `20260625-063618`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_mana_corridor_topology`, `panel=sampled`, and `duel=vs_shipping_pro`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=baseline_save_risk`, `route_permission=no_source`, and `source_candidate_rollups=0`.
+- The source blocker was not the new axis itself but the recurring guarded-save conflict: `axis=exact_pressure window=window0 deny=deny0 attack=false drainer_safety=safe` had one candidate-only state and three baseline-better states.
+- The `source_mana_corridor_topology` filter matched 42 corpus records and 23 trace records across six sampled states, seven candidate policies, three variants, five branch transitions, and 19 first-move pairs. Outcomes were 31 same-outcome records, nine baseline-better records, and two candidate-better records.
+- The only candidate-better corridor, `own_pool=home_edgex2 opp_pool=far_edgex2 own_base=near_mid_centerx5 opp_base=far_mid_centerx5 super_base=near_mid_center`, also carried five same-outcome records. The other repeated corridor buckets were baseline-better heavy in center-spoke and split-flank.
+- Durable outcome: source-board mana corridor topology improves corpus visibility for board layout, but it does not separate candidate wins from guarded saves. Do not promote or write runtime selectors from source-mana corridor buckets.
+
 ## 2026-06-25 Sampled-Gate Combo ProV4 No-Go
 
 - A temporary test-only `frontier_pro_v4_sampled_gate_combo` scout was built and pruned from the active sweep surface. It stitched together the existing alternating early-white edge branch, an inner-wedge advisor-approved `SpiritImpact` tail repair, black weak-window shipping recovery, and two sampled-Normal shipping recoveries.

@@ -2327,6 +2327,90 @@ fn pro_policy_matrix_source_move_interference_axis(
     )
 }
 
+fn pro_policy_matrix_source_mana_corridor(location: Location, perspective: Color) -> String {
+    let forward = forced_root_oracle_forward_index(perspective, location);
+    let band = if forward <= 2 {
+        "home"
+    } else if forward <= 5 {
+        "near_mid"
+    } else if forward <= 8 {
+        "far_mid"
+    } else {
+        "far"
+    };
+    let center_distance = (location.j - Config::BOARD_CENTER_INDEX).abs();
+    let lane = if center_distance <= 1 {
+        "center"
+    } else if center_distance <= 3 {
+        "inner"
+    } else {
+        "edge"
+    };
+    format!("{band}_{lane}")
+}
+
+fn pro_policy_matrix_source_mana_corridor_signature(corridors: Vec<String>) -> String {
+    if corridors.is_empty() {
+        return "none".to_string();
+    }
+    let mut counts = BTreeMap::<String, usize>::new();
+    for corridor in corridors {
+        *counts.entry(corridor).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .map(|(corridor, count)| {
+            if count == 1 {
+                corridor
+            } else {
+                format!("{corridor}x{count}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("+")
+}
+
+fn pro_policy_matrix_source_mana_corridor_topology_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(game) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_mana_corridor_topology unavailable=board".to_string();
+    };
+    let mut own_pool = Vec::new();
+    let mut opponent_pool = Vec::new();
+    let mut own_base = Vec::new();
+    let mut opponent_base = Vec::new();
+    let mut super_base = Vec::new();
+    for i in Location::valid_range() {
+        for j in Location::valid_range() {
+            let location = Location::new(i, j);
+            let corridor =
+                pro_policy_matrix_source_mana_corridor(location, divergence.active_color);
+            match game.board.square(location) {
+                Square::ManaPool { color } if color == divergence.active_color => {
+                    own_pool.push(corridor);
+                }
+                Square::ManaPool { .. } => opponent_pool.push(corridor),
+                Square::ManaBase { color } if color == divergence.active_color => {
+                    own_base.push(corridor);
+                }
+                Square::ManaBase { .. } => opponent_base.push(corridor),
+                Square::SupermanaBase => super_base.push(corridor),
+                Square::Regular | Square::ConsumableBase | Square::MonBase { .. } => {}
+            }
+        }
+    }
+
+    format!(
+        "axis=source_mana_corridor_topology own_pool={} opp_pool={} own_base={} opp_base={} super_base={}",
+        pro_policy_matrix_source_mana_corridor_signature(own_pool),
+        pro_policy_matrix_source_mana_corridor_signature(opponent_pool),
+        pro_policy_matrix_source_mana_corridor_signature(own_base),
+        pro_policy_matrix_source_mana_corridor_signature(opponent_base),
+        pro_policy_matrix_source_mana_corridor_signature(super_base),
+    )
+}
+
 fn pro_policy_matrix_timing_continuation_axes(
     first_divergence: Option<&ProProfileSweepFirstDivergence>,
     baseline_trace: &ProProfileSweepAttributionTrace,
@@ -2339,6 +2423,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             "axis=source_prompt_topology_delta first_diff=none".to_string(),
             "axis=source_prefix_completion_profile first_diff=none".to_string(),
             "axis=source_move_interference first_diff=none".to_string(),
+            "axis=source_mana_corridor_topology first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -2412,6 +2497,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         pro_policy_matrix_source_prompt_topology_axis(divergence),
         pro_policy_matrix_source_prefix_completion_axis(divergence),
         pro_policy_matrix_source_move_interference_axis(divergence),
+        pro_policy_matrix_source_mana_corridor_topology_axis(divergence),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,
