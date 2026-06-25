@@ -4,6 +4,16 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Sampled-Gate Combo ProV4 No-Go
+
+- A temporary test-only `frontier_pro_v4_sampled_gate_combo` scout was built and pruned from the active sweep surface. It stitched together the existing alternating early-white edge branch, an inner-wedge advisor-approved `SpiritImpact` tail repair, black weak-window shipping recovery, and two sampled-Normal shipping recoveries.
+- The first useful subcandidate, inner-wedge advisor-tail plus black weak-window recovery, improved sampled Pro from guarded `7-5` to `10-2`. The inner-wedge row reached `2-0`, and forward-bridge improved to `3-1`, but the sampled gate still failed (`win_rate=0.8333`, `confidence=0.9807`).
+- A broad white forward-bridge shipping fallback was explicitly tested and rejected. It fired `94` turns in sampled Pro and still stayed `10-2`, proving the remaining forward-bridge loss depended on continuation trajectory rather than a clean root/variant fallback.
+- Adding the existing alternating early-white edge branch produced the first strict sampled Pro pass: `11-1`, `win_rate=0.9167`, `confidence=0.9968`, candidate average about `146ms`. A focused alternating investigation showed this repair comes from an earlier singleton opening divergence, not a general ply-14 source mechanism.
+- Two sampled-Normal singleton shipping recoveries then lifted sampled Normal to `11-1` as well: inner-wedge white turn-5 tactical window (`window=2`, `deny=2`, unsafe drainer) and corner-chain white turn-3 quiet action/mana. These were exact regression repairs, not low-fragmentation source features.
+- The stitched candidate failed sampled Fast hard: `7-5`, `win_rate=0.5833`, `confidence=0.6128`, candidate average `207.97ms`, `PRO_PROMOTION_DASHBOARD_STOPLIGHT label=not_promising`. Weak rows spread across `corner_chain_mana_rows` (`0-2`), `offset_arc_mana_rows`, `center_spoke_mana_rows`, and `forward_bridge_mana_rows`.
+- Durable outcome: do not promote or reopen sampled-gate stitching, variant/turn shipping patches, approved-vs-ordered root repairs, or singleton opening/root repairs as runtime source. The wave confirmed that hand-patching sampled Pro and Normal rotates the failure into sampled Fast, matching earlier targeted-arbitration no-go evidence.
+
 ## 2026-06-25 Unified Root-Policy ProV4 No-Go
 
 - A temporary test-only `frontier_pro_v4_unified_root_policy_v2` scaffold was built and pruned from the active sweep surface. It preserved the public guarded Pro wrapper by default, then compared the guarded selected root against filtered scored challengers using existing root family, utility, reply-risk, follow-up floor, safety, setup, score, and rank fields.
