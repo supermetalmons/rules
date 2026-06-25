@@ -2496,6 +2496,134 @@ fn pro_policy_matrix_source_residual_agency_axis(
     )
 }
 
+#[derive(Debug)]
+struct ProPolicyMatrixSourceHandoffOpponentMobility {
+    status: &'static str,
+    total: usize,
+    capped: bool,
+    mix: String,
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_after_move(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourceHandoffOpponentMobility {
+    let initial_color = board.active_color;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceHandoffOpponentMobility {
+                status: "invalid",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceHandoffOpponentMobility {
+                status: "incomplete",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceHandoffOpponentMobility {
+            status: "terminal",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+    if probe.active_color == initial_color {
+        return ProPolicyMatrixSourceHandoffOpponentMobility {
+            status: "same_turn",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+
+    let cap = 32;
+    let transitions = MonsGameModel::enumerate_legal_transitions(
+        &probe,
+        cap,
+        SuggestedStartInputOptions::for_automove(),
+    );
+    let mut mix = BTreeSet::<&'static str>::new();
+    for transition in &transitions {
+        for token in pro_policy_matrix_source_residual_agency_mix(&transition.events) {
+            mix.insert(token);
+        }
+    }
+    ProPolicyMatrixSourceHandoffOpponentMobility {
+        status: "opponent_turn",
+        total: transitions.len(),
+        capped: transitions.len() >= cap,
+        mix: if mix.is_empty() {
+            "none".to_string()
+        } else {
+            mix.into_iter().collect::<Vec<_>>().join("_")
+        },
+    }
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_bucket(
+    mobility: &ProPolicyMatrixSourceHandoffOpponentMobility,
+) -> String {
+    if mobility.status != "opponent_turn" {
+        return mobility.status.to_string();
+    }
+    format!(
+        "{}:{}:mix={}",
+        mobility.status,
+        pro_policy_matrix_source_residual_count_bucket(mobility.total, mobility.capped),
+        mobility.mix,
+    )
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_delta(
+    baseline: &ProPolicyMatrixSourceHandoffOpponentMobility,
+    candidate: &ProPolicyMatrixSourceHandoffOpponentMobility,
+) -> &'static str {
+    if baseline.status != candidate.status {
+        return "status_changed";
+    }
+    match candidate.total.cmp(&baseline.total) {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_handoff_opponent_mobility unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline =
+        pro_policy_matrix_source_handoff_opponent_mobility_after_move(&board, &baseline_inputs);
+    let candidate =
+        pro_policy_matrix_source_handoff_opponent_mobility_after_move(&board, &candidate_inputs);
+    format!(
+        "axis=source_handoff_opponent_mobility baseline={} candidate={} delta={}",
+        pro_policy_matrix_source_handoff_opponent_mobility_bucket(&baseline),
+        pro_policy_matrix_source_handoff_opponent_mobility_bucket(&candidate),
+        pro_policy_matrix_source_handoff_opponent_mobility_delta(&baseline, &candidate),
+    )
+}
+
 fn pro_policy_matrix_source_mana_corridor(location: Location, perspective: Color) -> String {
     let forward = forced_root_oracle_forward_index(perspective, location);
     let band = if forward <= 2 {
@@ -2594,6 +2722,7 @@ fn pro_policy_matrix_timing_continuation_axes(
             "axis=source_move_interference first_diff=none".to_string(),
             "axis=source_mana_corridor_topology first_diff=none".to_string(),
             "axis=source_residual_agency first_diff=none".to_string(),
+            "axis=source_handoff_opponent_mobility first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
         ]
@@ -2669,6 +2798,7 @@ fn pro_policy_matrix_timing_continuation_axes(
         pro_policy_matrix_source_move_interference_axis(divergence),
         pro_policy_matrix_source_mana_corridor_topology_axis(divergence),
         pro_policy_matrix_source_residual_agency_axis(divergence),
+        pro_policy_matrix_source_handoff_opponent_mobility_axis(divergence),
     ];
     axes.extend(pro_policy_matrix_decision_effort_axes(
         divergence.left_decision_effort,

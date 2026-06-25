@@ -4,6 +4,16 @@ This file keeps only short summaries of retired automove waves.
 
 Everything here is archive-only context. Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the live workflow and `docs/automove-knowledge.md` for durable rules that still matter.
 
+## 2026-06-25 Source-Handoff Opponent-Mobility No-Source
+
+- Retained change is diagnostic-only. `pro_policy_matrix_timing_continuation_axes` now emits `axis=source_handoff_opponent_mobility`, a first-divergence source-board bucket that applies each compared move and counts the opponent's immediate legal response fanout only when the move hands over the turn.
+- The feature buckets invalid, incomplete, terminal, same-turn, and opponent-turn response fanout plus event mix. It does not use policy id, branch id, exact move strings, variant, budget eval, reply floor, root-pool rows, or rollout outcome fields.
+- The focused active Fast structural scout (`20260625-072721`, dashboard `20260625-072525`) ran with `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER=source_handoff_opponent_mobility`, `panel=active_blockers`, and `duel=vs_shipping_fast`. It stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=postprocess_only`, `route_permission=postprocess_only`, `source_candidate_rollups=0`, and `clean_low_fragmentation_routes=0`.
+- In active Fast, the only repeated candidate-bearing handoff row was `axis=source_handoff_opponent_mobility baseline=same_turn candidate=same_turn delta=same`: six candidate-better records across two states, one same-outcome state, four candidate policies, four branch transitions, and seven first-move pairs. It never exercised the intended opponent-turn split.
+- The focused sampled Pro follow-up (`20260625-073229`, dashboard `20260625-073033`) also stayed no-source: dashboard `not_promising`, `promotion_decision=do_not_promote`, `source_decision=no_runtime_source`, `corpus_decision=singleton_no_source`, `route_permission=no_source`, and `source_candidate_rollups=0`.
+- In sampled Pro, the same `baseline=same_turn candidate=same_turn delta=same` row had two candidate-better records across two states but five same-outcome records across two states, with four candidate policies, four branch transitions, and five first-move pairs.
+- Durable outcome: opponent handoff mobility is useful corpus visibility, but these sampled and active candidate wins do not separate by opponent response fanout. Do not promote or write runtime selectors from source-handoff opponent-mobility buckets.
+
 ## 2026-06-25 Opponent-Plan Suppression ProV4 No-Go
 
 - A temporary test-only `frontier_pro_v4_opponent_plan_suppression` scout was built and pruned from the active sweep surface. It preserved guarded Pro by default and only considered overrides after the guarded branch reached `frontier_execute`.
