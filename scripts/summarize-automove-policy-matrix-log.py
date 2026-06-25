@@ -1568,7 +1568,11 @@ def cross_budget_fragmented_dimensions(row):
 
 def future_only_axis(axis):
     value = str(axis or "")
-    return value.startswith("terminal_") or value.startswith("portfolio_")
+    return (
+        value.startswith("terminal_")
+        or value.startswith("portfolio_")
+        or value.startswith("axis=realized_reply_event_profile")
+    )
 
 
 def cross_budget_source_status(row):
@@ -2587,6 +2591,7 @@ def summarize_pro_v4_root_pool(events, limit=8):
                 "root_transition_effect",
                 "worst_reply_transition",
                 "worst_reply_effect",
+                "post_reply_reversal_profile",
             ]:
                 winning_root_field_counts[field][root.get(field, "")] += 1
                 if root.get("portfolio_class", "") == "candidate_only_win":

@@ -20,6 +20,7 @@ NO_SOURCE_STATUSES = {
     "baseline_save_risk",
     "coverage_gap",
     "fragmented_no_source",
+    "future_only_no_source",
     "singleton_candidate",
     "singleton_non_regressing",
 }
@@ -41,6 +42,9 @@ ROOT_POOL_SIGNAL_FIELDS = [
     "advisor_bucket",
     "path",
     "root_origin_profile",
+    "class_vector",
+    "class_family",
+    "class_priority",
     "safety_detail",
     "progress",
     "efficiency",
@@ -83,6 +87,9 @@ ROOT_POOL_SIGNAL_FIELDS = [
     "post_score_delta",
     "post_turn_budget",
     "post_turn_budget_delta",
+    "root_budget_eval_stability",
+    "root_budget_reply_stability",
+    "root_budget_value_reply_stability",
     "post_score_term_profile",
     "post_score_term_profile_delta",
     "post_legal_fanout",
@@ -211,6 +218,7 @@ ROOT_POOL_SIGNAL_FIELDS = [
     "worst_reply_effect",
     "post_reply_spectrum",
     "post_reply_spectrum_effect",
+    "post_reply_reversal_profile",
 ]
 ROOT_POOL_COMPOUND_SIGNAL_FIELDS = [
     ("family_rank", ("family", "rank_bucket")),
@@ -221,6 +229,13 @@ ROOT_POOL_COMPOUND_SIGNAL_FIELDS = [
     ("family_root_origin_profile", ("family", "root_origin_profile")),
     ("progress_root_origin_profile", ("progress", "root_origin_profile")),
     ("path_root_origin_profile", ("path", "root_origin_profile")),
+    ("family_class_vector", ("family", "class_vector")),
+    ("path_class_vector", ("path", "class_vector")),
+    ("class_family_progress", ("class_family", "progress")),
+    ("class_family_reply", ("class_family", "reply_risk")),
+    ("class_vector_safety", ("class_vector", "safety_detail")),
+    ("class_vector_progress", ("class_vector", "progress")),
+    ("class_vector_reply", ("class_vector", "reply_risk")),
     ("path_safety", ("path", "safety_detail")),
     ("safety_progress", ("safety_detail", "progress")),
     ("reply_progress", ("reply_risk", "progress")),
@@ -310,6 +325,18 @@ ROOT_POOL_COMPOUND_SIGNAL_FIELDS = [
     ("family_score_delta", ("family", "post_score_delta")),
     ("progress_turn_budget", ("progress", "post_turn_budget")),
     ("path_turn_budget_delta", ("path", "post_turn_budget_delta")),
+    (
+        "family_root_budget_eval_stability",
+        ("family", "root_budget_eval_stability"),
+    ),
+    (
+        "progress_root_budget_reply_stability",
+        ("progress", "root_budget_reply_stability"),
+    ),
+    (
+        "path_root_budget_value_reply_stability",
+        ("path", "root_budget_value_reply_stability"),
+    ),
     ("family_score_term_profile", ("family", "post_score_term_profile")),
     (
         "progress_score_term_profile_delta",
@@ -664,6 +691,9 @@ ROOT_POOL_COMPOUND_SIGNAL_FIELDS = [
     ("family_reply_spectrum", ("family", "post_reply_spectrum")),
     ("progress_reply_spectrum_effect", ("progress", "post_reply_spectrum_effect")),
     ("path_reply_spectrum_effect", ("path", "post_reply_spectrum_effect")),
+    ("family_reply_reversal", ("family", "post_reply_reversal_profile")),
+    ("progress_reply_reversal", ("progress", "post_reply_reversal_profile")),
+    ("path_reply_reversal", ("path", "post_reply_reversal_profile")),
 ]
 ROOT_POOL_GUARDED_ORIGIN_KINDS = {
     "guarded_selected",
@@ -675,6 +705,9 @@ ROOT_POOL_DELTA_CATEGORICAL_FIELDS = [
     "rank_bucket",
     "advisor_bucket",
     "path",
+    "class_vector",
+    "class_family",
+    "class_priority",
     "safety_detail",
     "progress",
     "efficiency",
@@ -715,6 +748,9 @@ ROOT_POOL_DELTA_CATEGORICAL_FIELDS = [
     "post_score_delta",
     "post_turn_budget",
     "post_turn_budget_delta",
+    "root_budget_eval_stability",
+    "root_budget_reply_stability",
+    "root_budget_value_reply_stability",
     "post_score_term_profile",
     "post_score_term_profile_delta",
     "post_legal_fanout",
@@ -843,6 +879,7 @@ ROOT_POOL_DELTA_CATEGORICAL_FIELDS = [
     "worst_reply_effect",
     "post_reply_spectrum",
     "post_reply_spectrum_effect",
+    "post_reply_reversal_profile",
 ]
 ROOT_POOL_DELTA_NUMERIC_FIELDS = [
     "rank",
@@ -2835,12 +2872,18 @@ def root_pool_signal_items(row):
 
 def root_pool_signal_field_family(field):
     field = str(field or "")
+    if "root_budget_" in field:
+        return "root_budget_stability"
+    if "class_vector" in field or "class_family" in field or "class_priority" in field:
+        return "root_class_vector"
     if "root_sequence" in field:
         return "root_input_sequence"
     if "root_input_goal" in field:
         return "root_input_goal"
     if "worst_reply" in field:
         return "worst_reply_event_footprint"
+    if "reply_reversal" in field:
+        return "reply_reversal"
     if "root_transition" in field:
         return "root_transition_event_footprint"
     if "root_origin_profile" in field:
@@ -3101,6 +3144,9 @@ def root_pool_sample_root(row):
         "policies": row.get("policies", ""),
         "family": row.get("family", ""),
         "rank_bucket": row.get("rank_bucket", ""),
+        "class_vector": row.get("class_vector", ""),
+        "class_family": row.get("class_family", ""),
+        "class_priority": row.get("class_priority", ""),
         "advisor_bucket": row.get("advisor_bucket", ""),
         "path": row.get("path", ""),
         "root_origin_profile": row.get("root_origin_profile", ""),
@@ -3156,6 +3202,11 @@ def root_pool_sample_root(row):
         "post_score_delta": row.get("post_score_delta", ""),
         "post_turn_budget": row.get("post_turn_budget", ""),
         "post_turn_budget_delta": row.get("post_turn_budget_delta", ""),
+        "root_budget_eval_stability": row.get("root_budget_eval_stability", ""),
+        "root_budget_reply_stability": row.get("root_budget_reply_stability", ""),
+        "root_budget_value_reply_stability": row.get(
+            "root_budget_value_reply_stability", ""
+        ),
         "post_score_term_profile": row.get("post_score_term_profile", ""),
         "post_score_term_profile_delta": row.get(
             "post_score_term_profile_delta", ""
@@ -3317,10 +3368,12 @@ def root_pool_sample_root(row):
         "post_lane_shape": row.get("post_lane_shape", ""),
         "post_lane_shape_delta": row.get("post_lane_shape_delta", ""),
         "root_sequence": row.get("root_sequence", ""),
+        "root_input_goal": row.get("root_input_goal", ""),
         "root_transition": row.get("root_transition", ""),
         "root_transition_effect": row.get("root_transition_effect", ""),
         "worst_reply_transition": row.get("worst_reply_transition", ""),
         "worst_reply_effect": row.get("worst_reply_effect", ""),
+        "post_reply_reversal_profile": row.get("post_reply_reversal_profile", ""),
     }
 
 

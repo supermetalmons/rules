@@ -986,6 +986,205 @@ fn print_pro_promotion_dashboard_variants(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct ProPolicyMatrixDecisionEffort {
+    selector_child_calls: usize,
+    selector_children: usize,
+    selector_fully_scored: usize,
+    selector_shortlist: usize,
+    selector_full_pass: usize,
+    selector_move_efficiency_builds: usize,
+    selector_move_efficiency_hits: usize,
+    selector_preferability_builds: usize,
+    selector_preferability_hits: usize,
+    selector_head_calls: usize,
+    selector_head_hits: usize,
+    selector_followup_floor_calls: usize,
+    exact_attack_calls: usize,
+    exact_payload_calls: usize,
+    exact_tactical_spirit_calls: usize,
+    exact_immediate_window_queries: usize,
+    exact_secure_mana_calls: usize,
+    exact_pickup_calls: usize,
+    engine_cache_misses: usize,
+    engine_accepted_plans: usize,
+    engine_reply_calls: usize,
+    engine_compile_attempts: usize,
+    selector_last_stage: &'static str,
+    selector_top_level_last_stage: &'static str,
+    selector_disable_reason: &'static str,
+    selector_top_level_disable_reason: &'static str,
+}
+
+#[derive(Clone, Copy)]
+struct ProPolicyMatrixDecisionEffortSnapshot {
+    selector: TurnEngineSelectorDiagnostics,
+    exact: ExactQueryDiagnostics,
+    engine: TurnEngineDiagnostics,
+}
+
+fn pro_policy_matrix_counter_delta_usize(before: usize, after: usize) -> usize {
+    if after >= before {
+        after - before
+    } else {
+        after
+    }
+}
+
+fn pro_policy_matrix_counter_delta_u32(before: u32, after: u32) -> usize {
+    if after >= before {
+        (after - before) as usize
+    } else {
+        after as usize
+    }
+}
+
+impl ProPolicyMatrixDecisionEffortSnapshot {
+    fn capture() -> Self {
+        Self {
+            selector: turn_engine_selector_diagnostics_snapshot(),
+            exact: exact_query_diagnostics_snapshot(),
+            engine: turn_engine_diagnostics_snapshot(),
+        }
+    }
+}
+
+impl ProPolicyMatrixDecisionEffort {
+    fn from_snapshots(
+        before: ProPolicyMatrixDecisionEffortSnapshot,
+        after: ProPolicyMatrixDecisionEffortSnapshot,
+    ) -> Self {
+        Self {
+            selector_child_calls: pro_policy_matrix_counter_delta_usize(
+                before.selector.ranked_child_states_calls,
+                after.selector.ranked_child_states_calls,
+            ),
+            selector_children: pro_policy_matrix_counter_delta_usize(
+                before.selector.ranked_child_states_children_enumerated,
+                after.selector.ranked_child_states_children_enumerated,
+            ),
+            selector_fully_scored: pro_policy_matrix_counter_delta_usize(
+                before.selector.ranked_child_states_children_fully_scored,
+                after.selector.ranked_child_states_children_fully_scored,
+            ),
+            selector_shortlist: pro_policy_matrix_counter_delta_usize(
+                before.selector.child_ordering_shortlist_children,
+                after.selector.child_ordering_shortlist_children,
+            ),
+            selector_full_pass: pro_policy_matrix_counter_delta_usize(
+                before.selector.child_ordering_full_pass_children,
+                after.selector.child_ordering_full_pass_children,
+            ),
+            selector_move_efficiency_builds: pro_policy_matrix_counter_delta_usize(
+                before.selector.move_efficiency_snapshot_builds,
+                after.selector.move_efficiency_snapshot_builds,
+            ),
+            selector_move_efficiency_hits: pro_policy_matrix_counter_delta_usize(
+                before.selector.move_efficiency_snapshot_cache_hits,
+                after.selector.move_efficiency_snapshot_cache_hits,
+            ),
+            selector_preferability_builds: pro_policy_matrix_counter_delta_usize(
+                before.selector.search_preferability_builds,
+                after.selector.search_preferability_builds,
+            ),
+            selector_preferability_hits: pro_policy_matrix_counter_delta_usize(
+                before.selector.search_preferability_cache_hits,
+                after.selector.search_preferability_cache_hits,
+            ),
+            selector_head_calls: pro_policy_matrix_counter_delta_usize(
+                before.selector.head_plan_calls,
+                after.selector.head_plan_calls,
+            ),
+            selector_head_hits: pro_policy_matrix_counter_delta_usize(
+                before.selector.head_plan_hits,
+                after.selector.head_plan_hits,
+            ),
+            selector_followup_floor_calls: pro_policy_matrix_counter_delta_usize(
+                before.selector.followup_floor_calls,
+                after.selector.followup_floor_calls,
+            ),
+            exact_attack_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.attack_reach_calls,
+                after.exact.attack_reach_calls,
+            ),
+            exact_payload_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.actor_payload_after_move_calls,
+                after.exact.actor_payload_after_move_calls,
+            ),
+            exact_tactical_spirit_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.tactical_spirit_summary_calls,
+                after.exact.tactical_spirit_summary_calls,
+            ),
+            exact_immediate_window_queries: pro_policy_matrix_counter_delta_u32(
+                before.exact.immediate_tactical_window_queries,
+                after.exact.immediate_tactical_window_queries,
+            ),
+            exact_secure_mana_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.exact_secure_mana_calls,
+                after.exact.exact_secure_mana_calls,
+            ),
+            exact_pickup_calls: pro_policy_matrix_counter_delta_u32(
+                before.exact.pickup_path_calls,
+                after.exact.pickup_path_calls,
+            ),
+            engine_cache_misses: pro_policy_matrix_counter_delta_usize(
+                before.engine.cache_misses,
+                after.engine.cache_misses,
+            ),
+            engine_accepted_plans: pro_policy_matrix_counter_delta_usize(
+                before.engine.accepted_plans,
+                after.engine.accepted_plans,
+            ),
+            engine_reply_calls: pro_policy_matrix_counter_delta_usize(
+                before.engine.reply_search_calls,
+                after.engine.reply_search_calls,
+            ),
+            engine_compile_attempts: pro_policy_matrix_counter_delta_usize(
+                before.engine.compile_attempts,
+                after.engine.compile_attempts,
+            ),
+            selector_last_stage: after.selector.last_return_stage,
+            selector_top_level_last_stage: after.selector.top_level_last_return_stage,
+            selector_disable_reason: after.selector.selector_disable_reason,
+            selector_top_level_disable_reason: after.selector.top_level_selector_disable_reason,
+        }
+    }
+
+    fn selector_work(self) -> usize {
+        self.selector_child_calls
+            + self.selector_children
+            + self.selector_fully_scored
+            + self.selector_shortlist
+            + self.selector_full_pass
+            + self.selector_move_efficiency_builds
+            + self.selector_preferability_builds
+            + self.selector_head_calls
+            + self.selector_followup_floor_calls
+    }
+
+    fn selector_cache_work(self) -> usize {
+        self.selector_move_efficiency_hits
+            + self.selector_preferability_hits
+            + self.selector_head_hits
+    }
+
+    fn exact_work(self) -> usize {
+        self.exact_attack_calls
+            + self.exact_payload_calls
+            + self.exact_tactical_spirit_calls
+            + self.exact_immediate_window_queries
+            + self.exact_secure_mana_calls
+            + self.exact_pickup_calls
+    }
+
+    fn engine_work(self) -> usize {
+        self.engine_cache_misses
+            + self.engine_accepted_plans
+            + self.engine_reply_calls
+            + self.engine_compile_attempts
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ProProfileSweepAttributionTurn {
     ply: usize,
@@ -998,6 +1197,31 @@ struct ProProfileSweepAttributionTurn {
     can_use_action: bool,
     can_move_mana: bool,
     exact_context: String,
+    decision_effort: ProPolicyMatrixDecisionEffort,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct ProProfileSweepEventProfile {
+    own_regular_score: bool,
+    opponent_regular_score: bool,
+    supermana_score: bool,
+    own_faint: bool,
+    opponent_faint: bool,
+    pickup: bool,
+    action: bool,
+    mon_move: bool,
+    mana_move: bool,
+    game_over: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProProfileSweepPlayedTurn {
+    ply: usize,
+    candidate_to_move: bool,
+    active_color: Color,
+    move_fen: String,
+    event_profile: ProProfileSweepEventProfile,
+    control_after: &'static str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1005,6 +1229,7 @@ struct ProProfileSweepAttributionTrace {
     result: MatchResult,
     final_fen: String,
     candidate_turns: Vec<ProProfileSweepAttributionTurn>,
+    played_turns: Vec<ProProfileSweepPlayedTurn>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1021,6 +1246,8 @@ struct ProProfileSweepFirstDivergence {
     can_use_action: bool,
     can_move_mana: bool,
     exact_context: String,
+    left_decision_effort: ProPolicyMatrixDecisionEffort,
+    right_decision_effort: ProPolicyMatrixDecisionEffort,
 }
 
 fn pro_profile_sweep_color_label(color: Color) -> &'static str {
@@ -1058,6 +1285,79 @@ fn pro_policy_matrix_followup_count_bucket(count: usize) -> &'static str {
         1 => "followups1",
         2 => "followups2",
         _ => "followups3_plus",
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProPolicyMatrixInitiativeDebt {
+    NoFollowup,
+    ReadyFirstFollowup,
+    ReadySecondFollowup,
+    ReadyThirdOrLaterFollowup,
+    NoRecovery,
+}
+
+fn pro_policy_matrix_initiative_debt_bucket(debt: ProPolicyMatrixInitiativeDebt) -> &'static str {
+    match debt {
+        ProPolicyMatrixInitiativeDebt::NoFollowup => "no_followup",
+        ProPolicyMatrixInitiativeDebt::ReadyFirstFollowup => "ready_followup1",
+        ProPolicyMatrixInitiativeDebt::ReadySecondFollowup => "ready_followup2",
+        ProPolicyMatrixInitiativeDebt::ReadyThirdOrLaterFollowup => "ready_followup3_plus",
+        ProPolicyMatrixInitiativeDebt::NoRecovery => "no_recovery",
+    }
+}
+
+fn pro_policy_matrix_initiative_debt_rank(debt: ProPolicyMatrixInitiativeDebt) -> Option<usize> {
+    match debt {
+        ProPolicyMatrixInitiativeDebt::NoFollowup => None,
+        ProPolicyMatrixInitiativeDebt::ReadyFirstFollowup => Some(1),
+        ProPolicyMatrixInitiativeDebt::ReadySecondFollowup => Some(2),
+        ProPolicyMatrixInitiativeDebt::ReadyThirdOrLaterFollowup => Some(3),
+        ProPolicyMatrixInitiativeDebt::NoRecovery => Some(4),
+    }
+}
+
+fn pro_policy_matrix_initiative_debt_delta_bucket(
+    baseline: ProPolicyMatrixInitiativeDebt,
+    candidate: ProPolicyMatrixInitiativeDebt,
+) -> &'static str {
+    match (
+        pro_policy_matrix_initiative_debt_rank(baseline),
+        pro_policy_matrix_initiative_debt_rank(candidate),
+    ) {
+        (None, None) => "same_no_followup",
+        (None, Some(_)) => "candidate_only_followup",
+        (Some(_), None) => "baseline_only_followup",
+        (Some(baseline), Some(candidate)) if baseline == candidate => "same_recovery",
+        (Some(baseline), Some(candidate)) if candidate < baseline => "candidate_faster",
+        (Some(_), Some(_)) => "baseline_faster",
+    }
+}
+
+fn pro_policy_matrix_post_diff_initiative_debt(
+    trace: &ProProfileSweepAttributionTrace,
+    divergence: &ProProfileSweepFirstDivergence,
+) -> ProPolicyMatrixInitiativeDebt {
+    let mut saw_followup = false;
+    for (index, turn) in trace
+        .candidate_turns
+        .iter()
+        .filter(|turn| turn.ply > divergence.ply)
+        .enumerate()
+    {
+        saw_followup = true;
+        if turn.can_use_action && turn.can_move_mana {
+            return match index {
+                0 => ProPolicyMatrixInitiativeDebt::ReadyFirstFollowup,
+                1 => ProPolicyMatrixInitiativeDebt::ReadySecondFollowup,
+                _ => ProPolicyMatrixInitiativeDebt::ReadyThirdOrLaterFollowup,
+            };
+        }
+    }
+    if saw_followup {
+        ProPolicyMatrixInitiativeDebt::NoRecovery
+    } else {
+        ProPolicyMatrixInitiativeDebt::NoFollowup
     }
 }
 
@@ -1102,6 +1402,293 @@ fn pro_policy_matrix_continuation_rejoin_bucket(
             }
         }
     }
+}
+
+fn pro_policy_matrix_pre_diff_entry_axis(
+    first_divergence: Option<&ProProfileSweepFirstDivergence>,
+    baseline_trace: &ProProfileSweepAttributionTrace,
+    candidate_trace: &ProProfileSweepAttributionTrace,
+) -> String {
+    let hidden_same_move_without_first_diff = || {
+        baseline_trace
+            .candidate_turns
+            .iter()
+            .zip(candidate_trace.candidate_turns.iter())
+            .any(|(baseline, candidate)| {
+                baseline.board_fen == candidate.board_fen
+                    && baseline.move_fen == candidate.move_fen
+                    && baseline.candidate_branch != candidate.candidate_branch
+            })
+    };
+
+    let Some(divergence) = first_divergence else {
+        return format!(
+            "axis=pre_diff_entry lead=none hidden_same_move={} first_diff=none",
+            hidden_same_move_without_first_diff()
+        );
+    };
+
+    let mut first_diff_index = None;
+    let mut latest_hidden_same_move_index = None;
+    let mut same_turn_entry_changed = false;
+    for (index, (baseline, candidate)) in baseline_trace
+        .candidate_turns
+        .iter()
+        .zip(candidate_trace.candidate_turns.iter())
+        .enumerate()
+    {
+        if baseline.board_fen != candidate.board_fen {
+            continue;
+        }
+        if baseline.ply < divergence.ply
+            && baseline.move_fen == candidate.move_fen
+            && baseline.candidate_branch != candidate.candidate_branch
+        {
+            latest_hidden_same_move_index = Some(index);
+        }
+        if baseline.ply == divergence.ply
+            && baseline.move_fen == divergence.left_move_fen
+            && candidate.move_fen == divergence.right_move_fen
+        {
+            first_diff_index = Some(index);
+            same_turn_entry_changed = baseline.candidate_branch != candidate.candidate_branch;
+            break;
+        }
+    }
+
+    let lead = if same_turn_entry_changed {
+        "same_turn"
+    } else if let (Some(first_diff_index), Some(hidden_index)) =
+        (first_diff_index, latest_hidden_same_move_index)
+    {
+        match first_diff_index.saturating_sub(hidden_index) {
+            0 | 1 => "one_candidate_turn",
+            _ => "two_plus_candidate_turns",
+        }
+    } else {
+        "none"
+    };
+
+    format!(
+        "axis=pre_diff_entry lead={} hidden_same_move={} first_diff=present",
+        lead,
+        latest_hidden_same_move_index.is_some()
+    )
+}
+
+fn pro_profile_sweep_event_profile(
+    events: &[Event],
+    candidate_color: Color,
+) -> ProProfileSweepEventProfile {
+    let mut profile = ProProfileSweepEventProfile::default();
+    for event in events {
+        match event {
+            Event::ManaScored { mana, .. } => match mana {
+                Mana::Regular(color) if *color == candidate_color => {
+                    profile.own_regular_score = true;
+                }
+                Mana::Regular(_) => {
+                    profile.opponent_regular_score = true;
+                }
+                Mana::Supermana => {
+                    profile.supermana_score = true;
+                }
+            },
+            Event::MonFainted { mon, .. } => {
+                if mon.color == candidate_color {
+                    profile.own_faint = true;
+                } else {
+                    profile.opponent_faint = true;
+                }
+            }
+            Event::PickupBomb { .. } | Event::PickupPotion { .. } | Event::PickupMana { .. } => {
+                profile.pickup = true;
+            }
+            Event::MysticAction { .. }
+            | Event::DemonAction { .. }
+            | Event::DemonAdditionalStep { .. }
+            | Event::SpiritTargetMove { .. }
+            | Event::UsePotion { .. }
+            | Event::BombAttack { .. }
+            | Event::BombExplosion { .. } => {
+                profile.action = true;
+            }
+            Event::MonMove { .. } => {
+                profile.mon_move = true;
+            }
+            Event::ManaMove { .. }
+            | Event::ManaDropped { .. }
+            | Event::SupermanaBackToBase { .. } => {
+                profile.mana_move = true;
+            }
+            Event::GameOver { .. } => {
+                profile.game_over = true;
+            }
+            Event::NextTurn { .. } | Event::MonAwake { .. } | Event::Takeback => {}
+        }
+    }
+    profile
+}
+
+fn pro_profile_sweep_control_after(game: &MonsGame, candidate_color: Color) -> &'static str {
+    if let Some(winner) = game.winner_color() {
+        if winner == candidate_color {
+            "terminal_candidate"
+        } else {
+            "terminal_opponent"
+        }
+    } else if game.active_color == candidate_color {
+        "return_candidate"
+    } else {
+        "stay_opponent"
+    }
+}
+
+fn pro_policy_matrix_score_event_bucket(profile: ProProfileSweepEventProfile) -> &'static str {
+    match (
+        profile.own_regular_score,
+        profile.opponent_regular_score,
+        profile.supermana_score,
+    ) {
+        (false, false, false) => "score_none",
+        (true, false, false) => "score_own_regular",
+        (false, true, false) => "score_opp_regular",
+        (false, false, true) => "score_super",
+        _ => "score_mixed",
+    }
+}
+
+fn pro_policy_matrix_faint_event_bucket(profile: ProProfileSweepEventProfile) -> &'static str {
+    match (profile.own_faint, profile.opponent_faint) {
+        (false, false) => "faint_none",
+        (true, false) => "faint_own",
+        (false, true) => "faint_opp",
+        (true, true) => "faint_both",
+    }
+}
+
+fn pro_policy_matrix_movement_event_bucket(profile: ProProfileSweepEventProfile) -> &'static str {
+    match (profile.mon_move, profile.mana_move) {
+        (false, false) => "move_none",
+        (true, false) => "move_mon",
+        (false, true) => "move_mana",
+        (true, true) => "move_both",
+    }
+}
+
+fn pro_policy_matrix_reply_latency_bucket(latency: usize) -> &'static str {
+    match latency {
+        0 => "reply_same_ply",
+        1 => "reply_next_ply",
+        2 => "reply_after2",
+        _ => "reply_after3_plus",
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ProPolicyMatrixRealizedReplyProfile {
+    present: bool,
+    latency: &'static str,
+    score: &'static str,
+    faint: &'static str,
+    pickup: bool,
+    action: bool,
+    movement: &'static str,
+    control: &'static str,
+}
+
+fn pro_policy_matrix_realized_reply_profile(
+    trace: &ProProfileSweepAttributionTrace,
+    divergence: &ProProfileSweepFirstDivergence,
+) -> ProPolicyMatrixRealizedReplyProfile {
+    if let Some(reply) = trace
+        .played_turns
+        .iter()
+        .find(|turn| turn.ply > divergence.ply && !turn.candidate_to_move)
+    {
+        return ProPolicyMatrixRealizedReplyProfile {
+            present: true,
+            latency: pro_policy_matrix_reply_latency_bucket(reply.ply - divergence.ply),
+            score: pro_policy_matrix_score_event_bucket(reply.event_profile),
+            faint: pro_policy_matrix_faint_event_bucket(reply.event_profile),
+            pickup: reply.event_profile.pickup,
+            action: reply.event_profile.action,
+            movement: pro_policy_matrix_movement_event_bucket(reply.event_profile),
+            control: reply.control_after,
+        };
+    }
+
+    let control = trace
+        .played_turns
+        .iter()
+        .find(|turn| turn.ply == divergence.ply && turn.candidate_to_move)
+        .map(|turn| turn.control_after)
+        .filter(|control| control.starts_with("terminal_"))
+        .unwrap_or("no_reply");
+
+    ProPolicyMatrixRealizedReplyProfile {
+        present: false,
+        latency: "reply_none",
+        score: "score_none",
+        faint: "faint_none",
+        pickup: false,
+        action: false,
+        movement: "move_none",
+        control,
+    }
+}
+
+fn pro_policy_matrix_realized_reply_delta(
+    baseline: ProPolicyMatrixRealizedReplyProfile,
+    candidate: ProPolicyMatrixRealizedReplyProfile,
+) -> &'static str {
+    if baseline == candidate {
+        "same"
+    } else if baseline.present != candidate.present {
+        "presence_changed"
+    } else if baseline.control != candidate.control {
+        "control_changed"
+    } else if baseline.latency != candidate.latency {
+        "latency_changed"
+    } else if baseline.score != candidate.score || baseline.faint != candidate.faint {
+        "material_event_changed"
+    } else if baseline.pickup != candidate.pickup
+        || baseline.action != candidate.action
+        || baseline.movement != candidate.movement
+    {
+        "event_shape_changed"
+    } else {
+        "changed"
+    }
+}
+
+fn pro_policy_matrix_realized_reply_event_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+    baseline_trace: &ProProfileSweepAttributionTrace,
+    candidate_trace: &ProProfileSweepAttributionTrace,
+) -> String {
+    let baseline = pro_policy_matrix_realized_reply_profile(baseline_trace, divergence);
+    let candidate = pro_policy_matrix_realized_reply_profile(candidate_trace, divergence);
+    format!(
+        "axis=realized_reply_event_profile baseline_present={} candidate_present={} baseline_latency={} candidate_latency={} baseline_score={} candidate_score={} baseline_faint={} candidate_faint={} baseline_pickup={} candidate_pickup={} baseline_action={} candidate_action={} baseline_movement={} candidate_movement={} baseline_control={} candidate_control={} delta={}",
+        baseline.present,
+        candidate.present,
+        baseline.latency,
+        candidate.latency,
+        baseline.score,
+        candidate.score,
+        baseline.faint,
+        candidate.faint,
+        baseline.pickup,
+        candidate.pickup,
+        baseline.action,
+        candidate.action,
+        baseline.movement,
+        candidate.movement,
+        baseline.control,
+        candidate.control,
+        pro_policy_matrix_realized_reply_delta(baseline, candidate),
+    )
 }
 
 fn pro_policy_matrix_eval_bucket(value: i32) -> &'static str {
@@ -1502,6 +2089,1257 @@ fn pro_policy_matrix_include_post_move_value_reply_budget_axes() -> bool {
             .is_some_and(|filter| filter.contains("post_move_value_reply_budget"))
 }
 
+fn pro_policy_matrix_effort_bucket(value: usize) -> &'static str {
+    match value {
+        0 => "none",
+        1..=4 => "tiny",
+        5..=24 => "low",
+        25..=99 => "medium",
+        100..=399 => "high",
+        _ => "very_high",
+    }
+}
+
+fn pro_policy_matrix_effort_delta_bucket(baseline: usize, candidate: usize) -> &'static str {
+    let delta = candidate as i64 - baseline as i64;
+    match delta {
+        0 => "same",
+        1..=4 => "candidate_more_1_4",
+        5..=24 => "candidate_more_5_24",
+        25..=99 => "candidate_more_25_99",
+        100.. => "candidate_more_100_plus",
+        -4..=-1 => "candidate_less_1_4",
+        -24..=-5 => "candidate_less_5_24",
+        -99..=-25 => "candidate_less_25_99",
+        _ => "candidate_less_100_plus",
+    }
+}
+
+fn pro_policy_matrix_selector_stage_bucket(stage: &str) -> &'static str {
+    if stage.is_empty() {
+        "unset"
+    } else if stage.contains("allowed_head") {
+        "engine_head"
+    } else if stage.contains("cached") {
+        "engine_cached"
+    } else if stage.contains("prepass") {
+        "engine_prepass"
+    } else if stage.contains("post_search") {
+        "engine_post_search"
+    } else if stage.contains("search_only") {
+        "search_only"
+    } else if stage.contains("fallback") {
+        "fallback"
+    } else {
+        "other"
+    }
+}
+
+fn pro_policy_matrix_selector_disable_bucket(reason: &str) -> &'static str {
+    if reason.is_empty() {
+        "none"
+    } else if reason.contains("guard") {
+        "guard"
+    } else if reason.contains("disabled") {
+        "disabled"
+    } else {
+        "other"
+    }
+}
+
+fn pro_policy_matrix_decision_effort_axes(
+    baseline: ProPolicyMatrixDecisionEffort,
+    candidate: ProPolicyMatrixDecisionEffort,
+) -> Vec<String> {
+    let baseline_selector = baseline.selector_work();
+    let candidate_selector = candidate.selector_work();
+    let baseline_cache = baseline.selector_cache_work();
+    let candidate_cache = candidate.selector_cache_work();
+    let baseline_exact = baseline.exact_work();
+    let candidate_exact = candidate.exact_work();
+    let baseline_engine = baseline.engine_work();
+    let candidate_engine = candidate.engine_work();
+    let baseline_stage = pro_policy_matrix_selector_stage_bucket(baseline.selector_last_stage);
+    let candidate_stage = pro_policy_matrix_selector_stage_bucket(candidate.selector_last_stage);
+    let baseline_top_stage =
+        pro_policy_matrix_selector_stage_bucket(baseline.selector_top_level_last_stage);
+    let candidate_top_stage =
+        pro_policy_matrix_selector_stage_bucket(candidate.selector_top_level_last_stage);
+    let baseline_disable =
+        pro_policy_matrix_selector_disable_bucket(baseline.selector_disable_reason);
+    let candidate_disable =
+        pro_policy_matrix_selector_disable_bucket(candidate.selector_disable_reason);
+    let baseline_top_disable =
+        pro_policy_matrix_selector_disable_bucket(baseline.selector_top_level_disable_reason);
+    let candidate_top_disable =
+        pro_policy_matrix_selector_disable_bucket(candidate.selector_top_level_disable_reason);
+
+    vec![
+        format!(
+            "axis=decision_effort selector_delta={} exact_delta={} engine_delta={} cache_delta={} baseline_selector={} candidate_selector={} baseline_exact={} candidate_exact={} baseline_engine={} candidate_engine={}",
+            pro_policy_matrix_effort_delta_bucket(baseline_selector, candidate_selector),
+            pro_policy_matrix_effort_delta_bucket(baseline_exact, candidate_exact),
+            pro_policy_matrix_effort_delta_bucket(baseline_engine, candidate_engine),
+            pro_policy_matrix_effort_delta_bucket(baseline_cache, candidate_cache),
+            pro_policy_matrix_effort_bucket(baseline_selector),
+            pro_policy_matrix_effort_bucket(candidate_selector),
+            pro_policy_matrix_effort_bucket(baseline_exact),
+            pro_policy_matrix_effort_bucket(candidate_exact),
+            pro_policy_matrix_effort_bucket(baseline_engine),
+            pro_policy_matrix_effort_bucket(candidate_engine),
+        ),
+        format!(
+            "axis=decision_effort_stage selector_stage={}->{} top_stage={}->{} disable={}->{} top_disable={}->{}",
+            baseline_stage,
+            candidate_stage,
+            baseline_top_stage,
+            candidate_top_stage,
+            baseline_disable,
+            candidate_disable,
+            baseline_top_disable,
+            candidate_top_disable,
+        ),
+    ]
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct ProPolicyMatrixSourcePromptTopology {
+    input_depth: usize,
+    prompt_count: usize,
+    max_option_count: usize,
+    invalid_prefix: bool,
+}
+
+fn pro_policy_matrix_source_prompt_topology(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourcePromptTopology {
+    let mut topology = ProPolicyMatrixSourcePromptTopology {
+        input_depth: inputs.len(),
+        ..Default::default()
+    };
+    let mut prefix = Vec::new();
+    for input in inputs {
+        let mut probe = board.clone();
+        match probe.process_input_with_start_options_slice(
+            &prefix,
+            true,
+            false,
+            Some(SuggestedStartInputOptions::for_automove()),
+        ) {
+            Output::LocationsToStartFrom(options) => {
+                topology.prompt_count += 1;
+                topology.max_option_count = topology.max_option_count.max(options.len());
+            }
+            Output::NextInputOptions(options) => {
+                topology.prompt_count += 1;
+                topology.max_option_count = topology.max_option_count.max(options.len());
+            }
+            Output::Events(_) | Output::InvalidInput => {
+                topology.invalid_prefix = true;
+                break;
+            }
+        }
+        prefix.push(*input);
+    }
+    topology
+}
+
+fn pro_policy_matrix_source_prompt_count_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "count0",
+        1 => "count1",
+        2 => "count2",
+        3 => "count3",
+        _ => "count4_plus",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_option_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "opts0",
+        1 => "opts1",
+        2..=4 => "opts2_4",
+        5..=8 => "opts5_8",
+        9..=16 => "opts9_16",
+        _ => "opts17_plus",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_delta_bucket(baseline: usize, candidate: usize) -> &'static str {
+    match candidate.cmp(&baseline) {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_status(
+    baseline: ProPolicyMatrixSourcePromptTopology,
+    candidate: ProPolicyMatrixSourcePromptTopology,
+) -> &'static str {
+    match (baseline.invalid_prefix, candidate.invalid_prefix) {
+        (false, false) => "valid",
+        (true, false) => "baseline_invalid",
+        (false, true) => "candidate_invalid",
+        (true, true) => "both_invalid",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_topology_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_prompt_topology_delta unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_prompt_topology(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_prompt_topology(&board, &candidate_inputs);
+
+    format!(
+        "axis=source_prompt_topology_delta baseline_depth={} candidate_depth={} depth_delta={} baseline_prompts={} candidate_prompts={} prompt_delta={} baseline_max_options={} candidate_max_options={} option_delta={} status={}",
+        pro_policy_matrix_source_prompt_count_bucket(baseline.input_depth),
+        pro_policy_matrix_source_prompt_count_bucket(candidate.input_depth),
+        pro_policy_matrix_source_prompt_delta_bucket(baseline.input_depth, candidate.input_depth),
+        pro_policy_matrix_source_prompt_count_bucket(baseline.prompt_count),
+        pro_policy_matrix_source_prompt_count_bucket(candidate.prompt_count),
+        pro_policy_matrix_source_prompt_delta_bucket(baseline.prompt_count, candidate.prompt_count),
+        pro_policy_matrix_source_prompt_option_bucket(baseline.max_option_count),
+        pro_policy_matrix_source_prompt_option_bucket(candidate.max_option_count),
+        pro_policy_matrix_source_prompt_delta_bucket(
+            baseline.max_option_count,
+            candidate.max_option_count,
+        ),
+        pro_policy_matrix_source_prompt_status(baseline, candidate),
+    )
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct ProPolicyMatrixSourcePrefixCompletionProfile {
+    start_completions: usize,
+    tail_completions: usize,
+    invalid_prefix: bool,
+    capped: bool,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct ProPolicyMatrixSourcePrefixCompletionCount {
+    completions: usize,
+    invalid_prefix: bool,
+    capped: bool,
+}
+
+fn pro_policy_matrix_source_prefix_completion_count(
+    board: &MonsGame,
+    prefix: &[Input],
+    cap: usize,
+) -> ProPolicyMatrixSourcePrefixCompletionCount {
+    let mut count = ProPolicyMatrixSourcePrefixCompletionCount::default();
+    let mut stack = vec![prefix.to_vec()];
+    while let Some(current) = stack.pop() {
+        if count.completions >= cap {
+            count.capped = true;
+            break;
+        }
+        let mut probe = board.clone();
+        match probe.process_input_with_start_options_slice(
+            &current,
+            true,
+            false,
+            Some(SuggestedStartInputOptions::for_automove()),
+        ) {
+            Output::Events(_) => {
+                count.completions += 1;
+            }
+            Output::LocationsToStartFrom(options) => {
+                if options.is_empty() {
+                    count.invalid_prefix = true;
+                }
+                for option in options {
+                    let mut next = current.clone();
+                    next.push(Input::Location(option));
+                    stack.push(next);
+                }
+            }
+            Output::NextInputOptions(options) => {
+                if options.is_empty() {
+                    count.invalid_prefix = true;
+                }
+                for option in options {
+                    let mut next = current.clone();
+                    next.push(option.input);
+                    stack.push(next);
+                }
+            }
+            Output::InvalidInput => {
+                count.invalid_prefix = true;
+            }
+        }
+    }
+    if count.completions >= cap && !stack.is_empty() {
+        count.capped = true;
+    }
+    count
+}
+
+fn pro_policy_matrix_source_prefix_completion_profile(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourcePrefixCompletionProfile {
+    const COMPLETION_CAP: usize = 64;
+    let start_len = inputs.len().min(1);
+    let tail_len = if inputs.len() > 1 {
+        inputs.len() - 1
+    } else {
+        inputs.len()
+    };
+    let start_count = pro_policy_matrix_source_prefix_completion_count(
+        board,
+        &inputs[..start_len],
+        COMPLETION_CAP,
+    );
+    let tail_count = pro_policy_matrix_source_prefix_completion_count(
+        board,
+        &inputs[..tail_len],
+        COMPLETION_CAP,
+    );
+
+    ProPolicyMatrixSourcePrefixCompletionProfile {
+        start_completions: start_count.completions,
+        tail_completions: tail_count.completions,
+        invalid_prefix: start_count.invalid_prefix || tail_count.invalid_prefix,
+        capped: start_count.capped || tail_count.capped,
+    }
+}
+
+fn pro_policy_matrix_source_prefix_completion_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "complete0",
+        1 => "complete1",
+        2..=4 => "complete2_4",
+        5..=8 => "complete5_8",
+        9..=16 => "complete9_16",
+        17..=32 => "complete17_32",
+        _ => "complete33_plus",
+    }
+}
+
+fn pro_policy_matrix_source_prefix_completion_status(
+    baseline: ProPolicyMatrixSourcePrefixCompletionProfile,
+    candidate: ProPolicyMatrixSourcePrefixCompletionProfile,
+) -> &'static str {
+    if baseline.capped || candidate.capped {
+        "capped"
+    } else if baseline.invalid_prefix || candidate.invalid_prefix {
+        "invalid"
+    } else {
+        "valid"
+    }
+}
+
+fn pro_policy_matrix_source_prefix_shared_start(
+    baseline_inputs: &[Input],
+    candidate_inputs: &[Input],
+) -> &'static str {
+    match (baseline_inputs.first(), candidate_inputs.first()) {
+        (Some(baseline), Some(candidate)) if baseline == candidate => "true",
+        (Some(_), Some(_)) => "false",
+        _ => "missing",
+    }
+}
+
+fn pro_policy_matrix_source_common_prefix_len(
+    baseline_inputs: &[Input],
+    candidate_inputs: &[Input],
+) -> usize {
+    baseline_inputs
+        .iter()
+        .zip(candidate_inputs.iter())
+        .take_while(|(baseline, candidate)| baseline == candidate)
+        .count()
+}
+
+fn pro_policy_matrix_source_prefix_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "prefix0",
+        1 => "prefix1",
+        2 => "prefix2",
+        _ => "prefix3_plus",
+    }
+}
+
+fn pro_policy_matrix_source_divergence_prompt_kind(output: &Output) -> &'static str {
+    match output {
+        Output::LocationsToStartFrom(_) => "locations",
+        Output::NextInputOptions(_) => "next_input",
+        Output::Events(_) => "complete",
+        Output::InvalidInput => "invalid",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_option_kind(
+    output: &Output,
+    token: Option<Input>,
+) -> Option<&'static str> {
+    let token = token?;
+    match output {
+        Output::LocationsToStartFrom(locations) => match token {
+            Input::Location(location) if locations.contains(&location) => Some("location"),
+            _ => None,
+        },
+        Output::NextInputOptions(options) => options
+            .iter()
+            .find(|option| option.input == token)
+            .map(|option| match option.kind {
+                NextInputKind::MonMove => "mon_move",
+                NextInputKind::ManaMove => "mana_move",
+                NextInputKind::MysticAction => "mystic_action",
+                NextInputKind::DemonAction => "demon_action",
+                NextInputKind::DemonAdditionalStep => "demon_extra_step",
+                NextInputKind::SpiritTargetCapture => "spirit_capture",
+                NextInputKind::SpiritTargetMove => "spirit_move",
+                NextInputKind::SelectConsumable => "select_consumable",
+                NextInputKind::BombAttack => "bomb_attack",
+            }),
+        Output::Events(_) | Output::InvalidInput => None,
+    }
+}
+
+fn pro_policy_matrix_source_prompt_legality(
+    baseline_kind: Option<&'static str>,
+    candidate_kind: Option<&'static str>,
+    prompt_kind: &'static str,
+) -> &'static str {
+    if matches!(prompt_kind, "complete" | "invalid") {
+        return "no_prompt";
+    }
+    match (baseline_kind.is_some(), candidate_kind.is_some()) {
+        (true, true) => "both_legal",
+        (true, false) => "baseline_only",
+        (false, true) => "candidate_only",
+        (false, false) => "neither",
+    }
+}
+
+fn pro_policy_matrix_source_prompt_token_relation(
+    baseline_kind: Option<&'static str>,
+    candidate_kind: Option<&'static str>,
+) -> &'static str {
+    match (baseline_kind, candidate_kind) {
+        (Some(baseline), Some(candidate)) if baseline == candidate => "same_kind",
+        (Some(_), Some(_)) => "different_kind",
+        (Some(_), None) => "candidate_missing",
+        (None, Some(_)) => "baseline_missing",
+        (None, None) => "both_missing",
+    }
+}
+
+fn pro_policy_matrix_source_tail_delta(
+    baseline_inputs: &[Input],
+    candidate_inputs: &[Input],
+    common_prefix_len: usize,
+) -> &'static str {
+    let baseline_tail = baseline_inputs.len().saturating_sub(common_prefix_len);
+    let candidate_tail = candidate_inputs.len().saturating_sub(common_prefix_len);
+    match candidate_tail.cmp(&baseline_tail) {
+        std::cmp::Ordering::Less => "candidate_shorter",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_longer",
+    }
+}
+
+fn pro_policy_matrix_source_divergence_prompt_relation_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_divergence_prompt_relation unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let common_prefix_len =
+        pro_policy_matrix_source_common_prefix_len(&baseline_inputs, &candidate_inputs);
+    let prefix = &baseline_inputs[..common_prefix_len.min(baseline_inputs.len())];
+    let mut probe = board.clone();
+    let output = probe.process_input_with_start_options_slice(
+        prefix,
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    );
+    let prompt_kind = pro_policy_matrix_source_divergence_prompt_kind(&output);
+    let baseline_token = baseline_inputs.get(common_prefix_len).copied();
+    let candidate_token = candidate_inputs.get(common_prefix_len).copied();
+    let baseline_kind = pro_policy_matrix_source_prompt_option_kind(&output, baseline_token);
+    let candidate_kind = pro_policy_matrix_source_prompt_option_kind(&output, candidate_token);
+
+    format!(
+        "axis=source_divergence_prompt_relation prefix={} diverge={} prompt={} legal={} token={} tail_delta={} shared_start={}",
+        pro_policy_matrix_source_prefix_bucket(common_prefix_len),
+        if common_prefix_len == 0 { "start" } else { "tail" },
+        prompt_kind,
+        pro_policy_matrix_source_prompt_legality(baseline_kind, candidate_kind, prompt_kind),
+        pro_policy_matrix_source_prompt_token_relation(baseline_kind, candidate_kind),
+        pro_policy_matrix_source_tail_delta(&baseline_inputs, &candidate_inputs, common_prefix_len),
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+    )
+}
+
+fn pro_policy_matrix_source_prefix_completion_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_prefix_completion_profile unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_prefix_completion_profile(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_prefix_completion_profile(&board, &candidate_inputs);
+
+    format!(
+        "axis=source_prefix_completion_profile shared_start={} baseline_start={} candidate_start={} start_delta={} baseline_tail={} candidate_tail={} tail_delta={} status={}",
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+        pro_policy_matrix_source_prefix_completion_bucket(baseline.start_completions),
+        pro_policy_matrix_source_prefix_completion_bucket(candidate.start_completions),
+        pro_policy_matrix_source_prompt_delta_bucket(
+            baseline.start_completions,
+            candidate.start_completions,
+        ),
+        pro_policy_matrix_source_prefix_completion_bucket(baseline.tail_completions),
+        pro_policy_matrix_source_prefix_completion_bucket(candidate.tail_completions),
+        pro_policy_matrix_source_prompt_delta_bucket(
+            baseline.tail_completions,
+            candidate.tail_completions,
+        ),
+        pro_policy_matrix_source_prefix_completion_status(baseline, candidate),
+    )
+}
+
+fn pro_policy_matrix_source_move_interference_status(
+    board: &MonsGame,
+    first_inputs: &[Input],
+    second_inputs: &[Input],
+) -> &'static str {
+    let initial_color = board.active_color;
+    let initial_turn = board.turn_number;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        first_inputs,
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => return "first_invalid",
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return "first_incomplete";
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return "terminal";
+    }
+    if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        return "turn_closed";
+    }
+
+    match probe.process_input_with_start_options_slice(
+        second_inputs,
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => "legal",
+        Output::InvalidInput => "blocked",
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => "incomplete",
+    }
+}
+
+fn pro_policy_matrix_source_move_interference_relation(
+    baseline_after_candidate: &'static str,
+    candidate_after_baseline: &'static str,
+) -> &'static str {
+    match (baseline_after_candidate, candidate_after_baseline) {
+        ("first_invalid", _) | (_, "first_invalid") => "invalid",
+        ("first_incomplete", _)
+        | (_, "first_incomplete")
+        | ("incomplete", _)
+        | (_, "incomplete") => "incomplete",
+        ("terminal", _) | (_, "terminal") => "terminal",
+        ("turn_closed", _) | (_, "turn_closed") => "turn_closed",
+        ("legal", "legal") => "both_legal",
+        ("blocked", "blocked") => "mutual_block",
+        ("blocked", "legal") => "candidate_blocks_baseline",
+        ("legal", "blocked") => "baseline_blocks_candidate",
+        _ => "mixed",
+    }
+}
+
+fn pro_policy_matrix_source_move_interference_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_move_interference unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline_after_candidate = pro_policy_matrix_source_move_interference_status(
+        &board,
+        &candidate_inputs,
+        &baseline_inputs,
+    );
+    let candidate_after_baseline = pro_policy_matrix_source_move_interference_status(
+        &board,
+        &baseline_inputs,
+        &candidate_inputs,
+    );
+    format!(
+        "axis=source_move_interference relation={} shared_start={}",
+        pro_policy_matrix_source_move_interference_relation(
+            baseline_after_candidate,
+            candidate_after_baseline,
+        ),
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+    )
+}
+
+struct ProPolicyMatrixSourceMoveOrderOutcome {
+    status: &'static str,
+    state_hash: Option<u64>,
+}
+
+fn pro_policy_matrix_source_move_order_sequence(
+    board: &MonsGame,
+    first_inputs: &[Input],
+    second_inputs: &[Input],
+) -> ProPolicyMatrixSourceMoveOrderOutcome {
+    let initial_color = board.active_color;
+    let initial_turn = board.turn_number;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        first_inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "first_invalid",
+                state_hash: None,
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "first_incomplete",
+                state_hash: None,
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceMoveOrderOutcome {
+            status: "first_terminal",
+            state_hash: None,
+        };
+    }
+    if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        return ProPolicyMatrixSourceMoveOrderOutcome {
+            status: "first_turn_closed",
+            state_hash: None,
+        };
+    }
+
+    match probe.process_input_with_start_options_slice(
+        second_inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "second_invalid",
+                state_hash: None,
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceMoveOrderOutcome {
+                status: "second_incomplete",
+                state_hash: None,
+            };
+        }
+    }
+
+    let status = if probe.winner_color().is_some() {
+        "terminal"
+    } else if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        "turn_closed"
+    } else {
+        "same_turn"
+    };
+
+    ProPolicyMatrixSourceMoveOrderOutcome {
+        status,
+        state_hash: Some(MonsGameModel::search_state_hash(&probe)),
+    }
+}
+
+fn pro_policy_matrix_source_move_order_relation(
+    baseline_then_candidate: &ProPolicyMatrixSourceMoveOrderOutcome,
+    candidate_then_baseline: &ProPolicyMatrixSourceMoveOrderOutcome,
+) -> &'static str {
+    match (
+        baseline_then_candidate.state_hash,
+        candidate_then_baseline.state_hash,
+    ) {
+        (Some(left), Some(right)) if left == right => "same_state",
+        (Some(_), Some(_)) => "different_state",
+        (Some(_), None) => "baseline_order_only",
+        (None, Some(_)) => "candidate_order_only",
+        (None, None) if baseline_then_candidate.status == candidate_then_baseline.status => {
+            "neither_complete_same_status"
+        }
+        (None, None) => "neither_complete_mixed_status",
+    }
+}
+
+fn pro_policy_matrix_source_move_order_commutation_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_move_order_commutation unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline_then_candidate =
+        pro_policy_matrix_source_move_order_sequence(&board, &baseline_inputs, &candidate_inputs);
+    let candidate_then_baseline =
+        pro_policy_matrix_source_move_order_sequence(&board, &candidate_inputs, &baseline_inputs);
+    format!(
+        "axis=source_move_order_commutation relation={} baseline_then_candidate={} candidate_then_baseline={} shared_start={}",
+        pro_policy_matrix_source_move_order_relation(
+            &baseline_then_candidate,
+            &candidate_then_baseline,
+        ),
+        baseline_then_candidate.status,
+        candidate_then_baseline.status,
+        pro_policy_matrix_source_prefix_shared_start(&baseline_inputs, &candidate_inputs),
+    )
+}
+
+#[derive(Debug)]
+struct ProPolicyMatrixSourceResidualAgency {
+    status: &'static str,
+    total: usize,
+    capped: bool,
+    mix: String,
+}
+
+fn pro_policy_matrix_source_residual_count_bucket(count: usize, capped: bool) -> &'static str {
+    if capped {
+        "total32_plus"
+    } else {
+        match count {
+            0 => "total0",
+            1 => "total1",
+            2..=4 => "total2_4",
+            5..=8 => "total5_8",
+            9..=16 => "total9_16",
+            _ => "total17_31",
+        }
+    }
+}
+
+fn pro_policy_matrix_source_residual_agency_mix(events: &[Event]) -> Vec<&'static str> {
+    let mut tokens = Vec::new();
+    for event in events {
+        match event {
+            Event::MonMove { .. } | Event::MonAwake { .. } => tokens.push("mon"),
+            Event::ManaMove { .. }
+            | Event::PickupMana { .. }
+            | Event::ManaDropped { .. }
+            | Event::SupermanaBackToBase { .. } => tokens.push("mana"),
+            Event::ManaScored { .. } => {
+                tokens.push("mana");
+                tokens.push("score");
+            }
+            Event::MysticAction { .. }
+            | Event::DemonAction { .. }
+            | Event::DemonAdditionalStep { .. }
+            | Event::SpiritTargetMove { .. }
+            | Event::UsePotion { .. }
+            | Event::BombAttack { .. }
+            | Event::BombExplosion { .. } => tokens.push("action"),
+            Event::PickupBomb { .. } | Event::PickupPotion { .. } => tokens.push("item"),
+            Event::MonFainted { .. } => tokens.push("faint"),
+            Event::GameOver { .. } => tokens.push("score"),
+            Event::NextTurn { .. } | Event::Takeback => {}
+        }
+    }
+    tokens
+}
+
+fn pro_policy_matrix_source_residual_agency_after_move(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourceResidualAgency {
+    let initial_color = board.active_color;
+    let initial_turn = board.turn_number;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceResidualAgency {
+                status: "invalid",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceResidualAgency {
+                status: "incomplete",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceResidualAgency {
+            status: "terminal",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+    if probe.active_color != initial_color || probe.turn_number != initial_turn {
+        return ProPolicyMatrixSourceResidualAgency {
+            status: "closed",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+
+    let cap = 32;
+    let transitions = MonsGameModel::enumerate_legal_transitions(
+        &probe,
+        cap,
+        SuggestedStartInputOptions::for_automove(),
+    );
+    let mut mix = BTreeSet::<&'static str>::new();
+    for transition in &transitions {
+        for token in pro_policy_matrix_source_residual_agency_mix(&transition.events) {
+            mix.insert(token);
+        }
+    }
+    ProPolicyMatrixSourceResidualAgency {
+        status: "same_turn",
+        total: transitions.len(),
+        capped: transitions.len() >= cap,
+        mix: if mix.is_empty() {
+            "none".to_string()
+        } else {
+            mix.into_iter().collect::<Vec<_>>().join("_")
+        },
+    }
+}
+
+fn pro_policy_matrix_source_residual_agency_bucket(
+    agency: &ProPolicyMatrixSourceResidualAgency,
+) -> String {
+    if agency.status != "same_turn" {
+        return agency.status.to_string();
+    }
+    format!(
+        "{}:{}:mix={}",
+        agency.status,
+        pro_policy_matrix_source_residual_count_bucket(agency.total, agency.capped),
+        agency.mix,
+    )
+}
+
+fn pro_policy_matrix_source_residual_agency_delta(
+    baseline: &ProPolicyMatrixSourceResidualAgency,
+    candidate: &ProPolicyMatrixSourceResidualAgency,
+) -> &'static str {
+    match candidate.total.cmp(&baseline.total) {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal if candidate.status == baseline.status => "same",
+        std::cmp::Ordering::Equal => "same_total_status_changed",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_residual_agency_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_residual_agency unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_residual_agency_after_move(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_residual_agency_after_move(&board, &candidate_inputs);
+    format!(
+        "axis=source_residual_agency baseline={} candidate={} delta={}",
+        pro_policy_matrix_source_residual_agency_bucket(&baseline),
+        pro_policy_matrix_source_residual_agency_bucket(&candidate),
+        pro_policy_matrix_source_residual_agency_delta(&baseline, &candidate),
+    )
+}
+
+#[derive(Debug)]
+struct ProPolicyMatrixSourceHandoffOpponentMobility {
+    status: &'static str,
+    total: usize,
+    capped: bool,
+    mix: String,
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_after_move(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourceHandoffOpponentMobility {
+    let initial_color = board.active_color;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceHandoffOpponentMobility {
+                status: "invalid",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceHandoffOpponentMobility {
+                status: "incomplete",
+                total: 0,
+                capped: false,
+                mix: "none".to_string(),
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceHandoffOpponentMobility {
+            status: "terminal",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+    if probe.active_color == initial_color {
+        return ProPolicyMatrixSourceHandoffOpponentMobility {
+            status: "same_turn",
+            total: 0,
+            capped: false,
+            mix: "none".to_string(),
+        };
+    }
+
+    let cap = 32;
+    let transitions = MonsGameModel::enumerate_legal_transitions(
+        &probe,
+        cap,
+        SuggestedStartInputOptions::for_automove(),
+    );
+    let mut mix = BTreeSet::<&'static str>::new();
+    for transition in &transitions {
+        for token in pro_policy_matrix_source_residual_agency_mix(&transition.events) {
+            mix.insert(token);
+        }
+    }
+    ProPolicyMatrixSourceHandoffOpponentMobility {
+        status: "opponent_turn",
+        total: transitions.len(),
+        capped: transitions.len() >= cap,
+        mix: if mix.is_empty() {
+            "none".to_string()
+        } else {
+            mix.into_iter().collect::<Vec<_>>().join("_")
+        },
+    }
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_bucket(
+    mobility: &ProPolicyMatrixSourceHandoffOpponentMobility,
+) -> String {
+    if mobility.status != "opponent_turn" {
+        return mobility.status.to_string();
+    }
+    format!(
+        "{}:{}:mix={}",
+        mobility.status,
+        pro_policy_matrix_source_residual_count_bucket(mobility.total, mobility.capped),
+        mobility.mix,
+    )
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_delta(
+    baseline: &ProPolicyMatrixSourceHandoffOpponentMobility,
+    candidate: &ProPolicyMatrixSourceHandoffOpponentMobility,
+) -> &'static str {
+    if baseline.status != candidate.status {
+        return "status_changed";
+    }
+    match candidate.total.cmp(&baseline.total) {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_handoff_opponent_mobility_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_handoff_opponent_mobility unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline =
+        pro_policy_matrix_source_handoff_opponent_mobility_after_move(&board, &baseline_inputs);
+    let candidate =
+        pro_policy_matrix_source_handoff_opponent_mobility_after_move(&board, &candidate_inputs);
+    format!(
+        "axis=source_handoff_opponent_mobility baseline={} candidate={} delta={}",
+        pro_policy_matrix_source_handoff_opponent_mobility_bucket(&baseline),
+        pro_policy_matrix_source_handoff_opponent_mobility_bucket(&candidate),
+        pro_policy_matrix_source_handoff_opponent_mobility_delta(&baseline, &candidate),
+    )
+}
+
+#[derive(Debug)]
+struct ProPolicyMatrixSourceRemainingBudget {
+    status: &'static str,
+    can_action: bool,
+    can_mana: bool,
+    remaining_mons: i32,
+}
+
+fn pro_policy_matrix_source_remaining_budget_after_move(
+    board: &MonsGame,
+    inputs: &[Input],
+) -> ProPolicyMatrixSourceRemainingBudget {
+    let initial_color = board.active_color;
+    let mut probe = board.clone();
+    match probe.process_input_with_start_options_slice(
+        inputs,
+        false,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::Events(_) => {}
+        Output::InvalidInput => {
+            return ProPolicyMatrixSourceRemainingBudget {
+                status: "invalid",
+                can_action: false,
+                can_mana: false,
+                remaining_mons: 0,
+            };
+        }
+        Output::LocationsToStartFrom(_) | Output::NextInputOptions(_) => {
+            return ProPolicyMatrixSourceRemainingBudget {
+                status: "incomplete",
+                can_action: false,
+                can_mana: false,
+                remaining_mons: 0,
+            };
+        }
+    }
+
+    if probe.winner_color().is_some() {
+        return ProPolicyMatrixSourceRemainingBudget {
+            status: "terminal",
+            can_action: false,
+            can_mana: false,
+            remaining_mons: 0,
+        };
+    }
+    if probe.active_color != initial_color {
+        return ProPolicyMatrixSourceRemainingBudget {
+            status: "turn_closed",
+            can_action: false,
+            can_mana: false,
+            remaining_mons: 0,
+        };
+    }
+
+    ProPolicyMatrixSourceRemainingBudget {
+        status: "same_turn",
+        can_action: probe.player_can_use_action(),
+        can_mana: probe.player_can_move_mana(),
+        remaining_mons: (Config::MONS_MOVES_PER_TURN - probe.mons_moves_count).max(0),
+    }
+}
+
+fn pro_policy_matrix_source_remaining_mons_bucket(remaining_mons: i32) -> &'static str {
+    match remaining_mons {
+        ..=0 => "mons_left0",
+        1 => "mons_left1",
+        2 => "mons_left2",
+        _ => "mons_left3_plus",
+    }
+}
+
+fn pro_policy_matrix_source_remaining_budget_bucket(
+    budget: &ProPolicyMatrixSourceRemainingBudget,
+) -> String {
+    if budget.status != "same_turn" {
+        return budget.status.to_string();
+    }
+    format!(
+        "{}:action={}:mana={}:{}",
+        budget.status,
+        budget.can_action,
+        budget.can_mana,
+        pro_policy_matrix_source_remaining_mons_bucket(budget.remaining_mons),
+    )
+}
+
+fn pro_policy_matrix_source_remaining_budget_score(
+    budget: &ProPolicyMatrixSourceRemainingBudget,
+) -> i32 {
+    if budget.status != "same_turn" {
+        return -1;
+    }
+    i32::from(budget.can_action) + i32::from(budget.can_mana) + budget.remaining_mons.clamp(0, 3)
+}
+
+fn pro_policy_matrix_source_remaining_budget_delta(
+    baseline: &ProPolicyMatrixSourceRemainingBudget,
+    candidate: &ProPolicyMatrixSourceRemainingBudget,
+) -> &'static str {
+    if baseline.status != candidate.status {
+        return "status_changed";
+    }
+    match pro_policy_matrix_source_remaining_budget_score(candidate)
+        .cmp(&pro_policy_matrix_source_remaining_budget_score(baseline))
+    {
+        std::cmp::Ordering::Less => "candidate_less",
+        std::cmp::Ordering::Equal => "same",
+        std::cmp::Ordering::Greater => "candidate_more",
+    }
+}
+
+fn pro_policy_matrix_source_remaining_budget_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(board) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_remaining_budget unavailable=board".to_string();
+    };
+    let baseline_inputs = Input::array_from_fen(divergence.left_move_fen.as_str());
+    let candidate_inputs = Input::array_from_fen(divergence.right_move_fen.as_str());
+    let baseline = pro_policy_matrix_source_remaining_budget_after_move(&board, &baseline_inputs);
+    let candidate = pro_policy_matrix_source_remaining_budget_after_move(&board, &candidate_inputs);
+    format!(
+        "axis=source_remaining_budget baseline={} candidate={} delta={}",
+        pro_policy_matrix_source_remaining_budget_bucket(&baseline),
+        pro_policy_matrix_source_remaining_budget_bucket(&candidate),
+        pro_policy_matrix_source_remaining_budget_delta(&baseline, &candidate),
+    )
+}
+
+fn pro_policy_matrix_source_mana_corridor(location: Location, perspective: Color) -> String {
+    let forward = forced_root_oracle_forward_index(perspective, location);
+    let band = if forward <= 2 {
+        "home"
+    } else if forward <= 5 {
+        "near_mid"
+    } else if forward <= 8 {
+        "far_mid"
+    } else {
+        "far"
+    };
+    let center_distance = (location.j - Config::BOARD_CENTER_INDEX).abs();
+    let lane = if center_distance <= 1 {
+        "center"
+    } else if center_distance <= 3 {
+        "inner"
+    } else {
+        "edge"
+    };
+    format!("{band}_{lane}")
+}
+
+fn pro_policy_matrix_source_mana_corridor_signature(corridors: Vec<String>) -> String {
+    if corridors.is_empty() {
+        return "none".to_string();
+    }
+    let mut counts = BTreeMap::<String, usize>::new();
+    for corridor in corridors {
+        *counts.entry(corridor).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .map(|(corridor, count)| {
+            if count == 1 {
+                corridor
+            } else {
+                format!("{corridor}x{count}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("+")
+}
+
+fn pro_policy_matrix_source_mana_corridor_topology_axis(
+    divergence: &ProProfileSweepFirstDivergence,
+) -> String {
+    let Some(game) = MonsGame::from_fen(divergence.board_fen.as_str(), false) else {
+        return "axis=source_mana_corridor_topology unavailable=board".to_string();
+    };
+    let mut own_pool = Vec::new();
+    let mut opponent_pool = Vec::new();
+    let mut own_base = Vec::new();
+    let mut opponent_base = Vec::new();
+    let mut super_base = Vec::new();
+    for i in Location::valid_range() {
+        for j in Location::valid_range() {
+            let location = Location::new(i, j);
+            let corridor =
+                pro_policy_matrix_source_mana_corridor(location, divergence.active_color);
+            match game.board.square(location) {
+                Square::ManaPool { color } if color == divergence.active_color => {
+                    own_pool.push(corridor);
+                }
+                Square::ManaPool { .. } => opponent_pool.push(corridor),
+                Square::ManaBase { color } if color == divergence.active_color => {
+                    own_base.push(corridor);
+                }
+                Square::ManaBase { .. } => opponent_base.push(corridor),
+                Square::SupermanaBase => super_base.push(corridor),
+                Square::Regular | Square::ConsumableBase | Square::MonBase { .. } => {}
+            }
+        }
+    }
+
+    format!(
+        "axis=source_mana_corridor_topology own_pool={} opp_pool={} own_base={} opp_base={} super_base={}",
+        pro_policy_matrix_source_mana_corridor_signature(own_pool),
+        pro_policy_matrix_source_mana_corridor_signature(opponent_pool),
+        pro_policy_matrix_source_mana_corridor_signature(own_base),
+        pro_policy_matrix_source_mana_corridor_signature(opponent_base),
+        pro_policy_matrix_source_mana_corridor_signature(super_base),
+    )
+}
+
 fn pro_policy_matrix_timing_continuation_axes(
     first_divergence: Option<&ProProfileSweepFirstDivergence>,
     baseline_trace: &ProProfileSweepAttributionTrace,
@@ -1509,8 +3347,20 @@ fn pro_policy_matrix_timing_continuation_axes(
 ) -> String {
     let Some(divergence) = first_divergence else {
         return [
+            pro_policy_matrix_pre_diff_entry_axis(None, baseline_trace, candidate_trace),
+            "axis=decision_effort first_diff=none".to_string(),
+            "axis=source_prompt_topology_delta first_diff=none".to_string(),
+            "axis=source_divergence_prompt_relation first_diff=none".to_string(),
+            "axis=source_prefix_completion_profile first_diff=none".to_string(),
+            "axis=source_move_interference first_diff=none".to_string(),
+            "axis=source_move_order_commutation first_diff=none".to_string(),
+            "axis=source_mana_corridor_topology first_diff=none".to_string(),
+            "axis=source_residual_agency first_diff=none".to_string(),
+            "axis=source_handoff_opponent_mobility first_diff=none".to_string(),
+            "axis=source_remaining_budget first_diff=none".to_string(),
             "axis=decision_timing first_diff=none".to_string(),
             "axis=continuation_stability first_diff=none".to_string(),
+            "axis=realized_reply_event_profile first_diff=none".to_string(),
         ]
         .join("|");
     };
@@ -1535,8 +3385,17 @@ fn pro_policy_matrix_timing_continuation_axes(
     } else {
         "different_final"
     };
+    let baseline_initiative_debt =
+        pro_policy_matrix_post_diff_initiative_debt(baseline_trace, divergence);
+    let candidate_initiative_debt =
+        pro_policy_matrix_post_diff_initiative_debt(candidate_trace, divergence);
 
     let mut axes = vec![
+        pro_policy_matrix_pre_diff_entry_axis(
+            first_divergence,
+            baseline_trace,
+            candidate_trace,
+        ),
         format!(
             "axis=decision_timing ply_bucket={} color={} turn_bucket={} mons_moves={} can_action={} can_mana={}",
             pro_policy_matrix_ply_bucket(divergence.ply),
@@ -1561,7 +3420,34 @@ fn pro_policy_matrix_timing_continuation_axes(
             pro_policy_matrix_followup_count_bucket(baseline_followups),
             pro_policy_matrix_followup_count_bucket(candidate_followups),
         ),
+        format!(
+            "axis=post_diff_initiative_debt baseline={} candidate={} delta={}",
+            pro_policy_matrix_initiative_debt_bucket(baseline_initiative_debt),
+            pro_policy_matrix_initiative_debt_bucket(candidate_initiative_debt),
+            pro_policy_matrix_initiative_debt_delta_bucket(
+                baseline_initiative_debt,
+                candidate_initiative_debt,
+            ),
+        ),
+        pro_policy_matrix_source_prompt_topology_axis(divergence),
+        pro_policy_matrix_source_divergence_prompt_relation_axis(divergence),
+        pro_policy_matrix_source_prefix_completion_axis(divergence),
+        pro_policy_matrix_source_move_interference_axis(divergence),
+        pro_policy_matrix_source_move_order_commutation_axis(divergence),
+        pro_policy_matrix_source_mana_corridor_topology_axis(divergence),
+        pro_policy_matrix_source_residual_agency_axis(divergence),
+        pro_policy_matrix_source_handoff_opponent_mobility_axis(divergence),
+        pro_policy_matrix_source_remaining_budget_axis(divergence),
+        pro_policy_matrix_realized_reply_event_axis(
+            divergence,
+            baseline_trace,
+            candidate_trace,
+        ),
     ];
+    axes.extend(pro_policy_matrix_decision_effort_axes(
+        divergence.left_decision_effort,
+        divergence.right_decision_effort,
+    ));
     if pro_policy_matrix_include_post_move_budget_axes() {
         axes.extend(pro_policy_matrix_post_move_budget_axes(divergence));
     }
@@ -1604,6 +3490,11 @@ fn play_profile_sweep_attribution_trace(
     max_plies: usize,
 ) -> ProProfileSweepAttributionTrace {
     let mut game = MonsGame::from_fen(opening_fen, false).expect("valid opening fen");
+    let candidate_color = if candidate_is_white {
+        Color::White
+    } else {
+        Color::Black
+    };
     clear_exact_state_analysis_cache();
     clear_exact_query_diagnostics();
     clear_turn_engine_plan_cache();
@@ -1611,26 +3502,32 @@ fn play_profile_sweep_attribution_trace(
     clear_turn_engine_selector_diagnostics();
 
     let mut candidate_turns = Vec::new();
+    let mut played_turns = Vec::new();
     for ply in 0..max_plies {
         if let Some(winner_color) = game.winner_color() {
             return ProProfileSweepAttributionTrace {
                 result: match_result_from_winner(winner_color, candidate_is_white),
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
 
         let board_fen = game.fen();
-        let candidate_to_move = if candidate_is_white {
-            game.active_color == Color::White
-        } else {
-            game.active_color == Color::Black
-        };
-        let (inputs, guarded_branch) = if candidate_to_move {
-            select_profile_sweep_candidate_inputs_with_branch(
+        let active_color = game.active_color;
+        let candidate_to_move = active_color == candidate_color;
+        let (inputs, guarded_branch, decision_effort) = if candidate_to_move {
+            let effort_before = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            let (inputs, guarded_branch) = select_profile_sweep_candidate_inputs_with_branch(
                 candidate,
                 &game,
                 pro_budget().runtime_config_for_game(&game),
+            );
+            let effort_after = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            (
+                inputs,
+                guarded_branch,
+                ProPolicyMatrixDecisionEffort::from_snapshots(effort_before, effort_after),
             )
         } else {
             (
@@ -1640,6 +3537,7 @@ fn play_profile_sweep_attribution_trace(
                     opponent_budget.runtime_config_for_game(&game),
                 ),
                 "opponent_execute",
+                ProPolicyMatrixDecisionEffort::default(),
             )
         };
 
@@ -1655,6 +3553,7 @@ fn play_profile_sweep_attribution_trace(
                 can_use_action: game.player_can_use_action(),
                 can_move_mana: game.player_can_move_mana(),
                 exact_context: exact_opportunity_context_probe(&game),
+                decision_effort,
             });
         }
 
@@ -1667,18 +3566,36 @@ fn play_profile_sweep_attribution_trace(
                 },
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
-        if !matches!(game.process_input(inputs, false, false), Output::Events(_)) {
-            return ProProfileSweepAttributionTrace {
-                result: if candidate_to_move {
-                    MatchResult::ProfileBWin
-                } else {
-                    MatchResult::ProfileAWin
-                },
-                final_fen: game.fen(),
-                candidate_turns,
-            };
+        let move_fen = Input::fen_from_array(&inputs);
+        match game.process_input(inputs, false, false) {
+            Output::Events(events) => {
+                played_turns.push(ProProfileSweepPlayedTurn {
+                    ply,
+                    candidate_to_move,
+                    active_color,
+                    move_fen,
+                    event_profile: pro_profile_sweep_event_profile(
+                        events.as_slice(),
+                        candidate_color,
+                    ),
+                    control_after: pro_profile_sweep_control_after(&game, candidate_color),
+                });
+            }
+            _ => {
+                return ProProfileSweepAttributionTrace {
+                    result: if candidate_to_move {
+                        MatchResult::ProfileBWin
+                    } else {
+                        MatchResult::ProfileAWin
+                    },
+                    final_fen: game.fen(),
+                    candidate_turns,
+                    played_turns,
+                };
+            }
         }
     }
 
@@ -1689,6 +3606,7 @@ fn play_profile_sweep_attribution_trace(
         },
         final_fen: game.fen(),
         candidate_turns,
+        played_turns,
     }
 }
 
@@ -1702,6 +3620,11 @@ fn play_profile_sweep_forced_first_candidate_turn(
     forced_inputs: &[Input],
 ) -> ProProfileSweepAttributionTrace {
     let mut game = MonsGame::from_fen(opening_fen, false).expect("valid opening fen");
+    let candidate_color = if candidate_is_white {
+        Color::White
+    } else {
+        Color::Black
+    };
     clear_exact_state_analysis_cache();
     clear_exact_query_diagnostics();
     clear_turn_engine_plan_cache();
@@ -1709,6 +3632,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
     clear_turn_engine_selector_diagnostics();
 
     let mut candidate_turns = Vec::new();
+    let mut played_turns = Vec::new();
     let mut forced_turn_spent = false;
     for ply in 0..max_plies {
         if let Some(winner_color) = game.winner_color() {
@@ -1716,23 +3640,32 @@ fn play_profile_sweep_forced_first_candidate_turn(
                 result: match_result_from_winner(winner_color, candidate_is_white),
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
 
         let board_fen = game.fen();
-        let candidate_to_move = if candidate_is_white {
-            game.active_color == Color::White
-        } else {
-            game.active_color == Color::Black
-        };
-        let (inputs, guarded_branch) = if candidate_to_move && !forced_turn_spent {
+        let active_color = game.active_color;
+        let candidate_to_move = active_color == candidate_color;
+        let (inputs, guarded_branch, decision_effort) = if candidate_to_move && !forced_turn_spent {
             forced_turn_spent = true;
-            (forced_inputs.to_vec(), "forced_root")
+            (
+                forced_inputs.to_vec(),
+                "forced_root",
+                ProPolicyMatrixDecisionEffort::default(),
+            )
         } else if candidate_to_move {
-            select_profile_sweep_candidate_inputs_with_branch(
+            let effort_before = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            let (inputs, guarded_branch) = select_profile_sweep_candidate_inputs_with_branch(
                 candidate,
                 &game,
                 pro_budget().runtime_config_for_game(&game),
+            );
+            let effort_after = ProPolicyMatrixDecisionEffortSnapshot::capture();
+            (
+                inputs,
+                guarded_branch,
+                ProPolicyMatrixDecisionEffort::from_snapshots(effort_before, effort_after),
             )
         } else {
             (
@@ -1742,6 +3675,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
                     opponent_budget.runtime_config_for_game(&game),
                 ),
                 "opponent_execute",
+                ProPolicyMatrixDecisionEffort::default(),
             )
         };
 
@@ -1757,6 +3691,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
                 can_use_action: game.player_can_use_action(),
                 can_move_mana: game.player_can_move_mana(),
                 exact_context: exact_opportunity_context_probe(&game),
+                decision_effort,
             });
         }
 
@@ -1769,18 +3704,36 @@ fn play_profile_sweep_forced_first_candidate_turn(
                 },
                 final_fen: game.fen(),
                 candidate_turns,
+                played_turns,
             };
         }
-        if !matches!(game.process_input(inputs, false, false), Output::Events(_)) {
-            return ProProfileSweepAttributionTrace {
-                result: if candidate_to_move {
-                    MatchResult::ProfileBWin
-                } else {
-                    MatchResult::ProfileAWin
-                },
-                final_fen: game.fen(),
-                candidate_turns,
-            };
+        let move_fen = Input::fen_from_array(&inputs);
+        match game.process_input(inputs, false, false) {
+            Output::Events(events) => {
+                played_turns.push(ProProfileSweepPlayedTurn {
+                    ply,
+                    candidate_to_move,
+                    active_color,
+                    move_fen,
+                    event_profile: pro_profile_sweep_event_profile(
+                        events.as_slice(),
+                        candidate_color,
+                    ),
+                    control_after: pro_profile_sweep_control_after(&game, candidate_color),
+                });
+            }
+            _ => {
+                return ProProfileSweepAttributionTrace {
+                    result: if candidate_to_move {
+                        MatchResult::ProfileBWin
+                    } else {
+                        MatchResult::ProfileAWin
+                    },
+                    final_fen: game.fen(),
+                    candidate_turns,
+                    played_turns,
+                };
+            }
         }
     }
 
@@ -1791,6 +3744,7 @@ fn play_profile_sweep_forced_first_candidate_turn(
         },
         final_fen: game.fen(),
         candidate_turns,
+        played_turns,
     }
 }
 
@@ -1821,6 +3775,8 @@ fn first_profile_sweep_candidate_divergence(
                 can_use_action: left_turn.can_use_action,
                 can_move_mana: left_turn.can_move_mana,
                 exact_context: left_turn.exact_context.clone(),
+                left_decision_effort: left_turn.decision_effort,
+                right_decision_effort: right_turn.decision_effort,
             })
         })
 }
@@ -2683,6 +4639,22 @@ impl ProV4RootPoolOutcomeFeatures {
             post_score_delta: "omitted".to_string(),
             post_turn_budget: "omitted".to_string(),
             post_turn_budget_delta: "omitted".to_string(),
+        }
+    }
+}
+
+struct ProV4RootPoolBudgetStabilityFeatures {
+    root_budget_eval_stability: String,
+    root_budget_reply_stability: String,
+    root_budget_value_reply_stability: String,
+}
+
+impl ProV4RootPoolBudgetStabilityFeatures {
+    fn omitted() -> Self {
+        Self {
+            root_budget_eval_stability: "omitted".to_string(),
+            root_budget_reply_stability: "omitted".to_string(),
+            root_budget_value_reply_stability: "omitted".to_string(),
         }
     }
 }
@@ -4772,6 +6744,18 @@ impl ProV4RootPoolReplySpectrumFeatures {
         Self {
             post_reply_spectrum: "omitted".to_string(),
             post_reply_spectrum_effect: "omitted".to_string(),
+        }
+    }
+}
+
+struct ProV4RootPoolReplyReversalFeatures {
+    post_reply_reversal_profile: String,
+}
+
+impl ProV4RootPoolReplyReversalFeatures {
+    fn omitted() -> Self {
+        Self {
+            post_reply_reversal_profile: "omitted".to_string(),
         }
     }
 }
@@ -16888,6 +18872,160 @@ fn pro_v4_root_pool_reply_spectrum_features(
     }
 }
 
+#[derive(Clone, Copy)]
+struct ProV4RootPoolReplyReversalVector {
+    score: i32,
+    high_value: i32,
+    own_regular: i32,
+    material: i32,
+}
+
+impl ProV4RootPoolReplyReversalVector {
+    fn gain_count(self, before: Self) -> usize {
+        [
+            self.score > before.score,
+            self.high_value > before.high_value,
+            self.own_regular > before.own_regular,
+            self.material > before.material,
+        ]
+        .into_iter()
+        .filter(|gained| *gained)
+        .count()
+    }
+
+    fn reversal_count(self, before: Self, reply: Self) -> usize {
+        [
+            self.score > before.score && reply.score <= before.score,
+            self.high_value > before.high_value && reply.high_value <= before.high_value,
+            self.own_regular > before.own_regular && reply.own_regular <= before.own_regular,
+            self.material > before.material && reply.material <= before.material,
+        ]
+        .into_iter()
+        .filter(|reversed| *reversed)
+        .count()
+    }
+}
+
+fn pro_v4_root_pool_reply_reversal_vector(
+    game: &MonsGame,
+    perspective: Color,
+) -> ProV4RootPoolReplyReversalVector {
+    let opponent = perspective.other();
+    let posture = pro_v4_root_pool_board_posture(game, perspective);
+    ProV4RootPoolReplyReversalVector {
+        score: pro_v4_root_pool_score_for_color(game, perspective)
+            - pro_v4_root_pool_score_for_color(game, opponent),
+        high_value: posture.high_value_own_carrier as i32 - posture.high_value_opp_carrier as i32,
+        own_regular: posture.own_regular_own_carrier as i32
+            - posture.own_regular_opp_carrier as i32,
+        material: (posture.own_awake + posture.opp_fainted) as i32
+            - (posture.opp_awake + posture.own_fainted) as i32,
+    }
+}
+
+fn pro_v4_root_pool_reply_reversal_gain_label(
+    before: ProV4RootPoolReplyReversalVector,
+    after: ProV4RootPoolReplyReversalVector,
+) -> String {
+    let mut gains = Vec::new();
+    if after.score > before.score {
+        gains.push("score");
+    }
+    if after.high_value > before.high_value {
+        gains.push("high_value");
+    }
+    if after.own_regular > before.own_regular {
+        gains.push("own_regular");
+    }
+    if after.material > before.material {
+        gains.push("material");
+    }
+    if gains.is_empty() {
+        "none".to_string()
+    } else {
+        gains.join("+")
+    }
+}
+
+fn pro_v4_root_pool_reply_reversal_count_bucket(count: usize, total: usize) -> &'static str {
+    if total == 0 {
+        "no_replies"
+    } else if count == 0 {
+        "none"
+    } else if count == total {
+        "all"
+    } else if count == 1 {
+        "some"
+    } else {
+        "many"
+    }
+}
+
+fn pro_v4_root_pool_reply_reversal_features(
+    before_root: &MonsGame,
+    state_after_root: &MonsGame,
+    perspective: Color,
+    config: AutomoveSearchConfig,
+) -> ProV4RootPoolReplyReversalFeatures {
+    let before = pro_v4_root_pool_reply_reversal_vector(before_root, perspective);
+    let after = pro_v4_root_pool_reply_reversal_vector(state_after_root, perspective);
+    let gain_count = after.gain_count(before);
+    let gain = pro_v4_root_pool_reply_reversal_gain_label(before, after);
+    let score_delta = pro_policy_mechanism_signed_delta_bucket(after.score - before.score);
+    let high_value_delta =
+        pro_policy_mechanism_signed_delta_bucket(after.high_value - before.high_value);
+    let own_regular_delta =
+        pro_policy_mechanism_signed_delta_bucket(after.own_regular - before.own_regular);
+    let material_delta = pro_policy_mechanism_signed_delta_bucket(after.material - before.material);
+
+    if gain_count == 0
+        || state_after_root.winner_color().is_some()
+        || state_after_root.active_color == perspective
+    {
+        return ProV4RootPoolReplyReversalFeatures {
+            post_reply_reversal_profile: format!(
+                "state={};cap=false;total=count0;gain={};reversal=none;full=none;score={};high_value={};own_regular={};material={}",
+                pro_v4_root_pool_status(state_after_root, perspective),
+                gain,
+                score_delta,
+                high_value_delta,
+                own_regular_delta,
+                material_delta,
+            ),
+        };
+    }
+
+    let replies = MonsGameModel::enumerate_legal_transitions(
+        state_after_root,
+        PRO_V4_ROOT_POOL_REPLY_SPECTRUM_LIMIT,
+        MonsGameModel::automove_start_input_options(config),
+    );
+    let mut any_reversal_count = 0usize;
+    let mut full_reversal_count = 0usize;
+    for reply in &replies {
+        let reply_vector = pro_v4_root_pool_reply_reversal_vector(&reply.game, perspective);
+        let reversed_components = after.reversal_count(before, reply_vector);
+        any_reversal_count += usize::from(reversed_components > 0);
+        full_reversal_count += usize::from(reversed_components == gain_count);
+    }
+
+    ProV4RootPoolReplyReversalFeatures {
+        post_reply_reversal_profile: format!(
+            "state={};cap={};total={};gain={};reversal={};full={};score={};high_value={};own_regular={};material={}",
+            pro_v4_root_pool_status(state_after_root, perspective),
+            replies.len() >= PRO_V4_ROOT_POOL_REPLY_SPECTRUM_LIMIT,
+            pro_v4_root_pool_count_field(replies.len()),
+            gain,
+            pro_v4_root_pool_reply_reversal_count_bucket(any_reversal_count, replies.len()),
+            pro_v4_root_pool_reply_reversal_count_bucket(full_reversal_count, replies.len()),
+            score_delta,
+            high_value_delta,
+            own_regular_delta,
+            material_delta,
+        ),
+    }
+}
+
 fn pro_v4_root_pool_score_for_color(game: &MonsGame, color: Color) -> i32 {
     match color {
         Color::White => game.white_score,
@@ -17603,6 +19741,102 @@ fn pro_v4_root_pool_outcome_features(
     }
 }
 
+fn pro_v4_root_pool_budget_order_bucket(pro: i32, normal: i32, fast: i32) -> &'static str {
+    if pro == normal && normal == fast {
+        "all_tied"
+    } else if pro >= normal && normal >= fast {
+        "pro_ge_normal_ge_fast"
+    } else if pro >= fast && fast >= normal {
+        "pro_ge_fast_ge_normal"
+    } else if normal >= pro && pro >= fast {
+        "normal_ge_pro_ge_fast"
+    } else if normal >= fast && fast >= pro {
+        "normal_ge_fast_ge_pro"
+    } else if fast >= pro && pro >= normal {
+        "fast_ge_pro_ge_normal"
+    } else {
+        "fast_ge_normal_ge_pro"
+    }
+}
+
+fn pro_v4_root_pool_budget_stability_features(
+    game: &MonsGame,
+    perspective: Color,
+) -> ProV4RootPoolBudgetStabilityFeatures {
+    let eval_after = |mode| {
+        let config = SearchBudget::from_preference(mode).runtime_config_for_game(game);
+        MonsGameModel::evaluate_search_preferability(game, perspective, config)
+    };
+    let reply_after = |mode| {
+        let config = SearchBudget::from_preference(mode).runtime_config_for_game(game);
+        MonsGameModel::root_reply_risk_snapshot(
+            game,
+            perspective,
+            config,
+            config.root_reply_risk_reply_limit.clamp(1, 24),
+        )
+    };
+
+    let eval_pro = eval_after(SmartAutomovePreference::Pro);
+    let eval_normal = eval_after(SmartAutomovePreference::Normal);
+    let eval_fast = eval_after(SmartAutomovePreference::Fast);
+    let eval_floor = eval_pro.min(eval_normal).min(eval_fast);
+
+    let reply_pro = reply_after(SmartAutomovePreference::Pro);
+    let reply_normal = reply_after(SmartAutomovePreference::Normal);
+    let reply_fast = reply_after(SmartAutomovePreference::Fast);
+    let reply_floor = reply_pro
+        .worst_reply_score
+        .min(reply_normal.worst_reply_score)
+        .min(reply_fast.worst_reply_score);
+    let win_threats = [&reply_pro, &reply_normal, &reply_fast]
+        .iter()
+        .filter(|snapshot| snapshot.allows_immediate_opponent_win)
+        .count();
+    let match_point_threats = [&reply_pro, &reply_normal, &reply_fast]
+        .iter()
+        .filter(|snapshot| snapshot.opponent_reaches_match_point)
+        .count();
+
+    ProV4RootPoolBudgetStabilityFeatures {
+        root_budget_eval_stability: format!(
+            "floor={};spread={};order={}",
+            pro_policy_matrix_eval_bucket(eval_floor),
+            pro_policy_matrix_budget_spread_bucket(eval_pro, eval_normal, eval_fast),
+            pro_v4_root_pool_budget_order_bucket(eval_pro, eval_normal, eval_fast),
+        ),
+        root_budget_reply_stability: format!(
+            "floor={};spread={};order={};win_threats={};match_point={}",
+            pro_policy_matrix_eval_bucket(reply_floor),
+            pro_policy_matrix_budget_spread_bucket(
+                reply_pro.worst_reply_score,
+                reply_normal.worst_reply_score,
+                reply_fast.worst_reply_score,
+            ),
+            pro_v4_root_pool_budget_order_bucket(
+                reply_pro.worst_reply_score,
+                reply_normal.worst_reply_score,
+                reply_fast.worst_reply_score,
+            ),
+            pro_policy_matrix_reply_threat_count_bucket(win_threats),
+            pro_policy_matrix_reply_threat_count_bucket(match_point_threats),
+        ),
+        root_budget_value_reply_stability: format!(
+            "eval_floor={};eval_spread={};reply_floor={};reply_spread={};win_threats={};match_point={}",
+            pro_policy_matrix_eval_bucket(eval_floor),
+            pro_policy_matrix_budget_spread_bucket(eval_pro, eval_normal, eval_fast),
+            pro_policy_matrix_eval_bucket(reply_floor),
+            pro_policy_matrix_budget_spread_bucket(
+                reply_pro.worst_reply_score,
+                reply_normal.worst_reply_score,
+                reply_fast.worst_reply_score,
+            ),
+            pro_policy_matrix_reply_threat_count_bucket(win_threats),
+            pro_policy_matrix_reply_threat_count_bucket(match_point_threats),
+        ),
+    }
+}
+
 fn pro_v4_root_pool_score_term_bucket(score: i32) -> &'static str {
     match score {
         ..=-1024 => "bad_1024_plus",
@@ -18306,6 +20540,59 @@ fn pro_v4_root_pool_origin_kind(origin: &str) -> &'static str {
     }
 }
 
+fn pro_v4_root_pool_class_vector(classes: MoveClassFlags) -> String {
+    let mut tokens = Vec::new();
+    if classes.immediate_score {
+        tokens.push("immediate_score");
+    }
+    if classes.drainer_attack {
+        tokens.push("drainer_attack");
+    }
+    if classes.drainer_safety_recover {
+        tokens.push("drainer_safety_recover");
+    }
+    if classes.carrier_progress {
+        tokens.push("carrier_progress");
+    }
+    if classes.material {
+        tokens.push("material");
+    }
+    if classes.quiet {
+        tokens.push("quiet");
+    }
+
+    if tokens.is_empty() {
+        "unlisted".to_string()
+    } else {
+        tokens.join("|")
+    }
+}
+
+fn pro_v4_root_pool_class_family(classes: MoveClassFlags) -> &'static str {
+    if classes.is_tactical_priority() {
+        "tactical"
+    } else if classes.carrier_progress {
+        "carrier_progress"
+    } else if classes.material {
+        "material"
+    } else if classes.quiet {
+        "quiet"
+    } else {
+        "unlisted"
+    }
+}
+
+fn pro_v4_root_pool_class_priority_bucket(classes: MoveClassFlags) -> &'static str {
+    match MonsGameModel::child_class_priority_score(classes) {
+        1_000.. => "class_priority_1000_plus",
+        700..=999 => "class_priority_700_999",
+        500..=699 => "class_priority_500_699",
+        220..=499 => "class_priority_220_499",
+        80..=219 => "class_priority_80_219",
+        _ => "class_priority_0",
+    }
+}
+
 fn pro_v4_root_pool_add_origin(
     rows: &mut BTreeMap<String, ProV4RootPoolCandidateRow>,
     inputs: &str,
@@ -18534,6 +20821,9 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
             rank,
             score,
             family,
+            class_vector,
+            class_family,
+            class_priority,
             safety_detail,
             progress,
             efficiency,
@@ -18554,6 +20844,7 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
             post_exact_delta,
             board_features,
             outcome_features,
+            budget_stability_features,
             score_term_profile_features,
             exact_score_profile_features,
             mana_identity_profile_features,
@@ -18622,6 +20913,7 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
             transition_features,
             worst_reply_features,
             reply_spectrum_features,
+            reply_reversal_features,
         ) = if let Some(root) = root {
             let family = MonsGameModel::turn_engine_root_evaluation_family(root);
             let reply_snapshot = MonsGameModel::root_reply_risk_snapshot(
@@ -18694,6 +20986,8 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
                 pro_v4_root_pool_board_features(&game, &root.game, game.active_color);
             let outcome_features =
                 pro_v4_root_pool_outcome_features(&game, &root.game, game.active_color);
+            let budget_stability_features =
+                pro_v4_root_pool_budget_stability_features(&root.game, game.active_color);
             let score_term_profile_features = pro_v4_root_pool_score_term_profile_features(
                 &game,
                 &root.game,
@@ -18892,10 +21186,19 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
                 pro_v4_root_pool_worst_reply_features(&root.game, game.active_color, runtime);
             let reply_spectrum_features =
                 pro_v4_root_pool_reply_spectrum_features(&root.game, game.active_color, runtime);
+            let reply_reversal_features = pro_v4_root_pool_reply_reversal_features(
+                &game,
+                &root.game,
+                game.active_color,
+                runtime,
+            );
             (
                 Some(root.root_rank),
                 Some(root.score),
                 format!("{family:?}"),
+                pro_v4_root_pool_class_vector(root.classes),
+                pro_v4_root_pool_class_family(root.classes),
+                pro_v4_root_pool_class_priority_bucket(root.classes),
                 pro_policy_mechanism_safety_detail_bucket(
                     root.mana_handoff_to_opponent,
                     root.has_roundtrip,
@@ -18930,6 +21233,7 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
                 post_exact_delta,
                 board_features,
                 outcome_features,
+                budget_stability_features,
                 score_term_profile_features,
                 exact_score_profile_features,
                 mana_identity_profile_features,
@@ -18998,12 +21302,16 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
                 transition_features,
                 worst_reply_features,
                 reply_spectrum_features,
+                reply_reversal_features,
             )
         } else {
             (
                 None,
                 None,
                 "omitted".to_string(),
+                "omitted".to_string(),
+                "omitted",
+                "omitted",
                 "omitted",
                 "omitted",
                 None,
@@ -19024,6 +21332,7 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
                 "omitted".to_string(),
                 ProV4RootPoolBoardFeatures::omitted(),
                 ProV4RootPoolOutcomeFeatures::omitted(),
+                ProV4RootPoolBudgetStabilityFeatures::omitted(),
                 ProV4RootPoolScoreTermProfileFeatures::omitted(),
                 ProV4RootPoolExactScoreProfileFeatures::omitted(),
                 ProV4RootPoolManaIdentityProfileFeatures::omitted(),
@@ -19092,10 +21401,11 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
                 ProV4RootPoolTransitionFeatures::omitted(),
                 ProV4RootPoolWorstReplyFeatures::omitted(),
                 ProV4RootPoolReplySpectrumFeatures::omitted(),
+                ProV4RootPoolReplyReversalFeatures::omitted(),
             )
         };
         println!(
-            "PRO_POLICY_MATRIX_PROV4_ROOT_POOL_ROOT {{\"panel\":\"{}\",\"baseline\":\"{}\",\"candidate\":\"{}\",\"candidates\":\"{}\",\"duel\":\"{}\",\"seed_tag\":\"{}\",\"repeat\":{},\"opening_index\":{},\"variant\":\"{}\",\"candidate_is_white\":{},\"portfolio_class\":\"{}\",\"outcome\":\"{}\",\"first_diff_ply\":{},\"board\":\"{}\",\"baseline_move\":\"{}\",\"candidate_move\":\"{}\",\"inputs\":\"{}\",\"origins\":\"{}\",\"origin_kinds\":\"{}\",\"policies\":\"{}\",\"live\":{},\"rank\":{},\"rank_bucket\":\"{}\",\"score\":{},\"family\":\"{}\",\"advisor\":\"{}\",\"advisor_bucket\":\"{}\",\"path\":\"{}\",\"safety_detail\":\"{}\",\"progress\":\"{}\",\"efficiency\":\"{}\",\"setup_gain\":\"{}\",\"soft_priority\":\"{}\",\"keeps_awake\":\"{}\",\"reply_floor\":\"{}\",\"reply_risk\":\"{}\",\"followup_floor\":\"{}\",\"utility\":\"{}\",\"post_turn_status\":\"{}\",\"post_exact_window\":\"{}\",\"post_exact_deny\":\"{}\",\"post_exact_attack\":\"{}\",\"post_drainer_safety\":\"{}\",\"post_exact_pressure\":\"{}\",\"post_exact_delta\":\"{}\",\"post_exact_score_profile\":\"{}\",\"post_exact_score_profile_delta\":\"{}\",\"post_mana_identity_profile\":\"{}\",\"post_mana_identity_profile_delta\":\"{}\",\"post_edge_anchor_profile\":\"{}\",\"post_edge_anchor_profile_delta\":\"{}\",\"post_item_zone_profile\":\"{}\",\"post_item_zone_profile_delta\":\"{}\",\"post_objective_proximity_profile\":\"{}\",\"post_objective_proximity_profile_delta\":\"{}\",\"post_objective_control_profile\":\"{}\",\"post_objective_control_profile_delta\":\"{}\",\"post_objective_square_profile\":\"{}\",\"post_objective_square_profile_delta\":\"{}\",\"post_high_value_custody\":\"{}\",\"post_high_value_delta\":\"{}\",\"post_own_regular_custody\":\"{}\",\"post_own_regular_delta\":\"{}\",\"post_mon_material\":\"{}\",\"post_mon_material_delta\":\"{}\",\"post_cooldown_tempo\":\"{}\",\"post_cooldown_tempo_delta\":\"{}\",\"post_scoreboard\":\"{}\",\"post_score_delta\":\"{}\",\"post_turn_budget\":\"{}\",\"post_turn_budget_delta\":\"{}\",\"post_score_term_profile\":\"{}\",\"post_score_term_profile_delta\":\"{}\",\"post_legal_fanout\":\"{}\",\"post_legal_fanout_delta\":\"{}\",\"post_followup_shape\":\"{}\",\"post_followup_effect\":\"{}\",\"post_followup_role_profile\":\"{}\",\"post_followup_role_profile_delta\":\"{}\",\"post_followup_payload_profile\":\"{}\",\"post_followup_payload_profile_delta\":\"{}\",\"post_attack_exposure\":\"{}\",\"post_attack_exposure_delta\":\"{}\",\"post_support_guard\":\"{}\",\"post_support_guard_delta\":\"{}\",\"post_objective_screen\":\"{}\",\"post_objective_screen_delta\":\"{}\",\"post_drainer_geometry\":\"{}\",\"post_drainer_geometry_delta\":\"{}\",\"post_role_coordination\":\"{}\",\"post_role_coordination_delta\":\"{}\",\"post_formation_balance\":\"{}\",\"post_formation_balance_delta\":\"{}\",\"post_role_deployment\":\"{}\",\"post_role_deployment_delta\":\"{}\",\"post_role_pressure\":\"{}\",\"post_role_pressure_delta\":\"{}\",\"post_role_contact\":\"{}\",\"post_role_contact_delta\":\"{}\",\"post_cohesion\":\"{}\",\"post_cohesion_delta\":\"{}\",\"post_territory\":\"{}\",\"post_territory_delta\":\"{}\",\"post_control_map\":\"{}\",\"post_control_map_delta\":\"{}\",\"post_mana_path\":\"{}\",\"post_mana_path_delta\":\"{}\",\"post_mana_contest\":\"{}\",\"post_mana_contest_delta\":\"{}\",\"post_pickup_access\":\"{}\",\"post_pickup_access_delta\":\"{}\",\"post_mana_base\":\"{}\",\"post_mana_base_delta\":\"{}\",\"post_pool_access\":\"{}\",\"post_pool_access_delta\":\"{}\",\"post_carrier_route\":\"{}\",\"post_carrier_route_delta\":\"{}\",\"post_carrier_score_profile\":\"{}\",\"post_carrier_score_profile_delta\":\"{}\",\"post_carrier_contact\":\"{}\",\"post_carrier_contact_delta\":\"{}\",\"post_carrier_action_profile\":\"{}\",\"post_carrier_action_profile_delta\":\"{}\",\"post_carrier_escape\":\"{}\",\"post_carrier_escape_delta\":\"{}\",\"post_consumable\":\"{}\",\"post_consumable_delta\":\"{}\",\"post_bomb_threat_profile\":\"{}\",\"post_bomb_threat_profile_delta\":\"{}\",\"post_potion_stock\":\"{}\",\"post_potion_stock_delta\":\"{}\",\"post_consumable_base\":\"{}\",\"post_consumable_base_delta\":\"{}\",\"post_engagement\":\"{}\",\"post_engagement_delta\":\"{}\",\"post_mobility\":\"{}\",\"post_mobility_delta\":\"{}\",\"post_role_mobility\":\"{}\",\"post_role_mobility_delta\":\"{}\",\"post_role_escape\":\"{}\",\"post_role_escape_delta\":\"{}\",\"post_action_threat\":\"{}\",\"post_action_threat_delta\":\"{}\",\"post_action_target_profile\":\"{}\",\"post_action_target_profile_delta\":\"{}\",\"post_spirit_item_profile\":\"{}\",\"post_spirit_item_profile_delta\":\"{}\",\"post_spirit_handoff_profile\":\"{}\",\"post_spirit_handoff_profile_delta\":\"{}\",\"post_action_role_profile\":\"{}\",\"post_action_role_profile_delta\":\"{}\",\"post_action_guard_profile\":\"{}\",\"post_action_guard_profile_delta\":\"{}\",\"post_action_actor_profile\":\"{}\",\"post_action_actor_profile_delta\":\"{}\",\"post_action_actor_safety_profile\":\"{}\",\"post_action_actor_safety_profile_delta\":\"{}\",\"post_action_zone_profile\":\"{}\",\"post_action_zone_profile_delta\":\"{}\",\"post_action_payload_profile\":\"{}\",\"post_action_payload_profile_delta\":\"{}\",\"post_action_escape_profile\":\"{}\",\"post_action_escape_profile_delta\":\"{}\",\"post_action_counter_profile\":\"{}\",\"post_action_counter_profile_delta\":\"{}\",\"post_action_target_safety_profile\":\"{}\",\"post_action_target_safety_profile_delta\":\"{}\",\"post_action_score_profile\":\"{}\",\"post_action_score_profile_delta\":\"{}\",\"post_action_denial_profile\":\"{}\",\"post_action_denial_profile_delta\":\"{}\",\"post_action_pickup_profile\":\"{}\",\"post_action_pickup_profile_delta\":\"{}\",\"post_action_square_profile\":\"{}\",\"post_action_square_profile_delta\":\"{}\",\"post_action_vector_profile\":\"{}\",\"post_action_vector_profile_delta\":\"{}\",\"post_demon_line_blocker\":\"{}\",\"post_demon_line_blocker_delta\":\"{}\",\"post_action_fork_profile\":\"{}\",\"post_action_fork_profile_delta\":\"{}\",\"post_action_reach\":\"{}\",\"post_action_reach_delta\":\"{}\",\"post_step_threat\":\"{}\",\"post_step_threat_delta\":\"{}\",\"post_role_state\":\"{}\",\"post_role_state_delta\":\"{}\",\"post_base_recovery\":\"{}\",\"post_base_recovery_delta\":\"{}\",\"post_lane_shape\":\"{}\",\"post_lane_shape_delta\":\"{}\",\"root_sequence\":\"{}\",\"root_transition\":\"{}\",\"root_transition_effect\":\"{}\",\"worst_reply_transition\":\"{}\",\"worst_reply_effect\":\"{}\",\"post_reply_spectrum\":\"{}\",\"post_reply_spectrum_effect\":\"{}\"}}",
+            "PRO_POLICY_MATRIX_PROV4_ROOT_POOL_ROOT {{\"panel\":\"{}\",\"baseline\":\"{}\",\"candidate\":\"{}\",\"candidates\":\"{}\",\"duel\":\"{}\",\"seed_tag\":\"{}\",\"repeat\":{},\"opening_index\":{},\"variant\":\"{}\",\"candidate_is_white\":{},\"portfolio_class\":\"{}\",\"outcome\":\"{}\",\"first_diff_ply\":{},\"board\":\"{}\",\"baseline_move\":\"{}\",\"candidate_move\":\"{}\",\"inputs\":\"{}\",\"origins\":\"{}\",\"origin_kinds\":\"{}\",\"policies\":\"{}\",\"live\":{},\"rank\":{},\"rank_bucket\":\"{}\",\"score\":{},\"family\":\"{}\",\"class_vector\":\"{}\",\"class_family\":\"{}\",\"class_priority\":\"{}\",\"advisor\":\"{}\",\"advisor_bucket\":\"{}\",\"path\":\"{}\",\"safety_detail\":\"{}\",\"progress\":\"{}\",\"efficiency\":\"{}\",\"setup_gain\":\"{}\",\"soft_priority\":\"{}\",\"keeps_awake\":\"{}\",\"reply_floor\":\"{}\",\"reply_risk\":\"{}\",\"followup_floor\":\"{}\",\"utility\":\"{}\",\"post_turn_status\":\"{}\",\"post_exact_window\":\"{}\",\"post_exact_deny\":\"{}\",\"post_exact_attack\":\"{}\",\"post_drainer_safety\":\"{}\",\"post_exact_pressure\":\"{}\",\"post_exact_delta\":\"{}\",\"post_exact_score_profile\":\"{}\",\"post_exact_score_profile_delta\":\"{}\",\"post_mana_identity_profile\":\"{}\",\"post_mana_identity_profile_delta\":\"{}\",\"post_edge_anchor_profile\":\"{}\",\"post_edge_anchor_profile_delta\":\"{}\",\"post_item_zone_profile\":\"{}\",\"post_item_zone_profile_delta\":\"{}\",\"post_objective_proximity_profile\":\"{}\",\"post_objective_proximity_profile_delta\":\"{}\",\"post_objective_control_profile\":\"{}\",\"post_objective_control_profile_delta\":\"{}\",\"post_objective_square_profile\":\"{}\",\"post_objective_square_profile_delta\":\"{}\",\"post_high_value_custody\":\"{}\",\"post_high_value_delta\":\"{}\",\"post_own_regular_custody\":\"{}\",\"post_own_regular_delta\":\"{}\",\"post_mon_material\":\"{}\",\"post_mon_material_delta\":\"{}\",\"post_cooldown_tempo\":\"{}\",\"post_cooldown_tempo_delta\":\"{}\",\"post_scoreboard\":\"{}\",\"post_score_delta\":\"{}\",\"post_turn_budget\":\"{}\",\"post_turn_budget_delta\":\"{}\",\"root_budget_eval_stability\":\"{}\",\"root_budget_reply_stability\":\"{}\",\"root_budget_value_reply_stability\":\"{}\",\"post_score_term_profile\":\"{}\",\"post_score_term_profile_delta\":\"{}\",\"post_legal_fanout\":\"{}\",\"post_legal_fanout_delta\":\"{}\",\"post_followup_shape\":\"{}\",\"post_followup_effect\":\"{}\",\"post_followup_role_profile\":\"{}\",\"post_followup_role_profile_delta\":\"{}\",\"post_followup_payload_profile\":\"{}\",\"post_followup_payload_profile_delta\":\"{}\",\"post_attack_exposure\":\"{}\",\"post_attack_exposure_delta\":\"{}\",\"post_support_guard\":\"{}\",\"post_support_guard_delta\":\"{}\",\"post_objective_screen\":\"{}\",\"post_objective_screen_delta\":\"{}\",\"post_drainer_geometry\":\"{}\",\"post_drainer_geometry_delta\":\"{}\",\"post_role_coordination\":\"{}\",\"post_role_coordination_delta\":\"{}\",\"post_formation_balance\":\"{}\",\"post_formation_balance_delta\":\"{}\",\"post_role_deployment\":\"{}\",\"post_role_deployment_delta\":\"{}\",\"post_role_pressure\":\"{}\",\"post_role_pressure_delta\":\"{}\",\"post_role_contact\":\"{}\",\"post_role_contact_delta\":\"{}\",\"post_cohesion\":\"{}\",\"post_cohesion_delta\":\"{}\",\"post_territory\":\"{}\",\"post_territory_delta\":\"{}\",\"post_control_map\":\"{}\",\"post_control_map_delta\":\"{}\",\"post_mana_path\":\"{}\",\"post_mana_path_delta\":\"{}\",\"post_mana_contest\":\"{}\",\"post_mana_contest_delta\":\"{}\",\"post_pickup_access\":\"{}\",\"post_pickup_access_delta\":\"{}\",\"post_mana_base\":\"{}\",\"post_mana_base_delta\":\"{}\",\"post_pool_access\":\"{}\",\"post_pool_access_delta\":\"{}\",\"post_carrier_route\":\"{}\",\"post_carrier_route_delta\":\"{}\",\"post_carrier_score_profile\":\"{}\",\"post_carrier_score_profile_delta\":\"{}\",\"post_carrier_contact\":\"{}\",\"post_carrier_contact_delta\":\"{}\",\"post_carrier_action_profile\":\"{}\",\"post_carrier_action_profile_delta\":\"{}\",\"post_carrier_escape\":\"{}\",\"post_carrier_escape_delta\":\"{}\",\"post_consumable\":\"{}\",\"post_consumable_delta\":\"{}\",\"post_bomb_threat_profile\":\"{}\",\"post_bomb_threat_profile_delta\":\"{}\",\"post_potion_stock\":\"{}\",\"post_potion_stock_delta\":\"{}\",\"post_consumable_base\":\"{}\",\"post_consumable_base_delta\":\"{}\",\"post_engagement\":\"{}\",\"post_engagement_delta\":\"{}\",\"post_mobility\":\"{}\",\"post_mobility_delta\":\"{}\",\"post_role_mobility\":\"{}\",\"post_role_mobility_delta\":\"{}\",\"post_role_escape\":\"{}\",\"post_role_escape_delta\":\"{}\",\"post_action_threat\":\"{}\",\"post_action_threat_delta\":\"{}\",\"post_action_target_profile\":\"{}\",\"post_action_target_profile_delta\":\"{}\",\"post_spirit_item_profile\":\"{}\",\"post_spirit_item_profile_delta\":\"{}\",\"post_spirit_handoff_profile\":\"{}\",\"post_spirit_handoff_profile_delta\":\"{}\",\"post_action_role_profile\":\"{}\",\"post_action_role_profile_delta\":\"{}\",\"post_action_guard_profile\":\"{}\",\"post_action_guard_profile_delta\":\"{}\",\"post_action_actor_profile\":\"{}\",\"post_action_actor_profile_delta\":\"{}\",\"post_action_actor_safety_profile\":\"{}\",\"post_action_actor_safety_profile_delta\":\"{}\",\"post_action_zone_profile\":\"{}\",\"post_action_zone_profile_delta\":\"{}\",\"post_action_payload_profile\":\"{}\",\"post_action_payload_profile_delta\":\"{}\",\"post_action_escape_profile\":\"{}\",\"post_action_escape_profile_delta\":\"{}\",\"post_action_counter_profile\":\"{}\",\"post_action_counter_profile_delta\":\"{}\",\"post_action_target_safety_profile\":\"{}\",\"post_action_target_safety_profile_delta\":\"{}\",\"post_action_score_profile\":\"{}\",\"post_action_score_profile_delta\":\"{}\",\"post_action_denial_profile\":\"{}\",\"post_action_denial_profile_delta\":\"{}\",\"post_action_pickup_profile\":\"{}\",\"post_action_pickup_profile_delta\":\"{}\",\"post_action_square_profile\":\"{}\",\"post_action_square_profile_delta\":\"{}\",\"post_action_vector_profile\":\"{}\",\"post_action_vector_profile_delta\":\"{}\",\"post_demon_line_blocker\":\"{}\",\"post_demon_line_blocker_delta\":\"{}\",\"post_action_fork_profile\":\"{}\",\"post_action_fork_profile_delta\":\"{}\",\"post_action_reach\":\"{}\",\"post_action_reach_delta\":\"{}\",\"post_step_threat\":\"{}\",\"post_step_threat_delta\":\"{}\",\"post_role_state\":\"{}\",\"post_role_state_delta\":\"{}\",\"post_base_recovery\":\"{}\",\"post_base_recovery_delta\":\"{}\",\"post_lane_shape\":\"{}\",\"post_lane_shape_delta\":\"{}\",\"root_sequence\":\"{}\",\"root_transition\":\"{}\",\"root_transition_effect\":\"{}\",\"worst_reply_transition\":\"{}\",\"worst_reply_effect\":\"{}\",\"post_reply_spectrum\":\"{}\",\"post_reply_spectrum_effect\":\"{}\",\"post_reply_reversal_profile\":\"{}\"}}",
             json_escape(panel),
             json_escape(baseline.id),
             json_escape(candidate.id),
@@ -19121,6 +21431,9 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
             pro_policy_mechanism_rank_bucket(rank),
             score.unwrap_or(0),
             json_escape(&family),
+            json_escape(&class_vector),
+            json_escape(class_family),
+            json_escape(class_priority),
             json_escape(&advisor),
             pro_policy_mechanism_advisor_bucket(&advisor),
             path,
@@ -19173,6 +21486,9 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
             json_escape(&outcome_features.post_score_delta),
             json_escape(&outcome_features.post_turn_budget),
             json_escape(&outcome_features.post_turn_budget_delta),
+            json_escape(&budget_stability_features.root_budget_eval_stability),
+            json_escape(&budget_stability_features.root_budget_reply_stability),
+            json_escape(&budget_stability_features.root_budget_value_reply_stability),
             json_escape(&score_term_profile_features.post_score_term_profile),
             json_escape(&score_term_profile_features.post_score_term_profile_delta),
             json_escape(&legal_fanout_features.post_legal_fanout),
@@ -19312,6 +21628,7 @@ fn pro_v4_root_pool_print_snapshot(request: ProV4RootPoolSnapshotRequest<'_>) {
             json_escape(&worst_reply_features.worst_reply_effect),
             json_escape(&reply_spectrum_features.post_reply_spectrum),
             json_escape(&reply_spectrum_features.post_reply_spectrum_effect),
+            json_escape(&reply_reversal_features.post_reply_reversal_profile),
         );
     }
 }
@@ -22796,6 +25113,62 @@ fn pro_policy_matrix_mechanism_axis_key(key: &str) -> &str {
     key.find("axis=").map(|index| &key[index..]).unwrap_or(key)
 }
 
+fn pro_policy_matrix_source_start_count_bucket(count: usize) -> &'static str {
+    match count {
+        0 => "start0",
+        1 => "start1",
+        2 => "start2",
+        3..=4 => "start3_4",
+        5..=8 => "start5_8",
+        _ => "start9_plus",
+    }
+}
+
+fn pro_policy_matrix_source_start_mix(mon_starts: usize, mana_starts: usize) -> &'static str {
+    match (mon_starts > 0, mana_starts > 0) {
+        (false, false) => "none",
+        (true, false) => "mon_only",
+        (false, true) => "mana_only",
+        (true, true) => "mixed",
+    }
+}
+
+fn pro_policy_matrix_source_start_option_axes(game: &MonsGame) -> Vec<String> {
+    let mut probe = game.clone();
+    let starts = match probe.process_input_with_start_options_slice(
+        &[],
+        true,
+        false,
+        Some(SuggestedStartInputOptions::for_automove()),
+    ) {
+        Output::LocationsToStartFrom(starts) => starts,
+        _ => Vec::new(),
+    };
+    let mut mon_starts = 0usize;
+    let mut mana_starts = 0usize;
+    for start in &starts {
+        match game.board.item(*start) {
+            Some(item) if item.mon().is_some_and(|mon| mon.color == game.active_color) => {
+                mon_starts += 1;
+            }
+            Some(Item::Mana {
+                mana: Mana::Regular(color),
+            }) if *color == game.active_color => {
+                mana_starts += 1;
+            }
+            _ => {}
+        }
+    }
+
+    vec![format!(
+        "axis=source_start_option_profile total={} mon={} mana={} mix={}",
+        pro_policy_matrix_source_start_count_bucket(starts.len()),
+        pro_policy_matrix_source_start_count_bucket(mon_starts),
+        pro_policy_matrix_source_start_count_bucket(mana_starts),
+        pro_policy_matrix_source_start_mix(mon_starts, mana_starts),
+    )]
+}
+
 fn pro_policy_matrix_mechanism_axes_for_moves(
     baseline_id: &str,
     board_fen: &str,
@@ -22819,6 +25192,7 @@ fn pro_policy_matrix_mechanism_axes_for_moves(
         candidate_move_fen,
     )
     .into_iter()
+    .chain(pro_policy_matrix_source_start_option_axes(&board))
     .map(|key| pro_policy_matrix_mechanism_axis_key(&key).to_string())
     .collect::<Vec<_>>()
     .join("|")
