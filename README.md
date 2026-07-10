@@ -61,10 +61,14 @@ Use `keep/<name>` for any branch that should survive repo cleanup.
 
 ## Publishing
 
+- Set the release version in `Cargo.toml` and `Cargo.lock`, then commit the complete release change set. `publish.sh` refuses a dirty worktree and no longer mutates the version after validation.
 - `./publish.sh`
 - Confirm public Pro still routes through `frontier_pro_v2_guarded`.
 - Confirm `shipping_pro_search` remains available as the retained baseline.
 - Run `cargo test`.
+- Run `cargo test --release --lib smart_automove_pro_matches_frontier_guarded_selector_on_discriminating_fixture`.
 - Run `cargo test --release --lib smart_automove_release_mixed_runtime_speed_gate -- --ignored --nocapture`.
+- Run `./scripts/check-automove-hygiene.sh`.
 - Run `./scripts/assert-release-package-surface.sh pkg/web pkg/node` after the Wasm packages are built.
+- Run `node ./scripts/assert-release-automove-route.cjs pkg/node/mons-rust.js` to verify the generated package routes public Pro through the guarded selector on a discriminating fixture.
 - Clean disposable experiment artifacts after validation with `./scripts/clean-experiment-artifacts.sh`.

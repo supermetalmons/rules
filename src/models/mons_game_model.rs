@@ -28873,18 +28873,36 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn smart_automove_pro_matches_frontier_guarded_selector() {
-        let game = immediate_score_runtime_fixture();
+    fn smart_automove_pro_matches_frontier_guarded_selector_on_discriminating_fixture() {
+        let game = MonsGame::from_fen(
+            "0 0 b 0 0 2 0 0 2 n03y0xn01d0xa0xn04/n04s0xn01e0xn04/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n04A0xD0xn05/n03E0xn02S0xn02Y0xn01",
+            false,
+        )
+        .expect("release Pro route fixture should be valid");
         let model = MonsGameModel::with_game(game.clone_for_simulation());
         let config = model.shipping_search_config_for_preference(SmartAutomovePreference::Pro);
+        clear_exact_state_analysis_cache();
+        clear_turn_engine_plan_cache();
         let expected_inputs =
             automove_runtime_variants::select_frontier_pro_v2_guarded_inputs(&game, config);
         let expected_input_fen = Input::fen_from_array(&expected_inputs);
+        clear_exact_state_analysis_cache();
+        clear_turn_engine_plan_cache();
+        let shipping_inputs =
+            automove_runtime_variants::select_shipping_search_inputs(&game, config);
+        let shipping_input_fen = Input::fen_from_array(&shipping_inputs);
 
+        assert_eq!(expected_input_fen, "l1,4;l3,6;l2,7");
+        assert_eq!(shipping_input_fen, "l1,4;l3,4;l3,3");
+        assert_ne!(expected_input_fen, shipping_input_fen);
+
+        clear_exact_state_analysis_cache();
+        clear_turn_engine_plan_cache();
         let output = model.smart_automove_output(SmartAutomovePreference::Pro);
 
         assert_eq!(output.kind, OutputModelKind::Events);
         assert_eq!(output.input_fen(), expected_input_fen.as_str());
+        assert_ne!(output.input_fen(), shipping_input_fen.as_str());
     }
 
     #[test]

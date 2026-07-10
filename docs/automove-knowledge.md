@@ -17,6 +17,11 @@ Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for workflow, `AUTOMOVE_IDEAS.md` for the li
 
 ## Experiment Rules
 
+- Treat fresh repeat offsets as a mandatory holdout, not optional extra evidence. The 2026-07-10 v5/v6 portfolio wave moved from `22-2`/`23-1` on calibrated repeats to `11-13` on unseen offset 2, exposing seed-fit that ordinary repeat confirmation did not catch.
+- A high policy-oracle score is not opponent-agnostic strength. Terminal planning can perfectly exploit the continuation policy it simulates while failing other shipping budgets: Fast rollouts were `12-0` vs Fast but `8-4` vs Normal and `7-5` vs Pro; Normal rollouts were only `9-3` vs Normal.
+- Online multi-policy terminal planning is cost-blocked. Pro terminal planning reached `12-0` vs Pro at `669.11ms`, leaving too little budget to add robust Fast/Normal evaluation; dual- and tri-policy planners exceeded the `700ms` promotion cap.
+- Use forced-root and terminal-rollout outcomes as offline labels, never direct runtime selectors. The durable next step is a corpus-trained source-time root evaluator with held-out seed/variant validation, not exact FEN, phase/rank, variant, or opponent-policy routing.
+- When a release follows a failed experiment wave, prune all temporary runtime candidates before publishing and retain only docs plus release-boundary tests. Public Pro and the retained profile registry must continue to agree on `frontier_pro_v2_guarded` until a challenger clears sampled, active, all-variant, cross-budget, and latency gates.
 - Pick one hypothesis before editing runtime code.
 - Probe first when the mechanism is unclear. Do not spend canonical gates on a guess.
 - When the live board has no challenger, read `docs/automove-major-reset-plan.md` and use structural reset mode instead of continuing the seam-fix loop.

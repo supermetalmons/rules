@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use super::*;
 use crate::models::scoring::{evaluate_preferability_with_weights, DEFAULT_SCORING_WEIGHTS};
 use rand::rngs::StdRng;

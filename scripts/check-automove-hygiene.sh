@@ -60,6 +60,9 @@ if failed:
 PY
 fi
 
+run_step "node syntax"
+node --check scripts/assert-release-automove-route.cjs
+
 run_step "cargo package surface"
 package_list="$(cargo package --list --allow-dirty)"
 printf '%s\n' "${package_list}" | awk '
