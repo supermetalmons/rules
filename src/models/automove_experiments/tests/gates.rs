@@ -6,6 +6,9 @@ fn duel_timing_stats_merge_and_average_track_profile_a_and_profile_b_turns() {
     first.record_profile_a_turn(120.0);
     first.record_profile_a_turn(180.0);
     first.record_profile_b_turn(80.0);
+    first.record_profile_a_verification(210.0, false);
+    first.record_profile_b_verification(90.0, true);
+    first.record_profile_b_invalid_or_empty();
 
     let mut second = DuelTimingStats::default();
     second.record_profile_a_turn(60.0);
@@ -20,19 +23,64 @@ fn duel_timing_stats_merge_and_average_track_profile_a_and_profile_b_turns() {
     assert!((first.profile_b_total_ms - 140.0).abs() < 0.001);
     assert!((first.profile_a_avg_ms() - 120.0).abs() < 0.001);
     assert!((first.profile_b_avg_ms() - 46.666_666_7).abs() < 0.001);
+    assert!((first.profile_a_max_ms - 210.0).abs() < 0.001);
+    assert!((first.profile_b_max_ms - 90.0).abs() < 0.001);
+    assert_eq!(first.profile_a_nondeterministic, 1);
+    assert_eq!(first.profile_b_nondeterministic, 0);
+    assert_eq!(first.profile_b_invalid_or_empty, 1);
+}
+
+fn empty_automove_selector(_: &MonsGame, _: AutomoveSearchConfig) -> Vec<Input> {
+    Vec::new()
+}
+
+#[test]
+fn timed_promotion_duel_records_raw_empty_selector_output() {
+    let opening = generate_opening_fens_for_variants(77, 1, &[GameVariant::Classic])
+        .pop()
+        .expect("one classic opening");
+    let empty_model = AutomoveModel {
+        select_inputs: empty_automove_selector,
+    };
+    let (_, timing) = with_env_override("SMART_DUEL_VERIFY_DETERMINISM", "true", || {
+        play_one_game_budget_duel_with_timing(
+            empty_model,
+            pro_budget(),
+            empty_model,
+            pro_budget(),
+            true,
+            opening.as_str(),
+            1,
+        )
+    });
+
+    assert_eq!(timing.profile_a_turns + timing.profile_b_turns, 1);
+    assert_eq!(
+        timing.profile_a_invalid_or_empty + timing.profile_b_invalid_or_empty,
+        2,
+        "both the original and independently cold replay must record raw emptiness"
+    );
 }
 
 #[test]
 fn pro_reliability_gate_passes_only_when_all_matchups_clear_win_confidence_and_move_time() {
     let passing = ProReliabilityGateMetrics {
-        win_rate: 0.90,
-        confidence: 0.99,
+        win_rate: 7.0 / 12.0,
+        confidence: 0.60,
         frontier_avg_ms: 700.0,
+        frontier_max_ms: 700.0,
+        frontier_invalid_or_empty: 0,
+        frontier_nondeterministic: 0,
+        frontier_turns: 100,
+        shipping_max_ms: 700.0,
+        shipping_invalid_or_empty: 0,
+        shipping_nondeterministic: 0,
+        shipping_turns: 100,
     };
     assert!(pro_reliability_gate_passes(passing, passing, passing));
     assert!(!pro_reliability_gate_passes(
         ProReliabilityGateMetrics {
-            win_rate: 0.89,
+            win_rate: 0.58,
             ..passing
         },
         passing,
@@ -41,7 +89,7 @@ fn pro_reliability_gate_passes_only_when_all_matchups_clear_win_confidence_and_m
     assert!(!pro_reliability_gate_passes(
         passing,
         ProReliabilityGateMetrics {
-            confidence: 0.98,
+            confidence: 0.59,
             ..passing
         },
         passing
@@ -50,14 +98,94 @@ fn pro_reliability_gate_passes_only_when_all_matchups_clear_win_confidence_and_m
         passing,
         passing,
         ProReliabilityGateMetrics {
-            frontier_avg_ms: 700.01,
+            frontier_max_ms: 700.01,
+            ..passing
+        }
+    ));
+    assert!(!pro_reliability_gate_passes(
+        ProReliabilityGateMetrics {
+            frontier_invalid_or_empty: 1,
+            ..passing
+        },
+        passing,
+        passing
+    ));
+    assert!(pro_reliability_gate_passes(
+        ProReliabilityGateMetrics {
+            frontier_nondeterministic: 1,
+            ..passing
+        },
+        passing,
+        passing
+    ));
+    assert!(pro_reliability_gate_passes(
+        ProReliabilityGateMetrics {
+            frontier_nondeterministic: 2,
+            ..passing
+        },
+        passing,
+        passing
+    ));
+    assert!(pro_reliability_gate_passes(
+        ProReliabilityGateMetrics {
+            frontier_nondeterministic: 3,
+            ..passing
+        },
+        passing,
+        passing
+    ));
+    assert!(!pro_reliability_gate_passes(
+        ProReliabilityGateMetrics {
+            frontier_nondeterministic: 4,
+            ..passing
+        },
+        passing,
+        passing
+    ));
+    assert!(!pro_reliability_gate_passes(
+        passing,
+        ProReliabilityGateMetrics {
+            shipping_max_ms: 700.01,
+            ..passing
+        },
+        passing
+    ));
+    assert!(pro_reliability_gate_passes(
+        passing,
+        passing,
+        ProReliabilityGateMetrics {
+            shipping_nondeterministic: 1,
+            ..passing
+        }
+    ));
+    assert!(pro_reliability_gate_passes(
+        passing,
+        passing,
+        ProReliabilityGateMetrics {
+            shipping_nondeterministic: 2,
+            ..passing
+        }
+    ));
+    assert!(pro_reliability_gate_passes(
+        passing,
+        passing,
+        ProReliabilityGateMetrics {
+            shipping_nondeterministic: 3,
+            ..passing
+        }
+    ));
+    assert!(!pro_reliability_gate_passes(
+        passing,
+        passing,
+        ProReliabilityGateMetrics {
+            shipping_nondeterministic: 4,
             ..passing
         }
     ));
 }
 
 #[test]
-fn pro_reliability_variant_floor_requires_each_variant_to_hold_even() {
+fn pro_reliability_variant_floor_allows_only_two_regressed_variants() {
     let mut stats = TimedMatchupStats::default();
     stats.record_for_variant(
         GameVariant::Classic,
@@ -79,6 +207,20 @@ fn pro_reliability_variant_floor_requires_each_variant_to_hold_even() {
     let mut regressed = stats.clone();
     regressed.record_for_variant(
         GameVariant::OffsetArcManaRows,
+        MatchResult::ProfileBWin,
+        DuelTimingStats::default(),
+    );
+    assert!(pro_reliability_variant_floor_passes(&regressed));
+
+    regressed.record_for_variant(
+        GameVariant::CenterSpokeManaRows,
+        MatchResult::ProfileBWin,
+        DuelTimingStats::default(),
+    );
+    assert!(pro_reliability_variant_floor_passes(&regressed));
+
+    regressed.record_for_variant(
+        GameVariant::BentCenterManaRows,
         MatchResult::ProfileBWin,
         DuelTimingStats::default(),
     );
@@ -266,7 +408,11 @@ fn smart_automove_pool_profile_registry_resolves_retained_profiles() {
 fn smart_automove_pool_retained_profile_ids_match_active_registry() {
     assert_eq!(
         retained_profile_ids(),
-        vec!["shipping_pro_search", "frontier_pro_v2_guarded"]
+        vec![
+            "shipping_pro_search",
+            "frontier_pro_v2_guarded",
+            "frontier_pro_v10_bounded_tactical",
+        ]
     );
 }
 
@@ -490,7 +636,7 @@ fn smart_automove_pool_pro_signal_triage() {
             target_changed,
             off_target_changed
         ),
-        "pro triage failed for surface='{}': frontier='{}' shipping='{}' target_changed={} off_target_changed={} (expected target movement with <=1 off-target change, or a stable 0/0 result for the promoted frontier_pro_v2_guarded vs shipping_pro_search pair)",
+        "pro triage failed for surface='{}': frontier='{}' shipping='{}' target_changed={} off_target_changed={} (expected target movement with <=1 off-target change, or a stable 0/0 result for a retained promoted frontier vs shipping_pro_search pair)",
         surface.as_str(),
         frontier_profile_name,
         shipping_profile_name,
@@ -502,6 +648,10 @@ fn smart_automove_pool_pro_signal_triage() {
 #[test]
 #[ignore = "reliability gate: retained pro profile vs shipping_pro_search pro, normal, and fast at pro budget with move-time cap"]
 fn smart_automove_pool_pro_reliability_gate() {
+    assert!(
+        env_bool("SMART_DUEL_VERIFY_DETERMINISM").unwrap_or(false),
+        "the reliability gate requires SMART_DUEL_VERIFY_DETERMINISM=true so max latency and replay agreement cover independent cold calls"
+    );
     let frontier_profile = reliability_frontier_profile_id();
     let shipping_profile = reliability_shipping_profile_id();
     let frontier_selector = profile_selector_from_name(frontier_profile.as_str())
@@ -608,19 +758,38 @@ fn smart_automove_pool_pro_reliability_gate() {
     );
     assert!(
         pro_reliability_gate_passes(pro_metrics, normal_metrics, fast_metrics),
-        "pro reliability gate failed overall: vs_shipping_pro [win_rate {:.4} confidence {:.4} frontier_avg_ms {:.2}ms] vs_shipping_normal [win_rate {:.4} confidence {:.4} frontier_avg_ms {:.2}ms] vs_shipping_fast [win_rate {:.4} confidence {:.4} frontier_avg_ms {:.2}ms] (required each duel to satisfy win_rate >= {:.2}, confidence >= {:.2}, frontier_avg_ms <= {:.2}ms)",
+        "pro reliability gate failed overall: vs_shipping_pro [win_rate {:.4} confidence {:.4} frontier_avg_ms {:.2}ms frontier_max_ms {:.2}ms shipping_max_ms {:.2}ms frontier_invalid={} frontier_nondeterministic={} shipping_invalid={} shipping_nondeterministic={}] vs_shipping_normal [win_rate {:.4} confidence {:.4} frontier_avg_ms {:.2}ms frontier_max_ms {:.2}ms shipping_max_ms {:.2}ms frontier_invalid={} frontier_nondeterministic={} shipping_invalid={} shipping_nondeterministic={}] vs_shipping_fast [win_rate {:.4} confidence {:.4} frontier_avg_ms {:.2}ms frontier_max_ms {:.2}ms shipping_max_ms {:.2}ms frontier_invalid={} frontier_nondeterministic={} shipping_invalid={} shipping_nondeterministic={}] (required each duel to satisfy win_rate >= {:.2}, confidence >= {:.2}, both profile maxima <= {:.2}ms, zero invalid moves, and cold replay mismatch rate <= {:.2}% per profile)",
         pro_metrics.win_rate,
         pro_metrics.confidence,
         pro_metrics.frontier_avg_ms,
+        pro_metrics.frontier_max_ms,
+        pro_metrics.shipping_max_ms,
+        pro_metrics.frontier_invalid_or_empty,
+        pro_metrics.frontier_nondeterministic,
+        pro_metrics.shipping_invalid_or_empty,
+        pro_metrics.shipping_nondeterministic,
         normal_metrics.win_rate,
         normal_metrics.confidence,
         normal_metrics.frontier_avg_ms,
+        normal_metrics.frontier_max_ms,
+        normal_metrics.shipping_max_ms,
+        normal_metrics.frontier_invalid_or_empty,
+        normal_metrics.frontier_nondeterministic,
+        normal_metrics.shipping_invalid_or_empty,
+        normal_metrics.shipping_nondeterministic,
         fast_metrics.win_rate,
         fast_metrics.confidence,
         fast_metrics.frontier_avg_ms,
+        fast_metrics.frontier_max_ms,
+        fast_metrics.shipping_max_ms,
+        fast_metrics.frontier_invalid_or_empty,
+        fast_metrics.frontier_nondeterministic,
+        fast_metrics.shipping_invalid_or_empty,
+        fast_metrics.shipping_nondeterministic,
         SMART_PRO_RELIABILITY_WIN_RATE_MIN,
         SMART_PRO_RELIABILITY_CONFIDENCE_MIN,
-        SMART_PRO_RELIABILITY_MOVE_AVG_MS_MAX
+        SMART_PRO_RELIABILITY_MOVE_MAX_MS,
+        SMART_PRO_RELIABILITY_REPLAY_MISMATCH_RATE_MAX * 100.0,
     );
     assert_pro_reliability_duel_passes("pro reliability gate vs shipping pro", pro_metrics);
     assert_pro_reliability_duel_passes("pro reliability gate vs shipping normal", normal_metrics);

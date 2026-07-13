@@ -1,12 +1,13 @@
 use super::*;
 use crate::models::mons_game_model::automove_runtime_variants::{
-    apply_frontier_pro_v2_guarded_config, select_frontier_pro_v2_guarded_inputs,
-    select_shipping_pro_search_inputs, FRONTIER_PRO_V2_GUARDED_PROFILE_ID,
-    SHIPPING_PRO_SEARCH_PROFILE_ID,
+    apply_frontier_pro_v10_bounded_tactical_config, apply_frontier_pro_v2_guarded_config,
+    select_frontier_pro_v10_bounded_tactical_inputs, select_frontier_pro_v2_guarded_inputs,
+    select_shipping_pro_search_inputs, FRONTIER_PRO_V10_BOUNDED_TACTICAL_PROFILE_ID,
+    FRONTIER_PRO_V2_GUARDED_PROFILE_ID, SHIPPING_PRO_SEARCH_PROFILE_ID,
 };
 
 const DEFAULT_SHIPPING_PROFILE_ID: &str = SHIPPING_PRO_SEARCH_PROFILE_ID;
-const DEFAULT_FRONTIER_PROFILE_ID: &str = FRONTIER_PRO_V2_GUARDED_PROFILE_ID;
+const DEFAULT_FRONTIER_PROFILE_ID: &str = FRONTIER_PRO_V10_BOUNDED_TACTICAL_PROFILE_ID;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct ExactLiteBudgets {
@@ -20,7 +21,7 @@ struct AutomoveProfile {
     selector: AutomoveSelector,
 }
 
-const RETAINED_PROFILES: [AutomoveProfile; 2] = [
+const RETAINED_PROFILES: [AutomoveProfile; 3] = [
     AutomoveProfile {
         id: SHIPPING_PRO_SEARCH_PROFILE_ID,
         selector: select_shipping_pro_search_inputs,
@@ -28,6 +29,10 @@ const RETAINED_PROFILES: [AutomoveProfile; 2] = [
     AutomoveProfile {
         id: FRONTIER_PRO_V2_GUARDED_PROFILE_ID,
         selector: select_frontier_pro_v2_guarded_inputs,
+    },
+    AutomoveProfile {
+        id: FRONTIER_PRO_V10_BOUNDED_TACTICAL_PROFILE_ID,
+        selector: select_frontier_pro_v10_bounded_tactical_inputs,
     },
 ];
 
@@ -43,6 +48,9 @@ pub(super) fn profile_runtime_config_for_name(
     let resolved = match profile_name {
         SHIPPING_PRO_SEARCH_PROFILE_ID => config,
         FRONTIER_PRO_V2_GUARDED_PROFILE_ID => apply_frontier_pro_v2_guarded_config(config),
+        FRONTIER_PRO_V10_BOUNDED_TACTICAL_PROFILE_ID => {
+            apply_frontier_pro_v10_bounded_tactical_config(config)
+        }
         _ => return None,
     };
     Some(resolved)
@@ -100,6 +108,8 @@ pub(super) fn env_raw_string_value(name: &str) -> Option<String> {
 }
 
 pub(super) fn selected_profile_id_from_env() -> String {
+    // Direct selected-profile diagnostics retain the search-only control as their neutral
+    // default. Canonical frontier stages use `frontier_profile_id()` and DEFAULT_FRONTIER_PROFILE_ID.
     env_profile_name_from_aliases(&["SMART_SELECTED_PROFILE", "SMART_FRONTIER_PROFILE"])
         .unwrap_or_else(|| SHIPPING_PRO_SEARCH_PROFILE_ID.to_string())
 }

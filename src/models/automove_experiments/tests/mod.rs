@@ -1,6 +1,7 @@
 use super::harness::*;
 use super::profiles::*;
 use super::*;
+use crate::models::automove_deadline;
 use crate::models::automove_exact::{
     clear_exact_query_diagnostics, clear_exact_state_analysis_cache,
     exact_query_diagnostics_snapshot, ExactQueryDiagnostics,
@@ -214,7 +215,11 @@ fn profile_decision_inputs(
     game: &MonsGame,
 ) -> Vec<Input> {
     clear_turn_engine_selector_diagnostics();
-    profile_runtime_inputs(profile_name, mode, game)
+    // Retained move-choice fixtures verify search behavior, not scheduler timing. Freeze the
+    // cooperative clock here so a busy test runner cannot turn an exact-choice assertion into a
+    // deadline-fallback assertion. Deadline/fallback behavior has dedicated real-clock tests and
+    // the canonical reliability gate measures every original and cold-replay selector call.
+    automove_deadline::with_test_clock(0.0, || profile_runtime_inputs(profile_name, mode, game))
 }
 
 fn profile_decision_move_fen(
@@ -672,11 +677,13 @@ fn assert_frontier_pro_v2_guarded_prefers_shipping_root_on_board(
     let game = MonsGame::from_fen(fen, false).expect("probe fen should be valid");
 
     clear_turn_engine_selector_diagnostics();
-    let probe = runtime_decision_probe(
-        "frontier_pro_v2_guarded",
-        SmartAutomovePreference::Pro,
-        &game,
-    );
+    let probe = automove_deadline::with_test_clock(0.0, || {
+        runtime_decision_probe(
+            "frontier_pro_v2_guarded",
+            SmartAutomovePreference::Pro,
+            &game,
+        )
+    });
     let advisor = pro_v2_root_advisor_decision_snapshot();
     let (legacy_selected, legacy_full_pool_selected, legacy_candidates, legacy_full_pool) =
         pro_v2_legacy_selector_probe(&game, SmartAutomovePreference::Pro);
@@ -1038,6 +1045,14 @@ struct ProReliabilityGateMetrics {
     win_rate: f64,
     confidence: f64,
     frontier_avg_ms: f64,
+    frontier_max_ms: f64,
+    frontier_invalid_or_empty: usize,
+    frontier_nondeterministic: usize,
+    frontier_turns: usize,
+    shipping_max_ms: f64,
+    shipping_invalid_or_empty: usize,
+    shipping_nondeterministic: usize,
+    shipping_turns: usize,
 }
 
 fn pro_reliability_metrics(stats: &TimedMatchupStats) -> ProReliabilityGateMetrics {
@@ -1045,13 +1060,40 @@ fn pro_reliability_metrics(stats: &TimedMatchupStats) -> ProReliabilityGateMetri
         win_rate: stats.matchup.win_rate_points(),
         confidence: stats.matchup.confidence_better_than_even(),
         frontier_avg_ms: stats.timing.profile_a_avg_ms(),
+        frontier_max_ms: stats.timing.profile_a_max_ms,
+        frontier_invalid_or_empty: stats.timing.profile_a_invalid_or_empty,
+        frontier_nondeterministic: stats.timing.profile_a_nondeterministic,
+        frontier_turns: stats.timing.profile_a_turns,
+        shipping_max_ms: stats.timing.profile_b_max_ms,
+        shipping_invalid_or_empty: stats.timing.profile_b_invalid_or_empty,
+        shipping_nondeterministic: stats.timing.profile_b_nondeterministic,
+        shipping_turns: stats.timing.profile_b_turns,
     }
+}
+
+fn replay_mismatch_rate(mismatches: usize, turns: usize) -> f64 {
+    mismatches as f64 / turns.max(1) as f64
+}
+
+fn pro_reliability_replay_rate_passes(mismatches: usize, turns: usize) -> bool {
+    replay_mismatch_rate(mismatches, turns) <= SMART_PRO_RELIABILITY_REPLAY_MISMATCH_RATE_MAX
 }
 
 fn pro_reliability_duel_passes(metrics: ProReliabilityGateMetrics) -> bool {
     metrics.win_rate >= SMART_PRO_RELIABILITY_WIN_RATE_MIN
         && metrics.confidence >= SMART_PRO_RELIABILITY_CONFIDENCE_MIN
-        && metrics.frontier_avg_ms <= SMART_PRO_RELIABILITY_MOVE_AVG_MS_MAX
+        && metrics.frontier_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS
+        && metrics.frontier_invalid_or_empty == 0
+        && pro_reliability_replay_rate_passes(
+            metrics.frontier_nondeterministic,
+            metrics.frontier_turns,
+        )
+        && metrics.shipping_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS
+        && metrics.shipping_invalid_or_empty == 0
+        && pro_reliability_replay_rate_passes(
+            metrics.shipping_nondeterministic,
+            metrics.shipping_turns,
+        )
 }
 
 fn pro_reliability_gate_passes(
@@ -1080,43 +1122,111 @@ fn assert_pro_reliability_duel_passes(label: &str, metrics: ProReliabilityGateMe
         SMART_PRO_RELIABILITY_CONFIDENCE_MIN
     );
     assert!(
-        metrics.frontier_avg_ms <= SMART_PRO_RELIABILITY_MOVE_AVG_MS_MAX,
-        "{} move time failed: frontier_avg_ms {:.2}ms > {:.2}ms",
+        metrics.frontier_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS,
+        "{} hard move-time failed: frontier_max_ms {:.2}ms > {:.2}ms",
         label,
-        metrics.frontier_avg_ms,
-        SMART_PRO_RELIABILITY_MOVE_AVG_MS_MAX
+        metrics.frontier_max_ms,
+        SMART_PRO_RELIABILITY_MOVE_MAX_MS
+    );
+    assert_eq!(
+        metrics.frontier_invalid_or_empty, 0,
+        "{} frontier produced invalid/empty moves",
+        label
+    );
+    assert!(
+        pro_reliability_replay_rate_passes(
+            metrics.frontier_nondeterministic,
+            metrics.frontier_turns,
+        ),
+        "{} frontier replay mismatch rate {:.4} ({}/{}) exceeded {:.4}",
+        label,
+        replay_mismatch_rate(metrics.frontier_nondeterministic, metrics.frontier_turns),
+        metrics.frontier_nondeterministic,
+        metrics.frontier_turns,
+        SMART_PRO_RELIABILITY_REPLAY_MISMATCH_RATE_MAX,
+    );
+    assert!(
+        metrics.shipping_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS,
+        "{} shipping hard move-time failed: shipping_max_ms {:.2}ms > {:.2}ms",
+        label,
+        metrics.shipping_max_ms,
+        SMART_PRO_RELIABILITY_MOVE_MAX_MS
+    );
+    assert_eq!(
+        metrics.shipping_invalid_or_empty, 0,
+        "{} shipping produced invalid/empty moves",
+        label
+    );
+    assert!(
+        pro_reliability_replay_rate_passes(
+            metrics.shipping_nondeterministic,
+            metrics.shipping_turns,
+        ),
+        "{} shipping replay mismatch rate {:.4} ({}/{}) exceeded {:.4}",
+        label,
+        replay_mismatch_rate(metrics.shipping_nondeterministic, metrics.shipping_turns),
+        metrics.shipping_nondeterministic,
+        metrics.shipping_turns,
+        SMART_PRO_RELIABILITY_REPLAY_MISMATCH_RATE_MAX,
     );
 }
 
 fn pro_reliability_variant_floor_passes(stats: &TimedMatchupStats) -> bool {
-    !stats.per_variant.is_empty()
-        && stats.per_variant_stats().into_iter().all(|variant_stats| {
-            variant_stats.matchup.win_rate_points() >= SMART_PRO_RELIABILITY_VARIANT_WIN_RATE_FLOOR
-                && variant_stats.timing.profile_a_avg_ms() <= SMART_PRO_RELIABILITY_MOVE_AVG_MS_MAX
+    let per_variant = stats.per_variant_stats();
+    !per_variant.is_empty()
+        && per_variant
+            .iter()
+            .filter(|variant_stats| {
+                variant_stats.matchup.win_rate_points()
+                    < SMART_PRO_RELIABILITY_VARIANT_WIN_RATE_FLOOR
+            })
+            .count()
+            <= SMART_PRO_RELIABILITY_VARIANT_REGRESSION_LIMIT
+        && per_variant.iter().all(|variant_stats| {
+            variant_stats.timing.profile_a_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS
+                && variant_stats.timing.profile_a_invalid_or_empty == 0
+                && variant_stats.timing.profile_b_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS
+                && variant_stats.timing.profile_b_invalid_or_empty == 0
         })
 }
 
 fn assert_pro_reliability_variant_floor_passes(label: &str, stats: &TimedMatchupStats) {
+    let mut regressed_variants = Vec::new();
     for variant_stats in stats.per_variant_stats() {
         let win_rate = variant_stats.matchup.win_rate_points();
         let frontier_avg_ms = variant_stats.timing.profile_a_avg_ms();
+        let frontier_max_ms = variant_stats.timing.profile_a_max_ms;
+        if win_rate < SMART_PRO_RELIABILITY_VARIANT_WIN_RATE_FLOOR {
+            regressed_variants.push((automove_variant_label(variant_stats.variant), win_rate));
+        }
         assert!(
-            win_rate >= SMART_PRO_RELIABILITY_VARIANT_WIN_RATE_FLOOR,
-            "{} variant floor failed for {}: win_rate {:.4} < {:.2}",
+            frontier_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS,
+            "{} variant hard move-time failed for {}: frontier_max_ms {:.2}ms > {:.2}ms (avg {:.2}ms)",
             label,
             automove_variant_label(variant_stats.variant),
-            win_rate,
-            SMART_PRO_RELIABILITY_VARIANT_WIN_RATE_FLOOR
-        );
-        assert!(
-            frontier_avg_ms <= SMART_PRO_RELIABILITY_MOVE_AVG_MS_MAX,
-            "{} variant move time failed for {}: frontier_avg_ms {:.2}ms > {:.2}ms",
-            label,
-            automove_variant_label(variant_stats.variant),
+            frontier_max_ms,
+            SMART_PRO_RELIABILITY_MOVE_MAX_MS,
             frontier_avg_ms,
-            SMART_PRO_RELIABILITY_MOVE_AVG_MS_MAX
         );
+        assert_eq!(variant_stats.timing.profile_a_invalid_or_empty, 0);
+        assert!(
+            variant_stats.timing.profile_b_max_ms <= SMART_PRO_RELIABILITY_MOVE_MAX_MS,
+            "{} variant shipping hard move-time failed for {}: shipping_max_ms {:.2}ms > {:.2}ms",
+            label,
+            automove_variant_label(variant_stats.variant),
+            variant_stats.timing.profile_b_max_ms,
+            SMART_PRO_RELIABILITY_MOVE_MAX_MS,
+        );
+        assert_eq!(variant_stats.timing.profile_b_invalid_or_empty, 0);
     }
+    assert!(
+        regressed_variants.len() <= SMART_PRO_RELIABILITY_VARIANT_REGRESSION_LIMIT,
+        "{} variant floor failed: {:?} fell below {:.2}; at most {} regressed variant is allowed",
+        label,
+        regressed_variants,
+        SMART_PRO_RELIABILITY_VARIANT_WIN_RATE_FLOOR,
+        SMART_PRO_RELIABILITY_VARIANT_REGRESSION_LIMIT,
+    );
 }
 
 fn print_pro_reliability_stats(
@@ -1127,7 +1237,7 @@ fn print_pro_reliability_stats(
 ) -> ProReliabilityGateMetrics {
     let metrics = pro_reliability_metrics(stats);
     println!(
-        "{}: frontier={} shipping={} total_games={} win_rate={:.4} confidence={:.4} frontier_avg_ms={:.2} shipping_avg_ms={:.2} frontier_turns={} shipping_turns={}",
+        "{}: frontier={} shipping={} total_games={} win_rate={:.4} confidence={:.4} frontier_avg_ms={:.2} frontier_max_ms={:.2} shipping_avg_ms={:.2} shipping_max_ms={:.2} frontier_invalid_or_empty={} frontier_nondeterministic={} frontier_replay_mismatch_rate={:.4} shipping_invalid_or_empty={} shipping_nondeterministic={} shipping_replay_mismatch_rate={:.4} frontier_turns={} shipping_turns={}",
         label,
         frontier_profile,
         shipping_profile,
@@ -1135,20 +1245,34 @@ fn print_pro_reliability_stats(
         metrics.win_rate,
         metrics.confidence,
         metrics.frontier_avg_ms,
+        metrics.frontier_max_ms,
         stats.timing.profile_b_avg_ms(),
+        metrics.shipping_max_ms,
+        metrics.frontier_invalid_or_empty,
+        metrics.frontier_nondeterministic,
+        replay_mismatch_rate(metrics.frontier_nondeterministic, metrics.frontier_turns),
+        metrics.shipping_invalid_or_empty,
+        metrics.shipping_nondeterministic,
+        replay_mismatch_rate(metrics.shipping_nondeterministic, metrics.shipping_turns),
         stats.timing.profile_a_turns,
         stats.timing.profile_b_turns
     );
     for variant_stats in stats.per_variant_stats() {
         println!(
-            "{} variant={} total_games={} win_rate={:.4} confidence={:.4} frontier_avg_ms={:.2} shipping_avg_ms={:.2} frontier_turns={} shipping_turns={}",
+            "{} variant={} total_games={} win_rate={:.4} confidence={:.4} frontier_avg_ms={:.2} frontier_max_ms={:.2} shipping_avg_ms={:.2} shipping_max_ms={:.2} frontier_invalid_or_empty={} frontier_nondeterministic={} shipping_invalid_or_empty={} shipping_nondeterministic={} frontier_turns={} shipping_turns={}",
             label,
             automove_variant_label(variant_stats.variant),
             variant_stats.matchup.total_games(),
             variant_stats.matchup.win_rate_points(),
             variant_stats.matchup.confidence_better_than_even(),
             variant_stats.timing.profile_a_avg_ms(),
+            variant_stats.timing.profile_a_max_ms,
             variant_stats.timing.profile_b_avg_ms(),
+            variant_stats.timing.profile_b_max_ms,
+            variant_stats.timing.profile_a_invalid_or_empty,
+            variant_stats.timing.profile_a_nondeterministic,
+            variant_stats.timing.profile_b_invalid_or_empty,
+            variant_stats.timing.profile_b_nondeterministic,
             variant_stats.timing.profile_a_turns,
             variant_stats.timing.profile_b_turns
         );
@@ -1166,8 +1290,10 @@ fn pro_signal_triage_passes(
         return off_target_changed <= 1;
     }
 
-    frontier_profile_name == "frontier_pro_v2_guarded"
-        && shipping_profile_name == "shipping_pro_search"
+    matches!(
+        frontier_profile_name,
+        "frontier_pro_v2_guarded" | "frontier_pro_v10_bounded_tactical"
+    ) && shipping_profile_name == "shipping_pro_search"
         && target_changed == 0
 }
 

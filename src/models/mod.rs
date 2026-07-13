@@ -1,3 +1,5 @@
+#[cfg(any(target_arch = "wasm32", test))]
+pub(crate) mod automove_deadline;
 pub(crate) mod automove_exact;
 #[cfg(any(target_arch = "wasm32", test))]
 pub(crate) mod automove_turn_engine;

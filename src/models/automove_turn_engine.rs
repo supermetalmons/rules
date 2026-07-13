@@ -1,5 +1,6 @@
 #![cfg(any(target_arch = "wasm32", test))]
 
+use crate::models::automove_deadline::{cache_write_allowed, cancelled, checkpoint};
 #[cfg(test)]
 use crate::models::scoring::DEFAULT_SCORING_WEIGHTS;
 use crate::models::scoring::{
@@ -102,7 +103,7 @@ pub(crate) enum TurnPlanFamily {
     ManaTempo,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct TurnEngineUtility {
     win_state: i32,
     avoid_immediate_loss: i32,
@@ -419,6 +420,9 @@ impl TurnEngineProjectionMemo {
         state_hash: u64,
         profile: TurnEngineProjectionProfile,
     ) -> ExactTurnTacticalProjection {
+        if checkpoint() {
+            return ExactTurnTacticalProjection::default();
+        }
         let key = TurnEngineProjectionMemoKey {
             state_hash,
             color,
@@ -433,7 +437,9 @@ impl TurnEngineProjectionMemo {
             state_hash,
             tactical_projection_profile_flags(profile),
         );
-        self.entries.insert(key, projection);
+        if cache_write_allowed() {
+            self.entries.insert(key, projection);
+        }
         projection
     }
 }
@@ -665,7 +671,7 @@ pub(crate) fn turn_engine_next_inputs(
     mode: TurnEngineMode,
     config: TurnEngineConfig,
 ) -> Option<Vec<Input>> {
-    if game.active_color != perspective {
+    if checkpoint() || game.active_color != perspective {
         return None;
     }
 
@@ -673,8 +679,14 @@ pub(crate) fn turn_engine_next_inputs(
         return Some(cached);
     }
     let best_plan = turn_engine_candidate_plan(game, perspective, config)?;
+    if checkpoint() {
+        return None;
+    }
 
     register_plan_continuations(game, perspective, mode, &best_plan, config);
+    if cancelled() {
+        return None;
+    }
     best_plan.compiled_chunks.first().cloned()
 }
 
@@ -685,7 +697,7 @@ pub(crate) fn turn_engine_next_inputs_from_allowed_heads(
     config: TurnEngineConfig,
     allowed_first_steps: &[Vec<Input>],
 ) -> Option<Vec<Input>> {
-    if game.active_color != perspective || allowed_first_steps.is_empty() {
+    if checkpoint() || game.active_color != perspective || allowed_first_steps.is_empty() {
         return None;
     }
 
@@ -705,7 +717,13 @@ pub(crate) fn turn_engine_next_inputs_from_allowed_heads(
         config,
         allowed_first_steps,
     )?;
+    if checkpoint() {
+        return None;
+    }
     register_plan_continuations(game, perspective, mode, &best_plan, config);
+    if cancelled() {
+        return None;
+    }
     best_plan.compiled_chunks.first().cloned()
 }
 
@@ -715,12 +733,12 @@ pub(crate) fn turn_engine_head_candidate_plans(
     config: TurnEngineConfig,
     limit: usize,
 ) -> Vec<TurnPlan> {
-    if game.active_color != perspective || limit == 0 {
+    if checkpoint() || game.active_color != perspective || limit == 0 {
         return Vec::new();
     }
 
     let mut seen_heads = HashSet::<Vec<Input>>::new();
-    ranked_head_candidate_plans(game, perspective, config)
+    let plans = ranked_head_candidate_plans(game, perspective, config)
         .into_iter()
         .filter(|plan| {
             plan.compiled_chunks
@@ -729,7 +747,12 @@ pub(crate) fn turn_engine_head_candidate_plans(
                 .unwrap_or(false)
         })
         .take(limit)
-        .collect()
+        .collect();
+    if checkpoint() {
+        Vec::new()
+    } else {
+        plans
+    }
 }
 
 #[cfg(test)]
@@ -786,7 +809,13 @@ pub(crate) fn turn_engine_cached_step(
     game: &MonsGame,
     config: TurnEngineConfig,
 ) -> Option<Vec<Input>> {
+    if checkpoint() {
+        return None;
+    }
     let cached = cached_step_if_legal(game, config);
+    if checkpoint() {
+        return None;
+    }
     update_turn_engine_diagnostics(|diagnostics| {
         if cached.is_some() {
             diagnostics.cache_hits += 1;
@@ -802,7 +831,7 @@ pub(crate) fn turn_engine_candidate_plan(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Option<TurnPlan> {
-    if game.active_color != perspective {
+    if checkpoint() || game.active_color != perspective {
         return None;
     }
     let no_plan_key = TurnEnginePlanCacheKey {
@@ -811,14 +840,24 @@ pub(crate) fn turn_engine_candidate_plan(
         config_fingerprint: turn_engine_config_fingerprint(config),
     };
     if TURN_ENGINE_NO_PLAN_CACHE.with(|cache| cache.borrow().contains(&no_plan_key)) {
+        if checkpoint() {
+            return None;
+        }
         update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
         return None;
     }
     if let Some(plan) = cached_best_plan_if_legal(game, no_plan_key) {
-        return Some(plan);
+        return (!checkpoint()).then_some(plan);
     }
-    match build_best_plan(game, perspective, config) {
+    let result = build_best_plan(game, perspective, config);
+    if checkpoint() {
+        return None;
+    }
+    match result {
         Ok(Some(plan)) => {
+            if !cache_write_allowed() {
+                return None;
+            }
             TURN_ENGINE_BEST_PLAN_CACHE.with(|cache| {
                 let mut cache = cache.borrow_mut();
                 if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&no_plan_key)
@@ -830,13 +869,16 @@ pub(crate) fn turn_engine_candidate_plan(
             Some(plan)
         }
         Ok(None) | Err(PlanBuildStatus::NoPlan) => {
-            TURN_ENGINE_NO_PLAN_CACHE.with(|cache| {
-                let mut cache = cache.borrow_mut();
-                if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains(&no_plan_key) {
-                    cache.clear();
-                }
-                cache.insert(no_plan_key);
-            });
+            if cache_write_allowed() {
+                TURN_ENGINE_NO_PLAN_CACHE.with(|cache| {
+                    let mut cache = cache.borrow_mut();
+                    if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains(&no_plan_key)
+                    {
+                        cache.clear();
+                    }
+                    cache.insert(no_plan_key);
+                });
+            }
             update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
             None
         }
@@ -852,10 +894,14 @@ pub(crate) fn turn_engine_candidate_plan_live(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Option<TurnPlan> {
-    if game.active_color != perspective {
+    if checkpoint() || game.active_color != perspective {
         return None;
     }
-    match build_best_plan(game, perspective, config) {
+    let result = build_best_plan(game, perspective, config);
+    if checkpoint() {
+        return None;
+    }
+    match result {
         Ok(Some(plan)) => Some(plan),
         Ok(None) | Err(PlanBuildStatus::NoPlan) => {
             update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
@@ -874,7 +920,7 @@ pub(crate) fn turn_engine_candidate_plan_from_allowed_heads(
     config: TurnEngineConfig,
     allowed_first_steps: &[Vec<Input>],
 ) -> Option<TurnPlan> {
-    if game.active_color != perspective || allowed_first_steps.is_empty() {
+    if checkpoint() || game.active_color != perspective || allowed_first_steps.is_empty() {
         return None;
     }
 
@@ -884,12 +930,19 @@ pub(crate) fn turn_engine_candidate_plan_from_allowed_heads(
         config_fingerprint: turn_engine_config_fingerprint(config),
     };
     if let Some(plan) = cached_best_plan_if_legal(game, cache_key) {
+        if checkpoint() {
+            return None;
+        }
         if plan_has_allowed_head(&plan, allowed_first_steps) {
             return Some(plan);
         }
     }
 
-    match build_best_plan_from_allowed_heads(game, perspective, config, allowed_first_steps) {
+    let result = build_best_plan_from_allowed_heads(game, perspective, config, allowed_first_steps);
+    if checkpoint() {
+        return None;
+    }
+    match result {
         Ok(Some(plan)) => Some(plan),
         Ok(None) | Err(PlanBuildStatus::NoPlan) => {
             update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
@@ -903,6 +956,9 @@ pub(crate) fn turn_engine_candidate_plan_from_allowed_heads(
 }
 
 fn cached_best_plan_if_legal(game: &MonsGame, key: TurnEnginePlanCacheKey) -> Option<TurnPlan> {
+    if checkpoint() {
+        return None;
+    }
     TURN_ENGINE_BEST_PLAN_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         let cached = cache.get(&key).cloned();
@@ -915,10 +971,15 @@ fn cached_best_plan_if_legal(game: &MonsGame, key: TurnEnginePlanCacheKey) -> Op
                         MonsGameModel::apply_inputs_for_search(game, inputs.as_slice()).is_some()
                     })
                     .unwrap_or(false);
+                if checkpoint() {
+                    return None;
+                }
                 if legal {
                     Some(plan)
                 } else {
-                    cache.remove(&key);
+                    if cache_write_allowed() {
+                        cache.remove(&key);
+                    }
                     None
                 }
             }
@@ -934,6 +995,9 @@ pub(crate) fn turn_engine_commit_plan(
     plan: &TurnPlan,
     config: TurnEngineConfig,
 ) {
+    if checkpoint() {
+        return;
+    }
     register_plan_continuations(game, perspective, mode, plan, config);
 }
 
@@ -943,6 +1007,9 @@ pub(crate) fn turn_engine_store_cached_step(
     config: TurnEngineConfig,
     inputs: &[Input],
 ) {
+    if checkpoint() || !cache_write_allowed() {
+        return;
+    }
     let key = TurnEngineContinuationCacheKey {
         state_hash: MonsGameModel::search_state_hash(game),
         mode,
@@ -967,7 +1034,15 @@ pub(crate) fn turn_engine_evaluate_state_utility(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> TurnEngineUtility {
-    evaluate_state_utility(game, start, perspective, config)
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
+    let utility = evaluate_state_utility(game, start, perspective, config);
+    if checkpoint() {
+        TurnEngineUtility::default()
+    } else {
+        utility
+    }
 }
 
 pub(crate) fn turn_engine_evaluate_plan_with_replies(
@@ -976,7 +1051,15 @@ pub(crate) fn turn_engine_evaluate_plan_with_replies(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> TurnEngineUtility {
-    evaluate_plan_with_replies(root, plan, perspective, config)
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
+    let utility = evaluate_plan_with_replies(root, plan, perspective, config);
+    if checkpoint() {
+        TurnEngineUtility::default()
+    } else {
+        utility
+    }
 }
 
 fn build_best_plan(
@@ -984,9 +1067,17 @@ fn build_best_plan(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Result<Option<TurnPlan>, PlanBuildStatus> {
-    match config.mode {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
+    let result = match config.mode {
         TurnEngineMode::ProV1 => build_best_plan_v1(game, perspective, config),
         TurnEngineMode::ProV2 => build_best_opportunity_plan(game, perspective, config),
+    };
+    if checkpoint() {
+        Err(PlanBuildStatus::BudgetExceeded)
+    } else {
+        result
     }
 }
 
@@ -996,7 +1087,7 @@ fn ranked_candidate_plans(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Vec<TurnPlan> {
-    if game.active_color != perspective {
+    if checkpoint() || game.active_color != perspective {
         return Vec::new();
     }
 
@@ -1018,15 +1109,27 @@ fn ranked_candidate_plans(
         }
         Err(_) => Vec::new(),
     };
+    if checkpoint() {
+        return Vec::new();
+    }
 
     if plans.is_empty() {
         if let Some(plan) = fallback_single_action_plan(game, perspective, config) {
             plans.push(plan);
         }
     }
+    if checkpoint() {
+        return Vec::new();
+    }
 
     for plan in plans.iter_mut() {
+        if checkpoint() {
+            return Vec::new();
+        }
         plan.utility = evaluate_plan_with_replies(game, plan, perspective, config);
+        if cancelled() {
+            return Vec::new();
+        }
     }
     plans.sort_by(|a, b| compare_plans(b, a));
     plans
@@ -1037,7 +1140,7 @@ fn ranked_head_candidate_plans(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Vec<TurnPlan> {
-    if game.active_color != perspective {
+    if checkpoint() || game.active_color != perspective {
         return Vec::new();
     }
 
@@ -1051,15 +1154,27 @@ fn ranked_head_candidate_plans(
         config.expansion_cap.max(1),
     )
     .unwrap_or_default();
+    if checkpoint() {
+        return Vec::new();
+    }
 
     if plans.is_empty() {
         if let Some(plan) = fallback_single_action_plan(game, perspective, config) {
             plans.push(plan);
         }
     }
+    if checkpoint() {
+        return Vec::new();
+    }
 
     for plan in plans.iter_mut() {
+        if checkpoint() {
+            return Vec::new();
+        }
         plan.utility = evaluate_plan_with_replies(game, plan, perspective, config);
+        if cancelled() {
+            return Vec::new();
+        }
     }
     plans.sort_by(|a, b| compare_plans(b, a));
     plans
@@ -1071,6 +1186,9 @@ fn build_best_plan_from_allowed_heads(
     config: TurnEngineConfig,
     allowed_first_steps: &[Vec<Input>],
 ) -> Result<Option<TurnPlan>, PlanBuildStatus> {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let plans = match generate_plans_for_mode(
         game,
         perspective,
@@ -1082,28 +1200,47 @@ fn build_best_plan_from_allowed_heads(
     ) {
         Ok(plans) if !plans.is_empty() => plans,
         Ok(_) | Err(PlanBuildStatus::NoPlan) => {
-            return Ok(fallback_single_action_plan_from_allowed_heads(
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
+            let fallback = fallback_single_action_plan_from_allowed_heads(
                 game,
                 perspective,
                 config,
                 allowed_first_steps,
-            ));
+            );
+            return if checkpoint() {
+                Err(PlanBuildStatus::BudgetExceeded)
+            } else {
+                Ok(fallback)
+            };
         }
         Err(PlanBuildStatus::BudgetExceeded) => return Err(PlanBuildStatus::BudgetExceeded),
     };
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
 
     let best_plan =
         best_plan_from_allowed_heads(game, perspective, config, plans, allowed_first_steps);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     if best_plan.is_some() {
         return Ok(best_plan);
     }
 
-    Ok(fallback_single_action_plan_from_allowed_heads(
+    let fallback = fallback_single_action_plan_from_allowed_heads(
         game,
         perspective,
         config,
         allowed_first_steps,
-    ))
+    );
+    if checkpoint() {
+        Err(PlanBuildStatus::BudgetExceeded)
+    } else {
+        Ok(fallback)
+    }
 }
 
 fn build_best_plan_v1(
@@ -1111,6 +1248,9 @@ fn build_best_plan_v1(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Result<Option<TurnPlan>, PlanBuildStatus> {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let plans = match generate_turn_plans(
         game,
         perspective,
@@ -1122,14 +1262,31 @@ fn build_best_plan_v1(
     ) {
         Ok(plans) if !plans.is_empty() => plans,
         Ok(_) | Err(PlanBuildStatus::NoPlan) => {
-            return Ok(fallback_single_action_plan(game, perspective, config));
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
+            let fallback = fallback_single_action_plan(game, perspective, config);
+            return if checkpoint() {
+                Err(PlanBuildStatus::BudgetExceeded)
+            } else {
+                Ok(fallback)
+            };
         }
         Err(PlanBuildStatus::BudgetExceeded) => return Err(PlanBuildStatus::BudgetExceeded),
     };
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
 
     let mut best_plan: Option<TurnPlan> = None;
     for mut plan in plans {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         plan.utility = evaluate_plan_with_replies(game, &plan, perspective, config);
+        if cancelled() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let replace = best_plan
             .as_ref()
             .is_none_or(|current| compare_plans(&plan, current) == Ordering::Greater);
@@ -1152,6 +1309,9 @@ fn best_plan_from_allowed_heads(
     plans: Vec<TurnPlan>,
     allowed_first_steps: &[Vec<Input>],
 ) -> Option<TurnPlan> {
+    if checkpoint() {
+        return None;
+    }
     let allowed_rank = allowed_first_steps
         .iter()
         .enumerate()
@@ -1161,11 +1321,20 @@ fn best_plan_from_allowed_heads(
     let mut best_plan: Option<(TurnPlan, AllowedHeadSelectionMeta)> = None;
 
     for mut plan in plans {
+        if checkpoint() {
+            return None;
+        }
         let Some(rank) = plan_allowed_head_rank(&plan, &allowed_rank) else {
             continue;
         };
         plan.utility = evaluate_plan_with_replies(root, &plan, perspective, config);
+        if cancelled() {
+            return None;
+        }
         let meta = allowed_head_selection_meta(root, &plan, perspective, rank, allowed_len);
+        if checkpoint() {
+            return None;
+        }
         let replace = best_plan.as_ref().is_none_or(|(current, current_meta)| {
             compare_allowed_head_plans(&plan, meta, current, *current_meta) == Ordering::Greater
         });
@@ -1187,6 +1356,9 @@ fn fallback_single_action_plan(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Option<TurnPlan> {
+    if checkpoint() {
+        return None;
+    }
     let mut seeds = generate_action_seeds(
         game,
         perspective,
@@ -1197,21 +1369,33 @@ fn fallback_single_action_plan(
             .saturating_mul(2)
             .min(TURN_ENGINE_COMPILE_LIMIT_MAX),
     );
+    if checkpoint() {
+        return None;
+    }
     if seeds.is_empty() {
         seeds = fallback_walk_seeds(game, perspective);
     }
-    if seeds.is_empty() {
+    if checkpoint() || seeds.is_empty() {
         return None;
     }
 
     let mut compile_pool = TransitionCompilePool::new(game, seeds.as_slice(), config);
+    if checkpoint() {
+        return None;
+    }
     let mut best_plan: Option<TurnPlan> = None;
     for seed in seeds {
+        if checkpoint() {
+            return None;
+        }
         let Some((after, chunk)) =
             compile_action_from_pool(game, perspective, seed.action, &mut compile_pool)
         else {
             continue;
         };
+        if checkpoint() {
+            return None;
+        }
         let mut plan = TurnPlan {
             actions: vec![seed.action],
             compiled_chunks: vec![chunk],
@@ -1224,7 +1408,13 @@ fn fallback_single_action_plan(
             goal_family: seed.family,
             package_meta: TurnPackageMeta::default(),
         };
+        if cancelled() {
+            return None;
+        }
         plan.utility = evaluate_plan_with_replies(game, &plan, perspective, config);
+        if cancelled() {
+            return None;
+        }
         let replace = best_plan
             .as_ref()
             .is_none_or(|current| compare_plans(&plan, current) == Ordering::Greater);
@@ -1232,7 +1422,7 @@ fn fallback_single_action_plan(
             best_plan = Some(plan);
         }
     }
-    best_plan
+    (!checkpoint()).then_some(best_plan).flatten()
 }
 
 fn fallback_single_action_plan_from_allowed_heads(
@@ -1241,6 +1431,9 @@ fn fallback_single_action_plan_from_allowed_heads(
     config: TurnEngineConfig,
     allowed_first_steps: &[Vec<Input>],
 ) -> Option<TurnPlan> {
+    if checkpoint() {
+        return None;
+    }
     let mut seeds = generate_action_seeds(
         game,
         perspective,
@@ -1251,10 +1444,13 @@ fn fallback_single_action_plan_from_allowed_heads(
             .saturating_mul(2)
             .min(TURN_ENGINE_COMPILE_LIMIT_MAX),
     );
+    if checkpoint() {
+        return None;
+    }
     if seeds.is_empty() {
         seeds = fallback_walk_seeds(game, perspective);
     }
-    if seeds.is_empty() {
+    if checkpoint() || seeds.is_empty() {
         return None;
     }
 
@@ -1264,14 +1460,23 @@ fn fallback_single_action_plan_from_allowed_heads(
         .map(|(rank, inputs)| (inputs.clone(), rank))
         .collect::<HashMap<Vec<Input>, usize>>();
     let mut compile_pool = TransitionCompilePool::new(game, seeds.as_slice(), config);
+    if checkpoint() {
+        return None;
+    }
     let allowed_len = allowed_first_steps.len();
     let mut best_plan: Option<(TurnPlan, AllowedHeadSelectionMeta)> = None;
     for seed in seeds {
+        if checkpoint() {
+            return None;
+        }
         let Some((after, chunk)) =
             compile_action_from_pool(game, perspective, seed.action, &mut compile_pool)
         else {
             continue;
         };
+        if checkpoint() {
+            return None;
+        }
         let Some(rank) = allowed_rank.get(&chunk).copied() else {
             continue;
         };
@@ -1287,7 +1492,13 @@ fn fallback_single_action_plan_from_allowed_heads(
             goal_family: seed.family,
             package_meta: TurnPackageMeta::default(),
         };
+        if cancelled() {
+            return None;
+        }
         plan.utility = evaluate_plan_with_replies(game, &plan, perspective, config);
+        if cancelled() {
+            return None;
+        }
         let meta = AllowedHeadSelectionMeta {
             rank,
             allowed_len,
@@ -1307,7 +1518,11 @@ fn fallback_single_action_plan_from_allowed_heads(
         update_turn_engine_diagnostics(|diagnostics| diagnostics.accepted_plans += 1);
         record_accepted_plan_family(best_plan.head_family);
     }
-    best_plan
+    if checkpoint() {
+        None
+    } else {
+        best_plan
+    }
 }
 
 fn plan_allowed_head_rank(
@@ -1596,6 +1811,9 @@ fn build_best_opportunity_plan(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Result<Option<TurnPlan>, PlanBuildStatus> {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let plans = match generate_macro_plans(
         game,
         perspective,
@@ -1607,15 +1825,35 @@ fn build_best_opportunity_plan(
     ) {
         Ok(plans) if !plans.is_empty() => plans,
         Ok(_) | Err(PlanBuildStatus::NoPlan) => {
-            return Ok(fallback_single_action_plan(game, perspective, config));
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
+            let fallback = fallback_single_action_plan(game, perspective, config);
+            return if checkpoint() {
+                Err(PlanBuildStatus::BudgetExceeded)
+            } else {
+                Ok(fallback)
+            };
         }
         Err(PlanBuildStatus::BudgetExceeded) => return Err(PlanBuildStatus::BudgetExceeded),
     };
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let plans = shortlist_macro_plans_for_reply(plans, config);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
 
     let mut best_plan: Option<TurnPlan> = None;
     for mut plan in plans {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         plan.utility = evaluate_plan_with_replies(game, &plan, perspective, config);
+        if cancelled() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let replace = best_plan
             .as_ref()
             .is_none_or(|current| compare_plans(&plan, current) == Ordering::Greater);
@@ -1629,7 +1867,11 @@ fn build_best_opportunity_plan(
         record_accepted_plan_family(best_plan.head_family);
     }
 
-    Ok(best_plan)
+    if checkpoint() {
+        Err(PlanBuildStatus::BudgetExceeded)
+    } else {
+        Ok(best_plan)
+    }
 }
 
 #[allow(dead_code)]
@@ -1642,10 +1884,16 @@ fn generate_opportunity_plans(
     step_cap: usize,
     expansion_cap: usize,
 ) -> Result<Vec<OpportunityPlan>, PlanBuildStatus> {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let mut expansions = 0usize;
     let mut budget_exhausted = false;
     let opportunities =
         discover_turn_opportunities_v2(game, perspective, config, opportunity_cap, None);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     if opportunities.is_empty() {
         return Err(PlanBuildStatus::NoPlan);
     }
@@ -1659,15 +1907,24 @@ fn generate_opportunity_plans(
         })
         .collect::<Vec<_>>();
     let mut compile_pool = TransitionCompilePool::new(game, seed_actions.as_slice(), config);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let mut frontier = Vec::<(i64, OpportunityPlanNode)>::new();
     let mut seen = HashMap::<u64, i64>::new();
 
     for opportunity in opportunities {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let Some((after, chunk)) =
             compile_action_from_pool(game, perspective, opportunity.action, &mut compile_pool)
         else {
             continue;
         };
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         expansions += 1;
         if expansions > expansion_cap {
             budget_exhausted = true;
@@ -1676,6 +1933,9 @@ fn generate_opportunity_plans(
         let order = quick_order_score(game, &after, perspective, opportunity.family, 1, config);
         let snapshot = TurnSnapshot::from_game(&after);
         let head_utility = evaluate_state_utility(&after, game, perspective, config);
+        if cancelled() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let should_keep = seen
             .get(&snapshot.state_hash)
             .is_none_or(|existing| order > *existing);
@@ -1721,12 +1981,18 @@ fn generate_opportunity_plans(
     let mut terminal = Vec::new();
 
     for _ in 1..step_cap.max(1) {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let mut candidates = Vec::<(i64, OpportunityPlanNode)>::new();
         let mut expanded_any = false;
         let mut stop_expansion = false;
         let current_frontier = std::mem::take(&mut frontier);
 
         for node in current_frontier {
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             if node.game.winner_color().is_some() || node.game.active_color != perspective {
                 terminal.push(node);
                 continue;
@@ -1739,6 +2005,9 @@ fn generate_opportunity_plans(
                 opportunity_cap,
                 None,
             );
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             if opportunities.is_empty() {
                 terminal.push(node);
                 continue;
@@ -1753,9 +2022,15 @@ fn generate_opportunity_plans(
                 .collect::<Vec<_>>();
             let mut compile_pool =
                 TransitionCompilePool::new(&node.game, node_seeds.as_slice(), config);
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             let mut node_expanded = false;
 
             for opportunity in opportunities {
+                if checkpoint() {
+                    return Err(PlanBuildStatus::BudgetExceeded);
+                }
                 let Some((after, chunk)) = compile_action_from_pool(
                     &node.game,
                     perspective,
@@ -1764,6 +2039,9 @@ fn generate_opportunity_plans(
                 ) else {
                     continue;
                 };
+                if checkpoint() {
+                    return Err(PlanBuildStatus::BudgetExceeded);
+                }
                 expansions += 1;
                 if expansions > expansion_cap {
                     terminal.push(node.clone());
@@ -1854,6 +2132,9 @@ fn generate_opportunity_plans(
     }
 
     terminal.extend(frontier);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     if terminal.is_empty() {
         return if budget_exhausted {
             Err(PlanBuildStatus::BudgetExceeded)
@@ -1875,6 +2156,9 @@ fn generate_opportunity_plans(
             goal_family: node.goal_family,
         })
         .collect::<Vec<_>>();
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     plans.sort_by(|a, b| compare_opportunity_plans(b, a));
     Ok(plans)
 }
@@ -2119,9 +2403,21 @@ fn build_macro_from_head_opportunity(
     config: TurnEngineConfig,
     opportunity: TurnOpportunity,
 ) -> Option<MacroOpportunity> {
+    if checkpoint() {
+        return None;
+    }
     let start_oracle = turn_oracle_context(root, perspective);
+    if cancelled() {
+        return None;
+    }
     let (mut current, first_chunk) = compile_action(root, perspective, opportunity.action, config)?;
+    if checkpoint() {
+        return None;
+    }
     let head_utility = evaluate_state_utility(&current, root, perspective, config);
+    if cancelled() {
+        return None;
+    }
     let mut actions = vec![opportunity.action];
     let mut compiled_chunks = vec![first_chunk];
     let mut goal_family = opportunity.family;
@@ -2133,8 +2429,17 @@ fn build_macro_from_head_opportunity(
         && current.winner_color().is_none()
         && compiled_chunks.len() < bundle_chunk_cap_for_config(config)
     {
+        if checkpoint() {
+            return None;
+        }
         let current_oracle = turn_oracle_context(&current, perspective);
+        if cancelled() {
+            return None;
+        }
         let current_utility = evaluate_state_utility(&current, root, perspective, config);
+        if cancelled() {
+            return None;
+        }
         let risky_temporary_state = current_oracle.opportunity.delta.drainer_safety < 0
             || current_utility.drainer_safety < 0
             || own_drainer_safety_score(&current.board, perspective) < 0;
@@ -2154,11 +2459,17 @@ fn build_macro_from_head_opportunity(
             goal_family,
             actions.as_slice(),
         ) {
+            if checkpoint() {
+                return None;
+            }
             let Some((after, chunk)) =
                 compile_action(&current, perspective, followup.action, config)
             else {
                 continue;
             };
+            if checkpoint() {
+                return None;
+            }
             let after_hash = MonsGameModel::search_state_hash(&after);
             if visited_states.contains(&after_hash) {
                 continue;
@@ -2166,6 +2477,9 @@ fn build_macro_from_head_opportunity(
             let delta = macro_opportunity_delta(&current, &after, perspective, current_oracle);
             let next_goal_family = merge_plan_family(goal_family, followup.family);
             let next_utility = evaluate_state_utility(&after, root, perspective, config);
+            if cancelled() {
+                return None;
+            }
             let improvement_signal = delta.same_turn_score_window_gain
                 + delta.spirit_gain
                 + delta.opponent_window_deny_gain
@@ -2246,8 +2560,14 @@ fn build_macro_from_head_opportunity(
         visited_states.insert(MonsGameModel::search_state_hash(&current));
     }
 
+    if checkpoint() {
+        return None;
+    }
     let end_snapshot = TurnSnapshot::from_game(&current);
     let delta = macro_opportunity_delta(root, &current, perspective, start_oracle);
+    if cancelled() {
+        return None;
+    }
     let signature = macro_signature_for_actions(&actions);
     Some(MacroOpportunity {
         head_family: opportunity.family,
@@ -2278,6 +2598,9 @@ fn discover_macro_opportunities_v2(
     opportunity_cap: usize,
     allowed_families: Option<&[TurnPlanFamily]>,
 ) -> Vec<MacroOpportunity> {
+    if checkpoint() {
+        return Vec::new();
+    }
     let mut macros = Vec::new();
     let mut seen = HashSet::<(u64, u64)>::new();
     let root_opportunities = discover_turn_opportunities_v2(
@@ -2289,10 +2612,19 @@ fn discover_macro_opportunities_v2(
             .max(8),
         allowed_families,
     );
+    if checkpoint() {
+        return Vec::new();
+    }
     for opportunity in root_opportunities {
+        if checkpoint() {
+            return Vec::new();
+        }
         let Some(bundle) =
             build_macro_from_head_opportunity(game, perspective, config, opportunity)
         else {
+            if cancelled() {
+                return Vec::new();
+            }
             continue;
         };
         let key = (bundle.end_snapshot.state_hash, bundle.signature);
@@ -2305,6 +2637,9 @@ fn discover_macro_opportunities_v2(
         }
     }
 
+    if checkpoint() {
+        return Vec::new();
+    }
     macros.sort_by(|left, right| {
         let left_score = i64::from(left.priority)
             + i64::from(left.delta.same_turn_score_window_gain) * 280
@@ -2333,7 +2668,11 @@ fn discover_macro_opportunities_v2(
             .then_with(|| left.compiled_chunks.cmp(&right.compiled_chunks))
     });
     macros.truncate(opportunity_cap.max(1));
-    macros
+    if checkpoint() {
+        Vec::new()
+    } else {
+        macros
+    }
 }
 
 fn generate_macro_plans(
@@ -2345,11 +2684,17 @@ fn generate_macro_plans(
     bundle_cap: usize,
     expansion_cap: usize,
 ) -> Result<Vec<TurnPlan>, PlanBuildStatus> {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let mut expansions = 0usize;
     let mut budget_exhausted = false;
     let bundle_cap = bundle_cap.max(1).min(bundle_plan_cap_for_config(config));
     let opportunities =
         discover_macro_opportunities_v2(game, perspective, config, opportunity_cap, None);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     if opportunities.is_empty() {
         return Err(PlanBuildStatus::NoPlan);
     }
@@ -2357,6 +2702,9 @@ fn generate_macro_plans(
     let mut frontier = Vec::<(i64, MacroPlanNode)>::new();
     let mut seen = HashMap::<(u64, u64), i64>::new();
     for opportunity in opportunities {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         expansions += 1;
         if expansions > expansion_cap {
             budget_exhausted = true;
@@ -2370,6 +2718,9 @@ fn generate_macro_plans(
             opportunity.compiled_chunks.len(),
             config,
         );
+        if cancelled() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let key = (opportunity.end_snapshot.state_hash, opportunity.signature);
         let should_keep = seen.get(&key).is_none_or(|existing| order > *existing);
         if !should_keep {
@@ -2414,12 +2765,18 @@ fn generate_macro_plans(
     let mut terminal = Vec::new();
 
     for _ in 1..bundle_cap {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let mut candidates = Vec::<(i64, MacroPlanNode)>::new();
         let mut expanded_any = false;
         let mut stop_expansion = false;
         let current_frontier = std::mem::take(&mut frontier);
 
         for node in current_frontier {
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             if node.game.winner_color().is_some() || node.game.active_color != perspective {
                 terminal.push(node);
                 continue;
@@ -2433,6 +2790,9 @@ fn generate_macro_plans(
                 opportunity_cap,
                 Some(allowed_families.as_slice()),
             );
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             if opportunities.is_empty() {
                 terminal.push(node);
                 continue;
@@ -2440,6 +2800,9 @@ fn generate_macro_plans(
 
             let mut node_expanded = false;
             for opportunity in opportunities {
+                if checkpoint() {
+                    return Err(PlanBuildStatus::BudgetExceeded);
+                }
                 expansions += 1;
                 if expansions > expansion_cap {
                     terminal.push(node.clone());
@@ -2462,6 +2825,9 @@ fn generate_macro_plans(
                     compiled_chunks.len(),
                     config,
                 );
+                if cancelled() {
+                    return Err(PlanBuildStatus::BudgetExceeded);
+                }
                 let key = (opportunity.end_snapshot.state_hash, signature);
                 let should_keep = seen.get(&key).is_none_or(|existing| order > *existing);
                 if !should_keep {
@@ -2531,6 +2897,9 @@ fn generate_macro_plans(
     }
 
     terminal.extend(frontier);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     if terminal.is_empty() {
         return if budget_exhausted {
             Err(PlanBuildStatus::BudgetExceeded)
@@ -2543,6 +2912,9 @@ fn generate_macro_plans(
         .into_iter()
         .map(|node| macro_plan_into_turn_plan(game, node, perspective, config))
         .collect::<Vec<_>>();
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     plans.sort_by(|a, b| compare_plans(b, a));
     Ok(plans)
 }
@@ -2556,21 +2928,36 @@ fn generate_turn_plans(
     step_cap: usize,
     expansion_cap: usize,
 ) -> Result<Vec<TurnPlan>, PlanBuildStatus> {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     let mut expansions = 0usize;
     let mut frontier = Vec::new();
     let seeds = generate_action_seeds(game, perspective, config, seed_cap);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     if seeds.is_empty() {
         return Err(PlanBuildStatus::NoPlan);
     }
     let mut compile_pool = TransitionCompilePool::new(game, seeds.as_slice(), config);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
 
     let mut seen = HashMap::<u64, i64>::new();
     for seed in seeds {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let Some((after, chunk)) =
             compile_action_from_pool(game, perspective, seed.action, &mut compile_pool)
         else {
             continue;
         };
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         expansions += 1;
         if expansions > expansion_cap {
             return Err(PlanBuildStatus::BudgetExceeded);
@@ -2578,6 +2965,9 @@ fn generate_turn_plans(
         let order = quick_order_score(game, &after, perspective, seed.family, 1, config);
         let snapshot = TurnSnapshot::from_game(&after);
         let head_utility = evaluate_state_utility(&after, game, perspective, config);
+        if cancelled() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let should_keep = seen
             .get(&snapshot.state_hash)
             .is_none_or(|existing| order > *existing);
@@ -2618,25 +3008,40 @@ fn generate_turn_plans(
     let mut terminal = Vec::new();
 
     for _ in 1..step_cap.max(1) {
+        if checkpoint() {
+            return Err(PlanBuildStatus::BudgetExceeded);
+        }
         let mut candidates = Vec::<(i64, PlanNode)>::new();
         let mut expanded_any = false;
         let current_frontier = std::mem::take(&mut frontier);
 
         for node in current_frontier {
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             if node.game.winner_color().is_some() || node.game.active_color != perspective {
                 terminal.push(node);
                 continue;
             }
 
             let seeds = generate_action_seeds(&node.game, perspective, config, seed_cap);
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             if seeds.is_empty() {
                 terminal.push(node);
                 continue;
             }
             let mut compile_pool = TransitionCompilePool::new(&node.game, seeds.as_slice(), config);
+            if checkpoint() {
+                return Err(PlanBuildStatus::BudgetExceeded);
+            }
             let mut node_expanded = false;
 
             for seed in seeds {
+                if checkpoint() {
+                    return Err(PlanBuildStatus::BudgetExceeded);
+                }
                 let Some((after, chunk)) = compile_action_from_pool(
                     &node.game,
                     perspective,
@@ -2645,6 +3050,9 @@ fn generate_turn_plans(
                 ) else {
                     continue;
                 };
+                if checkpoint() {
+                    return Err(PlanBuildStatus::BudgetExceeded);
+                }
                 expansions += 1;
                 if expansions > expansion_cap {
                     return Err(PlanBuildStatus::BudgetExceeded);
@@ -2661,6 +3069,9 @@ fn generate_turn_plans(
                     actions.len(),
                     config,
                 );
+                if cancelled() {
+                    return Err(PlanBuildStatus::BudgetExceeded);
+                }
                 let snapshot = TurnSnapshot::from_game(&after);
                 let should_keep = seen
                     .get(&snapshot.state_hash)
@@ -2709,6 +3120,9 @@ fn generate_turn_plans(
     }
 
     terminal.extend(frontier);
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     if terminal.is_empty() {
         return Err(PlanBuildStatus::NoPlan);
     }
@@ -2728,6 +3142,9 @@ fn generate_turn_plans(
             package_meta: TurnPackageMeta::default(),
         })
         .collect::<Vec<_>>();
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
     plans.sort_by(|a, b| compare_plans(b, a));
     Ok(plans)
 }
@@ -2741,7 +3158,10 @@ fn generate_plans_for_mode(
     step_cap: usize,
     expansion_cap: usize,
 ) -> Result<Vec<TurnPlan>, PlanBuildStatus> {
-    match config.mode {
+    if checkpoint() {
+        return Err(PlanBuildStatus::BudgetExceeded);
+    }
+    let result = match config.mode {
         TurnEngineMode::ProV2 => generate_macro_plans(
             game,
             perspective,
@@ -2760,6 +3180,11 @@ fn generate_plans_for_mode(
             step_cap,
             expansion_cap,
         ),
+    };
+    if checkpoint() {
+        Err(PlanBuildStatus::BudgetExceeded)
+    } else {
+        result
     }
 }
 
@@ -2769,6 +3194,9 @@ fn evaluate_plan_with_replies(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> TurnEngineUtility {
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
     let after = &plan.end_game;
 
     if after.winner_color().is_some() || after.active_color != perspective.other() {
@@ -2793,7 +3221,7 @@ fn evaluate_plan_with_replies(
         enable_lazy_oracle_score_window_projection: config
             .enable_lazy_oracle_score_window_projection,
     };
-    let opponent_plans = match generate_plans_for_mode(
+    let opponent_result = generate_plans_for_mode(
         after,
         perspective.other(),
         opponent_config,
@@ -2801,7 +3229,11 @@ fn evaluate_plan_with_replies(
         opponent_config.own_beam,
         opponent_config.step_cap,
         opponent_config.expansion_cap,
-    ) {
+    );
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
+    let opponent_plans = match opponent_result {
         Ok(plans) if !plans.is_empty() => plans,
         _ => return evaluate_state_utility(after, root, perspective, config),
     };
@@ -2814,13 +3246,22 @@ fn evaluate_plan_with_replies(
         perspective.other(),
         opponent_config,
     );
+    if cancelled() {
+        return TurnEngineUtility::default();
+    }
     for opponent_plan in opponent_plans.iter().take(opponent_shortlist).skip(1) {
+        if checkpoint() {
+            return TurnEngineUtility::default();
+        }
         let utility = evaluate_state_utility(
             &opponent_plan.end_game,
             after,
             perspective.other(),
             opponent_config,
         );
+        if cancelled() {
+            return TurnEngineUtility::default();
+        }
         if utility > best_opponent_utility
             || (utility == best_opponent_utility
                 && compare_chunks(
@@ -2859,7 +3300,7 @@ fn evaluate_plan_with_replies(
         enable_lazy_oracle_score_window_projection: config
             .enable_lazy_oracle_score_window_projection,
     };
-    let reply_plans = match generate_plans_for_mode(
+    let reply_result = generate_plans_for_mode(
         after_opponent,
         perspective,
         reply_config,
@@ -2867,16 +3308,27 @@ fn evaluate_plan_with_replies(
         reply_config.own_beam,
         reply_config.step_cap,
         reply_config.expansion_cap,
-    ) {
+    );
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
+    let reply_plans = match reply_result {
         Ok(plans) if !plans.is_empty() => plans,
         _ => return evaluate_state_utility(after_opponent, root, perspective, config),
     };
     let reply_shortlist = reply_shortlist_len(reply_plans.len(), reply_config.own_beam);
-    reply_plans
-        .into_iter()
-        .take(reply_shortlist)
-        .map(|plan| evaluate_state_utility(&plan.end_game, root, perspective, config))
-        .max()
+    let mut best_reply_utility: Option<TurnEngineUtility> = None;
+    for plan in reply_plans.into_iter().take(reply_shortlist) {
+        if checkpoint() {
+            return TurnEngineUtility::default();
+        }
+        let utility = evaluate_state_utility(&plan.end_game, root, perspective, config);
+        if cancelled() {
+            return TurnEngineUtility::default();
+        }
+        best_reply_utility = Some(best_reply_utility.map_or(utility, |best| best.max(utility)));
+    }
+    best_reply_utility
         .unwrap_or_else(|| evaluate_state_utility(after_opponent, root, perspective, config))
 }
 
@@ -2890,6 +3342,9 @@ fn evaluate_state_utility(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> TurnEngineUtility {
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
     let key = TurnEngineUtilityCacheKey {
         state_hash: MonsGameModel::search_state_hash(game),
         start_hash: MonsGameModel::search_state_hash(start),
@@ -2898,17 +3353,26 @@ fn evaluate_state_utility(
     };
     if let Some(cached) = TURN_ENGINE_UTILITY_CACHE.with(|cache| cache.borrow().get(&key).copied())
     {
-        return cached;
+        return if checkpoint() {
+            TurnEngineUtility::default()
+        } else {
+            cached
+        };
     }
 
     let built = evaluate_state_utility_uncached(game, start, perspective, config);
-    TURN_ENGINE_UTILITY_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
-            cache.clear();
-        }
-        cache.insert(key, built);
-    });
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
+    if cache_write_allowed() {
+        TURN_ENGINE_UTILITY_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
+                cache.clear();
+            }
+            cache.insert(key, built);
+        });
+    }
     built
 }
 
@@ -2918,10 +3382,16 @@ fn evaluate_state_utility_uncached(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> TurnEngineUtility {
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
     let my_score = score_for_color(game, perspective);
     let start_score = score_for_color(start, perspective);
     let score_delta = my_score.saturating_sub(start_score);
     let oracle = turn_oracle_context(game, perspective);
+    if cancelled() {
+        return TurnEngineUtility::default();
+    }
     let strategic = oracle.strategic;
     let path_bonus = strategic
         .score_path_window
@@ -2947,11 +3417,17 @@ fn evaluate_state_utility_uncached(
     };
     let opponent = perspective.other();
     let opponent_window_before = active_turn_score_window(start, opponent);
+    if cancelled() {
+        return TurnEngineUtility::default();
+    }
     let opponent_window_after = if game.active_color == opponent {
         active_turn_score_window(game, opponent)
     } else {
         oracle.opponent_immediate_window
     };
+    if cancelled() {
+        return TurnEngineUtility::default();
+    }
     let deny_gain = opponent_window_before.saturating_sub(opponent_window_after);
     let drainer_safety = own_drainer_safety_score(&game.board, perspective);
     let unsafe_progress_penalty = if drainer_safety < 0 {
@@ -2977,6 +3453,9 @@ fn evaluate_state_utility_uncached(
         config.scoring_weights,
         config.allow_exact_static_evaluation,
     );
+    if checkpoint() {
+        return TurnEngineUtility::default();
+    }
     TurnEngineUtility {
         win_state: winner_state(game, perspective),
         avoid_immediate_loss: if opponent_can_win_immediately(game, perspective) {
@@ -3031,31 +3510,47 @@ fn quick_order_score(
 }
 
 fn turn_oracle_context(game: &MonsGame, perspective: Color) -> TurnOracleContext {
+    if checkpoint() {
+        return TurnOracleContext::default();
+    }
     let state_hash = MonsGameModel::search_state_hash(game);
     let key = TurnOracleCacheKey {
         state_hash,
         perspective,
     };
     if let Some(cached) = TURN_ENGINE_ORACLE_CACHE.with(|cache| cache.borrow().get(&key).copied()) {
-        return cached;
+        return if checkpoint() {
+            TurnOracleContext::default()
+        } else {
+            cached
+        };
     }
 
     let strategic_analysis = exact_strategic_analysis_with_search_hash(game, state_hash);
+    if checkpoint() {
+        return TurnOracleContext::default();
+    }
+    let opportunity = exact_opportunity_context_with_search_hash(game, perspective, state_hash);
+    if checkpoint() {
+        return TurnOracleContext::default();
+    }
     let built = TurnOracleContext {
-        opportunity: exact_opportunity_context_with_search_hash(game, perspective, state_hash),
+        opportunity,
         strategic: strategic_analysis.color_summary(perspective),
         opponent_immediate_window: strategic_analysis
             .color_summary(perspective.other())
             .immediate_window
             .best_score,
     };
-    TURN_ENGINE_ORACLE_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
-            cache.clear();
-        }
-        cache.insert(key, built);
-    });
+    if cache_write_allowed() {
+        TURN_ENGINE_ORACLE_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
+                cache.clear();
+            }
+            cache.insert(key, built);
+        });
+    }
     built
 }
 
@@ -3065,7 +3560,15 @@ fn active_turn_score_window_with_search_hash(
     color: Color,
     state_hash: u64,
 ) -> i32 {
-    exact_same_turn_score_window_with_search_hash(game, color, state_hash)
+    if checkpoint() {
+        return 0;
+    }
+    let window = exact_same_turn_score_window_with_search_hash(game, color, state_hash);
+    if checkpoint() {
+        0
+    } else {
+        window
+    }
 }
 
 #[inline]
@@ -3126,7 +3629,13 @@ fn macro_opportunity_delta(
     perspective: Color,
     start_oracle: TurnOracleContext,
 ) -> OpportunityDelta {
+    if checkpoint() {
+        return OpportunityDelta::default();
+    }
     let end_oracle = turn_oracle_context(end_game, perspective);
+    if cancelled() {
+        return OpportunityDelta::default();
+    }
 
     OpportunityDelta {
         same_turn_score_window_gain: end_oracle
@@ -3357,31 +3866,52 @@ fn discover_turn_opportunities_v2(
     opportunity_cap: usize,
     allowed_families: Option<&[TurnPlanFamily]>,
 ) -> Vec<TurnOpportunity> {
-    if game.active_color != perspective {
+    if checkpoint() || game.active_color != perspective {
         return Vec::new();
     }
 
     let state_hash = MonsGameModel::search_state_hash(game);
     let context = exact_opportunity_context_with_search_hash(game, perspective, state_hash);
+    if checkpoint() {
+        return Vec::new();
+    }
     let emergency = context.opponent_can_win_immediately || context.delta.drainer_safety < 0;
     let mut seeds = Vec::new();
     if family_allowed(allowed_families, TurnPlanFamily::ImmediateScore) {
         seeds.extend(immediate_score_seeds(game, perspective));
     }
+    if checkpoint() {
+        return Vec::new();
+    }
     if family_allowed(allowed_families, TurnPlanFamily::DenyOpponentWindow) {
         seeds.extend(deny_window_seeds(game, perspective));
+    }
+    if checkpoint() {
+        return Vec::new();
     }
     if family_allowed(allowed_families, TurnPlanFamily::DrainerKill) {
         seeds.extend(drainer_kill_seeds(game, perspective));
     }
+    if checkpoint() {
+        return Vec::new();
+    }
     if family_allowed(allowed_families, TurnPlanFamily::SafeSupermanaProgress) {
         seeds.extend(safe_supermana_progress_seeds(game, perspective));
+    }
+    if checkpoint() {
+        return Vec::new();
     }
     if family_allowed(allowed_families, TurnPlanFamily::SafeOpponentManaProgress) {
         seeds.extend(safe_opponent_mana_progress_seeds(game, perspective));
     }
+    if checkpoint() {
+        return Vec::new();
+    }
     if family_allowed(allowed_families, TurnPlanFamily::DrainerSafetyRecovery) {
         seeds.extend(safety_recovery_seeds(game, perspective));
+    }
+    if checkpoint() {
+        return Vec::new();
     }
     if family_allowed(allowed_families, TurnPlanFamily::ManaTempo) {
         seeds.extend(risky_recovery_setup_seeds(game, perspective, config));
@@ -3403,8 +3933,14 @@ fn discover_turn_opportunities_v2(
             config,
         ));
     }
+    if checkpoint() {
+        return Vec::new();
+    }
     if family_allowed(allowed_families, TurnPlanFamily::SpiritImpact) {
         seeds.extend(spirit_impact_seeds(game, perspective, config));
+    }
+    if checkpoint() {
+        return Vec::new();
     }
     if family_allowed(allowed_families, TurnPlanFamily::ManaTempo) {
         seeds.extend(mana_tempo_seeds(game, perspective));
@@ -3425,6 +3961,9 @@ fn discover_turn_opportunities_v2(
 
     let mut per_family = HashMap::<TurnPlanFamily, Vec<TurnOpportunity>>::new();
     for seed in seeds {
+        if checkpoint() {
+            return Vec::new();
+        }
         let opportunity = turn_opportunity_from_seed(seed, context);
         if !budget_allows_opportunity(context.budget, opportunity.budget) {
             continue;
@@ -3463,6 +4002,9 @@ fn discover_turn_opportunities_v2(
     let mut filtered = Vec::new();
     let mut family_indices = HashMap::<TurnPlanFamily, usize>::new();
     for _round in 0..config.per_node_family_cap.max(1) {
+        if checkpoint() {
+            return Vec::new();
+        }
         let mut added_any = false;
         for family in family_order {
             let Some(family_opportunities) = per_family.get(&family) else {
@@ -3501,9 +4043,12 @@ fn generate_action_seeds(
     config: TurnEngineConfig,
     seed_cap: usize,
 ) -> Vec<ActionSeed> {
+    if checkpoint() {
+        return Vec::new();
+    }
     match config.mode {
         TurnEngineMode::ProV2 => {
-            return discover_turn_opportunities_v2(game, perspective, config, seed_cap, None)
+            let seeds = discover_turn_opportunities_v2(game, perspective, config, seed_cap, None)
                 .into_iter()
                 .map(|opportunity| ActionSeed {
                     family: opportunity.family,
@@ -3511,6 +4056,7 @@ fn generate_action_seeds(
                     priority: opportunity.priority,
                 })
                 .collect();
+            return if checkpoint() { Vec::new() } else { seeds };
         }
         TurnEngineMode::ProV1 => {}
     }
@@ -3523,17 +4069,35 @@ fn generate_action_seeds_v1(
     config: TurnEngineConfig,
     seed_cap: usize,
 ) -> Vec<ActionSeed> {
-    if game.active_color != perspective {
+    if checkpoint() || game.active_color != perspective {
         return Vec::new();
     }
 
     let mut seeds = Vec::new();
     seeds.extend(immediate_score_seeds(game, perspective));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(deny_window_seeds(game, perspective));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(drainer_kill_seeds(game, perspective));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(safe_supermana_progress_seeds(game, perspective));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(safe_opponent_mana_progress_seeds(game, perspective));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(safety_recovery_seeds(game, perspective));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(oracle_walk_seeds(
         game,
         perspective,
@@ -3545,12 +4109,21 @@ fn generate_action_seeds_v1(
         None,
         config,
     ));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(spirit_impact_seeds(game, perspective, config));
+    if checkpoint() {
+        return Vec::new();
+    }
     seeds.extend(mana_tempo_seeds(game, perspective));
 
     let mut dedup = HashSet::<TurnAction>::new();
     let mut per_family = HashMap::<TurnPlanFamily, Vec<ActionSeed>>::new();
     for seed in seeds {
+        if checkpoint() {
+            return Vec::new();
+        }
         per_family.entry(seed.family).or_default().push(seed);
     }
     for family_seeds in per_family.values_mut() {
@@ -3574,6 +4147,9 @@ fn generate_action_seeds_v1(
     let mut filtered = Vec::new();
     let mut family_indices = HashMap::<TurnPlanFamily, usize>::new();
     for _round in 0..config.per_node_family_cap.max(1) {
+        if checkpoint() {
+            return Vec::new();
+        }
         let mut added_any = false;
         for family in family_order {
             let Some(family_seeds) = per_family.get(&family) else {
@@ -3865,7 +4441,10 @@ fn safe_progress_seeds(
     family: TurnPlanFamily,
     base_priority: i32,
 ) -> Vec<ActionSeed> {
-    #[derive(Clone, Copy)]
+    if checkpoint() {
+        return Vec::new();
+    }
+    #[derive(Clone, Copy, Default)]
     struct SafeProgressExactSnapshot {
         progress_steps: Option<i32>,
         score_path_best_steps: Option<i32>,
@@ -3878,6 +4457,9 @@ fn safe_progress_seeds(
         wanted: Mana,
         state_hash: u64,
     ) -> SafeProgressExactSnapshot {
+        if checkpoint() {
+            return SafeProgressExactSnapshot::default();
+        }
         let tactical_flags = match wanted {
             Mana::Supermana => {
                 EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS | EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW
@@ -3893,6 +4475,9 @@ fn safe_progress_seeds(
             state_hash,
             tactical_flags,
         );
+        if checkpoint() {
+            return SafeProgressExactSnapshot::default();
+        }
         let progress_steps = match wanted {
             Mana::Supermana => projection.safe_supermana_progress_steps,
             Mana::Regular(color) if color == perspective.other() => {
@@ -3901,12 +4486,16 @@ fn safe_progress_seeds(
             Mana::Regular(_) => None,
         };
 
+        let score_path_best_steps = crate::models::automove_exact::exact_best_score_steps_on_board(
+            &game.board,
+            perspective,
+        );
+        if checkpoint() {
+            return SafeProgressExactSnapshot::default();
+        }
         SafeProgressExactSnapshot {
             progress_steps,
-            score_path_best_steps: crate::models::automove_exact::exact_best_score_steps_on_board(
-                &game.board,
-                perspective,
-            ),
+            score_path_best_steps,
             same_turn_score_window_value: projection.same_turn_score_window_value,
         }
     }
@@ -3917,6 +4506,9 @@ fn safe_progress_seeds(
     let mut seeds = Vec::new();
     let before_state_hash = MonsGameModel::search_state_hash(game);
     let before_exact = safe_progress_exact_snapshot(game, perspective, wanted, before_state_hash);
+    if cancelled() {
+        return Vec::new();
+    }
     let before_safety = own_drainer_safety_score(&game.board, perspective);
     if let Some(path) = exact_secure_specific_mana_path_from(game, perspective, drainer, wanted) {
         if let Some(step) = path.first().copied() {
@@ -3932,6 +4524,9 @@ fn safe_progress_seeds(
             });
         }
     }
+    if checkpoint() {
+        return Vec::new();
+    }
     if remaining_moves_for_color(game, perspective) > 0 {
         if let Some(target_mana) = nearest_wanted_mana_location(&game.board, wanted) {
             let before_dist = drainer.distance(&target_mana);
@@ -3942,6 +4537,9 @@ fn safe_progress_seeds(
                 .score_path_best_steps
                 .unwrap_or(Config::BOARD_SIZE * 3);
             for &next in drainer.nearby_locations_ref() {
+                if checkpoint() {
+                    return Vec::new();
+                }
                 if !walk_destination_plausible(&game.board, drainer, next) {
                     continue;
                 }
@@ -3960,6 +4558,9 @@ fn safe_progress_seeds(
                     wanted,
                     MonsGameModel::search_state_hash(&after),
                 );
+                if cancelled() {
+                    return Vec::new();
+                }
                 let after_safety = own_drainer_safety_score(&after.board, perspective);
                 let after_exact_steps =
                     after_exact.progress_steps.unwrap_or(Config::BOARD_SIZE * 3);
@@ -4268,7 +4869,7 @@ fn oracle_walk_seeds_with_projection_mode(
     allowed_families: Option<&[TurnPlanFamily]>,
     use_lazy_score_window_projection: bool,
 ) -> Vec<ActionSeed> {
-    if remaining_moves_for_color(game, perspective) <= 0 {
+    if checkpoint() || remaining_moves_for_color(game, perspective) <= 0 {
         return Vec::new();
     }
 
@@ -4288,6 +4889,9 @@ fn oracle_walk_seeds_with_projection_mode(
     } else {
         (0, 0)
     };
+    if checkpoint() {
+        return Vec::new();
+    }
     let before_safety = if allow_supermana || allow_safety {
         own_drainer_safety_score(&game.board, perspective)
     } else {
@@ -4304,6 +4908,9 @@ fn oracle_walk_seeds_with_projection_mode(
     let mut projection_memo = TurnEngineProjectionMemo::default();
 
     for (actor, item) in game.board.occupied() {
+        if checkpoint() {
+            return Vec::new();
+        }
         let Some(mon) = item.mon().copied() else {
             continue;
         };
@@ -4324,6 +4931,9 @@ fn oracle_walk_seeds_with_projection_mode(
             continue;
         }
         for &to in actor.nearby_locations_ref() {
+            if checkpoint() {
+                return Vec::new();
+            }
             if !walk_destination_plausible(&game.board, actor, to) {
                 continue;
             }
@@ -4372,6 +4982,9 @@ fn oracle_walk_seeds_with_projection_mode(
             } else {
                 None
             };
+            if cancelled() {
+                return Vec::new();
+            }
             let after_spirit = if need_after_spirit {
                 strategic_spirit_signal_with_search_hash(
                     &after,
@@ -4571,7 +5184,7 @@ fn spirit_impact_seeds(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Vec<ActionSeed> {
-    if !config.enable_spirit_family {
+    if checkpoint() || !config.enable_spirit_family {
         return Vec::new();
     }
     if !game.player_can_use_action() {
@@ -4585,8 +5198,14 @@ fn spirit_impact_seeds(
         MonsGameModel::search_state_hash(game),
         tactical_flags,
     );
+    if checkpoint() {
+        return Vec::new();
+    }
     let before_safety = own_drainer_safety_score(&game.board, perspective);
     for (spirit_location, item) in game.board.occupied() {
+        if checkpoint() {
+            return Vec::new();
+        }
         let Some(mon) = item.mon().copied() else {
             continue;
         };
@@ -4598,6 +5217,9 @@ fn spirit_impact_seeds(
         }
 
         for &target in spirit_location.reachable_by_spirit_action_ref() {
+            if checkpoint() {
+                return Vec::new();
+            }
             let Some(target_item) = game.board.item(target).copied() else {
                 continue;
             };
@@ -4605,6 +5227,9 @@ fn spirit_impact_seeds(
                 continue;
             }
             for &destination in target.nearby_locations_ref() {
+                if checkpoint() {
+                    return Vec::new();
+                }
                 if !spirit_destination_allowed(&game.board, target_item, destination) {
                     continue;
                 }
@@ -4637,6 +5262,9 @@ fn spirit_impact_seeds(
                     MonsGameModel::search_state_hash(&after),
                     tactical_flags,
                 );
+                if checkpoint() {
+                    return Vec::new();
+                }
                 if after_turn.same_turn_score_window_value
                     > before_turn.same_turn_score_window_value
                 {
@@ -4859,6 +5487,14 @@ fn mana_tempo_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed> {
 
 impl TransitionCompilePool {
     fn new(game: &MonsGame, seeds: &[ActionSeed], config: TurnEngineConfig) -> Self {
+        let limit = compile_limit_for_config(config);
+        if checkpoint() {
+            return Self {
+                transitions: Vec::new(),
+                limit,
+                priority_locations: Vec::new(),
+            };
+        }
         let mut seen = HashSet::new();
         let mut priority_locations = Vec::new();
         for seed in seeds {
@@ -4868,13 +5504,15 @@ impl TransitionCompilePool {
                 }
             }
         }
-        let limit = compile_limit_for_config(config);
-        let transitions = MonsGameModel::enumerate_legal_transitions_with_priority(
+        let mut transitions = MonsGameModel::enumerate_legal_transitions_with_priority(
             game,
             limit,
             SuggestedStartInputOptions::for_automove(),
             priority_locations.as_slice(),
         );
+        if checkpoint() {
+            transitions.clear();
+        }
         Self {
             transitions,
             limit,
@@ -4883,19 +5521,26 @@ impl TransitionCompilePool {
     }
 
     fn expand(&mut self, game: &MonsGame) -> bool {
-        if self.transitions.len() < self.limit || self.limit >= TURN_ENGINE_COMPILE_LIMIT_MAX {
+        if checkpoint()
+            || self.transitions.len() < self.limit
+            || self.limit >= TURN_ENGINE_COMPILE_LIMIT_MAX
+        {
             return false;
         }
         let next_limit = (self.limit.saturating_mul(2)).min(TURN_ENGINE_COMPILE_LIMIT_MAX);
         if next_limit <= self.limit {
             return false;
         }
-        self.transitions = MonsGameModel::enumerate_legal_transitions_with_priority(
+        let transitions = MonsGameModel::enumerate_legal_transitions_with_priority(
             game,
             next_limit,
             SuggestedStartInputOptions::for_automove(),
             self.priority_locations.as_slice(),
         );
+        if checkpoint() {
+            return false;
+        }
+        self.transitions = transitions;
         self.limit = next_limit;
         true
     }
@@ -4938,9 +5583,15 @@ fn compile_action_direct(
     perspective: Color,
     action: TurnAction,
 ) -> Option<(MonsGame, Vec<Input>)> {
+    if checkpoint() {
+        return None;
+    }
     let inputs = direct_inputs_for_action(action);
     let (after, events) =
         MonsGameModel::apply_inputs_for_search_with_events(game, inputs.as_slice())?;
+    if checkpoint() {
+        return None;
+    }
     if !transition_matches_action(game, &after, events.as_slice(), perspective, action) {
         return None;
     }
@@ -4958,8 +5609,14 @@ fn best_transition_for_action(
     action: TurnAction,
     transitions: &[LegalInputTransition],
 ) -> Option<(i32, usize)> {
+    if checkpoint() {
+        return None;
+    }
     let mut best: Option<(i32, usize)> = None;
     for (index, transition) in transitions.iter().enumerate() {
+        if checkpoint() {
+            return None;
+        }
         if !transition_matches_action(
             game,
             &transition.game,
@@ -4992,9 +5649,15 @@ fn compile_action_from_pool_fallback(
     action: TurnAction,
     compile_pool: &mut TransitionCompilePool,
 ) -> Option<(MonsGame, Vec<Input>)> {
+    if checkpoint() {
+        return None;
+    }
     let mut best = best_transition_for_action(game, perspective, action, &compile_pool.transitions);
     if best.is_none() && compile_pool.expand(game) {
         best = best_transition_for_action(game, perspective, action, &compile_pool.transitions);
+    }
+    if checkpoint() {
+        return None;
     }
 
     let (_, best_index) = best?;
@@ -5019,11 +5682,17 @@ fn compile_action_from_pool(
     action: TurnAction,
     compile_pool: &mut TransitionCompilePool,
 ) -> Option<(MonsGame, Vec<Input>)> {
+    if checkpoint() {
+        return None;
+    }
     update_turn_engine_diagnostics(|diagnostics| diagnostics.compile_attempts += 1);
     record_compile_attempt_for_action(action);
 
     if let Some(compiled) = compile_action_direct(game, perspective, action) {
         return Some(compiled);
+    }
+    if cancelled() {
+        return None;
     }
 
     let Some(compiled) = compile_action_from_pool_fallback(game, perspective, action, compile_pool)
@@ -5045,11 +5714,17 @@ fn compile_action(
     action: TurnAction,
     config: TurnEngineConfig,
 ) -> Option<(MonsGame, Vec<Input>)> {
+    if checkpoint() {
+        return None;
+    }
     update_turn_engine_diagnostics(|diagnostics| diagnostics.compile_attempts += 1);
     record_compile_attempt_for_action(action);
 
     if let Some(compiled) = compile_action_direct(game, perspective, action) {
         return Some(compiled);
+    }
+    if cancelled() {
+        return None;
     }
 
     let seed = ActionSeed {
@@ -5485,6 +6160,9 @@ fn events_include_opponent_drainer_faint(events: &[Event], perspective: Color) -
 }
 
 fn cached_step_if_legal(game: &MonsGame, config: TurnEngineConfig) -> Option<Vec<Input>> {
+    if checkpoint() {
+        return None;
+    }
     let key = TurnEngineContinuationCacheKey {
         state_hash: MonsGameModel::search_state_hash(game),
         mode: config.mode,
@@ -5495,10 +6173,17 @@ fn cached_step_if_legal(game: &MonsGame, config: TurnEngineConfig) -> Option<Vec
         let cached = cache.get(&key).cloned();
         match cached {
             Some(inputs) => {
-                if MonsGameModel::apply_inputs_for_search(game, inputs.as_slice()).is_some() {
+                let legal =
+                    MonsGameModel::apply_inputs_for_search(game, inputs.as_slice()).is_some();
+                if checkpoint() {
+                    return None;
+                }
+                if legal {
                     Some(inputs)
                 } else {
-                    cache.remove(&key);
+                    if cache_write_allowed() {
+                        cache.remove(&key);
+                    }
                     None
                 }
             }
@@ -5509,6 +6194,9 @@ fn cached_step_if_legal(game: &MonsGame, config: TurnEngineConfig) -> Option<Vec
 
 #[allow(dead_code)]
 fn should_attempt_pro_v2_turn_engine(game: &MonsGame, perspective: Color) -> bool {
+    if checkpoint() {
+        return false;
+    }
     let key = TurnEngineCacheKey {
         state_hash: MonsGameModel::search_state_hash(game),
         mode: TurnEngineMode::ProV2,
@@ -5516,13 +6204,16 @@ fn should_attempt_pro_v2_turn_engine(game: &MonsGame, perspective: Color) -> boo
     if let Some(cached) =
         TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| cache.borrow().get(&key).copied())
     {
-        return cached;
+        return !checkpoint() && cached;
     }
 
     let is_turn_start =
         game.mons_moves_count == 0 && game.player_can_use_action() && game.player_can_move_mana();
     let state_hash = key.state_hash;
     let context = exact_opportunity_context_with_search_hash(game, perspective, state_hash);
+    if checkpoint() {
+        return false;
+    }
     let has_meaningful_budget = context.budget.remaining_mon_moves >= 2
         || context.budget.can_use_action
         || context.budget.can_move_mana;
@@ -5531,6 +6222,9 @@ fn should_attempt_pro_v2_turn_engine(game: &MonsGame, perspective: Color) -> boo
     } else {
         let strategic =
             exact_strategic_analysis_with_search_hash(game, state_hash).color_summary(perspective);
+        if checkpoint() {
+            return false;
+        }
         let spirit_setup_gain = strategic.spirit.next_turn_setup_gain;
         let turn_start_strategic_surface = is_turn_start
             && (spirit_setup_gain > 0
@@ -5546,13 +6240,15 @@ fn should_attempt_pro_v2_turn_engine(game: &MonsGame, perspective: Color) -> boo
             || context.delta.drainer_safety < 0
     };
 
-    TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
-            cache.clear();
-        }
-        cache.insert(key, allowed);
-    });
+    if cache_write_allowed() {
+        TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
+                cache.clear();
+            }
+            cache.insert(key, allowed);
+        });
+    }
     allowed
 }
 
@@ -5590,16 +6286,22 @@ fn register_plan_continuations(
     plan: &TurnPlan,
     config: TurnEngineConfig,
 ) {
-    if plan.compiled_chunks.is_empty() {
+    if checkpoint() || plan.compiled_chunks.is_empty() {
         return;
     }
     let mut state = game.clone_for_simulation();
     let start_color = game.active_color;
     for (chunk_index, chunk) in plan.compiled_chunks.iter().enumerate() {
+        if checkpoint() {
+            return;
+        }
         if chunk_index > 0 && matches!(mode, TurnEngineMode::ProV2) {
             let Some(fresh_plan) = turn_engine_candidate_plan(&state, perspective, config) else {
                 break;
             };
+            if checkpoint() {
+                return;
+            }
             if fresh_plan.compiled_chunks.first() != Some(chunk) {
                 break;
             }
@@ -5609,13 +6311,17 @@ fn register_plan_continuations(
             mode,
             config_fingerprint: turn_engine_config_fingerprint(config),
         };
-        TURN_ENGINE_CONTINUATION_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
-                cache.clear();
-            }
-            cache.insert(key, chunk.clone());
-        });
+        if cache_write_allowed() {
+            TURN_ENGINE_CONTINUATION_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
+                    cache.clear();
+                }
+                cache.insert(key, chunk.clone());
+            });
+        } else {
+            return;
+        }
         let Some(next) = MonsGameModel::apply_inputs_for_search(&state, chunk.as_slice()) else {
             break;
         };
@@ -6745,5 +7451,68 @@ mod tests {
         let diagnostics = turn_engine_diagnostics_snapshot();
         assert_eq!(diagnostics.cache_hits, 0);
         assert_eq!(diagnostics.cache_misses, 1);
+    }
+
+    #[test]
+    fn turn_engine_expired_deadline_discards_plans_and_frontiers() {
+        clear_turn_engine_plan_cache();
+        let game = immediate_score_fixture();
+        let config = engine_config();
+
+        crate::models::automove_deadline::with_test_clock(0.0, || {
+            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
+                assert!(turn_engine_candidate_plan(&game, Color::White, config).is_none());
+                assert!(turn_engine_candidate_plan_live(&game, Color::White, config).is_none());
+                assert!(
+                    turn_engine_head_candidate_plans(&game, Color::White, config, 4).is_empty()
+                );
+                assert!(matches!(
+                    generate_turn_plans(&game, Color::White, config, 8, 4, 4, 64),
+                    Err(PlanBuildStatus::BudgetExceeded)
+                ));
+            });
+        });
+
+        assert!(TURN_ENGINE_BEST_PLAN_CACHE.with(|cache| cache.borrow().is_empty()));
+        assert!(TURN_ENGINE_NO_PLAN_CACHE.with(|cache| cache.borrow().is_empty()));
+    }
+
+    #[test]
+    fn turn_engine_expired_deadline_blocks_every_runtime_cache_write() {
+        clear_turn_engine_plan_cache();
+        let game = immediate_score_fixture();
+        let config = engine_config();
+
+        crate::models::automove_deadline::with_test_clock(0.0, || {
+            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
+                assert_eq!(
+                    evaluate_state_utility(&game, &game, Color::White, config),
+                    TurnEngineUtility::default()
+                );
+                let _ = turn_oracle_context(&game, Color::White);
+                assert!(!should_attempt_pro_v2_turn_engine(&game, Color::White));
+                turn_engine_store_cached_step(
+                    &game,
+                    TurnEngineMode::ProV1,
+                    config,
+                    &[Input::Location(Location::new(0, 0))],
+                );
+                let mut memo = TurnEngineProjectionMemo::default();
+                let _ = memo.projection(
+                    &game,
+                    Color::White,
+                    MonsGameModel::search_state_hash(&game),
+                    TurnEngineProjectionProfile::SpiritScoreOnly,
+                );
+                assert!(memo.entries.is_empty());
+            });
+        });
+
+        assert!(TURN_ENGINE_CONTINUATION_CACHE.with(|cache| cache.borrow().is_empty()));
+        assert!(TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| cache.borrow().is_empty()));
+        assert!(TURN_ENGINE_ORACLE_CACHE.with(|cache| cache.borrow().is_empty()));
+        assert!(TURN_ENGINE_UTILITY_CACHE.with(|cache| cache.borrow().is_empty()));
+        assert!(TURN_ENGINE_BEST_PLAN_CACHE.with(|cache| cache.borrow().is_empty()));
+        assert!(TURN_ENGINE_NO_PLAN_CACHE.with(|cache| cache.borrow().is_empty()));
     }
 }

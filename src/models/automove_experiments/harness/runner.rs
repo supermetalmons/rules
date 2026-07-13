@@ -1,5 +1,6 @@
 use super::super::profiles::profile_selector_from_name;
 use super::super::*;
+use crate::models::automove_deadline;
 use crate::models::automove_exact::clear_exact_state_analysis_cache;
 use crate::models::automove_turn_engine::clear_turn_engine_plan_cache;
 use crate::models::mons_game_model::clear_turn_engine_selector_diagnostics;
@@ -293,9 +294,6 @@ pub(in super::super) fn play_one_game_budget_duel_with_timing(
     max_plies: usize,
 ) -> (MatchResult, DuelTimingStats) {
     let mut game = MonsGame::from_fen(opening_fen, false).expect("valid opening fen");
-    clear_exact_state_analysis_cache();
-    clear_turn_engine_plan_cache();
-    clear_turn_engine_selector_diagnostics();
     let mut timing = DuelTimingStats::default();
 
     for _ in 0..max_plies {
@@ -315,16 +313,90 @@ pub(in super::super) fn play_one_game_budget_duel_with_timing(
         };
 
         let config = actor_budget.runtime_config_for_game(&game);
+        reset_duel_selector_state();
         let start = Instant::now();
-        let inputs = select_inputs_with_runtime_fallback(actor_model.select_inputs, &game, config);
+        // Promotion reliability must observe the production selector's raw return. The
+        // generic experiment fallback below is useful for exploratory games, but using it
+        // here would hide an empty production result from the strict invalid-output gate.
+        let inputs = (actor_model.select_inputs)(&game, config);
         let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
+        if env_usize("SMART_DUEL_SLOW_CALL_MS")
+            .is_some_and(|threshold_ms| elapsed_ms >= threshold_ms as f64)
+        {
+            println!(
+                "AUTOMOVE_DUEL_SLOW_CALL {{\"phase\":\"original\",\"profile\":\"{}\",\"mode\":\"{}\",\"elapsed_ms\":{:.3},\"active_color\":\"{:?}\",\"turn_number\":{},\"mons_moves_count\":{},\"fen\":\"{}\"}}",
+                if a_to_move { "a" } else { "b" },
+                actor_budget.key(),
+                elapsed_ms,
+                game.active_color,
+                game.turn_number,
+                game.mons_moves_count,
+                game.fen(),
+            );
+        }
         if a_to_move {
             timing.record_profile_a_turn(elapsed_ms);
         } else {
             timing.record_profile_b_turn(elapsed_ms);
         }
 
+        if env_bool("SMART_DUEL_VERIFY_DETERMINISM").unwrap_or(false) {
+            reset_duel_selector_state();
+            let verify_start = Instant::now();
+            let verify_inputs = (actor_model.select_inputs)(&game, config);
+            let verify_elapsed_ms = verify_start.elapsed().as_secs_f64() * 1000.0;
+            let replay_matches = verify_inputs == inputs;
+            let replay_is_valid = !verify_inputs.is_empty()
+                && MonsGameModel::apply_inputs_for_search_with_events(&game, &verify_inputs)
+                    .is_some();
+            if env_usize("SMART_DUEL_SLOW_CALL_MS")
+                .is_some_and(|threshold_ms| verify_elapsed_ms >= threshold_ms as f64)
+            {
+                println!(
+                    "AUTOMOVE_DUEL_SLOW_CALL {{\"phase\":\"cold_replay\",\"profile\":\"{}\",\"mode\":\"{}\",\"elapsed_ms\":{:.3},\"active_color\":\"{:?}\",\"turn_number\":{},\"mons_moves_count\":{},\"fen\":\"{}\"}}",
+                    if a_to_move { "a" } else { "b" },
+                    actor_budget.key(),
+                    verify_elapsed_ms,
+                    game.active_color,
+                    game.turn_number,
+                    game.mons_moves_count,
+                    game.fen(),
+                );
+            }
+            if !replay_matches {
+                println!(
+                    "AUTOMOVE_DUEL_REPLAY_MISMATCH {{\"profile\":\"{}\",\"mode\":\"{}\",\"original_elapsed_ms\":{:.3},\"replay_elapsed_ms\":{:.3},\"active_color\":\"{:?}\",\"turn_number\":{},\"mons_moves_count\":{},\"original_inputs\":\"{}\",\"replay_inputs\":\"{}\",\"fen\":\"{}\"}}",
+                    if a_to_move { "a" } else { "b" },
+                    actor_budget.key(),
+                    elapsed_ms,
+                    verify_elapsed_ms,
+                    game.active_color,
+                    game.turn_number,
+                    game.mons_moves_count,
+                    Input::fen_from_array(inputs.as_slice()),
+                    Input::fen_from_array(verify_inputs.as_slice()),
+                    game.fen(),
+                );
+            }
+            if a_to_move {
+                timing.record_profile_a_verification(verify_elapsed_ms, replay_matches);
+                if !replay_is_valid {
+                    timing.record_profile_a_invalid_or_empty();
+                }
+            } else {
+                timing.record_profile_b_verification(verify_elapsed_ms, replay_matches);
+                if !replay_is_valid {
+                    timing.record_profile_b_invalid_or_empty();
+                }
+            }
+        }
+
         if inputs.is_empty() {
+            if a_to_move {
+                timing.record_profile_a_invalid_or_empty();
+            } else {
+                timing.record_profile_b_invalid_or_empty();
+            }
             return (
                 if a_to_move {
                     MatchResult::ProfileBWin
@@ -336,6 +408,11 @@ pub(in super::super) fn play_one_game_budget_duel_with_timing(
         }
 
         if !matches!(game.process_input(inputs, false, false), Output::Events(_)) {
+            if a_to_move {
+                timing.record_profile_a_invalid_or_empty();
+            } else {
+                timing.record_profile_b_invalid_or_empty();
+            }
             return (
                 if a_to_move {
                     MatchResult::ProfileBWin
@@ -367,6 +444,16 @@ pub(in super::super) fn match_result_from_winner(
     } else {
         MatchResult::ProfileBWin
     }
+}
+
+fn reset_duel_selector_state() {
+    // Every timed call in the determinism gate must begin from the same cold state. In
+    // particular, consume the previous selector's timeout latch before it can alter the next
+    // call's cache-cleanup path.
+    let _ = automove_deadline::take_previous_timeout();
+    clear_exact_state_analysis_cache();
+    clear_turn_engine_plan_cache();
+    clear_turn_engine_selector_diagnostics();
 }
 
 pub(in super::super) fn adjudicate_non_terminal_game(game: &MonsGame) -> Option<Color> {
@@ -612,6 +699,12 @@ pub(in super::super) fn mirrored_profile_a_timing(
         profile_b_total_ms: ab.profile_b_total_ms + ba.profile_a_total_ms,
         profile_a_turns: ab.profile_a_turns + ba.profile_b_turns,
         profile_b_turns: ab.profile_b_turns + ba.profile_a_turns,
+        profile_a_max_ms: ab.profile_a_max_ms.max(ba.profile_b_max_ms),
+        profile_b_max_ms: ab.profile_b_max_ms.max(ba.profile_a_max_ms),
+        profile_a_invalid_or_empty: ab.profile_a_invalid_or_empty + ba.profile_b_invalid_or_empty,
+        profile_b_invalid_or_empty: ab.profile_b_invalid_or_empty + ba.profile_a_invalid_or_empty,
+        profile_a_nondeterministic: ab.profile_a_nondeterministic + ba.profile_b_nondeterministic,
+        profile_b_nondeterministic: ab.profile_b_nondeterministic + ba.profile_a_nondeterministic,
     }
 }
 

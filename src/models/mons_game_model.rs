@@ -2144,7 +2144,9 @@ impl TargetedExactTurnSummaryMemo {
         let summary = crate::models::automove_exact::exact_turn_summary_with_search_hash(
             game, color, state_hash,
         );
-        self.entries.insert(state_hash, summary);
+        if crate::models::automove_deadline::cache_write_allowed() {
+            self.entries.insert(state_hash, summary);
+        }
         summary
     }
 }
@@ -2640,7 +2642,9 @@ impl MonsGameModel {
     ) -> Vec<Input> {
         match preference {
             SmartAutomovePreference::Pro => {
-                automove_runtime_variants::select_frontier_pro_v2_guarded_inputs(&self.game, config)
+                automove_runtime_variants::select_frontier_pro_v10_bounded_tactical_inputs(
+                    &self.game, config,
+                )
             }
             SmartAutomovePreference::Fast | SmartAutomovePreference::Normal => {
                 automove_runtime_variants::select_shipping_search_inputs(&self.game, config)
@@ -3405,6 +3409,9 @@ impl MonsGameModel {
         simulated_game: MonsGame,
         events: Vec<Event>,
     ) -> Option<ScoredRootMove> {
+        if crate::models::automove_deadline::checkpoint() {
+            return None;
+        }
         let before_state_hash = Self::search_state_hash(game);
         let simulated_state_hash = Self::search_state_hash(&simulated_game);
         let before_efficiency_snapshot = config.enable_root_efficiency.then(|| {
@@ -3438,6 +3445,9 @@ impl MonsGameModel {
         } else {
             0
         };
+        if crate::models::automove_deadline::checkpoint() {
+            return None;
+        }
         let heuristic = Self::score_state(
             &simulated_game,
             perspective,
@@ -3446,6 +3456,9 @@ impl MonsGameModel {
             config.scoring_weights,
             config.enable_static_exact_evaluation,
         );
+        if crate::models::automove_deadline::checkpoint() {
+            return None;
+        }
         let ordering_bonus = if config.enable_event_ordering_bonus {
             Self::ordering_event_bonus(game.active_color, perspective, &events)
         } else {
@@ -3476,6 +3489,9 @@ impl MonsGameModel {
                 ..ExactTurnSummary::default()
             }
         };
+        if crate::models::automove_deadline::checkpoint() {
+            return None;
+        }
         let unknown_progress_steps = Config::BOARD_SIZE + 4;
         let safe_supermana_progress_steps = exact_turn
             .safe_supermana_progress_steps
@@ -3506,6 +3522,9 @@ impl MonsGameModel {
                 spirit_own_mana_setup_now,
             )
         };
+        if crate::models::automove_deadline::checkpoint() {
+            return None;
+        }
         let safe_supermana_pickup_now = Self::events_pickup_supermana(&events)
             && Self::own_drainer_carries_specific_mana_safely(
                 &simulated_game.board,
@@ -3551,6 +3570,9 @@ impl MonsGameModel {
             } else {
                 false
             };
+        if crate::models::automove_deadline::checkpoint() {
+            return None;
+        }
         let score_before = Self::score_for_color(game, perspective);
         let score_after = Self::score_for_color(&simulated_game, perspective);
         let scored_two_or_more = score_after >= score_before.saturating_add(2);
@@ -3666,6 +3688,9 @@ impl MonsGameModel {
         };
         let heuristic_with_policy = heuristic_with_policy.saturating_add(intent_profile_bonus);
 
+        if crate::models::automove_deadline::checkpoint() {
+            return None;
+        }
         Some(ScoredRootMove {
             root_rank: 0,
             inputs,
@@ -4422,6 +4447,9 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         max_candidates: usize,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let spirit_locations = Self::find_awake_spirit_locations(game, perspective);
         if spirit_locations.is_empty() || !game.player_can_use_action() {
             return Vec::new();
@@ -4432,6 +4460,9 @@ impl MonsGameModel {
         let mut setup_inputs = Vec::new();
 
         for spirit_loc in spirit_locations {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if setup_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -4446,9 +4477,15 @@ impl MonsGameModel {
                 per_spirit_enum_limit,
                 start_options,
             );
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             spirit_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
 
             for transition in spirit_transitions {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if setup_inputs.len() >= max_candidates.max(1) {
                     break;
                 }
@@ -4544,6 +4581,9 @@ impl MonsGameModel {
         opponent_mana_only: bool,
         exact_turn_memo: &mut Option<TargetedExactTurnSummaryMemo>,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let spirit_locations = Self::find_awake_spirit_locations(game, perspective);
         if spirit_locations.is_empty() || !game.player_can_use_action() {
             return Vec::new();
@@ -4553,6 +4593,9 @@ impl MonsGameModel {
         let mut score_inputs = Vec::new();
 
         for spirit_loc in spirit_locations {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if score_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -4561,6 +4604,9 @@ impl MonsGameModel {
             }
 
             for &target in spirit_loc.reachable_by_spirit_action_ref() {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if score_inputs.len() >= max_candidates.max(1) {
                     break;
                 }
@@ -4572,6 +4618,9 @@ impl MonsGameModel {
                 }
 
                 for &dest in target.nearby_locations_ref() {
+                    if crate::models::automove_deadline::checkpoint() {
+                        return Vec::new();
+                    }
                     if score_inputs.len() >= max_candidates.max(1) {
                         break;
                     }
@@ -4604,6 +4653,9 @@ impl MonsGameModel {
                     } else {
                         None
                     };
+                    if crate::models::automove_deadline::cancelled() {
+                        return Vec::new();
+                    }
                     let after_same_turn_score_window_value =
                         after_turn.map_or(0, |turn| turn.same_turn_score_window_value);
                     let scores_now = if opponent_mana_only {
@@ -4635,6 +4687,9 @@ impl MonsGameModel {
         max_candidates: usize,
         exact_turn_memo: &mut Option<TargetedExactTurnSummaryMemo>,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         if !game.player_can_move_mon() && !game.player_can_use_action() {
             return Vec::new();
         }
@@ -4653,6 +4708,9 @@ impl MonsGameModel {
         let mut seen_inputs = std::collections::HashSet::new();
 
         for actor_loc in actor_locations {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             let mut actor_transitions = Vec::new();
             let mut partial_inputs = vec![Input::Location(actor_loc)];
             let mut simulated_game = game.clone_for_simulation();
@@ -4663,9 +4721,15 @@ impl MonsGameModel {
                 per_actor_enum_limit,
                 start_options,
             );
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             actor_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
 
             for transition in actor_transitions {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if transition.game.active_color != perspective {
                     continue;
                 }
@@ -4683,6 +4747,9 @@ impl MonsGameModel {
                     perspective,
                     exact_turn_memo,
                 );
+                if crate::models::automove_deadline::cancelled() {
+                    return Vec::new();
+                }
                 if exact_turn.same_turn_score_window_value <= 0 {
                     continue;
                 }
@@ -4736,6 +4803,9 @@ impl MonsGameModel {
         max_candidates: usize,
         require_walk_safe: bool,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let actor_locations = Self::find_awake_mon_locations(game, perspective);
         if actor_locations.is_empty() {
             return Vec::new();
@@ -4747,6 +4817,9 @@ impl MonsGameModel {
         let mut seen_inputs = std::collections::HashSet::new();
 
         for actor_loc in actor_locations {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if safety_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -4761,9 +4834,15 @@ impl MonsGameModel {
                 per_actor_enum_limit,
                 start_options,
             );
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             actor_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
 
             for transition in actor_transitions {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if safety_inputs.len() >= max_candidates.max(1) {
                     break;
                 }
@@ -4844,6 +4923,9 @@ impl MonsGameModel {
         max_candidates: usize,
         wanted_mana: Mana,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         if !game.player_can_move_mon() && !game.player_can_use_action() {
             return Vec::new();
         }
@@ -4860,6 +4942,9 @@ impl MonsGameModel {
         let mut seen_inputs = std::collections::HashSet::new();
 
         for actor_loc in actor_locations {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if progress_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -4874,9 +4959,15 @@ impl MonsGameModel {
                 per_actor_enum_limit,
                 start_options,
             );
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             actor_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
 
             for transition in actor_transitions {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if progress_inputs.len() >= max_candidates.max(1) {
                     break;
                 }
@@ -4977,6 +5068,9 @@ impl MonsGameModel {
         max_candidates: usize,
         wanted_mana: Mana,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let drainer_locations = Self::find_awake_drainer_locations(game, perspective);
         if drainer_locations.is_empty() || !game.player_can_move_mon() {
             return Vec::new();
@@ -4986,6 +5080,9 @@ impl MonsGameModel {
         let mut seen_inputs = std::collections::HashSet::new();
 
         for drainer_loc in drainer_locations {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if pickup_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -4995,6 +5092,9 @@ impl MonsGameModel {
             else {
                 continue;
             };
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             if path.is_empty() {
                 continue;
             }
@@ -5046,12 +5146,17 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         max_candidates: usize,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let attacker_locations = Self::find_potential_drainer_attacker_locations(game, perspective);
         if attacker_locations.is_empty() {
             return Vec::new();
         }
-        let attacker_set: std::collections::HashSet<Location> =
-            attacker_locations.into_iter().collect();
+        let mut attacker_mask = [false; BOARD_CELLS];
+        for attacker_location in attacker_locations {
+            attacker_mask[attacker_location.index()] = true;
+        }
 
         let mut memo_true = U64HashSet::default();
         let mut attack_inputs = Vec::new();
@@ -5061,19 +5166,20 @@ impl MonsGameModel {
         let enum_limit = base_enum * 2;
         let start_options = Self::automove_start_input_options(config);
 
-        let mut root_transitions =
-            Self::enumerate_legal_transitions(game, usize::MAX, start_options);
-        root_transitions.retain(|transition| {
-            matches!(
-                transition.inputs.first(),
-                Some(Input::Location(loc)) if attacker_set.contains(loc)
-            )
-        });
-        if root_transitions.len() > enum_limit {
-            root_transitions.truncate(enum_limit);
+        let root_transitions = Self::enumerate_legal_transitions_lexicographic_bounded(
+            game,
+            enum_limit,
+            start_options,
+            Some(&attacker_mask),
+        );
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
         }
 
         for transition in root_transitions {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if attack_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -5106,6 +5212,9 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         max_candidates: usize,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let attacker_locations = Self::find_potential_drainer_attacker_locations(game, perspective);
         if attacker_locations.is_empty() {
             return Vec::new();
@@ -5119,6 +5228,9 @@ impl MonsGameModel {
         let start_options = Self::automove_start_input_options(config);
 
         for &attacker_loc in &attacker_locations {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if attack_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -5133,9 +5245,15 @@ impl MonsGameModel {
                 per_mon_enum_limit,
                 start_options,
             );
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             per_mon_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
 
             for transition in per_mon_transitions {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if attack_inputs.len() >= max_candidates.max(1) {
                     break;
                 }
@@ -5172,17 +5290,27 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         max_candidates: usize,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let mut memo_true = U64HashSet::default();
         let mut attack_inputs = Vec::new();
         let mut continuation_budget = Self::forced_drainer_attack_fallback_node_budget(config);
         let enum_limit = Self::forced_drainer_attack_fallback_enum_limit(config);
         let start_options = Self::automove_start_input_options(config);
-        let mut root_transitions =
-            Self::enumerate_legal_transitions(game, usize::MAX, start_options);
-        if root_transitions.len() > enum_limit {
-            root_transitions.truncate(enum_limit);
+        let root_transitions = Self::enumerate_legal_transitions_lexicographic_bounded(
+            game,
+            enum_limit,
+            start_options,
+            None,
+        );
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
         }
         for transition in root_transitions {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             if attack_inputs.len() >= max_candidates.max(1) {
                 break;
             }
@@ -5217,6 +5345,9 @@ impl MonsGameModel {
         continuation_budget: &mut usize,
         memo_true: &mut U64HashSet,
     ) -> bool {
+        if crate::models::automove_deadline::checkpoint() {
+            return false;
+        }
         if game.active_color != perspective || *continuation_budget == 0 {
             return false;
         }
@@ -5226,7 +5357,7 @@ impl MonsGameModel {
         }
         *continuation_budget = continuation_budget.saturating_sub(1);
         let can_attack = can_attack_opponent_drainer_this_turn(game, perspective);
-        if can_attack {
+        if can_attack && crate::models::automove_deadline::cache_write_allowed() {
             memo_true.insert(state_hash);
         }
         can_attack
@@ -5237,6 +5368,9 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Vec<ScoredRootMove> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let mut candidates = Vec::new();
         let own_drainer_vulnerable_before = if config.enable_move_class_coverage {
             Self::is_own_drainer_vulnerable_next_turn(
@@ -5317,6 +5451,9 @@ impl MonsGameModel {
                 }
             }
         }
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
         if config.enable_walk_threat_prefilter
             && own_drainer_walk_vulnerable_before
             && !root_transitions.iter().any(|transition| {
@@ -5351,6 +5488,9 @@ impl MonsGameModel {
                 }
             }
         }
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
 
         let exact_turn_before = if config.enable_root_exact_tactics {
             exact_turn_summary(game, perspective)
@@ -5369,6 +5509,9 @@ impl MonsGameModel {
         } else {
             Self::live_spirit_setup_gain(&exact_turn_before, false, false, false)
         };
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         if exact_turn_before.safe_supermana_progress
             && !root_transitions.iter().any(|transition| {
                 Self::events_pickup_supermana(&transition.events)
@@ -5398,6 +5541,9 @@ impl MonsGameModel {
                 }
             }
         }
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
         if exact_turn_before.safe_opponent_mana_progress
             && !root_transitions.iter().any(|transition| {
                 Self::events_pickup_opponent_mana(&transition.events, perspective)
@@ -5426,6 +5572,9 @@ impl MonsGameModel {
                     }
                 }
             }
+        }
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
         }
         if config.enable_root_exact_tactics
             && exact_turn_before.spirit_assisted_score
@@ -5474,6 +5623,9 @@ impl MonsGameModel {
                 }
             }
         }
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
         if config.enable_root_exact_tactics
             && exact_turn_before.spirit_assisted_denial
             && !root_transitions.iter().any(|transition| {
@@ -5503,6 +5655,9 @@ impl MonsGameModel {
                     }
                 }
             }
+        }
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
         }
         if (config.enable_interview_hard_spirit_deploy
             || config.enable_root_spirit_development_pref)
@@ -5537,10 +5692,16 @@ impl MonsGameModel {
                 }
             }
         }
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
 
         let mut remaining_exact_lite_root_calls = config.exact_lite_root_call_budget;
         let mut remaining_exact_lite_static_calls = config.exact_lite_static_call_budget;
         for transition in root_transitions {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             let transition_config = Self::with_exact_lite_budgeted_transition_config(
                 config,
                 perspective,
@@ -5549,7 +5710,7 @@ impl MonsGameModel {
                 &mut remaining_exact_lite_root_calls,
                 &mut remaining_exact_lite_static_calls,
             );
-            if let Some(candidate) = Self::build_scored_root_move_from_transition(
+            let candidate = Self::build_scored_root_move_from_transition(
                 game,
                 perspective,
                 transition_config,
@@ -5557,7 +5718,11 @@ impl MonsGameModel {
                 transition.inputs,
                 transition.game,
                 transition.events,
-            ) {
+            );
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
+            if let Some(candidate) = candidate {
                 candidates.push(candidate);
             }
         }
@@ -5566,7 +5731,13 @@ impl MonsGameModel {
             let fallback_limit = Self::generic_root_fallback_enum_limit(config);
             let fallback_transitions =
                 Self::enumerate_legal_transitions(game, fallback_limit, start_options);
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             for transition in fallback_transitions {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 let transition_config = Self::with_exact_lite_budgeted_transition_config(
                     config,
                     perspective,
@@ -5575,7 +5746,7 @@ impl MonsGameModel {
                     &mut remaining_exact_lite_root_calls,
                     &mut remaining_exact_lite_static_calls,
                 );
-                if let Some(candidate) = Self::build_scored_root_move_from_transition(
+                let candidate = Self::build_scored_root_move_from_transition(
                     game,
                     perspective,
                     transition_config,
@@ -5583,7 +5754,11 @@ impl MonsGameModel {
                     transition.inputs,
                     transition.game,
                     transition.events,
-                ) {
+                );
+                if crate::models::automove_deadline::cancelled() {
+                    return Vec::new();
+                }
+                if let Some(candidate) = candidate {
                     candidates.push(candidate);
                 }
             }
@@ -5625,6 +5800,9 @@ impl MonsGameModel {
                     fallback_limit,
                 )
             };
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
 
             if !fallback_inputs.is_empty() {
                 let forced_inputs = fallback_inputs
@@ -5637,6 +5815,9 @@ impl MonsGameModel {
                     .collect::<std::collections::HashSet<_>>();
 
                 for transition in fallback_inputs {
+                    if crate::models::automove_deadline::checkpoint() {
+                        return Vec::new();
+                    }
                     if !seen_inputs.insert(transition.inputs.clone()) {
                         continue;
                     }
@@ -5648,7 +5829,7 @@ impl MonsGameModel {
                         &mut remaining_exact_lite_root_calls,
                         &mut remaining_exact_lite_static_calls,
                     );
-                    if let Some(candidate) = Self::build_scored_root_move_from_transition(
+                    let candidate = Self::build_scored_root_move_from_transition(
                         game,
                         perspective,
                         transition_config,
@@ -5656,7 +5837,11 @@ impl MonsGameModel {
                         transition.inputs,
                         transition.game,
                         transition.events,
-                    ) {
+                    );
+                    if crate::models::automove_deadline::cancelled() {
+                        return Vec::new();
+                    }
+                    if let Some(candidate) = candidate {
                         candidates.push(candidate);
                     }
                 }
@@ -5709,7 +5894,11 @@ impl MonsGameModel {
         for (root_rank, candidate) in candidates.iter_mut().enumerate() {
             candidate.root_rank = root_rank;
         }
-        candidates
+        if crate::models::automove_deadline::checkpoint() {
+            Vec::new()
+        } else {
+            candidates
+        }
     }
 
     fn is_better_tactical_root_candidate(
@@ -7446,9 +7635,11 @@ impl MonsGameModel {
                 }
             }
         };
-        TURN_ENGINE_SELECTED_OVERRIDE_UTILITY_CACHE.with(|cache| {
-            cache.borrow_mut().insert(cache_key, result);
-        });
+        if crate::models::automove_deadline::cache_write_allowed() {
+            TURN_ENGINE_SELECTED_OVERRIDE_UTILITY_CACHE.with(|cache| {
+                cache.borrow_mut().insert(cache_key, result);
+            });
+        }
         result
     }
 
@@ -10290,6 +10481,9 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         use_transposition_table: bool,
     ) -> Vec<Input> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         #[cfg(test)]
         let _turn_engine_selector_runtime_depth = TurnEngineSelectorRuntimeDepthGuard::enter();
         clear_exact_state_analysis_cache();
@@ -10416,6 +10610,9 @@ impl MonsGameModel {
         }
         if config.enable_turn_engine_selector {
             let mut root_moves = Self::ranked_root_moves(game, perspective, config);
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             if root_moves.is_empty() {
                 return Vec::new();
             }
@@ -10448,6 +10645,9 @@ impl MonsGameModel {
             } else {
                 turn_engine_candidate_plan(game, perspective, engine_config)
             };
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             #[cfg(test)]
             if engine_head_plan.is_some() {
                 update_turn_engine_selector_diagnostics(|diagnostics| {
@@ -10686,6 +10886,9 @@ impl MonsGameModel {
                         .then_some(advisor_priority_inputs.as_slice()),
                     None,
                 );
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             if root_moves.is_empty() {
                 return Vec::new();
             }
@@ -10716,6 +10919,9 @@ impl MonsGameModel {
                 let mut prelim_alpha = i32::MIN;
                 let mut prelim_scores: Vec<i32> = Vec::with_capacity(root_moves.len());
                 for candidate in root_moves.iter() {
+                    if crate::models::automove_deadline::checkpoint() {
+                        return Vec::new();
+                    }
                     if visited_nodes >= config.max_visited_nodes {
                         prelim_scores.push(i32::MIN);
                         continue;
@@ -10866,6 +11072,9 @@ impl MonsGameModel {
             return selected_inputs;
         }
         let mut root_moves = Self::ranked_root_moves(game, perspective, config);
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
         if root_moves.is_empty() {
             return Vec::new();
         }
@@ -10973,6 +11182,9 @@ impl MonsGameModel {
                 (!advisor_priority_inputs.is_empty()).then_some(advisor_priority_inputs.as_slice()),
                 None,
             );
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
         if root_moves.is_empty() {
             return Vec::new();
         }
@@ -11003,6 +11215,9 @@ impl MonsGameModel {
             let mut prelim_alpha = i32::MIN;
             let mut prelim_scores: Vec<i32> = Vec::with_capacity(root_moves.len());
             for candidate in root_moves.iter() {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if visited_nodes >= config.max_visited_nodes {
                     prelim_scores.push(i32::MIN);
                     continue;
@@ -11178,6 +11393,9 @@ impl MonsGameModel {
                 history_table,
                 quiescence_nodes_used,
             );
+            if crate::models::automove_deadline::cancelled() {
+                return 0;
+            }
         }
 
         score
@@ -11251,6 +11469,9 @@ impl MonsGameModel {
         priority_inputs: Option<&[Vec<Input>]>,
         forced_inputs: Option<&[Input]>,
     ) -> (Vec<ScoredRootMove>, usize) {
+        if crate::models::automove_deadline::checkpoint() {
+            return (Vec::new(), 0);
+        }
         if !config.enable_two_pass_root_allocation
             || root_moves.len() <= config.root_focus_k.max(1)
             || config.depth <= 1
@@ -11300,6 +11521,9 @@ impl MonsGameModel {
         let mut best_scout_score = i32::MIN;
 
         for (index, candidate) in root_moves.iter().enumerate() {
+            if crate::models::automove_deadline::checkpoint() {
+                return (Vec::new(), scout_visited_nodes);
+            }
             if scout_depth > 1 && scout_visited_nodes >= scout_config.max_visited_nodes {
                 break;
             }
@@ -11327,6 +11551,9 @@ impl MonsGameModel {
             } else {
                 Self::root_focus_scout_score(candidate)
             };
+            if crate::models::automove_deadline::cancelled() {
+                return (Vec::new(), scout_visited_nodes);
+            }
             scout_scores[index] = score;
             best_scout_score = best_scout_score.max(score);
             scout_alpha = scout_alpha.max(score);
@@ -11597,6 +11824,9 @@ impl MonsGameModel {
                                 perspective,
                                 config,
                             );
+                            if crate::models::automove_deadline::cancelled() {
+                                return 0;
+                            }
                             if score > best {
                                 best = score;
                             }
@@ -11628,6 +11858,9 @@ impl MonsGameModel {
                                 perspective,
                                 config,
                             );
+                            if crate::models::automove_deadline::cancelled() {
+                                return 0;
+                            }
                             if score > best {
                                 best = score;
                             }
@@ -11658,6 +11891,9 @@ impl MonsGameModel {
                                 perspective,
                                 config,
                             );
+                            if crate::models::automove_deadline::cancelled() {
+                                return 0;
+                            }
                             if score < best {
                                 best = score;
                             }
@@ -11689,6 +11925,9 @@ impl MonsGameModel {
                                 perspective,
                                 config,
                             );
+                            if crate::models::automove_deadline::cancelled() {
+                                return 0;
+                            }
                             if score < best {
                                 best = score;
                             }
@@ -12024,7 +12263,10 @@ impl MonsGameModel {
             }
         };
 
-        if use_transposition_table && !stopped_by_budget {
+        if use_transposition_table
+            && !stopped_by_budget
+            && crate::models::automove_deadline::cache_write_allowed()
+        {
             let bound = if value <= alpha_before {
                 TranspositionBound::UpperBound
             } else if value >= beta_before {
@@ -12504,6 +12746,9 @@ impl MonsGameModel {
                     fallback_limit,
                     Mana::Supermana,
                 );
+                if crate::models::automove_deadline::cancelled() {
+                    return Vec::new();
+                }
                 for transition in fallback_inputs {
                     if seen_inputs.insert(transition.inputs.clone()) {
                         child_transitions.push(transition);
@@ -12528,6 +12773,9 @@ impl MonsGameModel {
                     fallback_limit,
                     Mana::Regular(actor_color.other()),
                 );
+                if crate::models::automove_deadline::cancelled() {
+                    return Vec::new();
+                }
                 for transition in fallback_inputs {
                     if seen_inputs.insert(transition.inputs.clone()) {
                         child_transitions.push(transition);
@@ -12551,7 +12799,10 @@ impl MonsGameModel {
         if config.enable_child_eval_bundle && config.enable_two_stage_child_ordering {
             let cheap_entries = child_transitions
                 .into_iter()
-                .map(|transition| {
+                .map_while(|transition| {
+                    if crate::models::automove_deadline::checkpoint() {
+                        return None;
+                    }
                     let child_hash = Self::search_state_hash(&transition.game);
                     let heuristic = Self::cheap_child_ordering_heuristic(
                         game,
@@ -12577,15 +12828,18 @@ impl MonsGameModel {
                         retain_opponent_mana_progress,
                     );
 
-                    CheapChildOrderingEntry {
+                    Some(CheapChildOrderingEntry {
                         transition,
                         child_hash,
                         heuristic,
                         force_full,
                         eventful_reserve,
-                    }
+                    })
                 })
                 .collect::<Vec<_>>();
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
+            }
             let shortlisted_indices =
                 Self::selected_two_stage_child_ordering_indices(&cheap_entries, maximizing, config);
             let shortlisted_set = shortlisted_indices
@@ -12597,6 +12851,9 @@ impl MonsGameModel {
             });
 
             for (index, entry) in cheap_entries.into_iter().enumerate() {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 if !shortlisted_set.contains(&index) {
                     continue;
                 }
@@ -12614,6 +12871,9 @@ impl MonsGameModel {
                     history_table,
                     &scratch,
                 );
+                if crate::models::automove_deadline::cancelled() {
+                    return Vec::new();
+                }
                 #[cfg(test)]
                 update_turn_engine_selector_diagnostics(|diagnostics| {
                     diagnostics.ranked_child_states_children_fully_scored += 1;
@@ -12634,6 +12894,9 @@ impl MonsGameModel {
             }
         } else {
             for transition in child_transitions {
+                if crate::models::automove_deadline::checkpoint() {
+                    return Vec::new();
+                }
                 let simulated_game = transition.game;
                 let events = transition.events;
                 let bundle = if config.enable_child_eval_bundle {
@@ -12773,6 +13036,9 @@ impl MonsGameModel {
                         classes,
                     }
                 };
+                if crate::models::automove_deadline::cancelled() {
+                    return Vec::new();
+                }
                 #[cfg(test)]
                 update_turn_engine_selector_diagnostics(|diagnostics| {
                     diagnostics.ranked_child_states_children_fully_scored += 1;
@@ -12893,6 +13159,9 @@ impl MonsGameModel {
         max_moves: usize,
         start_options: SuggestedStartInputOptions,
     ) -> Vec<LegalInputTransition> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let mut transitions = Vec::new();
         let mut partial_inputs = Vec::new();
         let mut simulated_game = game.clone_for_simulation();
@@ -12903,6 +13172,9 @@ impl MonsGameModel {
             max_moves,
             start_options,
         );
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
         transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
         transitions
     }
@@ -12958,6 +13230,10 @@ impl MonsGameModel {
         max_moves: usize,
         start_options: SuggestedStartInputOptions,
     ) {
+        if crate::models::automove_deadline::checkpoint() {
+            transitions.clear();
+            return;
+        }
         if transitions.len() >= max_moves || partial_inputs.len() > SMART_MAX_INPUT_CHAIN {
             return;
         }
@@ -13006,6 +13282,110 @@ impl MonsGameModel {
                         transitions,
                         max_moves,
                         start_options,
+                    );
+                    partial_inputs.pop();
+                }
+            }
+        }
+    }
+
+    /// Enumerates the same lexical prefix produced by full enumeration followed by sorting and
+    /// truncation, but stops generating work once that prefix is complete.
+    fn enumerate_legal_transitions_lexicographic_bounded(
+        game: &MonsGame,
+        max_moves: usize,
+        start_options: SuggestedStartInputOptions,
+        allowed_first_locations: Option<&[bool; BOARD_CELLS]>,
+    ) -> Vec<LegalInputTransition> {
+        if max_moves == 0 || crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
+        let mut transitions = Vec::with_capacity(max_moves.min(256));
+        let mut partial_inputs = Vec::new();
+        let mut simulated_game = game.clone_for_simulation();
+        Self::collect_legal_transitions_lexicographic_bounded(
+            &mut simulated_game,
+            &mut partial_inputs,
+            &mut transitions,
+            max_moves,
+            start_options,
+            allowed_first_locations,
+        );
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
+        debug_assert!(transitions
+            .windows(2)
+            .all(|pair| pair[0].inputs <= pair[1].inputs));
+        transitions
+    }
+
+    fn collect_legal_transitions_lexicographic_bounded(
+        game: &mut MonsGame,
+        partial_inputs: &mut Vec<Input>,
+        transitions: &mut Vec<LegalInputTransition>,
+        max_moves: usize,
+        start_options: SuggestedStartInputOptions,
+        allowed_first_locations: Option<&[bool; BOARD_CELLS]>,
+    ) {
+        if crate::models::automove_deadline::checkpoint() {
+            transitions.clear();
+            return;
+        }
+        if transitions.len() >= max_moves || partial_inputs.len() > SMART_MAX_INPUT_CHAIN {
+            return;
+        }
+        match game.process_input_with_start_options_slice(
+            partial_inputs.as_slice(),
+            true,
+            false,
+            Some(start_options),
+        ) {
+            Output::InvalidInput => {}
+            Output::Events(events) => {
+                if allowed_first_locations.is_some() && partial_inputs.is_empty() {
+                    return;
+                }
+                let mut after_game = game.clone_for_simulation();
+                let applied_events = after_game.apply_and_add_resulting_events(events);
+                transitions.push(LegalInputTransition {
+                    inputs: partial_inputs.clone(),
+                    game: after_game,
+                    events: applied_events,
+                });
+            }
+            output @ (Output::LocationsToStartFrom(_) | Output::NextInputOptions(_)) => {
+                let mut child_inputs = match output {
+                    Output::LocationsToStartFrom(locations) => locations
+                        .into_iter()
+                        .map(Input::Location)
+                        .collect::<Vec<_>>(),
+                    Output::NextInputOptions(options) => options
+                        .into_iter()
+                        .map(|option| option.input)
+                        .collect::<Vec<_>>(),
+                    Output::InvalidInput | Output::Events(_) => unreachable!(),
+                };
+                child_inputs.sort();
+                if partial_inputs.is_empty() {
+                    if let Some(allowed) = allowed_first_locations {
+                        child_inputs.retain(|input| {
+                            matches!(input, Input::Location(location) if allowed[location.index()])
+                        });
+                    }
+                }
+                for input in child_inputs {
+                    if transitions.len() >= max_moves {
+                        break;
+                    }
+                    partial_inputs.push(input);
+                    Self::collect_legal_transitions_lexicographic_bounded(
+                        game,
+                        partial_inputs,
+                        transitions,
+                        max_moves,
+                        start_options,
+                        allowed_first_locations,
                     );
                     partial_inputs.pop();
                 }
@@ -13134,6 +13514,9 @@ impl MonsGameModel {
         game: &MonsGame,
         config: AutomoveSearchConfig,
     ) -> Vec<MonsGame> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         let enum_limit = config
             .quiescence_tactical_enum_limit
             .max(1)
@@ -13734,15 +14117,17 @@ impl MonsGameModel {
             enable_tactical_score_window_narrowing,
         );
 
-        MOVE_EFFICIENCY_SNAPSHOT_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.len() >= SMART_MOVE_EFFICIENCY_SNAPSHOT_CACHE_MAX_ENTRIES
-                && !cache.contains_key(&cache_key)
-            {
-                cache.clear();
-            }
-            cache.insert(cache_key, snapshot);
-        });
+        if crate::models::automove_deadline::cache_write_allowed() {
+            MOVE_EFFICIENCY_SNAPSHOT_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                if cache.len() >= SMART_MOVE_EFFICIENCY_SNAPSHOT_CACHE_MAX_ENTRIES
+                    && !cache.contains_key(&cache_key)
+                {
+                    cache.clear();
+                }
+                cache.insert(cache_key, snapshot);
+            });
+        }
 
         snapshot
     }
@@ -21310,12 +21695,21 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Vec<Input> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         if scored_roots.is_empty() {
             return Vec::new();
         }
 
         if matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
-            return Self::pro_v2_root_advisor_select_root(game, scored_roots, perspective, config);
+            let selected =
+                Self::pro_v2_root_advisor_select_root(game, scored_roots, perspective, config);
+            return if crate::models::automove_deadline::cancelled() {
+                Vec::new()
+            } else {
+                selected
+            };
         }
 
         let mut candidate_indices =
@@ -21340,6 +21734,9 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Vec<Input> {
+        if crate::models::automove_deadline::checkpoint() {
+            return Vec::new();
+        }
         if scored_roots.is_empty() {
             return Vec::new();
         }
@@ -21355,7 +21752,13 @@ impl MonsGameModel {
                 perspective,
                 config,
             ) {
+                if crate::models::automove_deadline::cancelled() {
+                    return Vec::new();
+                }
                 return scored_roots[reply_guarded_index].inputs.clone();
+            }
+            if crate::models::automove_deadline::cancelled() {
+                return Vec::new();
             }
         }
 
@@ -21406,6 +21809,9 @@ impl MonsGameModel {
             } else {
                 std::collections::HashMap::new()
             };
+        if crate::models::automove_deadline::cancelled() {
+            return Vec::new();
+        }
         let mut best_spirit_development = scored_roots[best_index].spirit_development;
         let mut best_spirit_same_turn_score_setup =
             scored_roots[best_index].spirit_same_turn_score_setup_now;
@@ -21426,6 +21832,9 @@ impl MonsGameModel {
         let mut spirit_followup_floor_scores = std::collections::HashMap::new();
 
         for index in candidate_indices.iter().copied() {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
             let evaluation = &scored_roots[index];
             let allow_close_plain_spirit_score_slack =
                 matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
@@ -26474,6 +26883,9 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         reply_limit: usize,
     ) -> i32 {
+        if crate::models::automove_deadline::checkpoint() {
+            return 0;
+        }
         if let Some(winner) = state_after_move.winner_color() {
             return if winner == perspective {
                 SMART_TERMINAL_SCORE / 2
@@ -26498,12 +26910,18 @@ impl MonsGameModel {
             reply_limit.max(1),
             Self::automove_start_input_options(config),
         );
+        if crate::models::automove_deadline::cancelled() {
+            return 0;
+        }
         if replies.is_empty() {
             return SMART_TERMINAL_SCORE / 4;
         }
 
         let mut worst = i32::MAX;
         for reply in replies {
+            if crate::models::automove_deadline::checkpoint() {
+                return 0;
+            }
             let after_reply = reply.game;
             let score = match after_reply.winner_color() {
                 Some(winner) if winner == perspective => SMART_TERMINAL_SCORE / 2,
@@ -26535,6 +26953,9 @@ impl MonsGameModel {
                     )
                 }
             };
+            if crate::models::automove_deadline::cancelled() {
+                return 0;
+            }
             worst = worst.min(score);
         }
 
@@ -26570,6 +26991,9 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> i32 {
+        if crate::models::automove_deadline::checkpoint() {
+            return 0;
+        }
         let cache_key = TurnEngineSelectorFollowupFloorCacheKey {
             state_hash: Self::search_state_hash(state_after_move),
             perspective,
@@ -26590,18 +27014,22 @@ impl MonsGameModel {
             } else {
                 -SMART_TERMINAL_SCORE / 2
             };
-            TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| {
-                cache.borrow_mut().insert(cache_key, result);
-            });
+            if crate::models::automove_deadline::cache_write_allowed() {
+                TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| {
+                    cache.borrow_mut().insert(cache_key, result);
+                });
+            }
             return result;
         }
 
         if config.enable_turn_engine_low_budget_guard {
             let probe = Self::pro_v2_spirit_followup_probe_config(config);
             let result = Self::evaluate_search_preferability(state_after_move, perspective, probe);
-            TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| {
-                cache.borrow_mut().insert(cache_key, result);
-            });
+            if crate::models::automove_deadline::cache_write_allowed() {
+                TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| {
+                    cache.borrow_mut().insert(cache_key, result);
+                });
+            }
             return result;
         }
 
@@ -26615,7 +27043,13 @@ impl MonsGameModel {
         let mut rollout_plies = 0usize;
 
         while continuation.winner_color().is_none() && rollout_plies < max_rollout_plies {
+            if crate::models::automove_deadline::checkpoint() {
+                return 0;
+            }
             let inputs = Self::smart_search_best_inputs_internal(&continuation, probe, true);
+            if crate::models::automove_deadline::cancelled() {
+                return 0;
+            }
             if inputs.is_empty() {
                 break;
             }
@@ -26632,9 +27066,11 @@ impl MonsGameModel {
         } else {
             Self::evaluate_search_preferability(&continuation, perspective, probe)
         };
-        TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| {
-            cache.borrow_mut().insert(cache_key, result);
-        });
+        if crate::models::automove_deadline::cache_write_allowed() {
+            TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| {
+                cache.borrow_mut().insert(cache_key, result);
+            });
+        }
         result
     }
 
@@ -26795,15 +27231,17 @@ impl MonsGameModel {
                 allow_exact_static_evaluation,
             )
         };
-        SEARCH_PREFERABILITY_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.len() >= SMART_SEARCH_PREFERABILITY_CACHE_MAX_ENTRIES
-                && !cache.contains_key(&cache_key)
-            {
-                cache.clear();
-            }
-            cache.insert(cache_key, score);
-        });
+        if crate::models::automove_deadline::cache_write_allowed() {
+            SEARCH_PREFERABILITY_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                if cache.len() >= SMART_SEARCH_PREFERABILITY_CACHE_MAX_ENTRIES
+                    && !cache.contains_key(&cache_key)
+                {
+                    cache.clear();
+                }
+                cache.insert(cache_key, score);
+            });
+        }
         score
     }
 
@@ -26859,6 +27297,54 @@ mod evaluation_cache_tests {
         game.white_potions_count = 0;
         game.black_potions_count = 0;
         game
+    }
+
+    #[test]
+    fn automove_deadline_discards_partial_enumeration_and_root_ranking() {
+        let game = MonsGame::new(false, GameVariant::Classic);
+        crate::models::automove_deadline::with_test_clock(0.0, || {
+            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
+                let transitions = MonsGameModel::enumerate_legal_transitions(
+                    &game,
+                    64,
+                    SuggestedStartInputOptions::default(),
+                );
+                assert!(crate::models::automove_deadline::cancelled());
+                assert!(transitions.is_empty());
+
+                let roots = MonsGameModel::ranked_root_moves(
+                    &game,
+                    game.active_color,
+                    AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
+                );
+                assert!(roots.is_empty());
+            });
+        });
+    }
+
+    #[test]
+    fn automove_deadline_blocks_long_lived_evaluation_cache_writes() {
+        clear_turn_engine_selector_followup_floor_cache();
+        let game = MonsGame::new(false, GameVariant::Classic);
+        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
+        crate::models::automove_deadline::with_test_clock(0.0, || {
+            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
+                let _ =
+                    MonsGameModel::move_efficiency_snapshot(&game, game.active_color, false, false);
+                let _ = MonsGameModel::cached_search_preferability_score(
+                    &game,
+                    game.active_color,
+                    config.scoring_weights,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                );
+            });
+        });
+        assert_eq!(move_efficiency_snapshot_cache_len(), 0);
+        assert_eq!(search_preferability_cache_len(), 0);
     }
 
     #[test]
@@ -28873,36 +29359,51 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn smart_automove_pro_matches_frontier_guarded_selector_on_discriminating_fixture() {
+    fn smart_automove_pro_matches_frontier_bounded_tactical_selector_on_release_fixture() {
         let game = MonsGame::from_fen(
-            "0 0 b 0 0 2 0 0 2 n03y0xn01d0xa0xn04/n04s0xn01e0xn04/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n04A0xD0xn05/n03E0xn02S0xn02Y0xn01",
+            "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n02E0xn01A0xD0xS0xY0xn03",
             false,
         )
         .expect("release Pro route fixture should be valid");
         let model = MonsGameModel::with_game(game.clone_for_simulation());
         let config = model.shipping_search_config_for_preference(SmartAutomovePreference::Pro);
-        clear_exact_state_analysis_cache();
-        clear_turn_engine_plan_cache();
-        let expected_inputs =
-            automove_runtime_variants::select_frontier_pro_v2_guarded_inputs(&game, config);
-        let expected_input_fen = Input::fen_from_array(&expected_inputs);
-        clear_exact_state_analysis_cache();
-        clear_turn_engine_plan_cache();
-        let shipping_inputs =
-            automove_runtime_variants::select_shipping_search_inputs(&game, config);
-        let shipping_input_fen = Input::fen_from_array(&shipping_inputs);
+        automove_deadline::with_test_clock(0.0, || {
+            clear_exact_state_analysis_cache();
+            clear_turn_engine_plan_cache();
+            clear_turn_engine_selector_followup_floor_cache();
+            let expected_inputs =
+                automove_runtime_variants::select_frontier_pro_v10_bounded_tactical_inputs(
+                    &game, config,
+                );
+            let expected_input_fen = Input::fen_from_array(&expected_inputs);
+            clear_exact_state_analysis_cache();
+            clear_turn_engine_plan_cache();
+            clear_turn_engine_selector_followup_floor_cache();
+            let previous_inputs =
+                automove_runtime_variants::select_frontier_pro_v2_guarded_inputs(&game, config);
+            let previous_input_fen = Input::fen_from_array(&previous_inputs);
+            clear_exact_state_analysis_cache();
+            clear_turn_engine_plan_cache();
+            clear_turn_engine_selector_followup_floor_cache();
+            let shipping_inputs =
+                automove_runtime_variants::select_shipping_search_inputs(&game, config);
+            let shipping_input_fen = Input::fen_from_array(&shipping_inputs);
 
-        assert_eq!(expected_input_fen, "l1,4;l3,6;l2,7");
-        assert_eq!(shipping_input_fen, "l1,4;l3,4;l3,3");
-        assert_ne!(expected_input_fen, shipping_input_fen);
+            assert_eq!(expected_input_fen, "l10,5;l9,4");
+            assert_eq!(previous_input_fen, "l10,6;l9,6");
+            assert_eq!(shipping_input_fen, "l10,6;l9,6");
+            assert_ne!(expected_input_fen, previous_input_fen);
+            assert_ne!(expected_input_fen, shipping_input_fen);
 
-        clear_exact_state_analysis_cache();
-        clear_turn_engine_plan_cache();
-        let output = model.smart_automove_output(SmartAutomovePreference::Pro);
+            clear_exact_state_analysis_cache();
+            clear_turn_engine_plan_cache();
+            clear_turn_engine_selector_followup_floor_cache();
+            let output = model.smart_automove_output(SmartAutomovePreference::Pro);
 
-        assert_eq!(output.kind, OutputModelKind::Events);
-        assert_eq!(output.input_fen(), expected_input_fen.as_str());
-        assert_ne!(output.input_fen(), shipping_input_fen.as_str());
+            assert_eq!(output.kind, OutputModelKind::Events);
+            assert_eq!(output.input_fen(), expected_input_fen.as_str());
+            assert_ne!(output.input_fen(), shipping_input_fen.as_str());
+        });
     }
 
     #[test]
@@ -29946,6 +30447,211 @@ mod smart_automove_tests {
             attacks_now || attacks_later_this_turn,
             "selected line must keep same-turn drainer attack reachable"
         );
+    }
+
+    #[test]
+    fn bounded_lexicographic_transition_prefix_matches_full_sorted_enumeration() {
+        fn signatures(
+            transitions: &[LegalInputTransition],
+        ) -> Vec<(Vec<Input>, String, Vec<Event>)> {
+            transitions
+                .iter()
+                .map(|transition| {
+                    (
+                        transition.inputs.clone(),
+                        transition.game.fen(),
+                        transition.events.clone(),
+                    )
+                })
+                .collect()
+        }
+
+        let mut game = game_with_items(
+            vec![
+                (
+                    Location::new(5, 5),
+                    Item::MonWithConsumable {
+                        mon: Mon::new(MonKind::Demon, Color::White, 0),
+                        consumable: Consumable::Bomb,
+                    },
+                ),
+                (
+                    Location::new(10, 5),
+                    Item::Mon {
+                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
+                    },
+                ),
+                (
+                    Location::new(7, 5),
+                    Item::Mon {
+                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
+                    },
+                ),
+            ],
+            Color::White,
+            2,
+        );
+        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
+        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
+        let start_options = MonsGameModel::automove_start_input_options(config);
+        let full = MonsGameModel::enumerate_legal_transitions(&game, usize::MAX, start_options);
+        let full_signatures = signatures(full.as_slice());
+        assert!(
+            full_signatures.len() >= 4,
+            "fixture should expose a useful prefix"
+        );
+
+        let mut attacker_mask = [false; BOARD_CELLS];
+        for location in
+            MonsGameModel::find_potential_drainer_attacker_locations(&game, Color::White)
+        {
+            attacker_mask[location.index()] = true;
+        }
+        let targeted_full = full
+            .iter()
+            .filter(|transition| {
+                matches!(
+                    transition.inputs.first(),
+                    Some(Input::Location(location)) if attacker_mask[location.index()]
+                )
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let targeted_full_signatures = signatures(targeted_full.as_slice());
+        assert!(
+            targeted_full_signatures.len() >= 2,
+            "fixture should expose multiple targeted roots"
+        );
+        assert!(
+            targeted_full_signatures.len() < full_signatures.len(),
+            "targeted mask must exclude at least one full transition"
+        );
+        assert!(full.iter().any(|transition| {
+            !matches!(
+                transition.inputs.first(),
+                Some(Input::Location(location)) if attacker_mask[location.index()]
+            )
+        }));
+
+        let mut unfiltered_caps = (1..=full_signatures.len().min(16)).collect::<Vec<_>>();
+        unfiltered_caps.extend([0, full_signatures.len(), full_signatures.len() + 1]);
+        unfiltered_caps.sort_unstable();
+        unfiltered_caps.dedup();
+        for cap in unfiltered_caps {
+            let bounded = MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
+                &game,
+                cap,
+                start_options,
+                None,
+            );
+            assert_eq!(
+                signatures(bounded.as_slice()),
+                full_signatures
+                    .iter()
+                    .take(cap)
+                    .cloned()
+                    .collect::<Vec<_>>(),
+                "unfiltered lexical prefix diverged at cap {cap}"
+            );
+        }
+
+        let mut targeted_caps = (1..=targeted_full_signatures.len().min(16)).collect::<Vec<_>>();
+        targeted_caps.extend([
+            0,
+            targeted_full_signatures.len(),
+            targeted_full_signatures.len() + 1,
+        ]);
+        targeted_caps.sort_unstable();
+        targeted_caps.dedup();
+        for cap in targeted_caps {
+            let bounded = MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
+                &game,
+                cap,
+                start_options,
+                Some(&attacker_mask),
+            );
+            assert_eq!(
+                signatures(bounded.as_slice()),
+                targeted_full_signatures
+                    .iter()
+                    .take(cap)
+                    .cloned()
+                    .collect::<Vec<_>>(),
+                "targeted lexical prefix diverged at cap {cap}"
+            );
+        }
+
+        let empty_mask = [false; BOARD_CELLS];
+        assert!(
+            MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
+                &game,
+                full_signatures.len() + 1,
+                start_options,
+                Some(&empty_mask),
+            )
+            .is_empty()
+        );
+
+        let mut distinct_root_locations = full
+            .iter()
+            .filter_map(|transition| match transition.inputs.first() {
+                Some(Input::Location(location)) => Some(*location),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        distinct_root_locations.sort_unstable();
+        distinct_root_locations.dedup();
+        assert!(distinct_root_locations.len() >= 2);
+        let manually_selected_root = distinct_root_locations[1];
+        let mut manual_mask = [false; BOARD_CELLS];
+        manual_mask[manually_selected_root.index()] = true;
+        let manual_full = full
+            .iter()
+            .filter(|transition| {
+                matches!(
+                    transition.inputs.first(),
+                    Some(Input::Location(location)) if *location == manually_selected_root
+                )
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let manual_bounded = MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
+            &game,
+            manual_full.len() + 1,
+            start_options,
+            Some(&manual_mask),
+        );
+        assert_eq!(
+            signatures(manual_bounded.as_slice()),
+            signatures(manual_full.as_slice())
+        );
+
+        crate::models::automove_deadline::with_test_clock(0.0, || {
+            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
+                let mut partial = Vec::new();
+                let mut partial_transitions = vec![full[0].clone()];
+                let mut simulated = game.clone_for_simulation();
+                MonsGameModel::collect_legal_transitions_lexicographic_bounded(
+                    &mut simulated,
+                    &mut partial,
+                    &mut partial_transitions,
+                    16,
+                    start_options,
+                    None,
+                );
+                assert!(partial_transitions.is_empty());
+                assert!(
+                    MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
+                        &game,
+                        16,
+                        start_options,
+                        None,
+                    )
+                    .is_empty()
+                );
+            });
+            assert!(crate::models::automove_deadline::take_previous_timeout());
+        });
     }
 
     #[test]

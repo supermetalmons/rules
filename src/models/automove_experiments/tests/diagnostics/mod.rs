@@ -2,7 +2,8 @@ use super::*;
 use crate::models::automove_exact::exact_turn_summary;
 use crate::models::mons_game_model::automove_runtime_variants::{
     apply_frontier_pro_v2_guarded_config, clear_frontier_runtime_variant_branch,
-    frontier_runtime_variant_branch_snapshot, select_frontier_pro_v2_guarded_inputs,
+    frontier_runtime_variant_branch_snapshot, select_frontier_pro_v10_bounded_tactical_inputs,
+    select_frontier_pro_v2_guarded_inputs,
     select_frontier_pro_v2_guarded_inputs_with_frontier_runtime, select_shipping_search_inputs,
 };
 use crate::models::scoring::{
@@ -436,6 +437,16 @@ fn select_sweep_frontier_pro_v2_guarded_counted_inputs(
     inputs
 }
 
+fn select_sweep_frontier_pro_v10_bounded_tactical_inputs(
+    game: &MonsGame,
+    config: AutomoveSearchConfig,
+) -> Vec<Input> {
+    clear_frontier_runtime_variant_branch();
+    let inputs = select_frontier_pro_v10_bounded_tactical_inputs(game, config);
+    record_profile_sweep_branch(frontier_runtime_variant_branch_snapshot());
+    inputs
+}
+
 fn select_sweep_frontier_pro_v2_raw_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
@@ -639,6 +650,10 @@ fn pro_profile_sweep_candidates() -> Vec<ProProfileSweepCandidate> {
         ProProfileSweepCandidate {
             id: "frontier_pro_v3_white_opening_utility_mana",
             selector: select_sweep_frontier_pro_v3_white_opening_utility_mana_inputs,
+        },
+        ProProfileSweepCandidate {
+            id: "frontier_pro_v10_bounded_tactical",
+            selector: select_sweep_frontier_pro_v10_bounded_tactical_inputs,
         },
     ]
 }

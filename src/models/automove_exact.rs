@@ -1,7 +1,27 @@
+#[cfg(any(target_arch = "wasm32", test))]
+use crate::models::automove_deadline::{cache_write_allowed, checkpoint, checkpoint_with_reserve};
 use crate::*;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::hash::{BuildHasherDefault, Hasher};
+
+#[cfg(not(any(target_arch = "wasm32", test)))]
+#[inline]
+fn checkpoint() -> bool {
+    false
+}
+
+#[cfg(not(any(target_arch = "wasm32", test)))]
+#[inline]
+fn checkpoint_with_reserve(_reserve_ms: f64) -> bool {
+    false
+}
+
+#[cfg(not(any(target_arch = "wasm32", test)))]
+#[inline]
+fn cache_write_allowed() -> bool {
+    true
+}
 
 const EXACT_ANALYSIS_CACHE_MAX_ENTRIES: usize = 512;
 const EXACT_ATTACK_REACH_CACHE_MAX_ENTRIES: usize = 8192;
@@ -1281,19 +1301,26 @@ pub(crate) fn exact_state_analysis_with_search_hash(
     game: &MonsGame,
     key: u64,
 ) -> ExactStateAnalysis {
+    if checkpoint_with_reserve(20.0) {
+        return ExactStateAnalysis::default();
+    }
     EXACT_STATE_ANALYSIS_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         if let Some(cached) = cache.entries.get(&key).copied() {
             return cached;
         }
         let built = build_exact_state_analysis(game);
-        if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
+        if cache_write_allowed() {
+            if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, built);
+            built
+        } else {
+            ExactStateAnalysis::default()
         }
-        cache.entries.insert(key, built);
-        built
     })
 }
 
@@ -1306,19 +1333,26 @@ pub(crate) fn exact_strategic_analysis_with_search_hash(
     game: &MonsGame,
     key: u64,
 ) -> ExactStrategicAnalysis {
+    if checkpoint_with_reserve(20.0) {
+        return ExactStrategicAnalysis::default();
+    }
     EXACT_STRATEGIC_ANALYSIS_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         if let Some(cached) = cache.entries.get(&key).copied() {
             return cached;
         }
         let built = build_exact_strategic_analysis(game);
-        if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
+        if cache_write_allowed() {
+            if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, built);
+            built
+        } else {
+            ExactStrategicAnalysis::default()
         }
-        cache.entries.insert(key, built);
-        built
     })
 }
 
@@ -1336,7 +1370,7 @@ pub(crate) fn exact_turn_summary_with_search_hash(
     color: Color,
     key: u64,
 ) -> ExactTurnSummary {
-    if game.active_color != color {
+    if game.active_color != color || checkpoint_with_reserve(20.0) {
         ExactTurnSummary {
             ..ExactTurnSummary::default()
         }
@@ -1347,13 +1381,17 @@ pub(crate) fn exact_turn_summary_with_search_hash(
                 return cached;
             }
             let built = build_exact_turn_summary(game);
-            if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
-                && !cache.entries.contains_key(&key)
-            {
-                cache.entries.clear();
+            if cache_write_allowed() {
+                if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
+                    && !cache.entries.contains_key(&key)
+                {
+                    cache.entries.clear();
+                }
+                cache.entries.insert(key, built);
+                built
+            } else {
+                ExactTurnSummary::default()
             }
-            cache.entries.insert(key, built);
-            built
         })
     }
 }
@@ -1381,7 +1419,7 @@ pub(crate) fn exact_turn_tactical_projection_with_search_hash(
     key: u64,
     flags: u8,
 ) -> ExactTurnTacticalProjection {
-    if flags == 0 || game.active_color != color {
+    if flags == 0 || game.active_color != color || checkpoint_with_reserve(20.0) {
         return ExactTurnTacticalProjection::default();
     }
 
@@ -1409,18 +1447,26 @@ pub(crate) fn exact_turn_tactical_projection_with_search_hash(
             };
             if let Some(cached) = cache.entries.get(&superset_key).copied() {
                 let derived = exact_turn_tactical_projection_for_flags(cached, flags);
-                cache.entries.insert(cache_key, derived);
-                return derived;
+                return if cache_write_allowed() {
+                    cache.entries.insert(cache_key, derived);
+                    derived
+                } else {
+                    ExactTurnTacticalProjection::default()
+                };
             }
         }
         let built = build_exact_turn_tactical_projection(game, flags);
-        if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&cache_key)
-        {
-            cache.entries.clear();
+        if cache_write_allowed() {
+            if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&cache_key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(cache_key, built);
+            built
+        } else {
+            ExactTurnTacticalProjection::default()
         }
-        cache.entries.insert(cache_key, built);
-        built
     })
 }
 
@@ -1476,7 +1522,7 @@ pub(crate) fn exact_opportunity_context_with_search_hash(
     color: Color,
     key: u64,
 ) -> ExactOpportunityContext {
-    if game.active_color != color {
+    if game.active_color != color || checkpoint_with_reserve(20.0) {
         return ExactOpportunityContext::default();
     }
 
@@ -1487,7 +1533,13 @@ pub(crate) fn exact_opportunity_context_with_search_hash(
     };
     let board_hash = exact_board_hash(&game.board);
     let turn = exact_opportunity_turn_tactical_projection_with_search_hash(game, color, key);
+    if checkpoint_with_reserve(20.0) {
+        return ExactOpportunityContext::default();
+    }
     let drainer_safety = exact_own_drainer_safety_score_with_hash(&game.board, board_hash, color);
+    if checkpoint_with_reserve(20.0) {
+        return ExactOpportunityContext::default();
+    }
     let opponent = color.other();
     let opponent_score = if opponent == Color::White {
         game.white_score
@@ -1499,6 +1551,9 @@ pub(crate) fn exact_opportunity_context_with_search_hash(
         .color_summary(opponent)
         .immediate_window
         .best_score;
+    if checkpoint_with_reserve(20.0) {
+        return ExactOpportunityContext::default();
+    }
     let opponent_can_win_immediately = opponent_needed > 0 && opponent_immediate >= opponent_needed;
     let opponent_window_deny_gain = if opponent_needed > 0 && turn.same_turn_score_window_value > 0
     {
@@ -1507,7 +1562,7 @@ pub(crate) fn exact_opportunity_context_with_search_hash(
         0
     };
 
-    ExactOpportunityContext {
+    let context = ExactOpportunityContext {
         budget,
         turn,
         delta: ExactOpportunityDelta {
@@ -1524,6 +1579,11 @@ pub(crate) fn exact_opportunity_context_with_search_hash(
             safe_opponent_mana_progress_steps: turn.safe_opponent_mana_progress_steps,
         },
         opponent_can_win_immediately,
+    };
+    if checkpoint_with_reserve(20.0) {
+        ExactOpportunityContext::default()
+    } else {
+        context
     }
 }
 
@@ -1533,6 +1593,9 @@ pub(crate) fn exact_own_drainer_safety_score_with_hash(
     board_hash: u64,
     color: Color,
 ) -> i32 {
+    if checkpoint() {
+        return 0;
+    }
     let key = ExactDrainerSafetyQueryKey { board_hash, color };
     if let Some(cached) =
         EXACT_DRAINER_SAFETY_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
@@ -1578,16 +1641,20 @@ pub(crate) fn exact_own_drainer_safety_score_with_hash(
         0
     };
 
-    EXACT_DRAINER_SAFETY_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_DRAINER_SAFETY_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, result);
-    });
-    result
+    if cache_write_allowed() {
+        EXACT_DRAINER_SAFETY_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_DRAINER_SAFETY_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, result);
+        });
+        result
+    } else {
+        0
+    }
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -1618,7 +1685,7 @@ fn exact_attack_target_plausible_on_board(
     remaining_moves: i32,
     can_use_action: bool,
 ) -> bool {
-    if remaining_moves < 0 || !can_use_action || board.item(target).is_none() {
+    if remaining_moves < 0 || !can_use_action || board.item(target).is_none() || checkpoint() {
         return false;
     }
 
@@ -1634,6 +1701,9 @@ fn exact_attack_target_plausible_on_board(
         .collect::<Vec<_>>();
 
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return false;
+        }
         let Some(mon) = item.mon() else {
             continue;
         };
@@ -1669,6 +1739,9 @@ fn exact_attack_target_plausible_for_attacker(
     mon: Mon,
     bomb_pickup_locations: &[Location],
 ) -> bool {
+    if checkpoint() {
+        return false;
+    }
     if matches!(
         item,
         Item::MonWithConsumable {
@@ -1694,6 +1767,9 @@ fn exact_attack_target_plausible_for_attacker(
     }
 
     for bomb_location in bomb_pickup_locations {
+        if checkpoint() {
+            return false;
+        }
         let to_bomb = location.distance(bomb_location);
         if to_bomb > remaining_moves {
             continue;
@@ -1751,11 +1827,14 @@ pub(crate) fn attack_reach_summary_for_targets_with_hash(
     update_exact_query_diagnostics(|diagnostics| diagnostics.attack_reach_summary_builds += 1);
 
     let mut summary = AttackReachSummary::default();
-    if remaining_moves < 0 || !can_use_action || targets.is_empty() {
+    if remaining_moves < 0 || !can_use_action || targets.is_empty() || checkpoint() {
         return summary;
     }
 
     for &target in targets {
+        if checkpoint() {
+            return AttackReachSummary::default();
+        }
         let Some(target_mon) = board.item(target).and_then(|item| item.mon()) else {
             continue;
         };
@@ -1766,6 +1845,9 @@ pub(crate) fn attack_reach_summary_for_targets_with_hash(
     }
 
     for (start, item) in board.occupied() {
+        if checkpoint() {
+            return AttackReachSummary::default();
+        }
         let mon = match item {
             Item::Mon { mon }
             | Item::MonWithMana { mon, .. }
@@ -1791,6 +1873,9 @@ pub(crate) fn attack_reach_summary_for_targets_with_hash(
         seen.insert(start, start_payload);
 
         while let Some((location, payload, steps)) = queue.pop_front() {
+            if checkpoint() {
+                return AttackReachSummary::default();
+            }
             if steps > remaining_moves {
                 continue;
             }
@@ -1848,7 +1933,11 @@ pub(crate) fn attack_reach_summary_for_targets_with_hash(
     }
 
     let _ = board_hash;
-    summary
+    if checkpoint() {
+        AttackReachSummary::default()
+    } else {
+        summary
+    }
 }
 
 pub(crate) fn can_attack_target_on_board_with_hash(
@@ -1861,7 +1950,7 @@ pub(crate) fn can_attack_target_on_board_with_hash(
     can_use_action: bool,
 ) -> bool {
     update_exact_query_diagnostics(|diagnostics| diagnostics.attack_reach_calls += 1);
-    if remaining_moves < 0 || !can_use_action || board.item(target).is_none() {
+    if remaining_moves < 0 || !can_use_action || board.item(target).is_none() || checkpoint() {
         return false;
     }
 
@@ -1888,15 +1977,17 @@ pub(crate) fn can_attack_target_on_board_with_hash(
         remaining_moves,
         can_use_action,
     ) {
-        EXACT_ATTACK_REACH_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.entries.len() >= EXACT_ATTACK_REACH_CACHE_MAX_ENTRIES
-                && !cache.entries.contains_key(&key)
-            {
-                cache.entries.clear();
-            }
-            cache.entries.insert(key, false);
-        });
+        if cache_write_allowed() {
+            EXACT_ATTACK_REACH_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                if cache.entries.len() >= EXACT_ATTACK_REACH_CACHE_MAX_ENTRIES
+                    && !cache.entries.contains_key(&key)
+                {
+                    cache.entries.clear();
+                }
+                cache.entries.insert(key, false);
+            });
+        }
         return false;
     }
 
@@ -1909,16 +2000,20 @@ pub(crate) fn can_attack_target_on_board_with_hash(
         remaining_moves,
         can_use_action,
     );
-    EXACT_ATTACK_REACH_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_ATTACK_REACH_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, result);
-    });
-    result
+    if cache_write_allowed() {
+        EXACT_ATTACK_REACH_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_ATTACK_REACH_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, result);
+        });
+        result
+    } else {
+        false
+    }
 }
 
 fn can_attack_target_on_board_uncached(
@@ -1930,6 +2025,9 @@ fn can_attack_target_on_board_uncached(
     remaining_moves: i32,
     _can_use_action: bool,
 ) -> bool {
+    if checkpoint() {
+        return false;
+    }
     let target_guarded = exact_is_location_guarded_by_angel(board, target_color, target);
     let bomb_pickup_locations = board
         .occupied()
@@ -1943,6 +2041,9 @@ fn can_attack_target_on_board_uncached(
     let mut actor_move_memo = ExactActorMoveMemo::new(board_hash);
 
     for (start, item) in board.occupied() {
+        if checkpoint() {
+            return false;
+        }
         let mon = match item {
             Item::Mon { mon }
             | Item::MonWithMana { mon, .. }
@@ -1978,6 +2079,9 @@ fn can_attack_target_on_board_uncached(
         seen.insert(start, start_payload);
 
         while let Some((location, payload, steps)) = queue.pop_front() {
+            if checkpoint() {
+                return false;
+            }
             if steps > remaining_moves {
                 continue;
             }
@@ -2429,7 +2533,16 @@ pub(crate) fn drainer_immediate_threats(
     color: Color,
     location: Location,
 ) -> (i32, i32) {
-    drainer_immediate_threats_with_hash(board, color, location, exact_board_hash(board))
+    if checkpoint() {
+        return (1, 1);
+    }
+    let threats =
+        drainer_immediate_threats_with_hash(board, color, location, exact_board_hash(board));
+    if checkpoint() {
+        (1, 1)
+    } else {
+        threats
+    }
 }
 
 pub(crate) fn drainer_immediate_threats_with_hash(
@@ -2439,7 +2552,15 @@ pub(crate) fn drainer_immediate_threats_with_hash(
     _board_hash: u64,
 ) -> (i32, i32) {
     update_exact_query_diagnostics(|diagnostics| diagnostics.drainer_immediate_threat_calls += 1);
-    drainer_immediate_threats_uncached(board, color, location)
+    if checkpoint() {
+        return (1, 1);
+    }
+    let threats = drainer_immediate_threats_uncached(board, color, location);
+    if checkpoint() {
+        (1, 1)
+    } else {
+        threats
+    }
 }
 
 fn drainer_immediate_threats_uncached(
@@ -2447,9 +2568,15 @@ fn drainer_immediate_threats_uncached(
     color: Color,
     location: Location,
 ) -> (i32, i32) {
+    if checkpoint() {
+        return (1, 1);
+    }
     let mut action_threats = 0;
     let mut bomb_threats = 0;
     for &threat_location in location.reachable_by_mystic_action_ref() {
+        if checkpoint() {
+            return (1, 1);
+        }
         let Some(item) = board.item(threat_location) else {
             continue;
         };
@@ -2469,6 +2596,9 @@ fn drainer_immediate_threats_uncached(
     }
 
     for &threat_location in location.reachable_by_demon_action_ref() {
+        if checkpoint() {
+            return (1, 1);
+        }
         let Some(item) = board.item(threat_location) else {
             continue;
         };
@@ -2489,6 +2619,9 @@ fn drainer_immediate_threats_uncached(
     }
 
     for &threat_location in location.reachable_by_bomb_ref() {
+        if checkpoint() {
+            return (1, 1);
+        }
         let Some(item) = board.item(threat_location) else {
             continue;
         };
@@ -2513,7 +2646,13 @@ pub(crate) fn is_drainer_under_immediate_threat(
     location: Location,
     angel_nearby: bool,
 ) -> bool {
+    if checkpoint() {
+        return true;
+    }
     let (action_threats, bomb_threats) = drainer_immediate_threats(board, color, location);
+    if checkpoint() {
+        return true;
+    }
     if angel_nearby {
         bomb_threats > 0
     } else {
@@ -2528,13 +2667,17 @@ pub(crate) fn is_drainer_under_walk_threat(
     location: Location,
     angel_nearby: bool,
 ) -> bool {
-    is_drainer_under_walk_threat_with_hash(
+    if checkpoint() {
+        return true;
+    }
+    let threatened = is_drainer_under_walk_threat_with_hash(
         board,
         exact_board_hash(board),
         color,
         location,
         angel_nearby,
-    )
+    );
+    threatened || checkpoint()
 }
 
 pub(crate) fn is_drainer_under_walk_threat_with_hash(
@@ -2544,6 +2687,9 @@ pub(crate) fn is_drainer_under_walk_threat_with_hash(
     location: Location,
     angel_nearby: bool,
 ) -> bool {
+    if checkpoint() {
+        return true;
+    }
     let key = ExactWalkThreatQueryKey {
         board_hash,
         color,
@@ -2553,20 +2699,24 @@ pub(crate) fn is_drainer_under_walk_threat_with_hash(
     if let Some(cached) =
         EXACT_WALK_THREAT_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        return cached;
+        return cached || checkpoint();
     }
 
     let result = is_drainer_under_walk_threat_uncached(board, color, location, angel_nearby);
-    EXACT_WALK_THREAT_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_WALK_THREAT_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, result);
-    });
-    result
+    if cache_write_allowed() {
+        EXACT_WALK_THREAT_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_WALK_THREAT_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, result);
+        });
+        result
+    } else {
+        true
+    }
 }
 
 fn is_drainer_under_walk_threat_uncached(
@@ -2575,6 +2725,9 @@ fn is_drainer_under_walk_threat_uncached(
     location: Location,
     angel_nearby: bool,
 ) -> bool {
+    if checkpoint() {
+        return false;
+    }
     if angel_nearby {
         return board.occupied().any(|(threat_location, item)| {
             matches!(
@@ -2592,6 +2745,9 @@ fn is_drainer_under_walk_threat_uncached(
 
     let valid = Location::valid_range();
     for (threat_location, item) in board.occupied() {
+        if checkpoint() {
+            return false;
+        }
         let mon = match item {
             Item::Mon { mon }
             | Item::MonWithMana { mon, .. }
@@ -2674,8 +2830,11 @@ pub(crate) fn is_drainer_exactly_safe_next_turn_on_board_with_hash(
     color: Color,
     location: Location,
 ) -> bool {
+    if checkpoint() {
+        return false;
+    }
     let angel_nearby = exact_is_location_guarded_by_angel(board, color, location);
-    !can_attack_target_on_board_with_hash(
+    let can_attack = can_attack_target_on_board_with_hash(
         board,
         board_hash,
         color.other(),
@@ -2683,7 +2842,13 @@ pub(crate) fn is_drainer_exactly_safe_next_turn_on_board_with_hash(
         location,
         Config::MONS_MOVES_PER_TURN,
         true,
-    ) && !is_drainer_under_walk_threat_with_hash(board, board_hash, color, location, angel_nearby)
+    );
+    if checkpoint() {
+        return false;
+    }
+    !can_attack
+        && !is_drainer_under_walk_threat_with_hash(board, board_hash, color, location, angel_nearby)
+        && !checkpoint()
 }
 
 fn exact_is_location_guarded_by_angel(board: &Board, color: Color, location: Location) -> bool {
@@ -2694,14 +2859,23 @@ fn exact_is_location_guarded_by_angel(board: &Board, color: Color, location: Loc
 
 #[cfg(test)]
 fn build_exact_state_analysis(game: &MonsGame) -> ExactStateAnalysis {
+    if checkpoint_with_reserve(20.0) {
+        return ExactStateAnalysis::default();
+    }
     let active_color = game.active_color;
     let active_summary =
         build_color_summary(game, active_color, ExactColorSummaryMode::ActiveTactical);
+    if checkpoint_with_reserve(20.0) {
+        return ExactStateAnalysis::default();
+    }
     let passive_summary = build_color_summary(
         game,
         active_color.other(),
         ExactColorSummaryMode::PassiveStrategic,
     );
+    if checkpoint_with_reserve(20.0) {
+        return ExactStateAnalysis::default();
+    }
     if active_color == Color::White {
         ExactStateAnalysis {
             white: active_summary,
@@ -2716,9 +2890,18 @@ fn build_exact_state_analysis(game: &MonsGame) -> ExactStateAnalysis {
 }
 
 fn build_exact_strategic_analysis(game: &MonsGame) -> ExactStrategicAnalysis {
-    ExactStrategicAnalysis {
-        white: build_color_summary(game, Color::White, ExactColorSummaryMode::PassiveStrategic),
-        black: build_color_summary(game, Color::Black, ExactColorSummaryMode::PassiveStrategic),
+    if checkpoint_with_reserve(20.0) {
+        return ExactStrategicAnalysis::default();
+    }
+    let white = build_color_summary(game, Color::White, ExactColorSummaryMode::PassiveStrategic);
+    if checkpoint_with_reserve(20.0) {
+        return ExactStrategicAnalysis::default();
+    }
+    let black = build_color_summary(game, Color::Black, ExactColorSummaryMode::PassiveStrategic);
+    if checkpoint_with_reserve(20.0) {
+        ExactStrategicAnalysis::default()
+    } else {
+        ExactStrategicAnalysis { white, black }
     }
 }
 
@@ -2727,6 +2910,9 @@ fn build_color_summary(
     color: Color,
     mode: ExactColorSummaryMode,
 ) -> ExactColorSummary {
+    if checkpoint_with_reserve(20.0) {
+        return ExactColorSummary::default();
+    }
     update_exact_query_diagnostics(|diagnostics| match mode {
         #[cfg(test)]
         ExactColorSummaryMode::ActiveTactical => diagnostics.active_tactical_summary_builds += 1,
@@ -2748,6 +2934,9 @@ fn build_color_summary(
     let mut carrier_steps = Vec::new();
     let mut best_carrier_steps = None;
     for (location, item) in game.board.occupied() {
+        if checkpoint() {
+            return ExactColorSummary::default();
+        }
         let Item::MonWithMana { mon, mana } = item else {
             continue;
         };
@@ -2773,6 +2962,9 @@ fn build_color_summary(
             board_hash,
         )
     });
+    if checkpoint_with_reserve(20.0) {
+        return ExactColorSummary::default();
+    }
     #[cfg(any(target_arch = "wasm32", test))]
     let best_drainer_to_mana_steps = find_awake_drainer(&game.board, color)
         .and_then(|location| exact_drainer_to_any_mana_steps(&game.board, color, location));
@@ -2790,6 +2982,9 @@ fn build_color_summary(
 
     let mut immediate_scores = Vec::new();
     for (location, item) in game.board.occupied() {
+        if checkpoint() {
+            return ExactColorSummary::default();
+        }
         let Item::MonWithMana { mon, mana } = item else {
             continue;
         };
@@ -2829,6 +3024,9 @@ fn build_color_summary(
             exact_passive_spirit_summary(&game.board, color, full_turn_moves, can_use_action)
         }
     };
+    if checkpoint_with_reserve(20.0) {
+        return ExactColorSummary::default();
+    }
     immediate_scores.sort_unstable_by(|a, b| b.cmp(a));
     let immediate_window = ExactImmediateScoreWindow {
         best_score: immediate_scores.first().copied().unwrap_or(0),
@@ -2849,6 +3047,9 @@ fn build_color_summary(
 
 #[cfg(any(target_arch = "wasm32", test))]
 fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnSummary::default();
+    }
     update_exact_query_diagnostics(|diagnostics| diagnostics.exact_turn_summary_builds += 1);
 
     let color = game.active_color;
@@ -2863,18 +3064,33 @@ fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
             | EXACT_TACTICAL_SPIRIT_NEED_DENIAL
             | EXACT_TACTICAL_SPIRIT_NEED_PROGRESS,
     );
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnSummary::default();
+    }
     let safe_supermana_progress_steps =
         exact_secure_specific_mana_steps_this_turn(game, color, Mana::Supermana);
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnSummary::default();
+    }
     let safe_opponent_mana_progress_steps =
         exact_secure_specific_mana_steps_this_turn(game, color, Mana::Regular(color.other()));
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnSummary::default();
+    }
     let same_turn_score_window_value =
         exact_best_immediate_score_on_board(&game.board, color, remaining_moves)
             .max(tactical_spirit.same_turn_score_value)
             .max(tactical_spirit.same_turn_opponent_mana_score_value);
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnSummary::default();
+    }
 
     let board_hash = exact_board_hash(&game.board);
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnSummary::default();
+    }
 
-    ExactTurnSummary {
+    let summary = ExactTurnSummary {
         can_attack_opponent_drainer: can_attack_opponent_drainer_exact_with_hash(
             game, color, board_hash,
         ),
@@ -2892,11 +3108,19 @@ fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
         spirit_assisted_denial_value: tactical_spirit.same_turn_opponent_mana_score_value,
         same_turn_score_window_value,
         score_path_best_steps: exact_best_score_steps_on_board(&game.board, color),
+    };
+    if checkpoint_with_reserve(20.0) {
+        ExactTurnSummary::default()
+    } else {
+        summary
     }
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
 fn build_exact_turn_tactical_projection(game: &MonsGame, flags: u8) -> ExactTurnTacticalProjection {
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnTacticalProjection::default();
+    }
     let color = game.active_color;
     let remaining_moves = (Config::MONS_MOVES_PER_TURN - game.mons_moves_count).max(0);
     let can_use_action = game.player_can_use_action();
@@ -2925,16 +3149,25 @@ fn build_exact_turn_tactical_projection(game: &MonsGame, flags: u8) -> ExactTurn
     } else {
         ExactSpiritSummary::default()
     };
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnTacticalProjection::default();
+    }
     let safe_supermana_progress_steps = if need_supermana {
         exact_secure_specific_mana_steps_this_turn(game, color, Mana::Supermana)
     } else {
         None
     };
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnTacticalProjection::default();
+    }
     let safe_opponent_mana_progress_steps = if need_opponent_mana {
         exact_secure_specific_mana_steps_this_turn(game, color, Mana::Regular(color.other()))
     } else {
         None
     };
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnTacticalProjection::default();
+    }
     let same_turn_score_window_value = if need_score_window {
         exact_best_immediate_score_on_board(&game.board, color, remaining_moves)
             .max(tactical_spirit.same_turn_score_value)
@@ -2946,6 +3179,10 @@ fn build_exact_turn_tactical_projection(game: &MonsGame, flags: u8) -> ExactTurn
     } else {
         0
     };
+
+    if checkpoint_with_reserve(20.0) {
+        return ExactTurnTacticalProjection::default();
+    }
 
     ExactTurnTacticalProjection {
         safe_supermana_progress: safe_supermana_progress_steps.is_some(),
@@ -2997,6 +3234,9 @@ fn exact_shortest_payload_state<F>(
 where
     F: FnMut(Location, ExactActorPayload) -> bool,
 {
+    if checkpoint() {
+        return None;
+    }
     let mut actor_move_memo = ExactActorMoveMemo::new(0);
     let mut queue = VecDeque::with_capacity(EXACT_BFS_CAPACITY);
     let mut seen = ExactPayloadSeen::new();
@@ -3004,6 +3244,9 @@ where
     seen.insert(start, start_payload);
 
     while let Some((location, payload, steps)) = queue.pop_front() {
+        if checkpoint() {
+            return None;
+        }
         if goal(location, payload) {
             return Some(ExactStateResult { steps });
         }
@@ -3045,6 +3288,9 @@ where
     F: FnMut(Location, ExactActorPayload) -> bool,
     L: FnMut(Location, ExactActorPayload) -> i32,
 {
+    if checkpoint() {
+        return None;
+    }
     let mut actor_move_memo = ExactActorMoveMemo::new(0);
     let mut queue = VecDeque::with_capacity(EXACT_BFS_CAPACITY);
     let mut seen = ExactPayloadSeen::new();
@@ -3052,6 +3298,9 @@ where
     seen.insert(start, start_payload);
 
     while let Some((location, payload, steps)) = queue.pop_front() {
+        if checkpoint() {
+            return None;
+        }
         if goal(location, payload) {
             return Some(ExactStateResult { steps });
         }
@@ -3380,6 +3629,9 @@ fn exact_build_carrier_distance_map(board: &Board, max_steps: i32) -> ExactCarri
     let mut queue = VecDeque::with_capacity(EXACT_BFS_CAPACITY);
 
     for index in 0..board.items.len() {
+        if checkpoint() {
+            return ExactCarrierDistanceMap::new();
+        }
         let location = Location::from_index(index);
         if !exact_location_is_mana_pool(board, location) {
             continue;
@@ -3393,6 +3645,9 @@ fn exact_build_carrier_distance_map(board: &Board, max_steps: i32) -> ExactCarri
     }
 
     while let Some((location, next_mana)) = queue.pop_front() {
+        if checkpoint() {
+            return ExactCarrierDistanceMap::new();
+        }
         let current_steps = distances
             .steps(location, next_mana)
             .expect("queued carrier state should have a distance");
@@ -3460,6 +3715,9 @@ fn exact_carrier_steps_from_distance_map(
     board_hash: u64,
     max_steps: i32,
 ) -> Option<i32> {
+    if checkpoint() {
+        return None;
+    }
     EXACT_CARRIER_DISTANCE_MAP_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         let key = ExactCarrierDistanceMapQueryKey {
@@ -3472,13 +3730,17 @@ fn exact_carrier_steps_from_distance_map(
 
         let distances = exact_build_carrier_distance_map(board, max_steps);
         let result = distances.steps(start, mana);
-        if cache.entries.len() >= EXACT_CARRIER_DISTANCE_MAP_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
+        if cache_write_allowed() {
+            if cache.entries.len() >= EXACT_CARRIER_DISTANCE_MAP_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, distances);
+            result
+        } else {
+            None
         }
-        cache.entries.insert(key, distances);
-        result
     })
 }
 
@@ -3512,6 +3774,9 @@ fn exact_carrier_steps_to_any_pool_with_hash(
     mana: Mana,
     board_hash: u64,
 ) -> Option<i32> {
+    if checkpoint() {
+        return None;
+    }
     let key = ExactCarrierStepsQueryKey {
         board_hash,
         start,
@@ -3538,16 +3803,20 @@ fn exact_carrier_steps_to_any_pool_with_hash(
     )
     .map(|result| result.steps);
 
-    EXACT_CARRIER_STEPS_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_CARRIER_STEPS_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, result);
-    });
-    result
+    if cache_write_allowed() {
+        EXACT_CARRIER_STEPS_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_CARRIER_STEPS_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, result);
+        });
+        result
+    } else {
+        None
+    }
 }
 
 #[inline]
@@ -3558,7 +3827,7 @@ fn exact_carrier_steps_to_any_pool_with_hash_bounded(
     max_steps: i32,
     board_hash: u64,
 ) -> Option<i32> {
-    if max_steps < 0 {
+    if max_steps < 0 || checkpoint() {
         return None;
     }
     if max_steps == 0 {
@@ -3585,23 +3854,27 @@ fn exact_carrier_steps_to_any_pool_with_hash_bounded(
     };
     let should_use_distance_map = EXACT_CARRIER_DISTANCE_MAP_CACHE
         .with(|cache| cache.borrow().entries.contains_key(&map_key))
-        || EXACT_CARRIER_DISTANCE_MAP_WARMUP_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            let count = cache.entries.get(&map_key).copied().unwrap_or(0);
-            if count >= 1 {
-                cache.entries.remove(&map_key);
-                true
-            } else {
-                cache.entries.insert(map_key, count + 1);
-                false
-            }
-        });
+        || (cache_write_allowed()
+            && EXACT_CARRIER_DISTANCE_MAP_WARMUP_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                let count = cache.entries.get(&map_key).copied().unwrap_or(0);
+                if count >= 1 {
+                    cache.entries.remove(&map_key);
+                    true
+                } else {
+                    cache.entries.insert(map_key, count + 1);
+                    false
+                }
+            }));
 
     let result = if should_use_distance_map {
         exact_carrier_steps_from_distance_map(board, start, mana, board_hash, max_steps)
     } else {
         exact_carrier_steps_to_any_pool_bounded_uncached(board, start, mana, max_steps)
     };
+    if !cache_write_allowed() {
+        return None;
+    }
     if let Some(steps) = result {
         EXACT_CARRIER_STEPS_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
@@ -3734,13 +4007,22 @@ fn exact_drainer_pickup_window_small_budget_with_hash(
     _board_hash: u64,
 ) -> ExactDrainerPickupWindow {
     debug_assert!((0..=3).contains(&max_steps));
+    if checkpoint() {
+        return ExactDrainerPickupWindow::default();
+    }
 
     let mut best = ExactDrainerPickupWindow::default();
     let mut actor_move_memo = ExactDrainerMoveMemo::new();
     let mut frontier = vec![(start, ExactActorPayload::None)];
 
     for steps in 0..=max_steps {
+        if checkpoint() {
+            return ExactDrainerPickupWindow::default();
+        }
         for &(location, payload) in &frontier {
+            if checkpoint() {
+                return ExactDrainerPickupWindow::default();
+            }
             if exact_update_drainer_pickup_window_candidate(
                 board,
                 &mut best,
@@ -3762,6 +4044,9 @@ fn exact_drainer_pickup_window_small_budget_with_hash(
 
         let mut next_frontier = Vec::with_capacity(frontier.len() * 6);
         for &(location, payload) in &frontier {
+            if checkpoint() {
+                return ExactDrainerPickupWindow::default();
+            }
             if exact_drainer_pickup_remaining_steps_lower_bound(
                 board,
                 color,
@@ -3805,7 +4090,7 @@ fn exact_drainer_pickup_window_uncached_with_hash(
 ) -> ExactDrainerPickupWindow {
     update_exact_query_diagnostics(|diagnostics| diagnostics.pickup_path_calls += 1);
 
-    if !need_score && !need_denial {
+    if (!need_score && !need_denial) || checkpoint() {
         return ExactDrainerPickupWindow::default();
     }
 
@@ -3817,6 +4102,9 @@ fn exact_drainer_pickup_window_uncached_with_hash(
     let mut best = ExactDrainerPickupWindow::default();
 
     while let Some((location, payload, steps)) = queue.pop_front() {
+        if checkpoint() {
+            return ExactDrainerPickupWindow::default();
+        }
         if max_steps.is_some_and(|limit| steps > limit) {
             continue;
         }
@@ -3877,7 +4165,7 @@ fn exact_drainer_pickup_window_with_hash_min_any_score(
     opponent_mana: Mana,
     board_hash: u64,
 ) -> ExactDrainerPickupWindow {
-    if !need_score && !need_denial {
+    if (!need_score && !need_denial) || checkpoint() {
         return ExactDrainerPickupWindow::default();
     }
     let min_any_score = if need_score { min_any_score.max(1) } else { 0 };
@@ -3947,8 +4235,12 @@ fn exact_drainer_pickup_window_with_hash_min_any_score(
             };
             if let Some(cached) = cache.entries.get(&base_key).copied() {
                 let derived = exact_drainer_pickup_window_for_min_any_score(cached, min_any_score);
-                cache.entries.insert(key, derived);
-                return Some(derived);
+                return if cache_write_allowed() {
+                    cache.entries.insert(key, derived);
+                    Some(derived)
+                } else {
+                    Some(ExactDrainerPickupWindow::default())
+                };
             }
         }
         if need_score ^ need_denial {
@@ -3959,8 +4251,12 @@ fn exact_drainer_pickup_window_with_hash_min_any_score(
             };
             if let Some(cached) = cache.entries.get(&superset_key).copied() {
                 let derived = exact_drainer_pickup_window_for_axes(cached, need_score, need_denial);
-                cache.entries.insert(key, derived);
-                return Some(derived);
+                return if cache_write_allowed() {
+                    cache.entries.insert(key, derived);
+                    Some(derived)
+                } else {
+                    Some(ExactDrainerPickupWindow::default())
+                };
             }
             if need_score && min_any_score > 1 {
                 let superset_base_key = ExactDrainerPickupWindowQueryKey {
@@ -3973,8 +4269,12 @@ fn exact_drainer_pickup_window_with_hash_min_any_score(
                         need_score,
                         need_denial,
                     );
-                    cache.entries.insert(key, derived);
-                    return Some(derived);
+                    return if cache_write_allowed() {
+                        cache.entries.insert(key, derived);
+                        Some(derived)
+                    } else {
+                        Some(ExactDrainerPickupWindow::default())
+                    };
                 }
             }
         }
@@ -3994,16 +4294,20 @@ fn exact_drainer_pickup_window_with_hash_min_any_score(
         opponent_mana,
         board_hash,
     );
-    EXACT_DRAINER_PICKUP_WINDOW_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_DRAINER_PICKUP_WINDOW_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, result);
-    });
-    result
+    if cache_write_allowed() {
+        EXACT_DRAINER_PICKUP_WINDOW_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_DRAINER_PICKUP_WINDOW_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, result);
+        });
+        result
+    } else {
+        ExactDrainerPickupWindow::default()
+    }
 }
 
 #[cfg(test)]
@@ -4041,6 +4345,9 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
     board_hash: u64,
 ) -> Option<ExactDrainerPickupPath> {
     update_exact_query_diagnostics(|diagnostics| diagnostics.pickup_path_calls += 1);
+    if checkpoint() {
+        return None;
+    }
     let key = ExactPickupPathQueryKey {
         board_hash,
         color,
@@ -4065,15 +4372,17 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
         )
         .is_some_and(|lower_bound| lower_bound > limit)
     }) {
-        EXACT_PICKUP_PATH_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.entries.len() >= EXACT_PICKUP_PATH_CACHE_MAX_ENTRIES
-                && !cache.entries.contains_key(&key)
-            {
-                cache.entries.clear();
-            }
-            cache.entries.insert(key, None);
-        });
+        if cache_write_allowed() {
+            EXACT_PICKUP_PATH_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                if cache.entries.len() >= EXACT_PICKUP_PATH_CACHE_MAX_ENTRIES
+                    && !cache.entries.contains_key(&key)
+                {
+                    cache.entries.clear();
+                }
+                cache.entries.insert(key, None);
+            });
+        }
         return None;
     }
 
@@ -4087,6 +4396,9 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
     let max_mana_value = exact_pickup_filter_max_mana_value(mana_filter, color);
 
     while let Some((location, payload, steps)) = queue.pop_front() {
+        if checkpoint() {
+            return None;
+        }
         if max_steps.is_some_and(|limit| steps > limit) {
             continue;
         }
@@ -4143,16 +4455,20 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
         }
     }
 
-    EXACT_PICKUP_PATH_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_PICKUP_PATH_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, best);
-    });
-    best
+    if cache_write_allowed() {
+        EXACT_PICKUP_PATH_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_PICKUP_PATH_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, best);
+        });
+        best
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]
@@ -4183,6 +4499,9 @@ fn find_awake_drainer(board: &Board, color: Color) -> Option<Location> {
 
 #[cfg(any(target_arch = "wasm32", test))]
 fn exact_drainer_to_any_mana_steps(board: &Board, color: Color, start: Location) -> Option<i32> {
+    if checkpoint() {
+        return None;
+    }
     let key = ExactDrainerToManaQueryKey {
         board_hash: exact_board_hash(board),
         color,
@@ -4206,16 +4525,20 @@ fn exact_drainer_to_any_mana_steps(board: &Board, color: Color, start: Location)
     )
     .map(|result| result.steps);
 
-    EXACT_DRAINER_TO_MANA_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_DRAINER_TO_MANA_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, result);
-    });
-    result
+    if cache_write_allowed() {
+        EXACT_DRAINER_TO_MANA_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_DRAINER_TO_MANA_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, result);
+        });
+        result
+    } else {
+        None
+    }
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -4265,7 +4588,7 @@ pub(crate) fn exact_secure_specific_mana_steps_on_board(
     wanted: Mana,
     remaining_moves: i32,
 ) -> Option<i32> {
-    if remaining_moves < 0 {
+    if remaining_moves < 0 || checkpoint() {
         return None;
     }
     let drainer_location = find_awake_drainer(board, color)?;
@@ -4324,6 +4647,9 @@ fn exact_secure_specific_mana_steps_in_game_with_key(
     state: ExactSecureManaStateKey,
 ) -> Option<i32> {
     update_exact_query_diagnostics(|diagnostics| diagnostics.exact_secure_mana_calls += 1);
+    if checkpoint() {
+        return None;
+    }
     let mut game = game.clone_for_simulation();
     EXACT_SECURE_MANA_CACHE.with(|cache| {
         exact_secure_specific_mana_steps_in_game_with_key_mut(
@@ -4344,6 +4670,9 @@ fn exact_secure_specific_mana_steps_in_game_with_key_mut(
     state: ExactSecureManaStateKey,
     cache: &mut ExactSecureManaCache,
 ) -> Option<i32> {
+    if checkpoint() {
+        return None;
+    }
     let drainer_location = find_awake_drainer(&game.board, color)?;
     exact_secure_specific_mana_steps_in_game_with_key_at_mut(
         game,
@@ -4364,6 +4693,9 @@ fn exact_secure_specific_mana_steps_in_game_with_key_at_mut(
     state: ExactSecureManaStateKey,
     cache: &mut ExactSecureManaCache,
 ) -> Option<i32> {
+    if checkpoint() {
+        return None;
+    }
     let key = ExactSecureManaQueryKey {
         state,
         color,
@@ -4387,14 +4719,18 @@ fn exact_secure_specific_mana_steps_in_game_with_key_at_mut(
         cache,
     );
     cache.visiting.remove(&key);
-    if cache.entries.len() >= EXACT_SECURE_MANA_CACHE_MAX_ENTRIES
-        && !cache.entries.contains_key(&key)
-    {
-        cache.entries.clear();
-        cache.visiting.clear();
+    if cache_write_allowed() {
+        if cache.entries.len() >= EXACT_SECURE_MANA_CACHE_MAX_ENTRIES
+            && !cache.entries.contains_key(&key)
+        {
+            cache.entries.clear();
+            cache.visiting.clear();
+        }
+        cache.entries.insert(key, result);
+        result
+    } else {
+        None
     }
-    cache.entries.insert(key, result);
-    result
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -4406,6 +4742,9 @@ fn exact_secure_specific_mana_steps_in_game_uncached_at_mut(
     state_key: ExactSecureManaStateKey,
     cache: &mut ExactSecureManaCache,
 ) -> Option<i32> {
+    if checkpoint() {
+        return None;
+    }
     let holding_wanted = matches!(
         game.board.item(drainer_location),
         Some(Item::MonWithMana { mana, .. }) if *mana == wanted
@@ -4414,6 +4753,9 @@ fn exact_secure_specific_mana_steps_in_game_uncached_at_mut(
         && is_drainer_exactly_safe_next_turn_on_board(&game.board, color, drainer_location)
     {
         return Some(0);
+    }
+    if checkpoint() {
+        return None;
     }
 
     if game.active_color != color || !game.player_can_move_mon() {
@@ -4429,6 +4771,9 @@ fn exact_secure_specific_mana_steps_in_game_uncached_at_mut(
 
     let mut best = None;
     for &next in drainer_location.nearby_locations_ref() {
+        if checkpoint() {
+            return None;
+        }
         if !holding_wanted {
             let next_picks_wanted = matches!(
                 game.board.item(next),
@@ -4445,22 +4790,36 @@ fn exact_secure_specific_mana_steps_in_game_uncached_at_mut(
         let Some(transition) =
             exact_apply_secure_drainer_walk_in_place(game, state_key, drainer_location, next)
         else {
+            if checkpoint() {
+                return None;
+            }
             continue;
         };
+        if checkpoint() {
+            exact_undo_secure_drainer_walk(game, transition.undo);
+            return None;
+        }
         let candidate = if transition.scored_mana == Some(wanted) {
             Some(1)
         } else {
-            exact_secure_specific_mana_steps_in_game_with_key_at_mut(
+            let child = exact_secure_specific_mana_steps_in_game_with_key_at_mut(
                 game,
                 color,
                 next,
                 wanted,
                 transition.after_key,
                 cache,
-            )
-            .map(|next_steps| next_steps.saturating_add(1))
+            );
+            if child.is_none() && checkpoint() {
+                exact_undo_secure_drainer_walk(game, transition.undo);
+                return None;
+            }
+            child.map(|next_steps| next_steps.saturating_add(1))
         };
         exact_undo_secure_drainer_walk(game, transition.undo);
+        if checkpoint() {
+            return None;
+        }
         if let Some(candidate) = candidate {
             best = Some(best.map_or(candidate, |current: i32| current.min(candidate)));
             if candidate == 1 {
@@ -4479,6 +4838,9 @@ pub(crate) fn exact_secure_specific_mana_path_from(
     start: Location,
     wanted: Mana,
 ) -> Option<Vec<Location>> {
+    if checkpoint() {
+        return None;
+    }
     let mut visiting =
         ExactHashSet::with_capacity_and_hasher(EXACT_BFS_CAPACITY, ExactBuildHasher::default());
     exact_secure_specific_mana_path_from_uncached(
@@ -4500,6 +4862,9 @@ fn exact_secure_specific_mana_path_from_uncached(
     state_key: ExactSecureManaStateKey,
     visiting: &mut ExactHashSet<ExactSecureManaStateKey>,
 ) -> Option<Vec<Location>> {
+    if checkpoint() {
+        return None;
+    }
     if !visiting.insert(state_key) {
         return None;
     }
@@ -4516,8 +4881,16 @@ fn exact_secure_specific_mana_path_from_uncached(
         let mut best_path: Option<Vec<Location>> = None;
 
         for &next in start.nearby_locations_ref() {
+            if checkpoint() {
+                visiting.remove(&state_key);
+                return None;
+            }
             let Some(transition) = exact_apply_secure_drainer_walk(game, state_key, start, next)
             else {
+                if checkpoint() {
+                    visiting.remove(&state_key);
+                    return None;
+                }
                 continue;
             };
 
@@ -4542,6 +4915,10 @@ fn exact_secure_specific_mana_path_from_uncached(
                     transition.after_key,
                     visiting,
                 ) else {
+                    if checkpoint() {
+                        visiting.remove(&state_key);
+                        return None;
+                    }
                     continue;
                 };
                 let mut path = Vec::with_capacity(suffix.len() + 1);
@@ -4551,6 +4928,11 @@ fn exact_secure_specific_mana_path_from_uncached(
             } else {
                 None
             };
+
+            if checkpoint() {
+                visiting.remove(&state_key);
+                return None;
+            }
 
             let Some(candidate_path) = candidate_path else {
                 continue;
@@ -4722,7 +5104,7 @@ fn exact_apply_secure_drainer_walk_in_place(
     update_exact_query_diagnostics(|diagnostics| {
         diagnostics.exact_secure_drainer_walk_apply_calls += 1
     });
-    if !exact_walk_destination_plausible(&game.board, from, to) {
+    if checkpoint() || !exact_walk_destination_plausible(&game.board, from, to) {
         return None;
     }
 
@@ -4732,8 +5114,21 @@ fn exact_apply_secure_drainer_walk_in_place(
         return None;
     }
 
-    let snapshot = ExactSecureGameSnapshot::capture(game);
     let target_item = game.board.item(to).copied();
+    match target_item {
+        Some(Item::Mon { .. })
+        | Some(Item::MonWithMana { .. })
+        | Some(Item::MonWithConsumable { .. })
+        | Some(Item::Consumable {
+            consumable: Consumable::Bomb | Consumable::Potion,
+        }) => return None,
+        Some(Item::Consumable {
+            consumable: Consumable::BombOrPotion,
+        }) if start_item.consumable().is_none() && start_item.mana().is_none() => return None,
+        Some(Item::Mana { .. }) | Some(Item::Consumable { .. }) | None => {}
+    }
+
+    let snapshot = ExactSecureGameSnapshot::capture(game);
     let mut touched_items = ExactSecureTouchedItems::new();
     let mut white_regular_mana_count = state_key.white_regular_mana_count;
     let mut black_regular_mana_count = state_key.black_regular_mana_count;
@@ -4747,7 +5142,9 @@ fn exact_apply_secure_drainer_walk_in_place(
     match target_item {
         Some(Item::Mon { .. })
         | Some(Item::MonWithMana { .. })
-        | Some(Item::MonWithConsumable { .. }) => return None,
+        | Some(Item::MonWithConsumable { .. }) => {
+            unreachable!("occupied mon destination should be rejected before mutation")
+        }
         Some(Item::Mana { mana }) => {
             exact_adjust_regular_mana_counts(
                 &mut white_regular_mana_count,
@@ -4773,7 +5170,9 @@ fn exact_apply_secure_drainer_walk_in_place(
             );
         }
         Some(Item::Consumable { consumable }) => match consumable {
-            Consumable::Bomb | Consumable::Potion => return None,
+            Consumable::Bomb | Consumable::Potion => {
+                unreachable!("resolved consumable destination should be rejected before mutation")
+            }
             Consumable::BombOrPotion => {
                 if start_item.consumable().is_some() || start_item.mana().is_some() {
                     if start_mon.color == Color::White {
@@ -4783,7 +5182,7 @@ fn exact_apply_secure_drainer_walk_in_place(
                     }
                     game.board.put(start_item, to);
                 } else {
-                    return None;
+                    unreachable!("empty drainer pickup should be rejected before mutation")
                 }
             }
         },
@@ -4841,6 +5240,16 @@ fn exact_apply_secure_drainer_walk_in_place(
         game.mons_moves_count = 0;
 
         for index in 0..game.board.items.len() {
+            if checkpoint() {
+                exact_undo_secure_drainer_walk(
+                    game,
+                    ExactSecureDrainerWalkUndo {
+                        snapshot,
+                        touched_items,
+                    },
+                );
+                return None;
+            }
             let Some(Item::Mon { mon }) = game.board.items[index] else {
                 continue;
             };
@@ -4866,6 +5275,16 @@ fn exact_apply_secure_drainer_walk_in_place(
         white_regular_mana_count,
         black_regular_mana_count,
     };
+    if checkpoint() {
+        exact_undo_secure_drainer_walk(
+            game,
+            ExactSecureDrainerWalkUndo {
+                snapshot,
+                touched_items,
+            },
+        );
+        return None;
+    }
     Some(ExactSecureDrainerWalkMutation {
         after_key,
         scored_mana,
@@ -4942,7 +5361,7 @@ fn exact_spirit_summary(
     can_use_action: bool,
 ) -> ExactSpiritSummary {
     update_exact_query_diagnostics(|diagnostics| diagnostics.exact_spirit_summary_calls += 1);
-    if remaining_mon_moves < 0 {
+    if remaining_mon_moves < 0 || checkpoint() {
         return ExactSpiritSummary::default();
     }
     let key = ExactSpiritSummaryKey {
@@ -4961,16 +5380,20 @@ fn exact_spirit_summary(
     }
 
     let summary = exact_spirit_summary_uncached(board, color, remaining_mon_moves, can_use_action);
-    EXACT_SPIRIT_SUMMARY_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_SPIRIT_SUMMARY_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, summary);
-    });
-    summary
+    if cache_write_allowed() {
+        EXACT_SPIRIT_SUMMARY_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_SPIRIT_SUMMARY_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, summary);
+        });
+        summary
+    } else {
+        ExactSpiritSummary::default()
+    }
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -4982,7 +5405,7 @@ fn exact_tactical_spirit_summary(
     fields: u8,
 ) -> ExactSpiritSummary {
     update_exact_query_diagnostics(|diagnostics| diagnostics.tactical_spirit_summary_calls += 1);
-    if remaining_mon_moves < 0 || fields == 0 {
+    if remaining_mon_moves < 0 || fields == 0 || checkpoint() {
         return ExactSpiritSummary::default();
     }
     let key = ExactTacticalSpiritSummaryKey {
@@ -5009,8 +5432,12 @@ fn exact_tactical_spirit_summary(
             };
             if let Some(cached) = cache.entries.get(&superset_key).copied() {
                 let derived = exact_tactical_spirit_summary_for_fields(cached, fields);
-                cache.entries.insert(key, derived);
-                return Some(derived);
+                return if cache_write_allowed() {
+                    cache.entries.insert(key, derived);
+                    Some(derived)
+                } else {
+                    Some(ExactSpiritSummary::default())
+                };
             }
         }
         None
@@ -5029,16 +5456,20 @@ fn exact_tactical_spirit_summary(
         fields,
         key.board_hash,
     );
-    EXACT_SPIRIT_TACTICAL_SUMMARY_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_SPIRIT_SUMMARY_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, summary);
-    });
-    summary
+    if cache_write_allowed() {
+        EXACT_SPIRIT_TACTICAL_SUMMARY_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_SPIRIT_SUMMARY_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, summary);
+        });
+        summary
+    } else {
+        ExactSpiritSummary::default()
+    }
 }
 
 fn exact_passive_spirit_summary(
@@ -5048,13 +5479,16 @@ fn exact_passive_spirit_summary(
     can_use_action: bool,
 ) -> ExactSpiritSummary {
     update_exact_query_diagnostics(|diagnostics| diagnostics.passive_spirit_summary_calls += 1);
-    if remaining_mon_moves < 0 || !can_use_action {
+    if remaining_mon_moves < 0 || !can_use_action || checkpoint() {
         return ExactSpiritSummary::default();
     }
 
     let mut best = ExactSpiritSummary::default();
 
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return ExactSpiritSummary::default();
+        }
         let Some(mon) = item.mon() else {
             continue;
         };
@@ -5065,6 +5499,9 @@ fn exact_passive_spirit_summary(
         for (spirit_pos, _) in
             reachable_spirit_positions(board, location, color, remaining_mon_moves)
         {
+            if checkpoint() {
+                return ExactSpiritSummary::default();
+            }
             if matches!(board.square(spirit_pos), Square::MonBase { .. }) {
                 continue;
             }
@@ -5075,6 +5512,9 @@ fn exact_passive_spirit_summary(
             let mut opponent_mana_progress = false;
 
             for &target in spirit_pos.reachable_by_spirit_action_ref() {
+                if checkpoint() {
+                    return ExactSpiritSummary::default();
+                }
                 let Some(target_item) = board.item(target).copied() else {
                     continue;
                 };
@@ -5138,7 +5578,11 @@ fn exact_passive_spirit_summary(
         }
     }
 
-    best
+    if checkpoint() {
+        ExactSpiritSummary::default()
+    } else {
+        best
+    }
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -5150,7 +5594,7 @@ fn exact_tactical_spirit_summary_uncached(
     fields: u8,
     board_hash: u64,
 ) -> ExactSpiritSummary {
-    if !can_use_action {
+    if !can_use_action || checkpoint() {
         return ExactSpiritSummary::default();
     }
 
@@ -5165,6 +5609,9 @@ fn exact_tactical_spirit_summary_uncached(
         need_denial,
         board_hash,
     );
+    if checkpoint() {
+        return ExactSpiritSummary::default();
+    }
     let before_same_turn_score = before_window.best_score;
     let before_same_turn_opponent_score = before_window.best_opponent_mana_score;
     let max_same_turn_score = if need_score {
@@ -5183,8 +5630,14 @@ fn exact_tactical_spirit_summary_uncached(
         ExactImmediateTacticalWindow,
     > = ExactHashMap::default();
     let base_zero_move_counts = exact_zero_move_tactical_counts(board, color);
+    if checkpoint() {
+        return ExactSpiritSummary::default();
+    }
 
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return ExactSpiritSummary::default();
+        }
         let Some(mon) = item.mon() else {
             continue;
         };
@@ -5195,6 +5648,9 @@ fn exact_tactical_spirit_summary_uncached(
         for (spirit_pos, spirit_steps) in
             reachable_spirit_positions(board, location, color, remaining_mon_moves)
         {
+            if checkpoint() {
+                return ExactSpiritSummary::default();
+            }
             if matches!(board.square(spirit_pos), Square::MonBase { .. }) {
                 continue;
             }
@@ -5231,8 +5687,14 @@ fn exact_tactical_spirit_summary_uncached(
             } else {
                 None
             };
+            if checkpoint() {
+                return ExactSpiritSummary::default();
+            }
 
             for &target in spirit_pos.reachable_by_spirit_action_ref() {
+                if checkpoint() {
+                    return ExactSpiritSummary::default();
+                }
                 let Some(target_item) = action_board.item(target).copied() else {
                     continue;
                 };
@@ -5240,6 +5702,9 @@ fn exact_tactical_spirit_summary_uncached(
                     continue;
                 }
                 for &dest in target.nearby_locations_ref() {
+                    if checkpoint() {
+                        return ExactSpiritSummary::default();
+                    }
                     if !spirit_destination_allowed(&action_board, target, target_item, dest) {
                         continue;
                     }
@@ -5249,6 +5714,9 @@ fn exact_tactical_spirit_summary_uncached(
                             color,
                             action_board_hash,
                         ));
+                        if checkpoint() {
+                            return ExactSpiritSummary::default();
+                        }
                     }
                     let (undo, score_delta, opponent_mana_score_delta) =
                         apply_spirit_move_preview_in_place(
@@ -5258,6 +5726,10 @@ fn exact_tactical_spirit_summary_uncached(
                             dest,
                             color,
                         );
+                    if checkpoint() {
+                        undo_spirit_move_preview(&mut action_board, undo);
+                        return ExactSpiritSummary::default();
+                    }
                     let score_floor = best
                         .same_turn_score_value
                         .max(before_same_turn_score)
@@ -5391,13 +5863,23 @@ fn exact_tactical_spirit_summary_uncached(
                                         after_board_hash,
                                     )
                                 };
-                                after_window_cache.insert(key, window);
-                                window
+                                if checkpoint() {
+                                    ExactImmediateTacticalWindow::default()
+                                } else {
+                                    after_window_cache.insert(key, window);
+                                    window
+                                }
                             }
                         }
                     } else {
                         ExactImmediateTacticalWindow::default()
                     };
+                    if checkpoint() {
+                        if !use_base_action_board {
+                            undo_spirit_move_preview(&mut action_board, undo);
+                        }
+                        return ExactSpiritSummary::default();
+                    }
                     let after_same_turn_score = if need_score {
                         let mut best_score = best.same_turn_score_value.max(score_delta);
                         if need_after_score {
@@ -5469,6 +5951,9 @@ fn exact_tactical_spirit_summary_uncached(
                     if !use_base_action_board {
                         undo_spirit_move_preview(&mut action_board, undo);
                     }
+                    if checkpoint() {
+                        return ExactSpiritSummary::default();
+                    }
                     if (!need_score || best.same_turn_score_value >= max_same_turn_score)
                         && (!need_denial
                             || best.same_turn_opponent_mana_score_value
@@ -5483,7 +5968,11 @@ fn exact_tactical_spirit_summary_uncached(
         }
     }
 
-    best
+    if checkpoint() {
+        ExactSpiritSummary::default()
+    } else {
+        best
+    }
 }
 
 #[cfg(test)]
@@ -5493,10 +5982,13 @@ fn exact_spirit_summary_uncached(
     remaining_mon_moves: i32,
     can_use_action: bool,
 ) -> ExactSpiritSummary {
-    if !can_use_action {
+    if !can_use_action || checkpoint() {
         return ExactSpiritSummary::default();
     }
     let before_summary = exact_followup_summary(board, color, remaining_mon_moves);
+    if checkpoint() {
+        return ExactSpiritSummary::default();
+    }
     let before_best_steps = before_summary.best_score_steps;
     let opponent_before = before_summary.opponent_best_score_steps;
     let before_same_turn_score = before_summary.immediate_score;
@@ -5504,6 +5996,9 @@ fn exact_spirit_summary_uncached(
     let mut best = ExactSpiritSummary::default();
 
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return ExactSpiritSummary::default();
+        }
         let Some(mon) = item.mon() else {
             continue;
         };
@@ -5514,6 +6009,9 @@ fn exact_spirit_summary_uncached(
         for (spirit_pos, spirit_steps) in
             reachable_spirit_positions(board, location, color, remaining_mon_moves)
         {
+            if checkpoint() {
+                return ExactSpiritSummary::default();
+            }
             if matches!(board.square(spirit_pos), Square::MonBase { .. }) {
                 continue;
             }
@@ -5524,6 +6022,9 @@ fn exact_spirit_summary_uncached(
             }
             let remaining_after_action = remaining_mon_moves.saturating_sub(spirit_steps);
             for &target in spirit_pos.reachable_by_spirit_action_ref() {
+                if checkpoint() {
+                    return ExactSpiritSummary::default();
+                }
                 let Some(target_item) = action_board.item(target).copied() else {
                     continue;
                 };
@@ -5531,6 +6032,9 @@ fn exact_spirit_summary_uncached(
                     continue;
                 }
                 for &dest in target.nearby_locations_ref() {
+                    if checkpoint() {
+                        return ExactSpiritSummary::default();
+                    }
                     if !spirit_destination_allowed(&action_board, target, target_item, dest) {
                         continue;
                     }
@@ -5544,6 +6048,10 @@ fn exact_spirit_summary_uncached(
                         );
                     let after_summary =
                         exact_followup_summary(&action_board, color, remaining_after_action);
+                    if checkpoint() {
+                        undo_spirit_move_preview(&mut action_board, undo);
+                        return ExactSpiritSummary::default();
+                    }
                     let after_best_steps = after_summary.best_score_steps;
                     let after_opponent_steps = after_summary.opponent_best_score_steps;
                     let after_same_turn_score = score_delta.max(after_summary.immediate_score);
@@ -5607,12 +6115,19 @@ fn exact_spirit_summary_uncached(
                         best.next_turn_setup_gain = best.next_turn_setup_gain.max(setup_gain);
                     }
                     undo_spirit_move_preview(&mut action_board, undo);
+                    if checkpoint() {
+                        return ExactSpiritSummary::default();
+                    }
                 }
             }
         }
     }
 
-    best
+    if checkpoint() {
+        ExactSpiritSummary::default()
+    } else {
+        best
+    }
 }
 
 #[cfg(test)]
@@ -5622,7 +6137,7 @@ fn exact_followup_summary(
     remaining_moves: i32,
 ) -> ExactFollowupSummary {
     update_exact_query_diagnostics(|diagnostics| diagnostics.exact_followup_summary_calls += 1);
-    if remaining_moves < 0 {
+    if remaining_moves < 0 || checkpoint() {
         return ExactFollowupSummary::default();
     }
 
@@ -5674,16 +6189,20 @@ fn exact_followup_summary(
         ),
     };
 
-    EXACT_FOLLOWUP_SUMMARY_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_FOLLOWUP_SUMMARY_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, summary);
-    });
-    summary
+    if cache_write_allowed() {
+        EXACT_FOLLOWUP_SUMMARY_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_FOLLOWUP_SUMMARY_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, summary);
+        });
+        summary
+    } else {
+        ExactFollowupSummary::default()
+    }
 }
 
 fn reachable_spirit_positions(
@@ -5692,7 +6211,7 @@ fn reachable_spirit_positions(
     color: Color,
     remaining_mon_moves: i32,
 ) -> Vec<(Location, i32)> {
-    if remaining_mon_moves < 0 {
+    if remaining_mon_moves < 0 || checkpoint() {
         return Vec::new();
     }
 
@@ -5715,6 +6234,9 @@ fn reachable_spirit_positions(
     let mut positions = Vec::new();
 
     while let Some((location, steps)) = queue.pop_front() {
+        if checkpoint() {
+            return Vec::new();
+        }
         positions.push((location, steps));
         if steps >= remaining_mon_moves {
             continue;
@@ -5753,16 +6275,20 @@ fn reachable_spirit_positions(
         }
     }
 
-    EXACT_SPIRIT_REACH_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_SPIRIT_REACH_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, positions.clone());
-    });
-    positions
+    if cache_write_allowed() {
+        EXACT_SPIRIT_REACH_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_SPIRIT_REACH_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, positions.clone());
+        });
+        positions
+    } else {
+        Vec::new()
+    }
 }
 
 fn spirit_target_allowed(item: Item) -> bool {
@@ -6034,8 +6560,14 @@ fn exact_best_score_steps_on_board_with_hash(
     color: Color,
     board_hash: u64,
 ) -> Option<i32> {
+    if checkpoint() {
+        return None;
+    }
     let mut best = None;
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return None;
+        }
         match item {
             Item::MonWithMana { mon, mana } if mon.color == color && !mon.is_fainted() => {
                 if let Some(steps) =
@@ -6063,7 +6595,11 @@ fn exact_best_score_steps_on_board_with_hash(
             _ => {}
         }
     }
-    best
+    if checkpoint() {
+        None
+    } else {
+        best
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -6134,8 +6670,14 @@ fn exact_zero_move_tactical_counts_for_item(
 
 #[cfg(any(target_arch = "wasm32", test))]
 fn exact_zero_move_tactical_counts(board: &Board, color: Color) -> ExactZeroMoveTacticalCounts {
+    if checkpoint() {
+        return ExactZeroMoveTacticalCounts::default();
+    }
     let mut counts = ExactZeroMoveTacticalCounts::default();
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return ExactZeroMoveTacticalCounts::default();
+        }
         let contribution =
             exact_zero_move_tactical_counts_for_item(board, location, Some(*item), color);
         counts.score_one += contribution.score_one;
@@ -6244,11 +6786,17 @@ fn exact_budget_one_drainer_tactical_counts(
     start: Location,
     _board_hash: u64,
 ) -> ExactImmediateTacticalCounts {
+    if checkpoint() {
+        return ExactImmediateTacticalCounts::default();
+    }
     let opponent_mana = Mana::Regular(color.other());
     let mut best_any_score = 0;
     let mut best_opponent_score = 0;
 
     for &next in start.nearby_locations_ref() {
+        if checkpoint() {
+            return ExactImmediateTacticalCounts::default();
+        }
         let Some(ExactActorPayload::Mana(mana)) = actor_payload_after_move_with_hash(
             board,
             0,
@@ -6294,8 +6842,14 @@ fn exact_budget_one_tactical_summary(
     color: Color,
     board_hash: u64,
 ) -> ExactBudgetOneTacticalSummary {
+    if checkpoint() {
+        return ExactBudgetOneTacticalSummary::default();
+    }
     let mut summary = ExactBudgetOneTacticalSummary::default();
     for (location, _) in board.occupied() {
+        if checkpoint() {
+            return ExactBudgetOneTacticalSummary::default();
+        }
         let contribution =
             exact_budget_one_tactical_counts_for_location(board, color, location, board_hash);
         summary.counts.score_one += contribution.score_one;
@@ -6305,7 +6859,11 @@ fn exact_budget_one_tactical_summary(
             summary.by_location.insert(location, contribution);
         }
     }
-    summary
+    if checkpoint() {
+        ExactBudgetOneTacticalSummary::default()
+    } else {
+        summary
+    }
 }
 
 #[inline]
@@ -6324,8 +6882,14 @@ fn exact_budget_one_tactical_counts_after_touched_locations(
     board_hash: u64,
     touched_locations: &[Location],
 ) -> ExactImmediateTacticalCounts {
+    if checkpoint() {
+        return ExactImmediateTacticalCounts::default();
+    }
     let mut affected_locations = Vec::with_capacity(touched_locations.len() * 5);
     for &location in touched_locations {
+        if checkpoint() {
+            return ExactImmediateTacticalCounts::default();
+        }
         exact_push_unique_location(&mut affected_locations, location);
         for &nearby in location.nearby_locations_ref() {
             exact_push_unique_location(&mut affected_locations, nearby);
@@ -6334,6 +6898,9 @@ fn exact_budget_one_tactical_counts_after_touched_locations(
 
     let mut counts = base.counts;
     for location in affected_locations {
+        if checkpoint() {
+            return ExactImmediateTacticalCounts::default();
+        }
         let before = base.by_location.get(&location).copied().unwrap_or_default();
         let after =
             exact_budget_one_tactical_counts_for_location(board, color, location, board_hash);
@@ -6353,12 +6920,21 @@ fn exact_mark_locations_within_mon_budget(
     start: Location,
     move_budget: i32,
 ) {
+    if checkpoint() {
+        return;
+    }
     let mut frontier = vec![start];
     mask.insert(start);
 
     for _ in 0..move_budget {
+        if checkpoint() {
+            return;
+        }
         let mut next_frontier = Vec::with_capacity(frontier.len() * 6);
         for &location in &frontier {
+            if checkpoint() {
+                return;
+            }
             for &next in location.nearby_locations_ref() {
                 if mask.insert(next) {
                     next_frontier.push(next);
@@ -6379,19 +6955,28 @@ fn exact_immediate_tactical_reach_mask(
     move_budget: i32,
 ) -> ExactLocationSeen {
     let mut mask = ExactLocationSeen::new();
-    if move_budget < 0 {
+    if move_budget < 0 || checkpoint() {
         return mask;
     }
 
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return ExactLocationSeen::new();
+        }
         match item {
             Item::MonWithMana { mon, .. } if mon.color == color && !mon.is_fainted() => {
                 exact_mark_locations_within_mon_budget(&mut mask, location, move_budget);
+                if checkpoint() {
+                    return ExactLocationSeen::new();
+                }
             }
             Item::Mon { mon } | Item::MonWithConsumable { mon, .. }
                 if mon.color == color && mon.kind == MonKind::Drainer && !mon.is_fainted() =>
             {
                 exact_mark_locations_within_mon_budget(&mut mask, location, move_budget);
+                if checkpoint() {
+                    return ExactLocationSeen::new();
+                }
             }
             _ => {}
         }
@@ -6408,9 +6993,15 @@ fn exact_zero_move_immediate_tactical_window_on_board_with_hash(
     need_denial: bool,
     board_hash: u64,
 ) -> ExactImmediateTacticalWindow {
+    if checkpoint() {
+        return ExactImmediateTacticalWindow::default();
+    }
     let mut best = ExactImmediateTacticalWindow::default();
     let opponent_mana = Mana::Regular(color.other());
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return ExactImmediateTacticalWindow::default();
+        }
         let Item::MonWithMana { mon, mana } = item else {
             continue;
         };
@@ -6466,7 +7057,7 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
     update_exact_query_diagnostics(|diagnostics| {
         diagnostics.immediate_tactical_window_queries += 1;
     });
-    if move_budget < 0 || (!need_score && !need_denial) {
+    if move_budget < 0 || (!need_score && !need_denial) || checkpoint() {
         return ExactImmediateTacticalWindow::default();
     }
     let min_score = if need_score { min_score.max(1) } else { 0 };
@@ -6491,8 +7082,12 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
             };
             if let Some(cached) = cache.entries.get(&base_key).copied() {
                 let derived = exact_immediate_tactical_window_for_min_score(cached, min_score);
-                cache.entries.insert(key, derived);
-                return Some(derived);
+                return if cache_write_allowed() {
+                    cache.entries.insert(key, derived);
+                    Some(derived)
+                } else {
+                    Some(ExactImmediateTacticalWindow::default())
+                };
             }
         }
         if need_score ^ need_denial {
@@ -6504,8 +7099,12 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
             if let Some(cached) = cache.entries.get(&superset_key).copied() {
                 let derived =
                     exact_immediate_tactical_window_for_axes(cached, need_score, need_denial);
-                cache.entries.insert(key, derived);
-                return Some(derived);
+                return if cache_write_allowed() {
+                    cache.entries.insert(key, derived);
+                    Some(derived)
+                } else {
+                    Some(ExactImmediateTacticalWindow::default())
+                };
             }
             if need_score && min_score > 1 {
                 let superset_base_key = ExactImmediateTacticalWindowQueryKey {
@@ -6518,8 +7117,12 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
                         need_score,
                         need_denial,
                     );
-                    cache.entries.insert(key, derived);
-                    return Some(derived);
+                    return if cache_write_allowed() {
+                        cache.entries.insert(key, derived);
+                        Some(derived)
+                    } else {
+                        Some(ExactImmediateTacticalWindow::default())
+                    };
                 }
             }
         }
@@ -6537,16 +7140,20 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
         need_denial,
         board_hash,
     );
-    EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if cache.entries.len() >= EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE_MAX_ENTRIES
-            && !cache.entries.contains_key(&key)
-        {
-            cache.entries.clear();
-        }
-        cache.entries.insert(key, result);
-    });
-    result
+    if cache_write_allowed() {
+        EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if cache.entries.len() >= EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE_MAX_ENTRIES
+                && !cache.entries.contains_key(&key)
+            {
+                cache.entries.clear();
+            }
+            cache.entries.insert(key, result);
+        });
+        result
+    } else {
+        ExactImmediateTacticalWindow::default()
+    }
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -6559,7 +7166,7 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_uncached(
     need_denial: bool,
     board_hash: u64,
 ) -> ExactImmediateTacticalWindow {
-    if move_budget < 0 || (!need_score && !need_denial) {
+    if move_budget < 0 || (!need_score && !need_denial) || checkpoint() {
         return ExactImmediateTacticalWindow::default();
     }
     if move_budget == 0 {
@@ -6588,6 +7195,9 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_uncached(
     };
     let mut best = ExactImmediateTacticalWindow::default();
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return ExactImmediateTacticalWindow::default();
+        }
         match item {
             Item::MonWithMana { mon, mana } if mon.color == color && !mon.is_fainted() => {
                 let mana_value = mana.score(color);
@@ -6643,6 +7253,10 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_uncached(
             _ => {}
         }
 
+        if checkpoint() {
+            return ExactImmediateTacticalWindow::default();
+        }
+
         let score_done = !need_score || best.best_score >= max_score;
         let denial_done = !need_denial || best.best_opponent_mana_score >= max_opponent_mana_score;
         if score_done && denial_done {
@@ -6669,13 +7283,16 @@ fn exact_best_immediate_score_on_board_with_hash(
     move_budget: i32,
     board_hash: u64,
 ) -> i32 {
-    if move_budget < 0 {
+    if move_budget < 0 || checkpoint() {
         return 0;
     }
 
     let max_score = Mana::Supermana.score(color);
     let mut best = 0;
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return 0;
+        }
         match item {
             Item::MonWithMana { mon, mana } if mon.color == color && !mon.is_fainted() => {
                 if exact_carrier_steps_to_any_pool_with_hash_bounded(
@@ -6707,6 +7324,10 @@ fn exact_best_immediate_score_on_board_with_hash(
             _ => {}
         }
 
+        if checkpoint() {
+            return 0;
+        }
+
         if best >= max_score {
             return best;
         }
@@ -6735,7 +7356,7 @@ fn exact_best_immediate_opponent_mana_score_on_board_with_hash(
     move_budget: i32,
     board_hash: u64,
 ) -> i32 {
-    if move_budget < 0 {
+    if move_budget < 0 || checkpoint() {
         return 0;
     }
 
@@ -6743,6 +7364,9 @@ fn exact_best_immediate_opponent_mana_score_on_board_with_hash(
     let opponent_mana = Mana::Regular(color.other());
     let max_opponent_score = opponent_mana.score(color);
     for (location, item) in board.occupied() {
+        if checkpoint() {
+            return 0;
+        }
         match item {
             Item::MonWithMana { mon, mana }
                 if mon.color == color && !mon.is_fainted() && *mana == opponent_mana =>
@@ -6776,6 +7400,10 @@ fn exact_best_immediate_opponent_mana_score_on_board_with_hash(
             _ => {}
         }
 
+        if checkpoint() {
+            return 0;
+        }
+
         if best >= max_opponent_score {
             return best;
         }
@@ -6786,6 +7414,9 @@ fn exact_best_immediate_opponent_mana_score_on_board_with_hash(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::automove_deadline::{
+        set_test_now_ms, with_deadline_if_absent, with_test_clock,
+    };
 
     fn game_with_items(items: Vec<(Location, Item)>, active_color: Color) -> MonsGame {
         let mut game = MonsGame::new(false, GameVariant::Classic);
@@ -6831,6 +7462,129 @@ mod tests {
                 )
             })
             .expect("mana pool should exist")
+    }
+
+    #[test]
+    fn exact_strategic_analysis_deadline_returns_default_without_cache_write() {
+        clear_exact_state_analysis_cache();
+        let game = game_with_items(Vec::new(), Color::White);
+
+        with_test_clock(0.0, || {
+            with_deadline_if_absent(10.0, || {
+                let analysis = exact_strategic_analysis(&game);
+                assert!(analysis.white.score_path_window.best_steps.is_none());
+                assert!(analysis.black.score_path_window.best_steps.is_none());
+                assert!(
+                    EXACT_STRATEGIC_ANALYSIS_CACHE.with(|cache| cache.borrow().entries.is_empty())
+                );
+            });
+        });
+
+        let _ = exact_strategic_analysis(&game);
+        assert_eq!(
+            EXACT_STRATEGIC_ANALYSIS_CACHE.with(|cache| cache.borrow().entries.len()),
+            1
+        );
+    }
+
+    #[test]
+    fn exact_carrier_deadline_does_not_cache_cancelled_none() {
+        clear_exact_state_analysis_cache();
+        let mut game = game_with_items(Vec::new(), Color::White);
+        let pool = find_mana_pool(&game.board, Color::White);
+        game.replace_board_items(vec![(
+            pool,
+            Item::MonWithMana {
+                mon: Mon::new(MonKind::Drainer, Color::White, 0),
+                mana: Mana::Supermana,
+            },
+        )]);
+        let board_hash = exact_board_hash(&game.board);
+
+        with_test_clock(0.0, || {
+            with_deadline_if_absent(1.0, || {
+                set_test_now_ms(2.0);
+                assert_eq!(
+                    exact_carrier_steps_to_any_pool_with_hash(
+                        &game.board,
+                        pool,
+                        Mana::Supermana,
+                        board_hash,
+                    ),
+                    None
+                );
+                assert_eq!(
+                    exact_carrier_steps_to_any_pool_with_hash_bounded(
+                        &game.board,
+                        pool,
+                        Mana::Supermana,
+                        1,
+                        board_hash,
+                    ),
+                    None
+                );
+                assert!(EXACT_CARRIER_STEPS_CACHE.with(|cache| cache.borrow().entries.is_empty()));
+            });
+        });
+
+        assert_eq!(
+            exact_carrier_steps_to_any_pool_with_hash(
+                &game.board,
+                pool,
+                Mana::Supermana,
+                board_hash,
+            ),
+            Some(0)
+        );
+        assert_eq!(
+            EXACT_CARRIER_STEPS_CACHE.with(|cache| cache.borrow().entries.len()),
+            1
+        );
+    }
+
+    #[test]
+    fn exact_public_threat_predicates_are_conservative_after_deadline() {
+        clear_exact_state_analysis_cache();
+        let game = game_with_items(Vec::new(), Color::White);
+        let location = Location::new(6, 5);
+
+        with_test_clock(0.0, || {
+            with_deadline_if_absent(1.0, || {
+                set_test_now_ms(2.0);
+                assert_eq!(
+                    drainer_immediate_threats(&game.board, Color::White, location),
+                    (1, 1)
+                );
+                assert_eq!(
+                    drainer_immediate_threats_with_hash(
+                        &game.board,
+                        Color::White,
+                        location,
+                        exact_board_hash(&game.board),
+                    ),
+                    (1, 1)
+                );
+                assert!(is_drainer_under_immediate_threat(
+                    &game.board,
+                    Color::White,
+                    location,
+                    false,
+                ));
+                assert!(is_drainer_under_walk_threat(
+                    &game.board,
+                    Color::White,
+                    location,
+                    false,
+                ));
+                assert!(is_drainer_under_walk_threat_with_hash(
+                    &game.board,
+                    exact_board_hash(&game.board),
+                    Color::White,
+                    location,
+                    false,
+                ));
+            });
+        });
     }
 
     fn exact_carrier_steps_generic_baseline(
