@@ -70,6 +70,16 @@ fn select_shipping_search_inputs_internal(
     }
 }
 
+fn select_frontier_shipping_fallback_inputs(
+    game: &MonsGame,
+    config: AutomoveSearchConfig,
+) -> Vec<Input> {
+    // The bounded v10 route already has an outer frontier deadline, while the
+    // retained v2 comparator intentionally has none. Inherit whichever state
+    // the caller established instead of starting a fresh shipping deadline.
+    select_shipping_search_inputs_internal(game, config)
+}
+
 fn select_search_inputs_with_fresh_frontier_cache(
     game: &MonsGame,
     config: AutomoveSearchConfig,
@@ -292,7 +302,10 @@ fn select_early_white_fallback_inputs(
         || white_turn_three_mid_turn_full_resources
     {
         let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-        return Some(select_shipping_search_inputs(game, shipping_runtime));
+        return Some(select_frontier_shipping_fallback_inputs(
+            game,
+            shipping_runtime,
+        ));
     }
 
     let white_turn_three_mana_only = game.active_color == Color::White
@@ -324,7 +337,7 @@ fn select_early_white_fallback_inputs(
     }
 
     let fast_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Fast);
-    Some(select_shipping_search_inputs(
+    Some(select_frontier_shipping_fallback_inputs(
         game,
         MonsGameModel::with_pre_exact_runtime_policy(fast_runtime),
     ))
@@ -405,7 +418,7 @@ fn select_white_early_engine_disabled_fallback_inputs(
     }
 
     let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-    let shipping_inputs = select_shipping_search_inputs(game, shipping_runtime);
+    let shipping_inputs = select_frontier_shipping_fallback_inputs(game, shipping_runtime);
     if shipping_inputs.is_empty() || shipping_inputs == frontier_inputs {
         return None;
     }
@@ -483,7 +496,7 @@ fn select_white_nonnegative_deny_search_only_fallback_inputs(
     search_only_runtime.enable_turn_head_rerank = true;
     search_only_runtime.turn_engine_mode = TurnEngineMode::ProV1;
 
-    let search_only_inputs = select_shipping_search_inputs(game, search_only_runtime);
+    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
     if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
         return None;
     }
@@ -543,7 +556,7 @@ fn select_white_negative_deny_search_only_selected_rank_fallback_inputs(
         shipping_runtime.turn_engine_per_node_family_cap;
     search_only_runtime.turn_engine_step_cap = shipping_runtime.turn_engine_step_cap;
 
-    let search_only_inputs = select_shipping_search_inputs(game, search_only_runtime);
+    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
     if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
         return None;
     }
@@ -758,7 +771,7 @@ fn select_white_confirm_prov1_search_only_tiebreak_fallback_inputs(
     search_only_runtime.enable_turn_head_rerank = true;
     search_only_runtime.turn_engine_mode = TurnEngineMode::ProV1;
 
-    let search_only_inputs = select_shipping_search_inputs(game, search_only_runtime);
+    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
     if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
         return None;
     }
@@ -843,7 +856,7 @@ fn select_white_confirm_prov1_better_ordered_search_only_fallback_inputs(
     search_only_runtime.enable_turn_head_rerank = true;
     search_only_runtime.turn_engine_mode = TurnEngineMode::ProV1;
 
-    let search_only_inputs = select_shipping_search_inputs(game, search_only_runtime);
+    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
     if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
         return None;
     }
@@ -895,7 +908,10 @@ fn select_unconditional_black_search_fallback_inputs(game: &MonsGame) -> Option<
         || black_turn_four_turn_start_action_mana
     {
         let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-        return Some(select_shipping_search_inputs(game, shipping_runtime));
+        return Some(select_frontier_shipping_fallback_inputs(
+            game,
+            shipping_runtime,
+        ));
     }
 
     None
@@ -921,7 +937,7 @@ fn select_late_black_search_fallback_inputs(
         && game.player_can_move_mana();
     if black_turn_four_bridge_shipping_fallback || black_mid_turn_action_mana_shipping_fallback {
         let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-        let shipping_inputs = select_shipping_search_inputs(game, shipping_runtime);
+        let shipping_inputs = select_frontier_shipping_fallback_inputs(game, shipping_runtime);
 
         if black_turn_four_bridge_shipping_fallback
             && !shipping_inputs.is_empty()
