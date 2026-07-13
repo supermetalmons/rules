@@ -8,12 +8,12 @@ This review is the architecture map for breaking out of the automove dead end. F
 
 The current blocker is structural, not local. The repo has enough machinery to invent narrow selectors, and the docs contain enough no-go evidence to show that those selectors are the wrong default. The missing piece is a decision process that converts broad panel evidence into either a new root-policy architecture or a calibrated utility feature before runtime code is written.
 
-Do not start the next serious iteration by editing `frontier_pro_v2_guarded`, adding another turn/color/variant gate, or composing existing policy labels. Start with corpus evidence.
+Do not start the next serious iteration by editing `frontier_pro_v10_bounded_tactical`, adding another turn/color/variant gate, or composing existing policy labels. Start with corpus evidence; v2 is the previous-production control.
 
 ## Project Map
 
 - Public runtime: `src/models/mons_game_model.rs`, `src/models/automove_runtime_variants.rs`, `src/models/automove_turn_engine.rs`, `src/models/automove_exact.rs`, and `src/models/scoring.rs`.
-- Retained automove profiles: `src/models/automove_experiments/profiles.rs`. Only `shipping_pro_search` and `frontier_pro_v2_guarded` are retained.
+- Retained automove profiles: `src/models/automove_experiments/profiles.rs`. `shipping_pro_search`, previous-production `frontier_pro_v2_guarded`, and promoted `frontier_pro_v10_bounded_tactical` are retained.
 - Test harness: `src/models/automove_experiments/harness/runner.rs`, `fixtures.rs`, and `tests/mod.rs`.
 - Diagnostic harness: `src/models/automove_experiments/tests/diagnostics/mod.rs`.
 - Gate tests: `src/models/automove_experiments/tests/gates.rs`.
@@ -24,7 +24,7 @@ Do not start the next serious iteration by editing `frontier_pro_v2_guarded`, ad
 
 ### Runtime Architecture
 
-`frontier_pro_v2_guarded` is a layered system:
+`frontier_pro_v10_bounded_tactical` is a bounded tactical delta over the layered `frontier_pro_v2_guarded` system:
 
 - guarded ProV2 turn-engine configuration;
 - pre-search/root advisor logic;
@@ -38,7 +38,7 @@ The failed iterations show that no single layer is globally bad. Raw ProV2, no-s
 
 The harness is strong at killing candidates but weak at forcing the next decision.
 
-- Promotion gates are clear: sampled Pro/Normal/Fast must hit `win_rate >= 0.90`, confidence near `0.99`, and candidate average move time below the ceiling.
+- Promotion gates are clear: sampled Pro/Normal/Fast point rate must be at least `7/12` with confidence at least `0.60`; all-variant confirmation allows at most two rows below `0.50` per panel; invalid output and any independently cold whole-selector call above `700ms` remain hard failures.
 - The promotion dashboard correctly exposes sampled-vs-active false positives.
 - Policy matrix, policy winner, cross-budget, decision-record, and forced-root probes cover most of the needed evidence.
 - The stoplight operator affordance now exists in the diagnostics: after a dashboard or corpus run, the harness prints compact labels that should push future agents toward mechanism corpus or architecture work instead of another local selector.
@@ -146,7 +146,7 @@ Everything else should move to `docs/automove-archive.md` or `docs/automove-know
 When there is no live runtime hypothesis:
 
 ```sh
-./scripts/run-automove-structural-scout.sh --corpus frontier_pro_v2_guarded
+./scripts/run-automove-structural-scout.sh --corpus frontier_pro_v10_bounded_tactical
 ```
 
 For a new test-only candidate:

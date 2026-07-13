@@ -8,8 +8,8 @@ Archived profiles, archived seams, and archived stages are not valid experiment 
 
 1. Default to Pro work.
 2. Optimize for reliable strength across all game variants, not only Classic.
-3. Treat `frontier_pro_v2_guarded` as both the shipped Pro path and the only retained frontier.
-4. Treat `shipping_pro_search` as the retained search-only baseline.
+3. Treat `frontier_pro_v10_bounded_tactical` as the shipped Pro path and default retained frontier.
+4. Treat `frontier_pro_v2_guarded` as the retained previous-production comparator and `shipping_pro_search` as the retained search-only baseline.
 5. Use `./scripts/run-automove-canonical-loop.sh` for the default loop.
 6. Pick exactly one live hypothesis before editing runtime code.
 7. Probe first when the mechanism is unclear.
@@ -30,9 +30,10 @@ Archived profiles, archived seams, and archived stages are not valid experiment 
 
 ## Retained Surface
 
-- Retained profiles: `shipping_pro_search`, `frontier_pro_v2_guarded`
+- Retained profiles: `shipping_pro_search`, `frontier_pro_v2_guarded`, `frontier_pro_v10_bounded_tactical`
 - Canonical stages: `guardrails`, `variant-smoke`, `pro-triage`, `runtime-preflight`, `pro-reliability`, `pro-reliability-confirm`
 - Canonical triage surface: retained Classic `primary_pro`
+- The frontier side of reliability duels is Pro. “Pro/Normal/Fast” names the three shipping opponent budgets; Fast and Normal public policy are not replaced by a Pro-only experiment profile.
 
 ## Canonical Loop
 
@@ -41,7 +42,7 @@ CANDIDATE=<retained_profile_id>
 ./scripts/run-automove-canonical-loop.sh "$CANDIDATE"
 ```
 
-- Default shipping profile: `shipping_pro_search`
+- Default duel comparator: `shipping_pro_search`
 - Default quick duel variant policy: seeded `sampled`
 - Default triage surface inside the loop: retained Classic `primary_pro`
 - Add `--confirm` only after `pro-reliability` earns the spend:
@@ -55,12 +56,13 @@ CANDIDATE=<retained_profile_id>
 Use `./scripts/run-automove-experiment.sh` when you need one stage at a time or a targeted rerun.
 
 ```sh
-./scripts/run-automove-experiment.sh guardrails frontier_pro_v2_guarded
-./scripts/run-automove-experiment.sh variant-smoke frontier_pro_v2_guarded
-./scripts/run-automove-experiment.sh pro-triage frontier_pro_v2_guarded
-./scripts/run-automove-experiment.sh runtime-preflight frontier_pro_v2_guarded
-./scripts/run-automove-experiment.sh pro-reliability frontier_pro_v2_guarded
-./scripts/run-automove-experiment.sh pro-reliability-confirm frontier_pro_v2_guarded
+./scripts/run-automove-experiment.sh guardrails frontier_pro_v10_bounded_tactical
+./scripts/run-automove-experiment.sh variant-smoke frontier_pro_v10_bounded_tactical
+./scripts/run-automove-experiment.sh pro-triage frontier_pro_v10_bounded_tactical
+./scripts/run-automove-experiment.sh runtime-preflight frontier_pro_v10_bounded_tactical
+./scripts/run-automove-experiment.sh pro-reliability frontier_pro_v10_bounded_tactical
+./scripts/run-automove-experiment.sh pro-reliability-confirm frontier_pro_v10_bounded_tactical
+# The remaining commands are historical v2-derived reset/attribution examples.
 ./scripts/run-automove-experiment.sh pro-profile-sweep frontier_pro_v2_raw
 ./scripts/run-automove-experiment.sh pro-promotion-dashboard frontier_pro_v2_raw
 ./scripts/run-automove-experiment.sh pro-sweep-decision-record frontier_pro_v2_guarded
@@ -97,7 +99,7 @@ Use this path when `AUTOMOVE_IDEAS.md` says there is no live challenger or when 
 - Use `--corpus` on the structural scout when the repo is in reset mode:
 
 ```sh
-./scripts/run-automove-structural-scout.sh --corpus frontier_pro_v2_guarded
+./scripts/run-automove-structural-scout.sh --corpus frontier_pro_v10_bounded_tactical
 ```
 
 - The scout corpus is bounded by default (`SMART_PRO_POLICY_WINNER_STATE_LIMIT=2`, `SMART_PRO_POLICY_WINNER_CANDIDATE_TRACE_LIMIT=64`) so reset-mode runs produce routing stoplights instead of spending on an uncapped mechanism corpus. Override those env vars only when the bounded corpus shows a repeated mechanism worth widening.
@@ -106,7 +108,7 @@ Use this path when `AUTOMOVE_IDEAS.md` says there is no live challenger or when 
 ```sh
 SMART_PRO_POLICY_MATRIX_PANEL_FILTER=active_blockers \
 SMART_PRO_POLICY_MATRIX_DUEL_FILTER=vs_shipping_fast \
-./scripts/run-automove-structural-scout.sh --outcome-corpus frontier_pro_v2_guarded
+./scripts/run-automove-structural-scout.sh --outcome-corpus frontier_pro_v10_bounded_tactical
 ```
 
 - Structural-scout `--outcome-corpus` is bounded by default (`SMART_PRO_POLICY_MATRIX_STATE_LIMIT=2`, `SMART_PRO_POLICY_MATRIX_TOTAL_STATE_LIMIT=6`) and emits portfolio mechanism classes by default (`SMART_PRO_POLICY_MATRIX_INCLUDE_PORTFOLIO_MECHANISM_CLASS=true`). It postprocesses the logged policy-matrix run into `.summary.json`, `.jsonl`, and `.workbench.json` artifacts, prints `AUTOMOVE_OUTCOME_CORPUS_POSTPROCESS`, and ends every successful scout with `AUTOMOVE_STRUCTURAL_SCOUT_DECISION` that joins the dashboard stoplight with any outcome-corpus/workbench decision; set `SMART_AUTOMOVE_SCOUT_POSTPROCESS_OUTCOME=false` only when raw log generation is the sole goal. This prints candidate-only winner classes as `PRO_POLICY_MATRIX_PORTFOLIO_WINNER_MECHANISM_CLASS` and baseline-better classes as `PRO_POLICY_MATRIX_PORTFOLIO_BASELINE_BETTER_MECHANISM_CLASS`. `SMART_PRO_POLICY_MATRIX_STATE_LIMIT` is per panel/duel, while `SMART_PRO_POLICY_MATRIX_TOTAL_STATE_LIMIT` is the true global cap for broad reset digests. Use `SMART_PRO_POLICY_MATRIX_SKIP_STATES=<n>` to skip earlier generated opening-side states when inspecting later sampled pairs without widening the whole corpus. Widen either cap only after bounded stoplights show repeated winner context, winner pair, or portfolio mechanism-class evidence with no baseline-save risk. Use the older `SMART_PRO_POLICY_MATRIX_INCLUDE_MECHANISM_CLASS=true` only for narrow follow-ups; it classifies every candidate delta and can be too slow for all active duels. Corpus records now also emit `timing_continuation_axes`; treat them as postprocess feature-discovery axes, not runtime selectors, until they separate candidate wins from saves across sampled and active evidence. Set `SMART_PRO_POLICY_MATRIX_INCLUDE_POST_MOVE_BUDGET_AXES=true` only for focused budget-stability slices; `post_move_budget` record filters enable those axes automatically. Set `SMART_PRO_POLICY_MATRIX_INCLUDE_POST_MOVE_REPLY_BUDGET_AXES=true` only for focused reply-risk budget-stability slices; `post_move_reply_budget` record filters enable those axes automatically. Set `SMART_PRO_POLICY_MATRIX_INCLUDE_POST_MOVE_VALUE_REPLY_BUDGET_AXES=true` only for focused joint value/reply budget-stability slices; `post_move_value_reply_budget` record filters enable those axes automatically. When using `SMART_PRO_POLICY_MATRIX_RECORD_AXIS_FILTER`, read `PRO_POLICY_MATRIX_RECORD_FILTER_SUMMARY`, per-token `axis_filter_matches`, and the capped `PRO_POLICY_MATRIX_RECORD_FILTER_DETAIL` rows before raw records; raise `SMART_PRO_POLICY_MATRIX_RECORD_FILTER_DETAIL_LIMIT` only when the default shortlist hides a relevant split. After a logged policy-matrix run, use `scripts/postprocess-automove-outcome-corpus-log.sh <log>` or `scripts/summarize-automove-policy-matrix-log.py <log>` and read `corpus_decision`, `next_action`, `source_blocker`, `corpus_axis_summary`, `cross_budget_axis_summary`, and `coverage_gap_entries` before opening raw records; `corpus_axis_summary` ranks record-level candidate-better, baseline-better, no-policy, and same-outcome axes, groups them under `top_axes_by_decision`, and marks save-contaminated axes as `baseline_save_risk`. `cross_budget_axis_summary` joins corpus axes by panel, seed family, repeat, opening index, variant, and side across Pro/Normal/Fast duels; read `source_status_counts`, `source_candidate_rollups`, and `blocked_candidate_rollups` before raw rows. `source_candidate_rollups=[]`, `budget_conflict`, `partial_repair_coverage_gap`, `coverage_gap`, `baseline_save_risk`, `fragmented_no_source`, and singleton statuses keep runtime source untouched. For `coverage_gap_entries`, check `same_opening_sibling_states` before raw records to see whether a no-policy side has an opposite-side candidate-only sibling in the same opening. Pass multiple logs together when comparing slices and read `log_rollup.rollup_decision`, `rollup_next_action`, `rollup_permission`, `decision_counts`, `next_action_counts`, `source_blocker_counts`, and `log_summaries` first. `coverage_gap`, `baseline_save_risk`, `singleton_no_source`, `no_candidate_route`, and `postprocess_only` are no-source decisions.
@@ -116,10 +118,11 @@ SMART_PRO_POLICY_MATRIX_DUEL_FILTER=vs_shipping_fast \
 
 - `guardrails`: run first; kill the line on tactical or interview-policy regressions.
 - `variant-smoke`: cheap all-variant legality check for public Fast, Normal, and Pro paths.
-- `pro-triage`: cheap deterministic retained Classic surface gate; pass only when the target surface moves with `off_target_changed <= 1`, or when the shipped `frontier_pro_v2_guarded` surface is intentionally stable on the probed target.
+- `pro-triage`: cheap deterministic retained Classic surface gate; pass only when the target surface moves with `off_target_changed <= 1`, or when a retained production-comparison surface is intentionally stable on the probed target.
 - `runtime-preflight`: required before duel stages unless you are doing diagnostics only; exact-lite is hard, stage-1 CPU is advisory for Pro, and openings use sampled variants.
-- `pro-reliability`: sampled-variant frontier-vs-`shipping_pro_search` duels in Pro, Normal, and Fast; pass only with `win_rate >= 0.90`, `confidence >= 0.99`, and frontier average move time `<= 700ms` in all three matchups.
-- `pro-reliability-confirm`: all-variant confirmation. Run only after the sampled duel gate earns the spend; it also enforces a per-variant non-regression floor.
+- `pro-reliability`: sampled-variant frontier-vs-`shipping_pro_search` duels in Pro, Normal, and Fast; pass each matchup only with point rate (wins plus half of draws) `>= 7/12`, `confidence >= 0.60`, zero invalid/empty moves, independently cold replay mismatch rate `<= 3%` for each profile, and a hard maximum of `700ms` across both cold calls. At the canonical 12-game sample, this admits `7-5` but still rejects `6-6`. Average latency is diagnostic only.
+- `pro-reliability-confirm`: all-variant confirmation. Run only after the sampled duel gate earns the spend. The aggregate point-rate gate stays `>= 7/12` with `confidence >= 0.60`; `0.50` is the per-variant target, and at most two variants per confirmation panel may fall below it. The hard per-call `700ms` ceiling, zero-invalid rule, and `3%` panel replay cap do not relax further.
+- Deadlines are cooperative and non-preemptive. Shipping selectors retain a `650ms` outer budget; frontier Pro uses `550ms` and gives its initial shipping-Fast bank a `200ms` child budget. Forced/targeted drainer generation is bounded at the exact lexical-prefix work boundary. These mechanisms cannot interrupt scheduler/browser suspension, so the independently cold whole-call `700ms` gate remains the empirical release authority.
 - `pro-profile-sweep` and `pro-profile-attribution`: diagnostic-only stages for test-only Pro candidates. They do not add retained profiles and are not promotion stages.
 
 ## Iteration Lifecycle

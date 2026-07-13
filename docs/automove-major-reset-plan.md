@@ -1,8 +1,8 @@
 # Automove Major Reset Plan
 
-Review date: 2026-04-27.
+Review date: 2026-04-27. Current-runtime refresh: 2026-07-13.
 
-This document is the current handoff for escaping the stalled Pro automove loop. Use it before starting another `frontier_pro_v2_guarded` iteration.
+This document is the current handoff for escaping the stalled Pro automove loop. Use it before starting another `frontier_pro_v10_bounded_tactical` iteration; `frontier_pro_v2_guarded` is retained only as the previous-production comparator.
 
 ## Executive Decision
 
@@ -17,14 +17,14 @@ Do not start from another variant, exact-context, policy-label, branch-label, or
 
 ### Runtime
 
-The public Pro path is `frontier_pro_v2_guarded`, implemented across:
+The public Pro path is `frontier_pro_v10_bounded_tactical`, built on the guarded v2 runtime and implemented across:
 
-- `src/models/automove_runtime_variants.rs`: guarded wrapper chain and retained fallbacks;
+- `src/models/automove_runtime_variants.rs`: bounded tactical delta, complete-selector deadline/fallback, guarded wrapper chain, and retained fallbacks;
 - `src/models/mons_game_model.rs`: root scoring, advisor/reply-risk logic, head acceptance, and final selection;
 - `src/models/automove_turn_engine.rs`: turn-engine planning, utility comparison, reply search, and plan cache;
 - `src/models/automove_exact.rs` and `src/models/scoring.rs`: exact opportunity and scoring support.
 
-The retained runtime is layered: wrapper fallback, root advisor, reply-risk approval, head acceptance, and final root selection. Recent evidence shows no layer is globally wrong. Raw ProV2, no-selected-followup, full-scored reply guard, no-late fallback, alternating-white, and white-opening utility policies each repair some openings and regress others.
+The promoted runtime is layered: targeted drainer fallback, wrapper fallback, root advisor, head acceptance, and final root selection, under the public v10 deadline. Recent evidence shows no inherited layer is globally wrong. Raw ProV2, no-selected-followup, full-scored reply guard, no-late fallback, alternating-white, and white-opening utility policies each repair some openings and regress others.
 
 ### Harness
 
@@ -130,7 +130,7 @@ Validation order:
 Future iterations should start from one of these commands:
 
 ```sh
-./scripts/run-automove-structural-scout.sh --outcome-corpus frontier_pro_v2_guarded
+./scripts/run-automove-structural-scout.sh --outcome-corpus frontier_pro_v10_bounded_tactical
 ```
 
 or, for a new ProV4 candidate:

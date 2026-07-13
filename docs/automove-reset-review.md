@@ -13,14 +13,14 @@ The next stronger automove should come from one of two broad paths:
 - a new Pro policy architecture that ranks all candidate roots through one calibrated utility model;
 - a stronger evidence harness that mines repeated mechanisms and candidate labels before any runtime selector is written.
 
-Do not start the next iteration by adding another variant, turn, family, or move-context gate around `frontier_pro_v2_guarded`.
+Do not start the next iteration by adding another variant, turn, family, or move-context gate around `frontier_pro_v10_bounded_tactical`; use v2 only as the retained previous-production control.
 
 ## Current Shape
 
-- Public Pro ships through `frontier_pro_v2_guarded`.
-- `shipping_pro_search` remains the retained search-only baseline.
+- Public Pro ships through `frontier_pro_v10_bounded_tactical`.
+- `frontier_pro_v2_guarded` and `shipping_pro_search` remain the previous-production comparator and search-only baseline.
 - Test-only candidates live under `#[cfg(test)]` in the automove experiments diagnostics.
-- The retained runtime is a ProV2 turn-engine selector plus wrapper fallbacks. Those fallbacks are mixed: the same branch labels can be saves or regressions.
+- The promoted runtime is bounded tactical v10 over the ProV2 turn-engine selector plus wrapper fallbacks. Those inherited fallbacks are mixed: the same branch labels can be saves or regressions.
 - The live blocker surface is multi-variant and multi-budget. Candidates that fix Pro-vs-Pro often fail Normal, Fast, active blockers, or all-variant confirmation.
 - The existing promotion dashboard and decision-record probes are useful, but older structural workflows still let agents spend time on profile-sweep or local first-diff evidence before asking whether a candidate has promotion shape.
 
@@ -100,7 +100,7 @@ Key design points:
 - use one comparator instead of late exceptions spread across wrapper fallback, advisor approval, head acceptance, and final selection;
 - make reply-risk and continuation value first-class root features;
 - keep wrapper branch outputs as candidates, not direct routing decisions;
-- retain `frontier_pro_v2_guarded` as baseline until the dashboard passes.
+- retain `frontier_pro_v10_bounded_tactical` as public/default frontier and v2 as the previous-production baseline until a later dashboard passes.
 
 This is a larger implementation, but it addresses the current failure mode directly: the winning policy label often needs to enter at a different time than the first divergence printed by policy-winner.
 
@@ -168,7 +168,7 @@ A candidate is worth broad runtime work only if all of these are true:
 Do not create another runtime patch first. In reset mode, start with:
 
 ```sh
-./scripts/run-automove-structural-scout.sh --corpus frontier_pro_v2_guarded
+./scripts/run-automove-structural-scout.sh --corpus frontier_pro_v10_bounded_tactical
 ```
 
 Implement or extend a corpus-style diagnostic that can compare the existing policy portfolio and emit one aggregate table keyed by mechanism:

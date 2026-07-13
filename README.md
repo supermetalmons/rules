@@ -18,14 +18,14 @@ Docs:
 
 Live surface:
 
-- retained profiles: `shipping_pro_search`, `frontier_pro_v2_guarded`
+- retained profiles: `shipping_pro_search`, previous-production `frontier_pro_v2_guarded`, promoted `frontier_pro_v10_bounded_tactical`
 - canonical stages: `guardrails`, `pro-triage`, `runtime-preflight`, `pro-reliability`, `pro-reliability-confirm`
 
 Quickstart:
 
-- `./scripts/run-automove-canonical-loop.sh frontier_pro_v2_guarded`
-- `./scripts/run-automove-canonical-loop.sh --confirm frontier_pro_v2_guarded`
-- `./scripts/run-automove-experiment.sh <stage> frontier_pro_v2_guarded`
+- `./scripts/run-automove-canonical-loop.sh frontier_pro_v10_bounded_tactical`
+- `./scripts/run-automove-canonical-loop.sh --confirm frontier_pro_v10_bounded_tactical`
+- `./scripts/run-automove-experiment.sh <stage> frontier_pro_v10_bounded_tactical`
 - `./scripts/run-automove-experiment.sh pro-profile-sweep frontier_pro_v2_raw`
 - `./scripts/check-automove-hygiene.sh`
 - `./scripts/clean-experiment-artifacts.sh --dry-run`
@@ -63,12 +63,12 @@ Use `keep/<name>` for any branch that should survive repo cleanup.
 
 - Set the release version in `Cargo.toml` and `Cargo.lock`, then commit the complete release change set. `publish.sh` refuses a dirty worktree and no longer mutates the version after validation.
 - `./publish.sh`
-- Confirm public Pro still routes through `frontier_pro_v2_guarded`.
-- Confirm `shipping_pro_search` remains available as the retained baseline.
+- Confirm public Pro routes through `frontier_pro_v10_bounded_tactical`.
+- Confirm `frontier_pro_v2_guarded` and `shipping_pro_search` remain available as the previous-production comparator and search-only baseline.
 - Run `cargo test`.
-- Run `cargo test --release --lib smart_automove_pro_matches_frontier_guarded_selector_on_discriminating_fixture`.
-- Run `cargo test --release --lib smart_automove_release_mixed_runtime_speed_gate -- --ignored --nocapture`.
+- Run `cargo test --release --lib smart_automove_pro_matches_frontier_bounded_tactical_selector_on_release_fixture`.
+- Run `cargo test --release --lib automove_runtime_black_turn_eight_deadline_tail_probe -- --ignored --nocapture` to enforce the whole-call `700ms` ceiling.
 - Run `./scripts/check-automove-hygiene.sh`.
 - Run `./scripts/assert-release-package-surface.sh pkg/web pkg/node` after the Wasm packages are built.
-- Run `node ./scripts/assert-release-automove-route.cjs pkg/node/mons-rust.js` to verify the generated package routes public Pro through the guarded selector on a discriminating fixture.
+- Run `node ./scripts/assert-release-automove-route.cjs pkg/node/mons_rust.js` to verify the generated package routes public Pro through bounded tactical v10 on a fixture that differs from both retained v2 and shipping search.
 - Clean disposable experiment artifacts after validation with `./scripts/clean-experiment-artifacts.sh`.
