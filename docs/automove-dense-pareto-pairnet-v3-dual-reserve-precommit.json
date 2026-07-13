@@ -1,0 +1,415 @@
+{
+  "schema_version": 1,
+  "precommit_id": "automove_dense_pareto_pairnet_v3_dual_reserve_joint_matching_pilot_20260712_fresh01",
+  "architecture_id": "automove_dense_pareto_pairnet_v3_dual_reserve_joint_matching",
+  "role": "source_coverage_pilot_only_never_model_or_pairability_data",
+  "hypothesis": "one_fresh_fixed_universe_can_supply_two_simultaneously_selected_complete_72_source_lanes_globally_disjoint_in_all_five_raw_resource_domains_after_quarantining_every_recoverable_v1_resource_and_the_entire_v2_emitted_universe",
+  "created_date": "2026-07-12",
+  "retained_surfaces": {
+    "guarded": "frontier_pro_v2_guarded",
+    "shipping_control": "shipping_pro_search",
+    "public_pro_route_unchanged": true
+  },
+  "immutable_environment": {
+    "host": "aarch64-apple-darwin",
+    "rustc": "1.94.1 (e408947bf 2026-03-25)",
+    "cargo": "1.94.1 (29ea6fb6a 2026-03-24)",
+    "python": "3.9.6"
+  },
+  "immutable_inputs": {
+    "source_tree": {
+      "algorithm": "LC_ALL=C rg --files src -g '*.rs' | LC_ALL=C sort | while IFS= read -r file; do sha256sum \"$file\"; done | sha256sum",
+      "file_count": 46,
+      "sha256": "f7cd5112ddc315966ad5643351d77f9568d62edcf44f0447daef58e50f26a80b"
+    },
+    "files": [
+      {
+        "role": "fixed_v3_candidate_universe_emitter",
+        "path": "src/models/automove_experiments/tests/diagnostics/root_distillation.rs",
+        "size_bytes": 302942,
+        "sha256": "0d27e845485155b00f4148829807a7600a2f081473b173987724885c805fc4e8",
+        "label_bearing": false
+      },
+      {
+        "role": "strict_v3_dual_reserve_matcher",
+        "path": "scripts/summarize-automove-dense-pareto-dual-reserve-v3.py",
+        "size_bytes": 89572,
+        "sha256": "b0b9495235f5b5a1815a87c8af9724be5328623c4a74f762cec9f4693e28fb15",
+        "label_bearing": false
+      },
+      {
+        "role": "frozen_v2_parser_and_quarantine_authenticator",
+        "path": "scripts/summarize-automove-dense-pareto-joint-source-v2.py",
+        "size_bytes": 105198,
+        "sha256": "3243ad0b69a617c18a8cb8cfb2155c6c92c1b0f364d81b86132d1dc0c91ddb54",
+        "label_bearing": false
+      },
+      {
+        "role": "killed_v1_combined_report_for_recoverable_raw_resource_quarantine",
+        "path": "target/experiment-runs/dense_pareto_pairnet_v1_source_coverage_20260712/combined_report.json",
+        "size_bytes": 84645,
+        "sha256": "07de37c13a4c203e6a6b3e16e8c404e3c66a60495969f6f5ba62f0d45ef9c37e",
+        "label_bearing": false
+      },
+      {
+        "role": "complete_killed_v2_pro_emitted_universe",
+        "path": "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/pro.log",
+        "size_bytes": 13286476,
+        "sha256": "854bc5af22b047ba27a5e479fefbd08b4d56cb7e3b7ece4b629de30099e2f369",
+        "label_bearing": false
+      },
+      {
+        "role": "complete_killed_v2_normal_emitted_universe",
+        "path": "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/normal.log",
+        "size_bytes": 13325471,
+        "sha256": "a8275d193fcc247453852ddfbb3ba1ac21f21f8419b9467355941e33fbe18f85",
+        "label_bearing": false
+      },
+      {
+        "role": "complete_killed_v2_fast_emitted_universe",
+        "path": "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/fast.log",
+        "size_bytes": 14453367,
+        "sha256": "14d5ffd495e8430b1872a6a56dc92c16069f477a01bafd7ea143445497b61680",
+        "label_bearing": false
+      },
+      {
+        "role": "rust_manifest",
+        "path": "Cargo.toml",
+        "size_bytes": 473,
+        "sha256": "4083183ea3c0f2c384f6419ef6a25378a5fef5ddf10fd72bff391718e4d80d53",
+        "label_bearing": false
+      },
+      {
+        "role": "rust_lockfile",
+        "path": "Cargo.lock",
+        "size_bytes": 5764,
+        "sha256": "df42fa75b2ca48f7dc9abc71e304d9ef4ef96e3d77240b56e2b5291e7b7c5ad2",
+        "label_bearing": false
+      }
+    ]
+  },
+  "independent_review": {
+    "decision": "GO",
+    "review_count": 2,
+    "emitter_sha256": "0d27e845485155b00f4148829807a7600a2f081473b173987724885c805fc4e8",
+    "matcher_sha256": "b0b9495235f5b5a1815a87c8af9724be5328623c4a74f762cec9f4693e28fb15",
+    "source_tree_sha256": "f7cd5112ddc315966ad5643351d77f9568d62edcf44f0447daef58e50f26a80b",
+    "scope": "source_only_isolation_cross_language_schema_priority_identity_and_universe_digest_parity_complete_v1_v2_quarantine_actual_solver_trial_semantics_global_five_domain_uniqueness_lane_balance_reversal_witnesses_permissions_and_fail_closed_io",
+    "verified_contracts": {
+      "rust_passed": 4,
+      "rust_ignored_pilot_not_run": 1,
+      "python_self_test": "pass",
+      "format": "pass",
+      "diff_check": "pass"
+    },
+    "solver_wording_nuance": "slot_ordering_uses_exact_legal_single_pair_count_as_a_deterministic_mrv_availability_bound_not_full_four_row_domain_cardinality_forward_four_row_feasibility_is_exact"
+  },
+  "fixed_generation": {
+    "seed_family_id": "automove_dense_pareto_pairnet_v3_dual_reserve_joint_matching_pilot_20260712_fresh01",
+    "data_role": "coverage_only_never_model_data",
+    "repeat_offset": 0,
+    "repeats": 16,
+    "adaptive_prefix_or_widening": false,
+    "games_per_repeat": 12,
+    "max_plies": 96,
+    "opening_generation": "one_explicit_canonical_variant_per_opening_index_per_repeat",
+    "candidate_sides_per_opening": [
+      "white",
+      "black"
+    ],
+    "variants_in_order": [
+      "classic",
+      "swapped_mana_rows",
+      "offset_arc_mana_rows",
+      "center_spoke_mana_rows",
+      "alternating_mana_rows",
+      "inner_wedge_mana_rows",
+      "outer_wedge_mana_rows",
+      "bent_center_mana_rows",
+      "outer_edge_mana_rows",
+      "split_flank_mana_rows",
+      "forward_bridge_mana_rows",
+      "corner_chain_mana_rows"
+    ],
+    "duels": [
+      {
+        "command_token": "pro",
+        "source_duel_id": "vs_shipping_pro",
+        "duel_index": 0,
+        "color_phase": 0
+      },
+      {
+        "command_token": "normal",
+        "source_duel_id": "vs_shipping_normal",
+        "duel_index": 1,
+        "color_phase": 1
+      },
+      {
+        "command_token": "fast",
+        "source_duel_id": "vs_shipping_fast",
+        "duel_index": 2,
+        "color_phase": 0
+      }
+    ]
+  },
+  "fixed_candidate_universe": {
+    "cells_per_duel": "12_variants_x_guarded_loss_guarded_save",
+    "required_assignments": 2,
+    "rows_per_assignment": 72,
+    "required_total_selected": 144,
+    "panel_mapping": {
+      "guarded_loss": "retained_guarded_trace_result_loss",
+      "guarded_save": "retained_guarded_trace_result_win_or_draw"
+    },
+    "required_color": "white_iff_variant_index_plus_panel_index_plus_duel_index_is_odd_else_black",
+    "candidate_branch": "frontier_execute",
+    "allowed_outcome_conditioning": "guarded_trace_loss_save_panel_only",
+    "alternative_root_generation_or_labels": false,
+    "exact_collapse_key": [
+      "duel_variant_panel_cell",
+      "raw_source_fen",
+      "raw_source_fen_plus_remaining_horizon",
+      "raw_generation_repeat_opening_variant_cluster_provenance",
+      "perspective_canonical_source_fen",
+      "raw_opening_fen"
+    ],
+    "selection_priority": [
+      "source_ply",
+      "repeat_index",
+      "opening_index",
+      "source_fen",
+      "guarded_move",
+      "generation_seed_tag",
+      "opening_cluster_id",
+      "side_sibling_id",
+      "canonical_source_fen",
+      "opening_fen"
+    ],
+    "resource_bucket_multiplicity": "positive_per_emitted_representative_and_sum_equals_pre_collapse_candidate_count",
+    "local_best_source_selection": false,
+    "selection_location": "strict_external_dual_reserve_matcher_only"
+  },
+  "viewed_resource_quarantine": {
+    "comparison": "raw_equality_within_each_resource_domain_hashes_are_audit_only",
+    "normalization_and_digest_algorithm": "v3_matcher_canonical_sha256_json_of_sorted_normalized_inventory_object_and_each_sorted_normalized_domain_array",
+    "resource_domains": [
+      "raw_source_fen",
+      "raw_source_fen_plus_horizon",
+      "raw_cluster_provenance",
+      "perspective_canonical_source_fen",
+      "raw_opening_fen"
+    ],
+    "v1": {
+      "source": "exact_killed_v1_72_row_combined_report",
+      "recoverable_domains": [
+        "raw_source_fen",
+        "raw_source_fen_plus_horizon",
+        "raw_cluster_provenance",
+        "perspective_canonical_source_fen"
+      ],
+      "unrecoverable_domains": [
+        "raw_opening_fen"
+      ],
+      "counts": {
+        "raw_source_fens": 70,
+        "raw_source_fen_plus_horizon_states": 70,
+        "raw_cluster_provenance": 72,
+        "perspective_canonical_source_fens": 70,
+        "raw_opening_fens": 0
+      },
+      "inventory_digest_sha256": "e510e2f8cb4e7281dc31183e2921f4f7b58b85694d7af80a728159440ce41629",
+      "domain_digests_sha256": {
+        "raw_source_fens": "c24d9fa8b8aa74ce03d956f3ff7dd8f913b6983d4b2ad275ad828e2dfa0adcf9",
+        "raw_source_fen_plus_horizon_states": "15caf0bc67a1731031fa77ffe7aa6290ad9680491482e6ee4000754c685d0afb",
+        "raw_cluster_provenance": "6f91aa41a797d309af5986adf5d9d82d8fa5fd0ebe5672d8bcf9d3fe349d9726",
+        "perspective_canonical_source_fens": "ab7d7b56607cc78baf4e6968f3edc9d5b9fe24a09e358624e63dc9bb24872900",
+        "raw_opening_fens": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "v2": {
+      "source": "all_24268_emitted_candidates_from_the_three_exact_killed_v2_logs_not_only_the_selected_72",
+      "counts": {
+        "raw_source_fens": 21971,
+        "raw_source_fen_plus_horizon_states": 22518,
+        "raw_cluster_provenance": 434,
+        "perspective_canonical_source_fens": 21971,
+        "raw_opening_fens": 395
+      },
+      "inventory_digest_sha256": "38d6719423d0c646878954bd3f55a5a82acb72e1faf44331fc3cc255c0f76431",
+      "domain_digests_sha256": {
+        "raw_source_fens": "0ff5604395b35c4b7ce58c7c4f8cfcf22829ec182427d7b5583d23cc25b006b8",
+        "raw_source_fen_plus_horizon_states": "add19935bd7febb3c626c4a25de36bb6d2f2eac9f71a635f42862312d984d4cd",
+        "raw_cluster_provenance": "0bf8847fffd92e418c27319e6c094f3e29cc377772450012316e3ec650cf79ff",
+        "perspective_canonical_source_fens": "0fc43a3147e34201e97b296aa401d5e784678a30c398ade8f6c68f19a85c0596",
+        "raw_opening_fens": "13b4d5d3efe1c8a4e37ebc281f3740d3450068647937b1d95aeb9e33811a0588"
+      }
+    },
+    "union": {
+      "counts": {
+        "raw_source_fens": 22033,
+        "raw_source_fen_plus_horizon_states": 22581,
+        "raw_cluster_provenance": 506,
+        "perspective_canonical_source_fens": 22033,
+        "raw_opening_fens": 395
+      },
+      "inventory_digest_sha256": "63bb21ebc72521085d72d1567fe5ec4f419d2cd7d1d4af936176e20f49bc2ea4",
+      "domain_digests_sha256": {
+        "raw_source_fens": "f7970800f47b46f9bf564e7f589b88d8f09078129069e833f2d6cb3deeed03ce",
+        "raw_source_fen_plus_horizon_states": "c4201a0eb0a0feab93a80580b8c3a742462b0453324188e24116c02514120529",
+        "raw_cluster_provenance": "512c8387b008b0eb28e3944d2c12fc7c2503fe59e957c63f906a60c9d73666a0",
+        "perspective_canonical_source_fens": "3e6bf048cfc1566c46d240590b2983b7d3de8c6c1782f8138962ac7835f3b438",
+        "raw_opening_fens": "13b4d5d3efe1c8a4e37ebc281f3740d3450068647937b1d95aeb9e33811a0588"
+      }
+    },
+    "application_order": "authenticate_complete_inputs_then_filter_matching_raw_resources_before_cell_gates_solver_reversal_and_selection",
+    "post_filter_retry_or_substitution": false,
+    "selected_overlap": 0
+  },
+  "per_duel_gate": {
+    "schema_records": 1,
+    "summary_records": 1,
+    "successful_single_test_cargo_harness_records": 1,
+    "candidate_indices": "contiguous_from_zero_in_canonical_variant_panel_priority_order",
+    "unique_variant_panel_cells": 24,
+    "minimum_distinct_resource_bundles_per_cell_before_quarantine": 2,
+    "candidate_count": "sum_of_resource_bucket_multiplicity",
+    "collapsed_candidate_count": "exact_emitted_rows",
+    "candidate_universe_digest": "exact_fnv64_reproduction",
+    "guarded_move_legal": true,
+    "frontier_execute": true,
+    "source_result_panel_consistent": true,
+    "fen_variant_active_color_and_canonical_content_consistent": true,
+    "opening_provenance_recomputed": true,
+    "universe_complete": true,
+    "all_downstream_permissions": false
+  },
+  "fixed_dual_reserve_matcher": {
+    "base_slots": "36_variant_duel_slots",
+    "rows_per_slot": "ordered_A_loss_A_save_B_loss_B_save",
+    "resource_keys": [
+      "raw_source_fen",
+      "raw_source_fen_plus_horizon",
+      "raw_cluster_provenance",
+      "perspective_canonical_source_fen",
+      "raw_opening_fen"
+    ],
+    "within_four_row_resource_overlap": false,
+    "global_resource_overlap_across_144": false,
+    "slot_ordering": "minimum_exact_legal_single_pair_count_availability_bound_then_variant_index_then_duel_index",
+    "slot_ordering_is_not": "full_dual_four_row_domain_cardinality",
+    "four_row_choice_order": "fixed_A_loss_priority_then_A_save_priority_then_B_loss_priority_then_B_save_priority",
+    "forward_feasibility": "exact_deterministic_complete_four_row_existence_probe_for_every_remaining_slot",
+    "forward_feasibility_trials_counted": false,
+    "deterministic_depth_first_backtracking": true,
+    "counted_trial": "one_complete_ordered_four_row_base_slot_choice_after_all_four_rows_pass_mutual_and_global_five_domain_legality",
+    "dual_slot_bundle_trial_cap": 10000000,
+    "solver_statuses": [
+      "solved",
+      "proven_infeasible",
+      "cap_exhausted"
+    ],
+    "cap_exhausted_is_not_infeasible": true,
+    "input_reversal_must_preserve": [
+      "normalized_universe_digest",
+      "post_quarantine_universe_digest",
+      "solver_status",
+      "dual_slot_bundle_trial_count",
+      "dual_selection_digest"
+    ]
+  },
+  "combined_gate": {
+    "post_quarantine_cells": 72,
+    "minimum_distinct_resource_bundles_per_post_quarantine_cell": 2,
+    "selected_sources": 144,
+    "lanes": 2,
+    "per_lane": {
+      "selected_sources": 72,
+      "selected_sources_per_duel": 24,
+      "selected_sources_per_variant": 6,
+      "guarded_loss_sources": 36,
+      "guarded_save_sources": 36,
+      "white_sources": 36,
+      "black_sources": 36
+    },
+    "combined_unique_raw_source_fens": 144,
+    "combined_unique_raw_source_fen_horizon_states": 144,
+    "combined_unique_raw_clusters": 144,
+    "combined_unique_perspective_canonical_source_fens": 144,
+    "combined_unique_raw_opening_fens": 144,
+    "viewed_resource_overlap": 0,
+    "solver": "solved_at_or_below_cap_without_cap_exhaustion",
+    "input_reversal": "exact_pass",
+    "direct_deletion_witnesses": 144,
+    "deletion_witness_definition": "for_each_row_removed_from_one_lane_the_opposite_preselected_complete_lane_has_zero_hits_in_all_five_domains_and_retains_exact_balance_and_uniqueness",
+    "decision": "go_freeze_fresh_model_family_precommit_only"
+  },
+  "outputs": {
+    "directory": "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712",
+    "directory_setup_is_non_evidentiary": true,
+    "pro_log": "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/pro.log",
+    "normal_log": "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/normal.log",
+    "fast_log": "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/fast.log",
+    "combined_report": "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/combined_report.json",
+    "every_output_must_not_exist": true,
+    "logs_created_by_shell_noclobber": true,
+    "report_output_is_mandatory_exclusive_atomic_contained_and_no_overwrite": true
+  },
+  "decision_contract": {
+    "any_probe_exit_nonzero": "kill_exact_v3_pilot_without_matcher_go",
+    "any_schema_digest_provenance_multiplicity_permission_or_quarantine_authentication_failure": "abort_without_permission",
+    "any_post_quarantine_cell_shortfall": "kill_exact_v3_route_without_seed_repeat_source_or_lane_retry",
+    "solver_proven_infeasible_or_cap_exhausted": "kill_exact_v3_route",
+    "any_resource_uniqueness_lane_balance_reversal_or_direct_witness_failure": "kill_exact_v3_route",
+    "any_failure": "kill_automove_dense_pareto_pairnet_v3_dual_reserve_joint_matching_without_v4",
+    "combined_pass": "freeze_pilot_report_and_write_one_new_fresh_model_family_precommit_only",
+    "pilot_rows_may_be_used_for_model_data": false,
+    "pilot_rows_may_be_used_for_pairability": false,
+    "fresh_model_family_data_may_be_generated_without_new_precommit": false,
+    "alternate_primary_lane_or_post_viewed_source_substitution": false
+  },
+  "permissions": {
+    "run_fixed_source_only_pilot": true,
+    "run_strict_dual_reserve_matcher": true,
+    "freeze_pilot_report": true,
+    "precommit_fresh_model_family_only_if_combined_gate_passes": true,
+    "generate_fresh_model_family": false,
+    "root_pool_or_pairability_probe": false,
+    "alternative_root_outcome_generation": false,
+    "corpus_label_generation": false,
+    "tensor_extraction": false,
+    "model_fit": false,
+    "validation_or_locked_generation": false,
+    "runtime_source": false,
+    "dashboard": false,
+    "public_route": false,
+    "promotion": false
+  },
+  "exact_commands": {
+    "summarizer_self_test": "python3 -B scripts/summarize-automove-dense-pareto-dual-reserve-v3.py --self-test",
+    "contracts": "cargo test --release --lib dense_pareto_dual_reserve_source_ -- --nocapture",
+    "pro_probe": "set -o noclobber\nSMART_DENSE_PARETO_DUAL_RESERVE_SOURCE_DUEL=pro cargo test --release --lib smart_automove_pro_dense_pareto_dual_reserve_source_candidate_probe -- --ignored --nocapture > target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/pro.log 2>&1",
+    "normal_probe": "set -o noclobber\nSMART_DENSE_PARETO_DUAL_RESERVE_SOURCE_DUEL=normal cargo test --release --lib smart_automove_pro_dense_pareto_dual_reserve_source_candidate_probe -- --ignored --nocapture > target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/normal.log 2>&1",
+    "fast_probe": "set -o noclobber\nSMART_DENSE_PARETO_DUAL_RESERVE_SOURCE_DUEL=fast cargo test --release --lib smart_automove_pro_dense_pareto_dual_reserve_source_candidate_probe -- --ignored --nocapture > target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/fast.log 2>&1",
+    "summarizer_argv": [
+      "python3",
+      "-B",
+      "scripts/summarize-automove-dense-pareto-dual-reserve-v3.py",
+      "--pro-log",
+      "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/pro.log",
+      "--normal-log",
+      "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/normal.log",
+      "--fast-log",
+      "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/fast.log",
+      "--v2-pro-log",
+      "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/pro.log",
+      "--v2-normal-log",
+      "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/normal.log",
+      "--v2-fast-log",
+      "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/fast.log",
+      "--v1-report",
+      "target/experiment-runs/dense_pareto_pairnet_v1_source_coverage_20260712/combined_report.json",
+      "--output",
+      "target/experiment-runs/dense_pareto_pairnet_v3_dual_reserve_20260712/combined_report.json"
+    ]
+  }
+}

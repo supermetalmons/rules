@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "freeze_id": "automove_frontier_pro_v6_full170_factorized_deepsets_provenance_implementation_freeze_20260713",
+  "candidate_id": "frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1",
+  "created_date": "2026-07-13",
+  "status": "frozen_after_independent_audit_before_one_formal_logged_replacement",
+  "scope": "test_only_label_blind_raw_opening_and_perspective_canonical_provenance_no_fit_model_runtime_or_new_labels",
+  "precommit": {
+    "path": "docs/automove-frontier-pro-v6-full170-factorized-deepsets-guarded-pareto-v1-precommit.json",
+    "size_bytes": 16771,
+    "sha256": "3b69d1c81fffba62d228b3585751a044d4afe99f005fb4366ae4e3c9c52be567"
+  },
+  "implementation": [
+    {"role":"provenance_harness","path":"src/models/automove_experiments/tests/diagnostics/full170_deepsets_provenance.rs","size_bytes":49114,"sha256":"106292b16402068ffb20a58b73070c6d40967f14c68da1e7e73a4f2f835e38de"},
+    {"role":"test_module_registration","path":"src/models/automove_experiments/tests/diagnostics/mod.rs","size_bytes":1231502,"sha256":"4f4313ec9c80a4e84a8483a3288d7fa766925b22079cf2de85d0b5a416494e66"},
+    {"role":"visibility_only_existing_provenance_helpers","path":"src/models/automove_experiments/tests/diagnostics/root_distillation.rs","size_bytes":303008,"sha256":"8aa8b93ab30af6a2fb3e27c72dfbe3df53ecd33617efa81e25fdc98007fd95be"}
+  ],
+  "helper_change_contract": {
+    "scope": "five_existing_test_diagnostic_helper_visibility_changes_to_pub_super_only",
+    "helpers": ["guarded_stratified_root_corpus_opening_ids","guarded_stratified_root_corpus_state_id","guarded_stratified_root_corpus_root_id","guarded_stratified_root_corpus_sample_id","root_corpus_rotate_and_swap"],
+    "helper_bodies_changed": false,
+    "production_behavior_changed": false
+  },
+  "verification_before_evidence": {
+    "cargo_fmt_check": "pass",
+    "cargo_check_tests": "pass",
+    "synthetic_release_contract_command": "cargo test --release --lib full170_deepsets_provenance_contract -- --nocapture",
+    "synthetic_release_contract_result": "pass_4_tests_0_failed",
+    "real_input_contract_after_responsive_fix": "ignored_and_not_run",
+    "ignored_formal_probe_run": false
+  },
+  "invalid_prior_execution": {
+    "test_name": "former_full170_deepsets_provenance_contract_authenticated_inputs_parse_and_regenerate",
+    "classification": "protocol_invalid_non_evidentiary_unlogged_implementation_dry_execution",
+    "scope": "authenticated_15_plus_3_parse_and_regeneration_assertions_only_without_records_or_digests",
+    "provenance_records_or_summary_emitted": false,
+    "file_artifact_model_or_runtime_emitted": false,
+    "v2_v3_exact_five_or_retired_union_inspected": false,
+    "responsive_change_only": "renamed_full170_deepsets_provenance_authenticated_inputs_unlogged_dry_run_and_marked_ignore",
+    "result_conditioned_change": false,
+    "authorization_consumed": false,
+    "dry_run_must_not_run_again": true
+  },
+  "independent_implementation_audit": {
+    "decision": "GO_one_formal_logged_replacement",
+    "verified": [
+      "exact_15_candidate_and_3_v1_path_size_SHA_authentication_before_parse",
+      "complete_36_state_208_root_624_row_three_budget_join",
+      "v1_72_composite_record_keys_and_70_unique_state_ids",
+      "environment_independent_candidate_sampled_prefix_and_explicit_v1_12_variant_regeneration",
+      "shared_identity_and_perspective_canonicalization_parity",
+      "deterministic_BTree_record_order_and_SHA256_digests",
+      "alternative_root_labels_fit_and_runtime_permissions_false",
+      "exact_formal_filter_matches_only_the_one_shot_probe"
+    ],
+    "fit_model_runtime_or_prefit_permission": false
+  },
+  "formal_replacement": {
+    "test_name": "smart_automove_frontier_pro_v6_full170_factorized_deepsets_provenance_probe",
+    "run_name": "20260713_full170_provenance_replacement01",
+    "frontier": "frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1",
+    "inner_command": "cargo test --release --lib smart_automove_frontier_pro_v6_full170_factorized_deepsets_provenance_probe -- --ignored --nocapture",
+    "logged_command": "SMART_EXPERIMENT_FRONTIER=frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1 scripts/run-experiment-logged.sh 20260713_full170_provenance_replacement01 -- cargo test --release --lib smart_automove_frontier_pro_v6_full170_factorized_deepsets_provenance_probe -- --ignored --nocapture",
+    "expected_exit": 0,
+    "expected_records": {"schema":1,"candidate_items":36,"v1_items":72,"summary":1},
+    "expected_summary": {"authenticated_input_logs":18,"candidate_state_records":36,"candidate_unique_roots":208,"candidate_budget_rows":624,"v1_selected_source_records":72,"v1_unique_state_ids":70,"violations":0,"fit_permission":false,"runtime_permission":false},
+    "no_retry_after_complete_structured_output": true
+  },
+  "permissions": {
+    "run_formal_replacement_once": true,
+    "run_dry_input_probe": false,
+    "fit": false,
+    "model": false,
+    "runtime_source": false,
+    "new_labels": false,
+    "profile": false,
+    "dashboard": false,
+    "promotion": false
+  },
+  "next_action_after_pass": "freeze_provenance_log_and_implement_the_read_only_no_fit_full170_prefit_validator"
+}

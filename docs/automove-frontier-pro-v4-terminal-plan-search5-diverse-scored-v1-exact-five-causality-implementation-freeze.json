@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "freeze_id": "automove_frontier_pro_v4_terminal_plan_search5_diverse_scored_v1_exact_five_causality_implementation_freeze_20260713",
+  "candidate_id": "frontier_pro_v4_terminal_plan_search5_diverse_scored_v1",
+  "created_date": "2026-07-13",
+  "status": "exact_five_causality_implementation_frozen_before_first_ignored_run",
+  "authorization_chain": {
+    "precommit": {
+      "path": "docs/automove-frontier-pro-v4-terminal-plan-search5-diverse-scored-v1-precommit.json",
+      "size_bytes": 32779,
+      "sha256": "969cafaeb48b73404e9de15f9d8214898309475b892c89b56094d7de6641c127"
+    },
+    "initial_implementation_freeze": {
+      "path": "docs/automove-frontier-pro-v4-terminal-plan-search5-diverse-scored-v1-implementation-freeze.json",
+      "size_bytes": 7937,
+      "sha256": "14f119f46d8c121629f64b02752c1d5d0e6441f4be7cd54c2041896eef0209e2"
+    },
+    "hotspot_result": {
+      "path": "docs/automove-frontier-pro-v4-terminal-plan-search5-diverse-scored-v1-hotspot-result.json",
+      "size_bytes": 4466,
+      "sha256": "fc3bb71847fa60d3529eb7fc4e5c9727c72667a31cd5b022b8263375ece26824",
+      "decision": "pass_authorize_only_exact_five_causality_harness_implementation_freeze_audit_and_run"
+    }
+  },
+  "frozen_source_receipts": [
+    {
+      "path": "src/models/mons_game_model.rs",
+      "size_bytes": 1875859,
+      "sha256": "66870ce3f6c6e1bdffcc964098c1f3ec8afcffcab390883db00099f532f25711",
+      "candidate_role": "cfg_test_one_shot_root_selection_snapshot_API_and_lifecycle_contract"
+    },
+    {
+      "path": "src/models/automove_runtime_variants.rs",
+      "size_bytes": 81947,
+      "sha256": "40e7104b5f4d2a2d9044ded9eac183410863f318ffccd74009ec6175420d9327",
+      "candidate_role": "cfg_test_candidate_selector_and_side_effect_free_exact_five_structural_inspection_API"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/mod.rs",
+      "size_bytes": 1253919,
+      "sha256": "a8c537d9cbdf8a78cf905d8224f7ad7051c2c18151feecb375eebf5530ed98ad",
+      "candidate_role": "diagnostics_module_registration_only"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/terminal_plan_search5.rs",
+      "size_bytes": 23071,
+      "sha256": "94a9257c555aca4a4bb3d33da2764a70e2e257966403ba96ecfff646ed833411",
+      "candidate_role": "frozen_exact_five_structural_fingerprint_and_causality_gate"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/expansion_only_tt_accounting.rs",
+      "size_bytes": 48833,
+      "sha256": "40ceba62bac1718e0923c15c3dc20d2850477b5bf8af5e8d84c95ead8801d4b8",
+      "candidate_role": "preexisting_exact_five_fixture_and_authenticated_source_log_parser"
+    },
+    {
+      "path": "src/models/automove_experiments/harness/runner.rs",
+      "size_bytes": 44342,
+      "sha256": "29f93cc4b77e46b5a4756f11d5dba075a62589024fe8b6e31897d39cc8968240",
+      "candidate_role": "visibility_only_for_existing_hotspot_helper_unchanged_since_initial_freeze"
+    },
+    {
+      "path": "scripts/automove-experiment-common.sh",
+      "size_bytes": 18413,
+      "sha256": "1267d1edd13e6e2a7576d0564b61cd29a7f36eddd90cc543d68a2302e31eaa9a",
+      "candidate_role": "test_only_logged_run_allowlist_and_metadata_unchanged_since_initial_freeze"
+    },
+    {
+      "path": "AUTOMOVE_IDEAS.md",
+      "size_bytes": 75498,
+      "sha256": "adda8bc62300c73ae213d470076230afe0c61fa19cd5b1340934547121fcd6e4",
+      "candidate_role": "single_live_hypothesis_and_exact_authorized_next_command"
+    }
+  ],
+  "source_evidence_receipt": {
+    "path": "target/experiment-runs/frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_bridge_shipping_pro_search_co_983314459/20260624-232056_pro_policy_outcome_corpus_frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_br_3916922365.log",
+    "size_bytes": 430857,
+    "sha256": "dc1def82b5534a46fcb36b7030002e8060712cf4912165a58dee796e6904a2cc",
+    "required_summary": "12 total games, five guarded losses, 12 recorded first-difference rows, zero missing first differences",
+    "required_rows": "exactly the five frozen guarded-loss tuples including repeat, opening index, variant, board, guarded move, and shipping move"
+  },
+  "exact_five_ordered_pool_fingerprints": [
+    {
+      "board_index": 0,
+      "color": "white",
+      "ordered_pool_joined_by_pipe": "l9,1;l8,0|l8,5;l8,6|l9,5;l8,4|l9,1;l8,1|l9,1;l8,2",
+      "canonical_sha256": "a625a5d54ecd56128ba04e31bbc23df29264c2831cc2e9166dc27afaaca657c1"
+    },
+    {
+      "board_index": 1,
+      "color": "black",
+      "ordered_pool_joined_by_pipe": "l1,6;l2,7|l1,8;l2,9|l1,5;l2,4|l1,5;l2,5|l1,5;l2,6",
+      "canonical_sha256": "46125f46a4d20e7e0bfc7ea7d1b2f0515fa29cae72ef7f58397c1e18ab0c542e"
+    },
+    {
+      "board_index": 2,
+      "color": "white",
+      "ordered_pool_joined_by_pipe": "l9,7;l8,7|l10,0;l9,1|l10,0;l10,1|l9,3;l8,3|l10,3;l9,2",
+      "canonical_sha256": "ef310a60b8d54ca34df4776d79cca4d2d7fdeac48bcc2b7cd41d7953d27961a7"
+    },
+    {
+      "board_index": 3,
+      "color": "black",
+      "ordered_pool_joined_by_pipe": "l3,7;l5,5;l4,6|l3,7;l1,9;l0,10|l1,4;l2,4|l3,7;l4,5;l4,6|l3,7;l5,6;l4,6",
+      "canonical_sha256": "f0fd76c987cd3e348e50a4a1e1fab66d5e343cceae002d3415c0237a8a50b997"
+    },
+    {
+      "board_index": 4,
+      "color": "white",
+      "ordered_pool_joined_by_pipe": "l7,7;l6,6|l9,4;l8,4|l8,3;l7,3|l9,5;l8,4|l8,5;l7,4",
+      "canonical_sha256": "4d65f01731fea38b938d174574bc8e8329e6dad9198aeadda182026d779148e0"
+    }
+  ],
+  "causality_gate_freeze": {
+    "test_name": "smart_automove_frontier_pro_v4_terminal_plan_search5_diverse_scored_v1_exact_five_causality_probe",
+    "exact_inner_command": "cargo test --release --lib smart_automove_frontier_pro_v4_terminal_plan_search5_diverse_scored_v1_exact_five_causality_probe -- --ignored --nocapture",
+    "boards": 5,
+    "baseline_runs_per_board": 2,
+    "candidate_runs_per_board": 2,
+    "cold_policy": "reset shared replay caches and clear/finalize candidate episode around every selector invocation",
+    "timing_scope": "full selector invocation",
+    "required_baseline": "both guarded runs legal, deterministic, frontier_execute, and equal the authenticated guarded source move",
+    "required_candidate": "both runs legal and deterministic, frontier_execute, eligible planning with no active cache hit, exact ordered pool of five, and selected input is a pool member",
+    "required_public_changes": "at least two of five baseline inputs change and changed positions include both white and black active colors",
+    "candidate_average_hard_ms_per_board": 700,
+    "candidate_average_warning_only_ms_per_board": 650,
+    "required_universal_functional_failures": 0,
+    "required_cache_capture_failures": 0,
+    "required_contract_check_failures": 0,
+    "complete_per_board_invariant_and_final_result_json_before_assertion": true,
+    "failure_decision": "kill_and_prune_without_sequential_or_direct_spend"
+  },
+  "public_behavior_freeze": {
+    "public_Pro_dispatch": "MonsGameModel::public_runtime_inputs_still_calls_select_frontier_pro_v2_guarded_inputs",
+    "retained_profile_ids_exactly": [
+      "shipping_pro_search",
+      "frontier_pro_v2_guarded"
+    ],
+    "candidate_code_is_cfg_test_only": true,
+    "public_route_changed": false,
+    "sequential_direct_dashboard_canonical_or_production_harness_implemented": false,
+    "external_package_published": false
+  },
+  "validation_receipt": {
+    "cargo_fmt_check": "pass",
+    "cargo_check_tests": "pass",
+    "cargo_check_release_tests": "pass",
+    "terminal_plan_search5_exact_five_structural_fingerprint_release": "pass_1_test_5_rows",
+    "exact_five_inspection_consumes_capture_without_activating_episode": "pass_1_test",
+    "root_selection_snapshot_capture_is_one_shot_take_cancel_and_clear_safe": "pass_1_test",
+    "terminal_plan_search5_pure_contracts_hold": "pass_1_test",
+    "git_diff_check": "pass",
+    "ignored_causality_probe_run": false
+  },
+  "permissions_after_freeze": {
+    "obtain_independent_read_only_audit": true,
+    "run_only_the_exact_logged_causality_gate_after_audit_signoff": true,
+    "implement_or_run_sequential_before_causality_pass": false,
+    "implement_or_run_direct_dashboard_canonical_or_production_before_earned": false,
+    "change_public_Pro_route": false,
+    "retry_or_retune_after_result": false
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "freeze_id": "automove_frontier_pro_v6_full170_factorized_deepsets_prefit_implementation_freeze_20260713",
+  "candidate_id": "frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1",
+  "created_date": "2026-07-13",
+  "status": "frozen_after_two_independent_GO_audits_before_first_and_only_real_prefit_execution",
+  "purpose": "bind_the_read_only_prefit_implementation_and_its_only_authorized_real_invocation_without_granting_fit_model_runtime_or_promotion_permission",
+  "precommit": {
+    "path": "docs/automove-frontier-pro-v6-full170-factorized-deepsets-guarded-pareto-v1-precommit.json",
+    "size_bytes": 16771,
+    "sha256": "3b69d1c81fffba62d228b3585751a044d4afe99f005fb4366ae4e3c9c52be567"
+  },
+  "inherited_source_contract": {
+    "path": "docs/automove-frontier-pro-v6-grouped-pareto-listwise-rootset-v1-precommit.json",
+    "size_bytes": 24984,
+    "sha256": "40c8a438f40e8d3959fe3d36f5d5f4765eb43a21739429843201dcad908f40ec"
+  },
+  "provenance_evidence": {
+    "log": {
+      "path": "target/experiment-runs/frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1/20260713-060452_20260713_full170_provenance_replacement01.log",
+      "size_bytes": 123173,
+      "sha256": "fac221ad91036326ead7bfa6971d007f356dc1dca0f76cccaac2bdbd6282a6f4"
+    },
+    "result": {
+      "path": "docs/automove-frontier-pro-v6-full170-factorized-deepsets-provenance-result.json",
+      "size_bytes": 4944,
+      "sha256": "bc7826978f8c693bd6d18284f86901a5e7c0d95c66569ba472a1d1464a6e3c5b"
+    },
+    "fit_permission": false,
+    "runtime_permission": false
+  },
+  "implementation": {
+    "path": "scripts/preflight-automove-full170-factorized-deepsets-v1.py",
+    "size_bytes": 40173,
+    "sha256": "383612b563ab20cc3e8d668e1bcc1891b50ebf3f28fdf379dc2cf57f5e3d6a6f",
+    "read_only": true,
+    "fit_code_present": false,
+    "model_output_present": false,
+    "runtime_source_write_present": false,
+    "filesystem_write_path_present": false
+  },
+  "parser_pins": {
+    "schema_v4": {
+      "path": "scripts/summarize-automove-guarded-root-corpus-v4.py",
+      "size_bytes": 86891,
+      "sha256": "c578b13580e2a9c8db3dcfc1ebb9a741e21eabc28601e1cd4ef95d68f4fb0512"
+    },
+    "pairnet_v3": {
+      "path": "scripts/summarize-automove-dense-pareto-dual-reserve-v3.py",
+      "size_bytes": 89572,
+      "sha256": "b0b9495235f5b5a1815a87c8af9724be5328623c4a74f762cec9f4693e28fb15"
+    },
+    "pairnet_v2_transitive": {
+      "path": "scripts/summarize-automove-dense-pareto-joint-source-v2.py",
+      "size_bytes": 105198,
+      "sha256": "3243ad0b69a617c18a8cb8cfb2155c6c92c1b0f364d81b86132d1dc0c91ddb54"
+    }
+  },
+  "self_test": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/preflight-automove-full170-factorized-deepsets-v1.py --self-test",
+    "exit_code": 0,
+    "stdout": {"fit_code_present":false,"schema_version":1,"self_test":"pass","write_path_present":false},
+    "git_diff_check": "pass"
+  },
+  "independent_audits": [
+    {
+      "audit": "full170_prefit_code_audit",
+      "decision": "GO",
+      "audited_size_bytes": 40173,
+      "audited_sha256": "383612b563ab20cc3e8d668e1bcc1891b50ebf3f28fdf379dc2cf57f5e3d6a6f",
+      "finding": "all_mandatory_provenance_quarantine_historical_overlap_component_support_feature_and_save_violation_gates_are_live_and_no_fit_model_write_or_runtime_path_exists"
+    },
+    {
+      "audit": "full170_precommit_audit",
+      "decision": "GO",
+      "audited_size_bytes": 40173,
+      "audited_sha256": "383612b563ab20cc3e8d668e1bcc1891b50ebf3f28fdf379dc2cf57f5e3d6a6f",
+      "finding": "exact_six_five_domain_quarantine_30_172_516_admission_exact_five_and_retired_independence_six_resource_components_LOCO_LOFO_and_full170_support_match_the_frozen_contract"
+    }
+  ],
+  "single_authorized_real_execution": {
+    "run_name": "20260713_full170_prefit_fresh01",
+    "frontier": "frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1",
+    "inner_command": "env PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/preflight-automove-full170-factorized-deepsets-v1.py --preflight docs/automove-frontier-pro-v6-full170-factorized-deepsets-guarded-pareto-v1-precommit.json --provenance-log target/experiment-runs/frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1/20260713-060452_20260713_full170_provenance_replacement01.log",
+    "wrapper_command": "SMART_EXPERIMENT_FRONTIER=frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1 scripts/run-experiment-logged.sh 20260713_full170_prefit_fresh01 -- env PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/preflight-automove-full170-factorized-deepsets-v1.py --preflight docs/automove-frontier-pro-v6-full170-factorized-deepsets-guarded-pareto-v1-precommit.json --provenance-log target/experiment-runs/frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1/20260713-060452_20260713_full170_provenance_replacement01.log",
+    "success_exit_code": 0,
+    "failed_gate_exit_code": 1,
+    "error_exit_code": 2,
+    "retry_or_threshold_change": false
+  },
+  "success_permission_only": "freeze_and_independently_audit_one_single_use_OOF_and_final_fit_implementation_with_exact_training_quantization_and_decoder_arithmetic_before_any_fit",
+  "failure_permission": "kill_this_candidate_without_component_feature_quarantine_or_hyperparameter_retry",
+  "permissions": {
+    "run_this_exact_prefit_once": true,
+    "fit": false,
+    "model": false,
+    "runtime_source": false,
+    "new_labels": false,
+    "profile": false,
+    "dashboard": false,
+    "promotion": false
+  }
+}

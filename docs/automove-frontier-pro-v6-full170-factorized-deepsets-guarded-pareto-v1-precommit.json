@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "precommit_id": "automove_frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1_20260713",
+  "candidate_id": "frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1",
+  "created_date": "2026-07-13",
+  "status": "frozen_before_provenance_implementation_and_before_any_fit",
+  "purpose": "prove_full_five_domain_provenance_and_fold_independence_then_test_one_fixed_quantized_interaction_capable_whole_root_set_model_for_actual_Pro_promotion",
+  "retained_public_constraints": {
+    "retained_ids_exactly": ["shipping_pro_search","frontier_pro_v2_guarded"],
+    "public_Pro_before_all_release_gates": "frontier_pro_v2_guarded",
+    "candidate_not_registered_during_evidence": true,
+    "Fast_and_Normal_unchanged": true
+  },
+  "predecessor_no_go": {
+    "candidate_id": "frontier_pro_v6_grouped_pareto_listwise_rootset_v1",
+    "result_path": "docs/automove-frontier-pro-v6-grouped-pareto-listwise-rootset-v1-result.json",
+    "size_bytes": 5321,
+    "sha256": "0f679eeb2109e1ed8aa3448f5f02471152dc2ec15c59e02f9d739afecf8900a1",
+    "closed_representation": "42_feature_second_order_linear_set_tensor",
+    "closed_frozen_denylist_count": 5,
+    "not_reused": true
+  },
+  "immutable_input_manifest": {
+    "source_contract_path": "docs/automove-frontier-pro-v6-grouped-pareto-listwise-rootset-v1-precommit.json",
+    "source_contract_size_bytes": 24984,
+    "source_contract_sha256": "40c8a438f40e8d3959fe3d36f5d5f4765eb43a21739429843201dcad908f40ec",
+    "inherited_exact_sections": [
+      "allowlisted_corpus_logs",
+      "viewed_resource_quarantine.pairnet_v1_report",
+      "viewed_resource_quarantine.pairnet_v1_selected_source_logs",
+      "viewed_resource_quarantine.pairnet_v2_candidate_logs",
+      "viewed_resource_quarantine.pairnet_v3_candidate_logs",
+      "viewed_resource_quarantine.exact_five_inventory",
+      "viewed_resource_quarantine.retired_104_state_447_root_inventory"
+    ],
+    "all_inherited_path_size_SHA_contracts_must_be_reauthenticated_before_parsing": true,
+    "parsers_must_consume_authenticated_captured_bytes": true
+  },
+  "prospective_six_state_quarantine": {
+    "state_ids": [
+      "10c2c38fbc153021",
+      "37b63e23e3b020a2",
+      "4342261578d7cdf1",
+      "c1e94e2c5bd6889c",
+      "de5093ba75772d46",
+      "f6fd5efd9b59e97b"
+    ],
+    "sorted_newline_sha256": "a2460cb4948eb8936ecea140236aa17330a281afbd633df73c07c754f9b88e95",
+    "first_five_source": "predecessor_prospective_filter",
+    "sixth_witness": "complete_v1_v2_v3_first_four_domain_audit_raw_FEN_overlap_in_v2_and_v3",
+    "required_post_provenance_overlap_set": "exactly_these_six_across_the_union_of_all_five_domains",
+    "additional_or_missing_hit": "kill_without_filter_or_source_retry"
+  },
+  "expected_admitted_discovery": {
+    "states": 30,
+    "roots": 172,
+    "budget_rows": 516,
+    "opening_clusters_before_raw_opening_component_merge": 19,
+    "seed_families": 3,
+    "colors": ["black","white"],
+    "source_duels": ["vs_shipping_fast","vs_shipping_normal","vs_shipping_pro"],
+    "source_panels": ["guarded_loss","guarded_save"],
+    "variants": 7,
+    "exact_170_vectors_unique": 172,
+    "duplicate_vector_groups": 0,
+    "conflicting_label_groups": 0,
+    "pareto_safe_improving_roots": 38,
+    "pareto_safe_improving_states": 18,
+    "pareto_safe_improving_clusters": 15,
+    "safe_positive_roots_by_budget": {"pro":21,"normal":10,"fast":17},
+    "any_regression_or_save_violation_roots": 61,
+    "all_zero_delta_roots": 73,
+    "raw_head_label_support": {"positive":{"pro":32,"normal":21,"fast":28},"negative":{"pro":22,"normal":30,"fast":31}}
+  },
+  "exact_170_input_contract": {
+    "scalar_order": [
+      "root_score","efficiency","wins_immediately","attacks_opponent_drainer","own_drainer_vulnerable","own_drainer_walk_vulnerable","spirit_development","keeps_awake_spirit_on_base","mana_handoff_to_opponent","has_roundtrip","scores_supermana_this_turn","scores_opponent_mana_this_turn","safe_supermana_pickup_now","safe_opponent_mana_pickup_now","safe_supermana_progress_steps","safe_opponent_mana_progress_steps","score_path_best_steps","same_turn_score_window_value","spirit_setup_gain","spirit_same_turn_score_setup_now","spirit_own_mana_setup_now","supermana_progress","opponent_mana_progress","interview_soft_priority"
+    ],
+    "family_one_hot_order": [
+      "ImmediateScore","DenyOpponentWindow","DrainerKill","SafeSupermanaProgress","SafeOpponentManaProgress","DrainerSafetyRecovery","SpiritImpact","ManaTempo"
+    ],
+    "spatial_order": "for_side_in_own_opp_then_mon_in_demon_drainer_angel_spirit_mystic_then_field_in_i_j_delta_i_delta_j_cooldown_payload_none_payload_own_mana_payload_opp_mana_payload_super_payload_potion_payload_bomb_payload_either_then_free_mana_in_own_mana_opp_mana_supermana_each_present_i_j_then_perspective_own_score_opp_score_score_margin_controls_turn_remaining_mon_moves_can_use_action_can_move_mana_own_potions_opp_potions",
+    "spatial_name_newline_SHA256": "540de925932ee7b867f0ad34d66f9b7a1af213c83d442544a9093cb1759e9459",
+    "counts": {"scalars":24,"family_bits":8,"spatial":138,"total":170},
+    "current_availability": "24_scalars_are_on_RootEvaluation_but_the_138_spatial_extractor_is_currently_test_only_and_private",
+    "future_runtime_translation_requirement": "move_the_exact_138_extractor_and_name_order_to_one_typed_shared_non_test_implementation_with_byte_exact_corpus_parity_before_runtime_permission",
+    "excluded_expensive_schema_v4_fields": ["reply_floor","allows_immediate_opponent_win","opponent_reaches_match_point","followup_floor","utility_win_state","utility_avoid_immediate_loss","utility_score_delta","utility_deny_gain","utility_drainer_attack","utility_drainer_safety","utility_eval_score"],
+    "exclusion_reason": "would_add_reply_enumeration_recursive_followup_or_turn_engine_planning_work",
+    "forbidden_inputs": ["FEN","hash","state_id","root_id","sample_id","root_move","guarded_identity","rank","pool_order","variant","color","duel","panel","seed_family","repeat","opening","horizon","policy","branch","origin","label"],
+    "observed_variance_audit": {"globally_varying_columns":55,"within_state_varying_columns":37,"globally_constant_or_unseen_columns":115,"observed_family_bits":["SafeSupermanaProgress","SpiritImpact","ManaTempo"],"unseen_family_bits_must_have_frozen_zero_weights":true},
+    "unknown_or_unmappable_family": "fail_closed_to_guarded"
+  },
+  "distinct_architecture": {
+    "kind": "factorized_small_DeepSets_guarded_relative_three_budget_ListNet",
+    "complete_pool": "stable_unique_schema_v4_scored_roots_first_six_with_exact_unchanged_final_guarded_anchor_replacing_tail_if_absent",
+    "training_preprocessing": "for_each_feature_fold_training_mean_equals_mean_over_states_of_mean_over_roots_raw_value_centered_RMS_equals_sqrt(mean_over_states_of_mean_over_roots_squared_deviation); held_out_raw_clamped_to_training_min_max; z=(clamped-mean)/RMS_then_clamped_minus8_plus8; exact_zero_RMS_maps_zero_and_freezes_all_connected_encoder_weights_zero; canonical_state_id_then_root_id_binary64_reduction",
+    "shared_encoder_channels": 4,
+    "feature_channel_assignment": "feature_index_mod_4",
+    "encoder": "phi_k(x)=hardtanh(sum_over_j_mod_4_eq_k(a_j*x_j)+b_k)",
+    "encoder_initialization": "for_each_nonzero_variance_feature_j_a_j_is_plus_one_over_sqrt(active_feature_count_in_channel)_when_j_even_else_negative; zero_variance_a_j_exact_zero; b_k_zero",
+    "set_pooling": ["elementwise_mean_phi","elementwise_max_phi"],
+    "per_root_context": "concat(phi_root,phi_exact_guarded,mean_phi,max_phi)_dimension_16",
+    "per_budget_head": "width_2_hardtanh_affine_then_bias_free_scalar_linear_output; hidden_weight_for_budget_index_b_unit_u_input_i_is_plus_0.25_when_FNV64(seed_string_pipe_b_pipe_u_pipe_i)_bit0_is_zero_else_negative_0.25; hidden_biases_zero; scalar_output_weights_zero",
+    "head_initialization_seed_string": "frontier_pro_v6_full170_factorized_deepsets_guarded_pareto_v1",
+    "guarded_relative_score": "raw_score_root_minus_raw_score_exact_guarded_exactly_zero_for_guarded",
+    "heads": ["pro","normal","fast"],
+    "serialized_parameter_slots": 282,
+    "formula": "170_encoder_weights_plus_4_encoder_biases_plus_3_times_36_head_parameters",
+    "unsupported_columns": "weights_frozen_exactly_zero",
+    "rootwise_ablation": "identical_parameter_slots_initialization_labels_optimizer_quantization_and_decoder_but_replace_mean_phi_and_max_phi_with_phi_exact_guarded",
+    "nondegenerate_requirement": "Full_and_Rootwise_differ_on_at_least_one_held_out_component_and_Full_predictive_and_selection_gates_pass",
+    "permutation_invariance_required": true,
+    "closed_family_distinction": "nonlinear_shared_encoder_and_whole_set_mean_max_context_not_root_local_linear_three_head_or_f_guarded_challenger_only"
+  },
+  "fixed_training_contract": {
+    "targets": "state_balanced_three_head_ListNet_softmax_of_root_points_budget_minus_guarded_points_budget",
+    "temperature": 1.0,
+    "optimizer": "binary64_full_batch_Adam_exactly_500_steps_no_early_stop",
+    "learning_rate": 0.01,
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "epsilon": 1e-8,
+    "L2_non_bias": 0.01,
+    "initial_output_weights": 0,
+    "counter_based_deterministic_initialization": true,
+    "sweep_retry_or_threshold_search": false,
+    "one_final_Full_and_Rootwise_fit_only_after_both_OOF_regimes_pass": true
+  },
+  "quantization_and_decoder": {
+    "format": "signed_Q20_half_away_from_zero",
+    "accumulator": "checked_i128_overflow_fails_closed",
+    "hardtanh": "clamp_to_plus_or_minus_1_shift_left_20",
+    "mean": "checked_sum_and_signed_half_away_division",
+    "max": "exact_order_independent",
+    "guarded_scores": [0,0,0],
+    "override_eligibility": "all_three_scores_at_least_zero_and_at_least_one_at_least_0.25_target_logit_units",
+    "predicted_Pareto_prune": true,
+    "unique_selection_tuple": "descending_minimum_head_then_sum_heads_then_maximum_head",
+    "tie_overflow_unknown_family_anchor_or_pool_invariant_failure": "exact_guarded",
+    "float_quantized_selection_parity": "every_OOF_and_final_discovery_root_set_then_validation_locked_and_Rust_translation",
+    "max_absolute_head_logit_error": 0.05
+  },
+  "provenance_stage_zero": {
+    "rust_module": "src/models/automove_experiments/tests/diagnostics/full170_deepsets_provenance.rs",
+    "test_name": "smart_automove_frontier_pro_v6_full170_factorized_deepsets_provenance_probe",
+    "exact_inner_command": "cargo test --release --lib smart_automove_frontier_pro_v6_full170_factorized_deepsets_provenance_probe -- --ignored --nocapture",
+    "candidate_state_records": 36,
+    "candidate_record_uniqueness_key": "state_id_exactly_36_unique",
+    "v1_selected_source_records": 72,
+    "v1_selected_source_unique_state_ids": 70,
+    "v1_record_uniqueness_key": "source_duel_id_variant_source_panel_actual_color_state_id_exactly_72_unique",
+    "required_candidate_fields": ["state_id","source_fen","perspective_canonical_source_fen","raw_opening_fen","remaining_horizon","generation_seed_tag","source_duel_id","repeat_index","opening_index","variant","color","opening_cluster_id","side_sibling_id"],
+    "required_v1_fields": ["state_id","source_fen","perspective_canonical_source_fen","raw_opening_fen","remaining_horizon","generation_seed_tag","source_duel_id","repeat_index","opening_index","variant","color","opening_cluster_id","side_sibling_id"],
+    "candidate_generation_configs": {
+      "guarded_stratified_v4_full_discovery": "repeat_offset_0_observed_repeat_0_opening_index_0_state_cap_4_root_limit_6_max_plies_96_env_independent_sampled_variant_prefix",
+      "guarded_stratified_v4_eff56_validation_20260712": "attested_repeat_offsets_0_and_1_one_repeat_two_games_state_cap_2_root_limit_6_max_plies_96_env_independent_sampled_variant_prefix",
+      "guarded_stratified_v4_expanded_discovery_20260712": "repeat_offsets_2_and_3_one_repeat_two_games_state_cap_2_root_limit_6_max_plies_96_env_independent_sampled_variant_prefix"
+    },
+    "env_independent_candidate_regeneration": "derive_source_budget_and_generation_seed_tag_from_authenticated_row; seed_for_budget_duel_repeat_and_tag; compute_seed_shuffled_AUTOMOVE_EXPERIMENT_VARIANTS_without_reading_any_SMART_AUTOMOVE_environment; truncate_variant_list_to_opening_index_plus_one; call_generate_opening_fens_for_variants_with_count_opening_index_plus_one; take_that_index",
+    "env_independent_v1_regeneration": "derive_generation_seed_tag_from_authenticated_seed_family_and_duel_suffix; seed_for_budget_duel_repeat_and_tag; call_generate_opening_fens_for_variants_with_count_12_and_exact_AUTOMOVE_EXPERIMENT_VARIANTS_order; take_authenticated_opening_index_equal_variant_index",
+    "ambient_env_contract": "probe_asserts_SMART_AUTOMOVE_VARIANTS_SMART_AUTOMOVE_VARIANT_POLICY_and_SMART_AUTOMOVE_VARIANT_SAMPLE_SIZE_cannot_change_regenerated_outputs_and_does_not_call_generate_opening_fens_cached",
+    "required_assertions": ["source_variant_matches_regenerated_opening","opening_cluster_and_side_sibling_match_provenance","perspective_canonical_FEN_matches_shared_rotation","all_log_metadata_stable_across_budgets_and_roots","exact_36_unique_candidate_state_records","exact_72_unique_v1_record_keys_and_70_unique_v1_state_ids","deterministic_digest"],
+    "alternative_root_labels_used": false,
+    "fit_or_runtime_permission": false,
+    "failure": "kill_without_fit_retry_or_partial_receipt"
+  },
+  "python_prefit_after_provenance": {
+    "script": "scripts/preflight-automove-full170-factorized-deepsets-v1.py",
+    "must_parse_provenance_log_and_all_immutable_inputs_from_authenticated_bytes": true,
+    "must_require_exact_six_state_five_domain_overlap_set": true,
+    "must_require_counts": "30_states_172_roots_516_rows",
+    "must_require_feature_audit": "170_order_55_global_variance_37_within_variance_172_unique_zero_conflicts",
+    "component_edges": ["raw_source_FEN","raw_source_FEN_plus_horizon","opening_cluster","side_sibling","perspective_canonical_source_FEN","raw_opening_FEN"],
+    "seed_family_not_a_component_edge": true,
+    "provisional_component_expectation_before_raw_opening": 19,
+    "component_gates": {"minimum_components":12,"maximum_component_states":10,"maximum_component_roots":60,"minimum_LOCO_training_states":18,"minimum_LOCO_training_roots":100,"minimum_each_head_positive":8,"minimum_each_head_negative":8,"minimum_safe_improving_training_states":10},
+    "LOFO_support_floor": "each_training_fold_at_least_18_states_106_roots_9_positive_and_13_negative_per_head",
+    "must_not_fit_or_emit_model": true,
+    "pass": "authorize_only_independently_audited_single_use_OOF_and_final_fit_receipt",
+    "failure": "kill_without_component_feature_quarantine_or_hyperparameter_retry"
+  },
+  "future_discovery_fit_gate": {
+    "regimes": ["leave_one_seed_family_out","leave_one_five_domain_component_out"],
+    "predictive": "Full_relative_NLL_improvement_over_Rootwise_at_least_5_percent_each_head_in_each_regime_6_of_9_family_budget_cells_improve_no_cell_worse_than_2.5_percent",
+    "selection_each_regime": "zero_negative_budget_deltas_zero_save_violations_at_most_2_noops_at_least_5_repairs_in_5_clusters_3_variants_both_colors_all_duels_and_families_positive_repair_each_budget_Full_differs_from_Rootwise",
+    "failure": "kill_before_new_source_or_runtime"
+  },
+  "future_validation_locked_and_promotion": {
+    "two_jointly_frozen_24_board_all_12_variant_lanes": true,
+    "five_domain_disjoint_from_each_other_discovery_pairnet_exact_five_and_retired_104": true,
+    "validation_and_locked_zero_regression_zero_save_violation_and_fixed_breadth_gates": true,
+    "runtime_only_after_locked": "Pro_frontier_execute_post_unchanged_head_acceptance_before_snapshot_cache_commit_return",
+    "required_after_translation": ["byte_exact_Rust_parity","authenticated_exact_five_causality","fresh_direct_guarded_scout","safety_scout","promotion_dashboard","all_variant","canonical","wasm","release_package_surface"],
+    "public_promotion_only_after_every_gate": "route_existing_frontier_pro_v2_guarded_Pro_config_to_Full_without_adding_retained_ID"
+  },
+  "latency_ms": {"individual_cold_call_hard":700,"candidate_board_average_hard":700,"warning_only":650},
+  "permissions": {
+    "implement_test_only_provenance_harness": true,
+    "run_provenance_after_implementation_freeze_and_independent_audit": true,
+    "implement_and_run_read_only_python_prefit_after_complete_provenance": true,
+    "fit": false,
+    "model": false,
+    "runtime_source": false,
+    "new_labels": false,
+    "profile": false,
+    "dashboard": false,
+    "promotion": false
+  },
+  "next_authorized_action_only": "implement_test_only_provenance_harness_and_nonignored_contracts_then_freeze_and_independently_audit_before_one_logged_ignored_run"
+}

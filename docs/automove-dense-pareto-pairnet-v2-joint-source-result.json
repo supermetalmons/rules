@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "result_id": "automove_dense_pareto_pairnet_v2_joint_source_matching_pilot_20260712_result",
+  "architecture_id": "automove_dense_pareto_pairnet_v2_joint_source_matching",
+  "data_role": "source_coverage_pilot_only_never_model_data",
+  "created_date": "2026-07-12",
+  "frozen_inputs": {
+    "precommit": {
+      "path": "docs/automove-dense-pareto-pairnet-v2-joint-source-precommit.json",
+      "size_bytes": 14622,
+      "sha256": "2d018c7a2cf3fcef21f8acc8438e40ab7564724b89f8ec073e0419b5d34fc177"
+    },
+    "emitter": {
+      "path": "src/models/automove_experiments/tests/diagnostics/root_distillation.rs",
+      "size_bytes": 249257,
+      "sha256": "40759946d68e95ca95cf33e9cf97d54be942c4e42b6bcf076482af36302edd4e"
+    },
+    "matcher": {
+      "path": "scripts/summarize-automove-dense-pareto-joint-source-v2.py",
+      "size_bytes": 105198,
+      "sha256": "3243ad0b69a617c18a8cb8cfb2155c6c92c1b0f364d81b86132d1dc0c91ddb54"
+    },
+    "source_tree": {
+      "file_count": 46,
+      "sha256": "c3938324488c208339197b406b0a52d9853a4e4b51cfb25874766d9d37db8593"
+    }
+  },
+  "sealed_logs": [
+    {
+      "role": "pro",
+      "path": "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/pro.log",
+      "size_bytes": 13286476,
+      "sha256": "854bc5af22b047ba27a5e479fefbd08b4d56cb7e3b7ece4b629de30099e2f369",
+      "candidate_count": 7896,
+      "candidate_universe_digest_fnv64": "8809e47ce272372a",
+      "cargo_seconds": 3884.04,
+      "cargo_exit": 0
+    },
+    {
+      "role": "normal",
+      "path": "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/normal.log",
+      "size_bytes": 13325471,
+      "sha256": "a8275d193fcc247453852ddfbb3ba1ac21f21f8419b9467355941e33fbe18f85",
+      "candidate_count": 7852,
+      "candidate_universe_digest_fnv64": "3dccdeb28472c6a7",
+      "cargo_seconds": 3860.52,
+      "cargo_exit": 0
+    },
+    {
+      "role": "fast",
+      "path": "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/fast.log",
+      "size_bytes": 14453367,
+      "sha256": "14d5ffd495e8430b1872a6a56dc92c16069f477a01bafd7ea143445497b61680",
+      "candidate_count": 8520,
+      "candidate_universe_digest_fnv64": "40c8f8bbe65e01e1",
+      "cargo_seconds": 3496.52,
+      "cargo_exit": 0
+    }
+  ],
+  "combined_report": {
+    "path": "target/experiment-runs/dense_pareto_pairnet_v2_joint_source_matching_20260712/combined_report.json",
+    "size_bytes": 136410,
+    "sha256": "3abae3653a4cdaf4700f3addd63185e82abe6b1ba0022ad8f97ecc4aca7e2385",
+    "combined_candidate_count": 24268,
+    "combined_universe_digest_sha256": "84199d7e8ba17e7f53b1848514c53b7c262694f250401db0eb7df3a0ec7e5348",
+    "post_quarantine_candidate_count": 24127,
+    "post_quarantine_universe_digest_sha256": "f75e5a45e82a63d46c2f24aaca9b3718b12f5c4466f88dba50a2f575cc54d90e"
+  },
+  "v1_viewed_content_quarantine": {
+    "source_report_rows": 72,
+    "unique_raw_source_fens": 70,
+    "unique_perspective_canonical_source_fens": 70,
+    "union_sha256_count": 106,
+    "union_sha256_set_digest": "fa04b66cc0dc3a263339ff96e356a9b92cc4ff32cd49efdb3dd7898e20b60618",
+    "excluded_candidate_bundles": 141,
+    "excluded_per_duel": {
+      "pro": 88,
+      "normal": 4,
+      "fast": 49
+    },
+    "resource_hits": {
+      "raw_source_fen": 18,
+      "perspective_canonical_source_fen": 18,
+      "raw_opening_fen": 125
+    },
+    "surviving_cells": 72,
+    "minimum_surviving_cell_candidates": 42,
+    "selected_overlap": 0
+  },
+  "primary_assignment": {
+    "status": "solved",
+    "pair_trials": 36,
+    "trial_cap": 10000000,
+    "selected_sources": 72,
+    "selection_digest_sha256": "c61fc4d2a467d67790985cfeed2b73f18bbea704bffc553b06cd985952835bb4",
+    "resource_unique_counts": {
+      "raw_source_fens": 72,
+      "raw_source_fen_horizon_states": 72,
+      "raw_clusters": 72,
+      "perspective_canonical_source_fens": 72,
+      "raw_opening_fens": 72
+    },
+    "balance": {
+      "per_duel": 24,
+      "per_variant": 6,
+      "guarded_loss": 36,
+      "guarded_save": 36,
+      "white": 36,
+      "black": 36
+    },
+    "input_reversal_exact": true
+  },
+  "resilience_gate": {
+    "required_rematches": 72,
+    "attempted_rematches": 72,
+    "solved_rematches": 71,
+    "failed_rematches": 1,
+    "failure": {
+      "selected_index": 44,
+      "source_identity_fnv64": "f8e9c66511742ea3",
+      "status": "proven_infeasible",
+      "pair_trials": 0,
+      "slot": {
+        "duel": "vs_shipping_normal",
+        "variant": "bent_center_mana_rows",
+        "panel": "guarded_loss",
+        "color": "black",
+        "repeat_index": 15,
+        "source_ply": 5
+      },
+      "independent_root_proof": "forbidding_the_selected_bundle_removes_all_42_loss_candidates_in_variant_7_duel_1_because_each_shares_both_its_raw_cluster_and_raw_opening_fen_while_495_save_candidates_remain",
+      "violation": "resilience_rematch:44:f8e9c66511742ea3:proven_infeasible"
+    }
+  },
+  "independent_audit": {
+    "decision": "GO_record_no_go",
+    "all_frozen_hashes_and_sizes_match": true,
+    "all_three_logs_strictly_authenticate": true,
+    "report_reproduces_logs_and_frozen_matcher": true,
+    "resilience_failure_reproduced_without_solver_rerun": true,
+    "inputs_and_report_are_regular_non_symlink_files": true
+  },
+  "decision": "kill_automove_dense_pareto_pairnet_v2_joint_source_matching",
+  "authorization": "none",
+  "violations": [
+    "resilience_rematch:44:f8e9c66511742ea3:proven_infeasible"
+  ],
+  "permissions": {
+    "alternate_primary_selection": false,
+    "seed_or_repeat_retry": false,
+    "source_substitution": false,
+    "pilot_rows_as_model_or_pairability_data": false,
+    "fresh_source_family": false,
+    "root_pool_or_alternative_outcomes": false,
+    "corpus_labels": false,
+    "tensor_extraction": false,
+    "model_fit": false,
+    "runtime": false,
+    "dashboard": false,
+    "public_route": false,
+    "promotion": false
+  },
+  "next_action": "archive_no_go_and_require_a_new_prospectively_distinct_architecture_id"
+}

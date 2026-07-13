@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "freeze_id": "automove_frontier_pro_v4_guarded_deep_iterative_promotion_implementation_20260712",
+  "candidate_id": "frontier_pro_v4_guarded_deep_iterative_promotion",
+  "created_date": "2026-07-12",
+  "status": "implementation_frozen_before_first_ignored_candidate_probe",
+  "canonical_precommit": {
+    "path": "docs/automove-frontier-pro-v4-guarded-deep-iterative-promotion-precommit.json",
+    "size_bytes": 14913,
+    "sha256": "f58c07a9bb0739ba32666cb02be1d707aa9ca13afd75847ff1e2b8bed48e513d"
+  },
+  "frozen_runtime": {
+    "base": "apply_frontier_pro_v2_guarded_config",
+    "depth": 5,
+    "max_visited_nodes": 56000,
+    "enable_iterative_deepening": true,
+    "iterative_deepening_depth_offset": 2,
+    "preliminary_depth": 3,
+    "iterative_deepening_alpha_margin": 0,
+    "all_other_runtime_fields": "exactly_equal_to_frontier_pro_v2_guarded",
+    "public_route_changed": false,
+    "historical_frontier_pro_v4_deep_teacher_changed": false,
+    "retained_profiles_exactly": [
+      "shipping_pro_search",
+      "frontier_pro_v2_guarded"
+    ]
+  },
+  "implementation_pins": [
+    {
+      "path": "src/models/mons_game_model.rs",
+      "size_bytes": 1890534,
+      "sha256": "e57915becbbdc786d4f8b39170f9a5ac6ba4ff37e1399715e3734188ecb97477",
+      "role": "cfg_test_preliminary_iterative_pass_diagnostics_and_full_config_Debug"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/mod.rs",
+      "size_bytes": 1232463,
+      "sha256": "cc864123351bac695e09a3f3d640e79d0bb06da84667916028dd94a19be1037c",
+      "role": "promotion_specific_runtime_selector_and_sweep_registry"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/guarded_deep_iterative_promotion.rs",
+      "size_bytes": 29585,
+      "sha256": "3275ea23a2b4b16efeee770d2f0e3075e6651947a66eb10091d0519834f3c30e",
+      "role": "runtime_isolation_exact_five_causality_and_sequential_probes"
+    },
+    {
+      "path": "scripts/automove-experiment-common.sh",
+      "size_bytes": 18064,
+      "sha256": "1d75974ceafa7105bb4e5f5723cc11025aacc51f165281f9404e3519c3854152",
+      "role": "candidate_allowlist_and_frozen_metadata"
+    }
+  ],
+  "ignored_tests_frozen": {
+    "causality": "smart_automove_pro_guarded_deep_iterative_promotion_exact_five_causality_probe",
+    "sequential": "smart_automove_pro_guarded_deep_iterative_promotion_exact_five_sequential_outcome_probe",
+    "exact_inner_command_shape": "cargo test --release --lib <exact_test_name> -- --ignored --nocapture",
+    "ignored_candidate_evidence_run_before_this_freeze": false
+  },
+  "diagnostic_contract": {
+    "production_behavior_change": false,
+    "preliminary_pass_paths": [
+      "engine",
+      "search_only"
+    ],
+    "root_attribution": "attempted_and_completed_without_recursive_global_budget_exit_per_root",
+    "cap_accounting": "visited_quiescence_extension_and_preliminary_caps",
+    "sequential_fallback_snapshot_rule": "intrinsic_caps_checked_for_every_captured_snapshot_and_exact_runtime_shape_additionally_required_for_frontier_execute",
+    "cold_runs_per_profile_per_board": 2,
+    "hard_candidate_average_ms": 700
+  },
+  "pre_evidence_validation": [
+    {
+      "command": "cargo fmt --all -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cargo check --tests",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test --release --lib preliminary_iterative_deepening_diagnostics -- --nocapture",
+      "result": "2_passed_0_failed"
+    },
+    {
+      "command": "cargo test --release --lib guarded_deep_iterative_promotion_registers_exact_isolated_runtime -- --nocapture",
+      "result": "1_passed_0_failed"
+    },
+    {
+      "command": "bash -n scripts/automove-experiment-common.sh",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "independent_audit": {
+    "initial_verdict": "no_go_until_sequential_fallback_snapshot_caps_were_checked",
+    "blocking_finding_fixed_before_freeze": true,
+    "final_verdict": "GO",
+    "scope": "candidate_isolation_causality_sequential_registry_production_neutrality_and_all_caps",
+    "ignored_evidence_run_by_auditor": false
+  },
+  "next_authorized_action_only": "run_the_logged_frozen_exact_five_causality_probe"
+}

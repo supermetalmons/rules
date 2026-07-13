@@ -1,0 +1,326 @@
+{
+  "schema_version": 1,
+  "precommit_id": "automove_frontier_pro_v4_guarded_deep_iterative_promotion_20260712_fresh01",
+  "candidate_id": "frontier_pro_v4_guarded_deep_iterative_promotion",
+  "historical_test_selector_id": "frontier_pro_v4_deep_teacher",
+  "required_new_test_selector_id": "frontier_pro_v4_guarded_deep_iterative_promotion",
+  "objective": "promote_a_stronger_public_Pro_route_by_applying_one_fixed_deeper_iterative_search_to_the_existing_guarded_ProV2_wrapper",
+  "created_date": "2026-07-12",
+  "status": "prospectively_frozen_before_promotion_specific_implementation_or_fresh_candidate_evidence",
+  "selection_provenance": {
+    "bounded_recursive_quiescence_killed_for_zero_depth_two_or_public_causality": true,
+    "two_independent_archive_and_code_reviews_completed": true,
+    "historical_incomplete_dashboard_is_selection_prior_only": true,
+    "mechanism_selected_before_fresh_direct_guarded_or_all_variant_results": true
+  },
+  "historical_incomplete_prior": {
+    "role": "selection_only_not_promotion_evidence",
+    "log": {
+      "path": "target/experiment-runs/frontier_pro_v4_deep_teacher/20260711-142034_pro_promotion_dashboard_frontier_pro_v4_deep_teacher.log",
+      "size_bytes": 4411,
+      "sha256": "9ebafaa0c0bd3c405e45934427cdcd77954ff97558e4f0d080dc3c8d55f15cc9"
+    },
+    "completed_slice": "sampled_vs_shipping_Pro_only",
+    "record": "8-4",
+    "confidence": 0.8062,
+    "candidate_average_ms": 395.25,
+    "worst_reported_variant_average_ms": 503.55,
+    "every_reported_variant_at_least": "1-1",
+    "frontier_execute_turns": 500,
+    "run_completed_all_dashboard_duels_or_panels": false,
+    "grants_runtime_or_promotion_permission": false
+  },
+  "archive_distinctness": {
+    "archived_session": {
+      "path": "/Users/ivan/.codex/archived_sessions/rollout-2026-07-09T23-27-51-019f4890-b73c-79b3-b612-49025a3dc836.jsonl",
+      "size_bytes": 16364626,
+      "sha256": "e3f7234ad6c02605372f3951c7fa1e4aee75b1b55bf8b21a806db15ddd16c7d6",
+      "role": "exact_original_apply_patch_command_and_result_record",
+      "frontier_pro_deep5_56000_evidence_lines": [
+        9110,
+        9132,
+        9137,
+        9138,
+        10049,
+        10114
+      ],
+      "frontier_pro_v4_depth5_evidence_lines": [
+        2269,
+        2270,
+        2311,
+        2315
+      ]
+    },
+    "archived_frontier_pro_v4_depth5_log": {
+      "path": "target/experiment-runs/frontier_pro_v4_depth5/20260710-011734_pro_promotion_dashboard_frontier_pro_v4_depth5.log",
+      "size_bytes": 3529,
+      "sha256": "4a0d4cdcf483f8b9ff11fa88ab3107068953e796ba1632fb1afe870038ce6816",
+      "command_sha256": "0a9ef334f4e43d0a168ba5e47f431c56627d4049ca4771cc4a0ab7c4cc458692"
+    },
+    "from_archived_frontier_pro_deep5_56000": "pinned_patch_sets_only_depth_5_and_nodes_56000_on_shipping_search_inputs_without_guarded_ProV2_or_iterative_deepening",
+    "archived_frontier_pro_deep5_56000_result": "11-13_all_variants_with_Classic_Offset_Arc_and_Alternating_each_0-2",
+    "from_archived_frontier_pro_v4_depth5": "pinned_patch_uses_guarded_ProV2_depth_plus_one_and_1_25x_nodes_without_iterative_deepening",
+    "archived_frontier_pro_v4_depth5_result": "active_Pro_2-4_with_Alternating_0-2",
+    "current_exact_difference": "guarded_ProV2_plus_fixed_depth_5_nodes_56000_and_iterative_preliminary_depth_3",
+    "broad_deeper_search_family_has_negative_prior": true,
+    "exact_current_mechanism_has_completed_direct_guarded_result": false,
+    "exact_current_mechanism_has_completed_all_variant_result": false
+  },
+  "retained_baselines": {
+    "public_Pro_route": "frontier_pro_v2_guarded",
+    "shipping_search_control": "shipping_pro_search",
+    "retained_profiles_exactly": [
+      "shipping_pro_search",
+      "frontier_pro_v2_guarded"
+    ],
+    "public_route_unchanged_until_all_gates_pass": true
+  },
+  "fixed_mechanism": {
+    "base_runtime": "apply_frontier_pro_v2_guarded_config_of_the_unchanged_public_Pro_budget",
+    "depth": 5,
+    "max_visited_nodes": 56000,
+    "enable_iterative_deepening": true,
+    "iterative_deepening_depth_offset": 2,
+    "preliminary_depth": 3,
+    "iterative_deepening_alpha_margin": 0,
+    "root_and_node_enumeration_and_branch_limits": "unchanged_guarded_Pro_values",
+    "quiescence_node_budget": 120,
+    "quiescence_tactical_enum_limit": 12,
+    "evaluator_ordering_extensions_reductions_futility_TT_advisor_head_acceptance_and_wrapper": "unchanged",
+    "fallbacks": "every_existing_frontier_pro_v2_guarded_fallback_preserved",
+    "variant_color_turn_FEN_move_opponent_policy_or_outcome_routing": false,
+    "test_candidate_flags_combined": false,
+    "parameter_or_mechanism_retune_after_results": false
+  },
+  "pre_implementation_source_pins": [
+    {
+      "path": "src/models/mons_game_model.rs",
+      "size_bytes": 1874003,
+      "sha256": "2b8bcf92880357ef8b1d19f92e8eaa122f854f23bd8b2b103d8ed6d466e5f811"
+    },
+    {
+      "path": "src/models/automove_runtime_variants.rs",
+      "size_bytes": 34880,
+      "sha256": "0aacc6b004e454db7c8bc4406e4690ca6eefe217881b9a0a25df5a13e7bec5e3"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/mod.rs",
+      "size_bytes": 1231469,
+      "sha256": "9799d7316e7084595129aa797f5583db0b4ec1e9222bf972cf94cfca5233ed63"
+    },
+    {
+      "path": "scripts/automove-experiment-common.sh",
+      "size_bytes": 17236,
+      "sha256": "f901eb8111d42a9ca04dca106d39f674fb3a23f635bba7ad5a430e635ea1cfdd"
+    },
+    {
+      "path": "src/models/automove_experiments/mod.rs",
+      "size_bytes": 7552,
+      "sha256": "ddd26e2a62c8cf9447f3a998d7c03b1387af76ec24e8498c5f3d074c4f6b09fd"
+    },
+    {
+      "path": "src/models/automove_experiments/harness/runner.rs",
+      "size_bytes": 44321,
+      "sha256": "40f983b6694efe8400b36d1dc696c4a5e3af8af30ee1d51fbd8cc032d45c5111"
+    }
+  ],
+  "frozen_exact_five_source": {
+    "fixture_code": {
+      "path": "src/models/automove_experiments/tests/diagnostics/expansion_only_tt_accounting.rs",
+      "size_bytes": 48833,
+      "sha256": "40ceba62bac1718e0923c15c3dc20d2850477b5bf8af5e8d84c95ead8801d4b8"
+    },
+    "source_log": {
+      "path": "target/experiment-runs/frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_bridge_shipping_pro_search_co_983314459/20260624-232056_pro_policy_outcome_corpus_frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_br_3916922365.log",
+      "size_bytes": 430857,
+      "sha256": "dc1def82b5534a46fcb36b7030002e8060712cf4912165a58dee796e6904a2cc"
+    },
+    "boards": 5,
+    "guarded_source_outcome": "loss_on_all_five_against_shipping_Pro",
+    "colors": [
+      "black",
+      "white"
+    ],
+    "variants": [
+      "alternating_mana_rows",
+      "forward_bridge_mana_rows",
+      "inner_wedge_mana_rows"
+    ]
+  },
+  "focused_contracts_before_causality": [
+    "full_field_by_field_runtime_fingerprint_is_guarded_plus_only_depth_5_nodes_56000_iterative_true_offset_2_margin_0",
+    "default_public_and_retained_profiles_unchanged",
+    "candidate_is_deterministic_legal_and_preserves_frontier_execute_on_the_five_sources",
+    "candidate_visited_quiescence_and_extension_counts_never_exceed_their_fixed_caps",
+    "root_selection_snapshot_runtime_matches_the_frozen_candidate",
+    "preliminary_depth_3_pass_activation_and_completion_are_attributed_per_search_root"
+  ],
+  "frozen_exact_five_causality_gate": {
+    "baseline_runs_per_board": 2,
+    "candidate_runs_per_board": 2,
+    "required": {
+      "baseline_reproduces_frozen_guarded_move_and_frontier_execute": true,
+      "candidate_frontier_execute_boards": 5,
+      "public_input_change_boards_at_least": 2,
+      "public_input_change_colors": [
+        "black",
+        "white"
+      ],
+      "strict_common_root_score_change_boards_at_least": 2,
+      "preliminary_depth_3_activation_boards": 5,
+      "preliminary_depth_3_completed_root_boards_at_least": 2,
+      "illegal_nondeterministic_wrong_branch_or_runtime_shape_boards": 0,
+      "visited_quiescence_or_extension_cap_failures": 0,
+      "each_board_candidate_average_ms_at_most": 700
+    },
+    "work_ratio_gate": null,
+    "failure": "kill_exact_candidate_without_depth_node_iterative_fixture_or_threshold_retune",
+    "success": "authorize_only_the_exact_five_sequential_outcome_gate"
+  },
+  "frozen_exact_five_sequential_outcome_gate": {
+    "opponent_profile": "shipping_pro_search",
+    "opponent_mode": "Pro",
+    "max_plies": 96,
+    "baseline_guarded_loss_reproduction": 5,
+    "required_loss_to_nonloss_repairs_at_least": 1,
+    "determinism_legality_and_all_caps": true,
+    "every_candidate_average_ms_at_most": 700,
+    "failure": "kill_exact_candidate_before_72_state_or_duel_spend",
+    "success": "authorize_only_the_72_digest_breadth_gate"
+  },
+  "frozen_72_digest_breadth_gate": {
+    "corpus": {
+      "path": "target/experiment-runs/frontier_pro_v4_completed_depth_equalized/plan_head_support_requests_r107_r108.tsv",
+      "size_bytes": 67043,
+      "sha256": "49421d67ff4807577795b939fc3111450ae1cc898a27d56b6e55f1a5de50a647",
+      "rows": 333,
+      "digest_states": 72,
+      "unique_FENs": 71
+    },
+    "required": {
+      "count_identity": "unique_canonical_runtime_FEN_first_occurrence_only",
+      "unique_canonical_runtime_FENs": 71,
+      "public_input_change_unique_FENs_at_least": 8,
+      "public_input_change_colors": [
+        "black",
+        "white"
+      ],
+      "public_input_change_variants_at_least": 4,
+      "strict_common_root_score_change_states_at_least": 16,
+      "preliminary_depth_3_activation_unique_FENs": 71,
+      "illegal_nondeterministic_wrong_branch_runtime_shape_or_cap_failure_states": 0,
+      "every_variant_color_candidate_average_ms_at_most": 700
+    },
+    "failure": "kill_exact_candidate_before_direct_scout",
+    "success": "authorize_only_the_fresh_direct_guarded_scout"
+  },
+  "fresh_direct_guarded_scout": {
+    "candidate_profile": "frontier_pro_v4_guarded_deep_iterative_promotion",
+    "opponent_profile": "frontier_pro_v2_guarded",
+    "candidate_and_opponent_mode": "Pro",
+    "duel_filter": "vs_shipping_pro",
+    "variant_policy": "all",
+    "repeats": 1,
+    "games_per_repeat": 12,
+    "mirrored_total_games": 24,
+    "max_plies": 96,
+    "seed_tag": "frontier_pro_v4_guarded_deep_iterative_direct_scout_20260712_fresh01",
+    "aggregate_min_win_rate": 0.6,
+    "aggregate_min_confidence": 0.95,
+    "every_variant_min_win_rate": 0.5
+  },
+  "fresh_full_gates_after_scout": {
+    "direct_current_guarded": {
+      "variant_policy": "all",
+      "repeats": 4,
+      "games_per_repeat": 12,
+      "mirrored_total_games": 96,
+      "seed_tag": "frontier_pro_v4_guarded_deep_iterative_direct_full_20260712_fresh02",
+      "aggregate_min_win_rate": 0.6,
+      "aggregate_min_confidence": 0.95,
+      "every_variant_min_win_rate": 0.5
+    },
+    "shipping_safety": {
+      "opponent_profile": "shipping_pro_search",
+      "opponent_modes": [
+        "Pro",
+        "Normal",
+        "Fast"
+      ],
+      "variant_policy": "all",
+      "repeats": 2,
+      "games_per_repeat": 12,
+      "seed_tag_base": "frontier_pro_v4_guarded_deep_iterative_shipping_safety_20260712_fresh02",
+      "derived_mode_seed_tags": [
+        "frontier_pro_v4_guarded_deep_iterative_shipping_safety_20260712_fresh02",
+        "frontier_pro_v4_guarded_deep_iterative_shipping_safety_20260712_fresh02_vs_normal",
+        "frontier_pro_v4_guarded_deep_iterative_shipping_safety_20260712_fresh02_vs_fast"
+      ],
+      "each_aggregate_min_win_rate": 0.5,
+      "every_variant_each_duel_min_win_rate": 0.5
+    },
+    "promotion_dashboard": {
+      "run_panels_separately": true,
+      "sampled_seed_tag": "frontier_pro_v4_guarded_deep_iterative_dashboard_sampled_20260712_fresh03",
+      "active_blocker_seed_tag": "frontier_pro_v4_guarded_deep_iterative_dashboard_active_20260712_fresh04",
+      "seed_families_disjoint_from_historical_default_scout_direct_full_and_shipping": true,
+      "sampled_each_shipping_matchup_min_record": "9-3",
+      "active_blocker_each_shipping_matchup_min_record": "4-2",
+      "no_variant_row": "0-2"
+    },
+    "canonical": [
+      "guardrails",
+      "variant_smoke",
+      "runtime_preflight",
+      "pro_triage",
+      "pro_reliability",
+      "pro_reliability_confirm"
+    ]
+  },
+  "latency_contract": {
+    "hard_limit_ms": 700,
+    "applies_to_every_aggregate_and_per_variant_candidate_average": true,
+    "warning_threshold_ms": 650,
+    "warning_is_not_a_failure": true,
+    "hard_limit_may_not_be_relaxed": true
+  },
+  "execution_protocol": {
+    "cache_protocol": "clear_exact_turn_engine_plan_selector_and_frontier_branch_caches_before_every_timed_selection",
+    "timing_protocol": "two_cold_runs_per_causality_or_breadth_state_and_candidate_elapsed_measured_only_around_the_selector_call",
+    "logged_wrapper": "scripts/run-experiment-logged.sh",
+    "no_clobber": true,
+    "implementation_freeze_required_before_first_ignored_probe": true,
+    "every_ignored_command_must_match": "cargo test --release --lib <exact_test_name> -- --ignored --nocapture",
+    "output_log_command_metadata_exit_and_SHA256_receipt_required": true,
+    "fresh_seed_families_may_not_be_reused_across_scout_full_shipping_sampled_or_active_gates": true
+  },
+  "decision_contract": {
+    "any_pre_duel_gate_failure": "kill_and_prune_promotion_specific_test_code_while_leaving_the_preexisting_teacher_diagnostic_only",
+    "direct_scout_failure": "kill_exact_promotion_candidate_without_seed_parameter_or_threshold_retry",
+    "any_full_gate_or_latency_failure": "kill_exact_promotion_candidate_without_public_change",
+    "all_gates_pass": "move_exact_depth_5_nodes_56000_iterative_depth_3_behavior_into_the_wasm_reachable_public_Pro_route_under_stable_frontier_pro_v2_guarded_identity_and_remove_the_new_test_only_promotion_selector",
+    "external_package_publish": false
+  },
+  "permissions": {
+    "implement_promotion_specific_test_only_causality_and_breadth_probes": true,
+    "run_each_later_gate_only_after_prior_gate_passes": true,
+    "change_existing_teacher_parameters": false,
+    "change_public_route_before_all_gates_pass": false,
+    "retune_after_results": false,
+    "relax_700ms_limit": false
+  },
+  "post_promotion_equivalence_and_release_gate": {
+    "public_Pro_runtime_fingerprint": "exact_guarded_ProV2_plus_depth_5_nodes_56000_iterative_true_offset_2_preliminary_depth_3_margin_0_with_every_other_runtime_field_equal_to_the_frozen_candidate",
+    "public_and_frozen_candidate_inputs_equal_on_exact_five_71_unique_breadth_FENs_and_release_boundary_fixtures": true,
+    "guarded_fallback_branch_and_input_parity": true,
+    "retained_profile_ids_exactly": [
+      "shipping_pro_search",
+      "frontier_pro_v2_guarded"
+    ],
+    "native_release_check": true,
+    "wasm_release_check": true,
+    "generated_web_and_node_package_surface_check": true,
+    "automove_hygiene_check": true,
+    "test_only_promotion_identifier_absent_from_release_artifacts": true
+  }
+}

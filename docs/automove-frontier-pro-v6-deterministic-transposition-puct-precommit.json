@@ -1,0 +1,567 @@
+{
+  "schema_version": 1,
+  "precommit_id": "automove_frontier_pro_v6_deterministic_transposition_puct_20260713_fresh01",
+  "candidate_id": "frontier_pro_v6_deterministic_transposition_puct",
+  "objective": "replace_the_guarded_root_by_root_fixed_depth_alpha_beta_scoring_pass_with_one_deterministic_adversarial_transposition_PUCT_graph_under_the_same_hard_global_work_cap_then_promote_only_if_publicly_causal_broadly_stronger_and_release_safe",
+  "created_date": "2026-07-13",
+  "status": "amended_after_the_first_authorized_ignored_invocation_ended_protocol_invalid_before_any_run_board_result_stoplight_or_candidate_evidence_due_strict_single_scout_capture",
+  "preimplementation_amendment": {
+    "superseded_precommit": {
+      "size_bytes": 18599,
+      "sha256": "3ead22f1776f55f58433d7ae9b8c006dce669a2ed2f8cd47d836e66d52ede0e4"
+    },
+    "audit_decision": "NO_GO_until_proof_causality_work_and_shared_visit_semantics_are_amended",
+    "partial_source_status": "one_partial_128_line_core_scaffold_was_started_concurrently_then_interrupted_and_fully_pruned_before_compilation_tests_or_evidence",
+    "restored_core_receipt": {
+      "path": "src/models/mons_game_model.rs",
+      "size_bytes": 1874003,
+      "sha256": "2b8bcf92880357ef8b1d19f92e8eaa122f854f23bd8b2b103d8ed6d466e5f811"
+    },
+    "candidate_results_before_amendment": false,
+    "ignored_runs_before_amendment": false,
+    "mechanism_results_viewed": false
+  },
+  "mathematical_reaudit_amendment": {
+    "superseded_precommit": {
+      "size_bytes": 23627,
+      "sha256": "6546095cbd533fe0d1cba74a702ef9ce7edb10aa3b028413a172c2cf52287f72"
+    },
+    "audit_decision": "NO_GO_until_shared_proof_fixpoint_total_selection_order_cycle_seed_and_downstream_semantics_are_frozen",
+    "source_status": "exact_restored_core_receipt_still_holds_and_no_source_edit_resumed",
+    "tests_or_candidate_evidence_before_amendment": false,
+    "resolution": [
+      "reverse_incoming_adjacency_and_deterministic_proof_fixpoint",
+      "explicit_max_min_proof_and_unproven_tiers",
+      "state_only_cycle_detection_before_state_plus_horizon_graph_lookup",
+      "exact_seed_N_W_node_and_synthetic_root_equations",
+      "universal_AND_proofs_disabled_instead_of_claiming_capped_fanout_exhaustiveness",
+      "uniform_unit_prior",
+      "engine_enabled_activation_seam_only",
+      "downstream_advisor_head_plan_non_score_root_and_selection_signatures",
+      "each_individual_cold_call_at_most_700ms"
+    ]
+  },
+  "final_proof_order_amendment": {
+    "superseded_precommit": {
+      "size_bytes": 27919,
+      "sha256": "4ff1b6893f28ef3d0c7f5b08f71fea19f3d4cc6fb7d78900b7e9d456bb66d743"
+    },
+    "audit_decision": "narrow_NO_GO_until_proof_distance_improvements_and_cycle_lookup_order_are_unambiguous",
+    "source_status": "exact_restored_core_receipt_still_holds_and_no_source_edit_resumed",
+    "tests_or_candidate_evidence_before_amendment": false,
+    "resolution": [
+      "reverse_fixpoint_triggers_on_new_tag_or_better_proof_distance",
+      "terminal_then_state_cycle_then_state_horizon_lookup_then_proven_then_horizon_then_expand_order",
+      "synthetic_root_visits_equal_focused_roots_plus_simulations",
+      "explicit_graph_exhaustion_without_zero_value_work_burn"
+    ]
+  },
+  "implementation_accounting_clarification": {
+    "superseded_precommit": {
+      "size_bytes": 29399,
+      "sha256": "af94177fc6e88e2016c9d7caab6d111bfafff09636b9c29a18cab88e77b040ca"
+    },
+    "reason": "the_completed_math_subreview_requested_explicit_full_root_arm_N_and_proof_sample_W_equations_even_though_the_parent_audit_had_returned_GO",
+    "source_status": "exact_restored_core_receipt_still_holds_and_no_source_edit_resumed",
+    "tests_or_candidate_evidence_before_clarification": false,
+    "mechanism_or_gate_changed": false
+  },
+  "public_runtime_envelope_amendment": {
+    "superseded_precommit": {
+      "size_bytes": 30501,
+      "sha256": "9f68376bea451e0575e4522917d39de920ec3e1cfe9da692d79807987ca475d7"
+    },
+    "audit_decision": "NO_GO_after_the_nonignored_mode_activation_contract_proved_the_candidate_was_inert_on_the_exact_public_guarded_Pro_configuration",
+    "discovery": "the_public_Pro_primary_profile_exposes_max_visited_nodes_equal_to_floor_14022_times_9_divided_by_8_equal_to_15774_before_apply_frontier_pro_v2_guarded_config_while_the_candidate_activation_predicate_incorrectly_required_14022",
+    "source_and_test_status": "cfg_test_implementation_and_nonignored_contracts_only; the_ignored_exact_five_probe_fresh_direct_dashboard_safety_release_and_public_evidence_have_not_run",
+    "resolution": [
+      "activation_requires_the_exact_public_guarded_outer_configuration_value_15774",
+      "PUCT_uses_a_separate_immutable_internal_hard_work_cap_of_14022_for_precheck_selection_descent_accounting_and_final_visited_nodes",
+      "scout_nodes_plus_root_seed_charges_plus_root_arm_descent_charges_plus_internal_edge_descent_charges_never_exceeds_14022",
+      "the_700ms_caps_path_horizon_proof_rules_causal_gate_and_all_later_promotion_thresholds_are_unchanged"
+    ],
+    "mechanism_changed": false,
+    "activation_eligibility_corrected": true,
+    "ignored_or_candidate_evidence_before_amendment": false,
+    "independent_reaudit_required_before_ignored_evidence": true
+  },
+  "logging_wrapper_syntax_clarification": {
+    "superseded_precommit": {
+      "size_bytes": 32193,
+      "sha256": "cab53c3b34131c5c009e04acea6bdaeebbf3739e5b60c26dc95e34c052ecfac1"
+    },
+    "discovery": "the_frozen_required_wrapper_example_passed_candidate_id_and_label_as_two_positional_arguments_but_run_experiment_logged_accepts_exactly_one_run_name_before_double_dash",
+    "failed_invocation": "scripts/run-experiment-logged.sh_frontier_pro_v6_deterministic_transposition_puct_20260713_implementation_freeze_focused_contracts_double_dash_then_exact_focused_command",
+    "failed_invocation_exit": 2,
+    "test_or_candidate_execution_from_failed_invocation": false,
+    "resolution": "set_SMART_EXPERIMENT_FRONTIER_to_the_candidate_id_and_pass_only_the_label_as_the_wrapper_run_name_before_double_dash",
+    "inner_focused_and_ignored_commands_unchanged": true,
+    "mechanism_gate_threshold_fixture_and_no_retry_rules_unchanged": true,
+    "ignored_or_candidate_evidence_before_clarification": false,
+    "independent_reaudit_required_before_ignored_evidence": true
+  },
+  "invalid_first_ignored_capture_amendment": {
+    "superseded_precommit": {
+      "size_bytes": 33322,
+      "sha256": "f55b464d5d5a0fb7ce55bfed434ed70d9f76e61eb303ffedb0f6bd142d905f76"
+    },
+    "invocation": {
+      "run_name": "20260713_exact_five_causality_fresh01",
+      "log_path": "target/experiment-runs/frontier_pro_v6_deterministic_transposition_puct/20260713-042656_20260713_exact_five_causality_fresh01.log",
+      "log_size_bytes": 2018,
+      "log_sha256": "c101b1e192549d967599683f5ae615f90a07aabfde6aca81d663575fbb2999ba",
+      "cmd_size_bytes": 144,
+      "cmd_sha256": "2fc37c7e8f380466026c74c3c4b642345a0486c2cb4ad0e3a0561fefd6782a61",
+      "meta_size_bytes": 722,
+      "meta_sha256": "1c245982c7ab3a32e08f4222f8668a7404cea5394821cabc5a4ca45912086e26",
+      "exit_code": 101
+    },
+    "failure": "the_public_guarded_wrapper_ran_more_than_one_paid_root_scout_on_the_same_source_while_the_harness_used_the_existing_strict_one_matching_source_scout_capture_and_panicked_before_the_first_run_record",
+    "record_counts": {
+      "config": 1,
+      "run": 0,
+      "board": 0,
+      "result": 0,
+      "stoplight": 0
+    },
+    "candidate_move_score_timing_diagnostic_or_gate_result_observed": false,
+    "classification": "protocol_invalid_instrumentation_run_not_a_candidate_gate_result_or_retry",
+    "resolution": [
+      "preserve_the_existing_strict_single_scout_capture_for_all_existing_callers",
+      "add_a_cfg_test_first_matching_source_scout_capture_mode_used_only_by_this_harness",
+      "retain_the_first_matching_source_scout_emitted_by_the_frontier_engine_before_any_guarded_wrapper_fallback_scout_and_ignore_later_matching_source_scouts",
+      "prove_in_a_nonignored_contract_that_strict_mode_still_panics_on_a_second_match_while_first_match_mode_retains_the_first_snapshot",
+      "keep_every_candidate_mechanism_fixture_cold_call_timing_causal_threshold_record_count_and_no_retry_after_a_complete_result_rule_unchanged"
+    ],
+    "authorization": "one_replacement_logged_ignored_invocation_only_after_source_refreeze_and_fresh_independent_integrated_GO",
+    "mechanism_or_complete_gate_result_changed": false
+  },
+  "selection_legitimacy": {
+    "unchanged_registered_candidate_queue": "exhausted",
+    "completed_depth_terminal_continuation_static_selector_and_child_ordering_lines": "killed_and_not_reopened",
+    "temporal_anchor_backup": "rejected_at_design_review_before_source_as_an_existing_static_value_reweighting_with_unfrozen_terminal_window_and_TT_semantics",
+    "grouped_pareto_rootset": "retained_as_the_next_data_heavy_fallback_only_if_this_cheaper_structural_search_gate_fails",
+    "candidate_was_specified_before_source_edits_or_results": true,
+    "variant_color_turn_branch_FEN_move_opponent_policy_or_timing_routing": false,
+    "post_result_constant_or_gate_retune": false,
+    "user_authorized_modestly_relaxed_promotion_requirements": true
+  },
+  "retained_baselines": {
+    "public_Pro_route": "frontier_pro_v2_guarded",
+    "shipping_search_control": "shipping_pro_search",
+    "retained_profile_ids_exactly": [
+      "shipping_pro_search",
+      "frontier_pro_v2_guarded"
+    ],
+    "public_route_unchanged_until_every_promotion_and_release_gate_passes": true
+  },
+  "independent_design_reviews": [
+    {
+      "scope": "historical_eligibility_and_distinctness",
+      "decision": "recommend_exact_candidate",
+      "assessment": "new_search_topology_not_a_retune_of_a_killed_selector_ordering_completed_depth_terminal_or_static_value_family"
+    },
+    {
+      "scope": "current_code_insertion_graph_semantics_and_exact_five_gate",
+      "decision": "superseded_conditional_GO_then_NO_GO_until_the_amendments_frozen_below",
+      "required_conditions_frozen_below": [
+        "exact_state_plus_remaining_horizon_graph_key",
+        "edge_local_statistics_with_shared_node_expansion",
+        "actor_adversarial_integer_PUCT",
+        "every_focused_root_seeded",
+        "exact_terminal_proof_propagation",
+        "every_root_seed_and_edge_descent_charged_under_14022",
+        "whole_selector_cold_700ms_cap"
+      ]
+    },
+    {
+      "scope": "proof_soundness_seed_only_causality_disjoint_work_identity_and_shared_node_visits",
+      "decision": "amend_before_resuming_implementation",
+      "amendments": [
+        "universal_terminal_proofs_require_an_exhaustive_fanout_certificate",
+        "two_cold_seed_only_control_calls_per_board",
+        "PUCT_charges_equal_seed_plus_root_arm_plus_internal_edge_charges_only",
+        "tagged_root_perspective_proofs_with_exact_distance_precedence",
+        "shared_node_visits_and_edge_local_value_statistics",
+        "exact_input_not_index_root_mapping"
+      ]
+    }
+  ],
+  "base_source_receipts": [
+    {
+      "path": "src/models/mons_game_model.rs",
+      "size_bytes": 1874003,
+      "sha256": "2b8bcf92880357ef8b1d19f92e8eaa122f854f23bd8b2b103d8ed6d466e5f811"
+    },
+    {
+      "path": "src/models/automove_runtime_variants.rs",
+      "size_bytes": 34880,
+      "sha256": "0aacc6b004e454db7c8bc4406e4690ca6eefe217881b9a0a25df5a13e7bec5e3"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/mod.rs",
+      "size_bytes": 1231469,
+      "sha256": "9799d7316e7084595129aa797f5583db0b4ec1e9222bf972cf94cfca5233ed63"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/expansion_only_tt_accounting.rs",
+      "size_bytes": 48833,
+      "sha256": "40ceba62bac1718e0923c15c3dc20d2850477b5bf8af5e8d84c95ead8801d4b8"
+    },
+    {
+      "path": "src/models/automove_experiments/mod.rs",
+      "size_bytes": 7552,
+      "sha256": "ddd26e2a62c8cf9447f3a998d7c03b1387af76ec24e8498c5f3d074c4f6b09fd"
+    },
+    {
+      "path": "src/models/automove_experiments/harness/runner.rs",
+      "size_bytes": 44321,
+      "sha256": "40f983b6694efe8400b36d1dc696c4a5e3af8af30ee1d51fbd8cc032d45c5111"
+    },
+    {
+      "path": "scripts/automove-experiment-common.sh",
+      "size_bytes": 17236,
+      "sha256": "f901eb8111d42a9ca04dca106d39f674fb3a23f635bba7ad5a430e635ea1cfdd"
+    },
+    {
+      "path": "Cargo.toml",
+      "size_bytes": 473,
+      "sha256": "4083183ea3c0f2c384f6419ef6a25378a5fef5ddf10fd72bff391718e4d80d53"
+    },
+    {
+      "path": "Cargo.lock",
+      "size_bytes": 5764,
+      "sha256": "df42fa75b2ca48f7dc9abc71e304d9ef4ef96e3d77240b56e2b5291e7b7c5ad2"
+    }
+  ],
+  "frozen_mechanism": {
+    "base_runtime": "apply_frontier_pro_v2_guarded_config",
+    "only_candidate_mode": "cfg_test_deterministic_transposition_puct_mode_Off_SeedOnly_orFull",
+    "replacement_seam": "only_the_engine_enabled_ProV2_loop_after_the_unchanged_advisor_and_focused_root_candidate_pass; replace_its_sequential_root_alpha_beta_scoring_loop_while_the_engine_disabled_and_search_only_loop_remains_exact_legacy",
+    "unchanged_surfaces": [
+      "public_guarded_wrapper_and_every_fallback",
+      "turn_engine_head_generation",
+      "ProV2_root_advisor_presearch",
+      "ranked_root_generation",
+      "two_pass_root_scout_and_focused_root_membership_order",
+      "legal_transition_generator_and_ranked_child_admission",
+      "static_search_preferability_evaluator",
+      "terminal_winner_semantics",
+      "postscore_root_picker_reply_risk_head_acceptance_and_plan_commit"
+    ],
+    "global_limits": {
+      "config_depth": 4,
+      "public_guarded_outer_config_max_visited_nodes_formula": "floor_SMART_AUTOMOVE_PRO_MAX_VISITED_NODES_times_9_divided_by_8",
+      "public_guarded_outer_config_max_visited_nodes": 15774,
+      "puct_internal_hard_max_visited_nodes": 14022,
+      "resolved_input_path_cap_formula": "3_times_config_depth",
+      "resolved_input_path_cap": 12,
+      "cross_call_cache": false,
+      "online_policy_rollout": false,
+      "learned_prior": false,
+      "quiescence_inside_PUCT": false,
+      "selective_extensions_inside_PUCT": false
+    },
+    "graph": {
+      "node_key": "search_state_hash_plus_remaining_resolved_input_horizon",
+      "collision_handling": "a_hash_bucket_may_hold_multiple_nodes_and_reuse_requires_exact_equality_across_every_search_state_field",
+      "exact_state_fields": [
+        "board",
+        "variant",
+        "white_score",
+        "black_score",
+        "active_color",
+        "actions_used_count",
+        "mana_moves_count",
+        "mons_moves_count",
+        "white_potions_count",
+        "black_potions_count",
+        "turn_number"
+      ],
+      "statistics": "edge_visits_and_signed_root_perspective_edge_value_sum_are_parent_edge_local_while_legal_child_enumeration_proof_status_and_node_visits_are_shared_per_node",
+      "node_visits": "increment_each_shared_node_at_most_once_per_simulation_path; an_exact_cycle_target_already_on_the_path_is_not_incremented_twice",
+      "cycle_handling": "before_state_plus_horizon_graph_lookup_compare_the_exact_state_fields_while_ignoring_remaining_horizon; an_exact_state_already_on_the_current_path_ends_the_simulation_at_the_unchanged_static_value_and_records_a_cycle_stop",
+      "horizon_handling": "remaining_horizon_zero_ends_the_simulation_at_the_unchanged_static_value",
+      "transposition_handling": "a_new_edge_to_an_existing_nonpath_node_may_continue_through_that_shared_node_without_reenumerating_its_children",
+      "incoming_adjacency": "every_shared_node_records_all_parent_node_edges_and_synthetic_root_arms_by_stable_creation_index",
+      "proof_fixpoint": "when_a_node_changes_from_Unproven_to_a_tagged_proof_or_its_same_tag_selected_proof_distance_improves_recompute_all_reverse_parents_in_stable_node_then_edge_order_until_neither_any_tag_nor_selected_distance_changes_before_any_proof_aware_selection_or_final_export"
+    },
+    "root_initialization": {
+      "all_focused_roots_seeded_once_before_any_selection": true,
+      "precheck": "before_graph_or_diagnostic_mutation_require_scout_nodes_plus_focused_root_count_at_most_14022_else_fail_closed_to_exact_guarded_alpha_beta",
+      "root_seed_value": "terminal_score_if_terminal_else_unchanged_evaluate_search_preferability_of_the_postroot_state",
+      "root_seed_order": "unchanged_focused_root_order",
+      "remaining_horizon": "every_postroot_seed_node_starts_at_12",
+      "root_edge_statistics": "each_seed_sets_its_exact_input_root_arm_to_N_equals_1_and_W_equals_the_seed_i32_value_in_i64",
+      "root_edge_full_run_identity": "each_simulation_selects_exactly_one_root_arm_and_increments_that_arm_once_so_final_root_arm_N_equals_one_plus_its_selection_count_and_the_sum_of_root_arm_N_equals_focused_root_count_plus_simulations",
+      "shared_node_statistics": "each_seed_increments_its_postroot_shared_node_visit_once_even_when_two_exact_input_roots_share_the_same_state_plus_horizon_node",
+      "synthetic_root_statistics": "each_seed_and_each_started_simulation_increments_the_synthetic_root_visit_once_so_seed_only_synthetic_visits_equal_focused_root_count_and_full_synthetic_root_visits_equal_focused_root_count_plus_simulations",
+      "terminal_seed": "tag_the_root_arm_and_shared_node_RootWin_or_RootLoss_at_distance_zero_before_mean_selection",
+      "seed_only_control": "stop_after_the_identical_full_root_seed_vector_then_feed_those_seed_scores_through_the_unchanged_downstream_root_picker_advisor_and_head_layers_with_zero_simulations_and_zero_edge_descents",
+      "insufficient_budget": "fail_closed_to_the_exact_guarded_alpha_beta_path_without_partial_PUCT_scores"
+    },
+    "progressive_widening": {
+      "legal_children": "existing_ranked_child_states_with_existing_node_enum_limit_branch_admission_and_no_PUCT_specific_reordering",
+      "universal_proofs": "disabled; capped_prompt_or_input_chain_enumeration_two_stage_shortlisting_targeted_fallbacks_class_coverage_and_branch_admission_can_never_authorize_max_RootLoss_or_min_RootWin",
+      "enumeration_reporting": "record_base_enumerated_targeted_fallback_shortlist_removed_and_final_admitted_counts_separately_for_every_node_expanded_once",
+      "expand_condition": "expanded_child_count_squared_less_than_or_equal_to_node_visits",
+      "expanded_child": "next_unexpanded_child_in_existing_ranked_order",
+      "all_focused_root_arms": "seeded_without_progressive_widening"
+    },
+    "integer_PUCT": {
+      "mean": "signed_i64_value_sum_divided_by_positive_visit_count_with_Rust_integer_truncation_toward_zero_then_clamped_to_i32",
+      "integer_sqrt": "floor_sqrt_of_parent_visits",
+      "sibling_scale": "max_of_one_and_visited_sibling_max_mean_minus_visited_sibling_min_mean",
+      "exploration": "sibling_scale_times_integer_sqrt_parent_visits_divided_by_one_plus_edge_visits",
+      "coefficient": 1,
+      "prior": "uniform_integer_P_equals_1_for_every_root_arm_and_child_edge",
+      "maximizing_priority": "edge_mean_plus_exploration",
+      "minimizing_priority": "edge_mean_minus_exploration",
+      "actor": "maximize_iff_node_active_color_equals_root_perspective_else_minimize",
+      "tie_break": "existing_ranked_child_order_then_child_hash_then_edge_creation_index",
+      "root_arm_selection": "same_formula_with_a_synthetic_maximizing_root_and_unchanged_focused_root_order_ties"
+    },
+    "leaf_and_backup": {
+      "nonterminal_leaf": "unchanged_evaluate_search_preferability_in_root_perspective_units",
+      "sample_backup": "the_single_leaf_value_updates_every_traversed_edge_and_each_distinct_shared_node_on_the_current_path_once",
+      "proof_sample_accounting": "a_simulation_ending_at_or_propagating_a_tagged_proof_still_increments_every_traversed_edge_visit_and_adds_the_distance_adjusted_terminal_i32_score_to_its_i64_value_sum for accounting; proof-aware selection and final export ignore that ordinary mean once the edge or arm is tagged",
+      "final_unproven_root_score": "root_edge_mean_in_existing_i32_search_score_units",
+      "proof_type": "Unproven_or_RootWin_with_distance_or_RootLoss_with_distance",
+      "proof_perspective": "root_perspective_only",
+      "terminal_and_stop_order": "check_terminal_first_then_exact_state_only_path_cycle_ignoring_horizon_then_state_plus_horizon_graph_lookup_then_existing_proven_shared_node_then_remaining_horizon_zero_then_expand_or_select",
+      "distance": "a_terminal_postroot_seed_has_distance_zero; each_internal_resolved_input_edge_adds_one; the_charged_synthetic_root_arm_is_not_a_resolved_input_edge; maximum_path_edges_counts_only_internal_resolved_input_edges_and_is_at_most_12",
+      "terminal_proof": "a_tagged_RootWin_or_RootLoss_is_never_entered_into_ordinary_mean_selection_or_final_scoring_once_proven_and_has_strict_precedence_over_unproven_means",
+      "selection_tiers": {
+        "max_node_and_synthetic_root": "RootWin_strictly_above_Unproven_strictly_above_RootLoss",
+        "min_node": "RootLoss_strictly_below_Unproven_strictly_below_RootWin",
+        "unproven": "apply_the_frozen_integer_PUCT_formula_only_within_the_Unproven_tier",
+        "distance_ties": "max_chooses_shortest_RootWin_and_longest_RootLoss; min_chooses_shortest_RootLoss_and_longest_RootWin; stable_existing_order_breaks_equal_distance_ties"
+      },
+      "proven_entry": "entering_a_proven_shared_node_ends_that_simulation_immediately_and_propagates_the_tagged_proof_without_static_or_mean_backup",
+      "synthetic_root_early_stop": "after_reverse_fixpoint_stop_all_further_simulations_once_any_root_arm_is_RootWin; otherwise_continue_until_work_or_graph_exhaustion",
+      "graph_exhaustion": "stop_without_spending_more_charges_when_every_root_tier_has_no_unproven_selectable_path_and_no_unexpanded_admitted_edge; never_reenter_a_proven_unfavorable_child_only_to_burn_the_remaining_cap",
+      "proof_rules": [
+        "terminal_node_is_proven_for_its_winner_at_distance_zero",
+        "max_node_is_proven_RootWin_if_any_expanded_child_is_proven_RootWin_and_chooses_the_shortest_win",
+        "min_node_is_proven_RootLoss_if_any_expanded_child_is_proven_RootLoss_and_chooses_the_shortest_loss",
+        "max_node_RootLoss_AND_proof_is_disabled",
+        "min_node_RootWin_AND_proof_is_disabled",
+        "proof_status_recomputes_to_a_deterministic_reverse_parent_fixpoint_after_every_new_proof"
+      ],
+      "shared_proof_revisit": "a_revisit_of_a_proven_shared_node_immediately_propagates_its_tagged_proof_through_the_current_edge",
+      "terminal_score": "existing_SMART_TERMINAL_SCORE_sign_with_the_tagged_distance_and_no_static_blending",
+      "numeric_width": "signed_i64_for_value_sums_sibling_ranges_products_and_priorities_with_explicit_saturating_clamp_only_at_the_final_i32_score_boundary"
+    },
+    "work_accounting": {
+      "starting_work": "unchanged_two_pass_scout_visited_nodes",
+      "exact_additive_identity": "PUCT_charges_equals_root_seed_charges_plus_root_arm_descent_charges_plus_internal_edge_descent_charges",
+      "root_seed_charge": "one_per_focused_root_seed",
+      "root_arm_descent_charge": "one_per_simulation_when_selecting_and_entering_a_root_arm",
+      "internal_edge_descent_charge": "one_per_traversed_internal_edge_whether_new_existing_transposed_proven_terminal_cycle_or_horizon_stopping",
+      "classification_not_extra_charge": "edge_expansion_existing_edge_revisit_transposition_hit_cycle_stop_horizon_stop_terminal_leaf_and_static_leaf_are_mutually_consistent_properties_of_an_already_charged_root_seed_or_descent_never_additional_charges",
+      "hard_identity": "scout_visited_nodes_plus_PUCT_charges_equals_final_visited_nodes_and_never_exceeds_14022",
+      "enumeration_visibility": "each_node_enumerates_at_most_once; node_expansions_are_at_most_root_arm_descent_charges_plus_internal_edge_descent_charges; base_enumerated_targeted_fallback_shortlist_removed_and_final_admitted_counts_are_reported_separately_and_constrained_by_cold_700ms",
+      "last_budget_unit": "a_charged_root_arm_or_internal_edge_endpoint_may_evaluate_and_back_up_its_terminal_proven_cycle_horizon_or_static_result_but_must_never_descend_again_without_another_available_charge",
+      "no_unbounded_zero_charge_simulation": true
+    },
+    "mutual_exclusion": [
+      "iterative_deepening",
+      "completed_depth_root_equalization",
+      "completed_depth_root_pooling",
+      "completed_depth_median_aggregation",
+      "completed_depth_leaf_cvar",
+      "completed_depth_finalist_verify",
+      "resource_context_TT",
+      "work_conserving_or_productive_quiescence",
+      "empty_prefix_tactical_rescue",
+      "stratified_prompt_enumeration",
+      "verified_quiet_reductions",
+      "search_equivalent_sibling_compaction",
+      "same_turn_extension",
+      "expansion_only_TT_accounting"
+    ],
+    "retune_or_combine_after_freeze": false
+  },
+  "implementation_scope": {
+    "cfg_test_only": true,
+    "files_allowed": [
+      "src/models/mons_game_model.rs",
+      "src/models/automove_experiments/tests/diagnostics/mod.rs",
+      "src/models/automove_experiments/tests/diagnostics/deterministic_transposition_puct.rs",
+      "docs/automove-frontier-pro-v6-deterministic-transposition-puct-implementation-freeze.json"
+    ],
+    "profile_registration_before_causal_pass": false,
+    "script_registration_before_causal_pass": false,
+    "public_runtime_edit_before_all_promotion_gates": false,
+    "required_diagnostics": [
+      "activations",
+      "fallbacks",
+      "focused_roots",
+      "root_seed_charges",
+      "root_arm_descent_charges",
+      "internal_edge_descent_charges",
+      "synthetic_root_visits",
+      "shared_node_visits",
+      "simulations",
+      "node_expansions",
+      "base_enumerated_children",
+      "targeted_fallback_children",
+      "shortlist_removed_children",
+      "final_admitted_children",
+      "edge_expansions",
+      "existing_edge_revisits",
+      "enumerated_children",
+      "transposition_hits",
+      "collision_misses",
+      "cycle_stops",
+      "horizon_stops",
+      "static_leaves",
+      "terminal_leaves",
+      "proof_wins",
+      "proof_losses",
+      "proof_recomputations",
+      "proof_fixpoint_updates",
+      "maximum_path_edges",
+      "per_root_visits_values_proof_and_final_score",
+      "per_root_exact_input_and_seed_value",
+      "scout_nodes",
+      "PUCT_charges",
+      "final_visited_nodes"
+    ]
+  },
+  "pure_contracts_before_evidence": [
+    "default_off_guarded_output_branch_root_scores_and_work_parity",
+    "exact_state_collision_guard_rejects_same_hash_different_state",
+    "same_state_different_remaining_horizon_does_not_reuse",
+    "all_focused_roots_receive_exactly_one_seed_before_PUCT_selection",
+    "integer_sqrt_mean_dynamic_range_and_max_min_priority_boundaries",
+    "stable_root_and_child_tie_breaks",
+    "progressive_widening_boundary_sequence",
+    "maximizing_and_minimizing_adversarial_edge_selection",
+    "transposition_reuse_shares_node_expansion_but_not_edge_statistics",
+    "diamond_transposition_shares_node_visits_once_per_path_and_keeps_parent_edge_statistics_local",
+    "diamond_proof_fixpoint_updates_both_parents_before_selection_and_export",
+    "later_shorter_shared_proof_distance_reaches_both_diamond_parents_and_root_arms_before_export",
+    "exact_path_cycle_stops_without_recursion_or_zero_charge_loop",
+    "one_sided_terminal_proofs_propagate_without_exhaustive_fanout",
+    "universal_terminal_proofs_remain_disabled_under_every_enumeration_shape",
+    "terminal_tag_distance_precedence_and_proven_shared_node_revisit",
+    "unproven_values_use_edge_means_in_existing_score_units",
+    "seed_only_and_full_modes_have_exact_root_inputs_order_and_seed_value_parity",
+    "PUCT_charge_identity_is_seed_plus_root_arm_plus_internal_edge_only",
+    "root_seed_N_W_shared_node_and_synthetic_root_equations",
+    "synthetic_root_visits_equal_focused_roots_plus_simulations",
+    "last_available_charge_evaluates_and_backs_up_without_uncharged_descent",
+    "graph_exhaustion_stops_without_reentering_only_proven_unfavorable_paths",
+    "hard_global_work_cap_and_insufficient_root_seed_budget_fail_close",
+    "candidate_does_not_call_quiescence_extensions_policy_rollouts_or_terminal_planner",
+    "mutual_exclusion_from_every_prior_test_only_search_experiment"
+  ],
+  "exact_five_causal_reach_gate": {
+    "source_fixture": {
+      "symbol": "expansion_only_tt_accounting::GUARDED_LOSS_BOARDS",
+      "path": "src/models/automove_experiments/tests/diagnostics/expansion_only_tt_accounting.rs",
+      "size_bytes": 48833,
+      "sha256": "40ceba62bac1718e0923c15c3dc20d2850477b5bf8af5e8d84c95ead8801d4b8",
+      "required_authentication": "guarded_loss_log_records_equal_the_exact_five_fixture_tuples_including_repeat_opening_variant_board_guarded_move_and_shipping_move"
+    },
+    "source_log": {
+      "path": "target/experiment-runs/frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_bridge_shipping_pro_search_co_983314459/20260624-232056_pro_policy_outcome_corpus_frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_br_3916922365.log",
+      "size_bytes": 430857,
+      "sha256": "dc1def82b5534a46fcb36b7030002e8060712cf4912165a58dee796e6904a2cc"
+    },
+    "baseline_runs_per_board": 2,
+    "seed_only_control_runs_per_board": 2,
+    "candidate_runs_per_board": 2,
+    "cold_policy": "before_each_of_the_six_full_selector_invocations_per_board_reset_all_shared_search_exact_and_turn_engine_caches_clear_PUCT_diagnostics_and_clear_selector_branch_then_capture_that_run_separately",
+    "full_public_selector_timed": true,
+    "required_baseline": "legal_deterministic_frontier_execute_exact_authenticated_guarded_move_and_zero_PUCT_diagnostics",
+    "required_seed_only_control": "legal_deterministic_frontier_execute_one_PUCT_activation_all_focused_roots_seeded_zero_simulations_zero_root_arm_descents_zero_internal_edge_descents_and_complete_exact_input_seed_value_records",
+    "required_seed_substrate_parity": "for_each_cold_run_index_seed_only_and_full_PUCT_have_exact_branch_scout_nodes_first_matching_source_paid_scout_before_any_guarded_wrapper_fallback_scout_focused_non_score_root_signatures_input_order_seed_value_vectors_advisor_signature_and_precomputed_head_plan_signature_when_mapped_by_exact_input_not_root_index",
+    "required_downstream_records": "emit_seed_only_and_full_provisional_selection_final_selection_head_acceptance_or_rejection_and_committed_plan_signature; these_decision_fields_may_differ_but_every_precomputed_non_score_substrate_field_above_must_match",
+    "required_candidate": [
+      "legal_deterministic_frontier_execute",
+      "activation_occurs_only_in_the_engine_enabled_ProV2_loop_and_search_only_or_engine_disabled_calls_stay_legacy_with_zero_PUCT_diagnostics",
+      "one_PUCT_activation_and_zero_fallback",
+      "all_focused_roots_seeded",
+      "root_seed_plus_root_arm_plus_internal_edge_charge_accounting_identity",
+      "positive_simulations_root_arm_descents_internal_edge_descents_and_nonseed_root_visits",
+      "final_visited_nodes_at_most_14022",
+      "maximum_path_edges_at_most_12",
+      "no_quiescence_or_extension_work_inside_the_replacement",
+      "complete_per_root_diagnostics",
+      "both_cold_runs_have_exactly_equal_output_and_complete_diagnostics_excluding_wall_time"
+    ],
+    "required_public_move_changes": "at_least_two_boards_where_both_candidate_runs_differ_from_both_guarded_runs_and_both_seed_only_control_runs",
+    "required_changed_colors": [
+      "white",
+      "black"
+    ],
+    "required_changed_variants": 2,
+    "required_causal_attribution": "each_counted_board_maps_roots_by_exact_input_has_the_returned_candidate_input_in_both_seed_only_and_full_root_vectors_has_positive_graph_backed_nonseed_visits_in_both_full_runs_and_has_the_full_PUCT_score_or_tagged_proof_change_that_returned_root_order_relative_to_the_seed_only_score_vector; guarded_alpha_beta_fail_low_scores_are_not_used_as_exact_attribution",
+    "seed_only_and_candidate_each_individual_cold_call_hard_ms": 700,
+    "candidate_average_hard_ms_per_board": 700,
+    "candidate_board_average_definition": "arithmetic_mean_of_the_two_independently_cold_full_candidate_selector_invocations",
+    "candidate_average_warning_only_ms_per_board": 650,
+    "evidence_output_before_final_assert": {
+      "config_records": 1,
+      "run_records": 30,
+      "run_phases": [
+        "baseline",
+        "seed_only_control",
+        "candidate"
+      ],
+      "board_records": 5,
+      "result_records": 1,
+      "stoplight_records": 1,
+      "all_records_complete_and_parseable_JSON": true
+    },
+    "failure": "kill_exact_architecture_ID_without_constant_path_cap_work_formula_proof_rule_fixture_or_gate_retry_and_prune_all_test_only_source",
+    "pass": "authorize_only_implementation_freeze_audit_then_one_fresh_all_variant_direct_guarded_scout"
+  },
+  "fresh_direct_scout_after_causal_pass": {
+    "opponent": "frontier_pro_v2_guarded_Pro",
+    "variant_policy": "all",
+    "repeats": 1,
+    "games_per_repeat": 12,
+    "mirrored_total_games": 24,
+    "max_plies": 96,
+    "seed_tag": "frontier_pro_v6_deterministic_transposition_puct_direct_guarded_20260713_fresh01",
+    "aggregate_min_point_record": "14-10",
+    "aggregate_min_confidence": 0.70,
+    "every_variant_min_point_win_rate": 0.5,
+    "aggregate_and_every_variant_and_repeat_variant_candidate_average_ms_at_most": 700,
+    "failure": "kill_without_retry",
+    "pass": "authorize_separately_frozen_full_direct_shipping_safety_dashboard_and_release_sequence"
+  },
+  "later_promotion_contract": {
+    "fixed_72_state_breadth_before_or_with_direct": "at_least_eight_public_changes_both_colors_four_variants_and_three_existing_root_families_with_every_state_at_most_700ms",
+    "full_direct_current_guarded": "96_fresh_mirrored_all_variant_games_rate_at_least_0_55_confidence_at_least_0_90_every_variant_at_least_half_and_four_variants_strictly_above_half",
+    "shipping_safety": "fresh_all_variant_Pro_Normal_Fast_each_aggregate_at_least_half_and_each_variant_at_least_half",
+    "dashboard": "sampled_and_active_blocker_panels_without_0_2_variant_row",
+    "fresh_repeat_holdout": "unseen_repeat_offsets_must_preserve_direction_and_variant_floor",
+    "latency": "every_cold_position_aggregate_variant_and_repeat_variant_candidate_average_at_most_700ms",
+    "release": "focused_semantics_determinism_legality_caps_native_wasm_web_wasm_node_package_surface_and_public_route_assertions",
+    "public_profile_id": "frontier_pro_v2_guarded",
+    "external_package_publish": false
+  },
+  "exact_commands": {
+    "focused_contracts": "cargo test --release --lib deterministic_transposition_puct -- --nocapture",
+    "causal_gate": "cargo test --release --lib smart_automove_frontier_pro_v6_deterministic_transposition_puct_exact_five_causality_probe -- --ignored --nocapture",
+    "required_wrapper": "SMART_EXPERIMENT_FRONTIER=frontier_pro_v6_deterministic_transposition_puct scripts/run-experiment-logged.sh <label> -- <exact_command>"
+  },
+  "permissions": {
+    "implement_only_the_exact_cfg_test_candidate_contracts_diagnostics_and_causal_probe": true,
+    "independent_implementation_audit_before_ignored_evidence": true,
+    "run_nonignored_focused_contracts_before_audit": true,
+    "run_ignored_causal_gate_before_audit_GO": false,
+    "profile_or_script_registration": false,
+    "fresh_direct_scout": false,
+    "shipping_safety": false,
+    "dashboard": false,
+    "canonical": false,
+    "production_runtime": false,
+    "public_route": false,
+    "promotion": false
+  }
+}

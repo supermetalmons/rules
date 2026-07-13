@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "candidate_id": "frontier_pro_v4_bounded_recursive_quiescence",
+  "created_date": "2026-07-12",
+  "status": "killed_at_frozen_exact_five_causality_gate",
+  "canonical_precommit": {
+    "path": "docs/automove-frontier-pro-v4-bounded-recursive-quiescence-precommit.json",
+    "size_bytes": 12717,
+    "sha256": "06b60f84113463a330454bafd53857978c38fed0a7f492d0dea098fe86ba9f41"
+  },
+  "implementation_freeze": {
+    "path": "docs/automove-frontier-pro-v4-bounded-recursive-quiescence-implementation-freeze.json",
+    "size_bytes": 6654,
+    "sha256": "8856e8146c4755fefaa20193aafc172206d725bad3a6a98261bc8bae48102c00",
+    "independent_audit": "GO"
+  },
+  "valid_gate_run": {
+    "run_name": "bounded_recursive_quiescence_exact_five_causality_fresh02",
+    "command": "cargo test --release --lib smart_automove_pro_bounded_recursive_quiescence_exact_five_causality_probe -- --ignored --nocapture",
+    "exit_code": 101,
+    "log": {
+      "path": "target/experiment-runs/frontier_pro_v4_bounded_recursive_quiescence/20260712-212607_bounded_recursive_quiescence_exact_five_causality_fresh02.log",
+      "size_bytes": 5748,
+      "sha256": "31384c61fc9cafc59b06709749ca81fc948587c5a8292df0f03781f749182d76"
+    },
+    "command_record": {
+      "path": "target/experiment-runs/frontier_pro_v4_bounded_recursive_quiescence/20260712-212607_bounded_recursive_quiescence_exact_five_causality_fresh02.cmd",
+      "size_bytes": 128,
+      "sha256": "80f9271265ee142bf7f76d55bd0c425a38d9c95d41ff3f659a13150983751e72"
+    },
+    "metadata": {
+      "path": "target/experiment-runs/frontier_pro_v4_bounded_recursive_quiescence/20260712-212607_bounded_recursive_quiescence_exact_five_causality_fresh02.meta",
+      "size_bytes": 802,
+      "sha256": "fd20fe7fdb3f59e6b51c6aef2e156523b9e95d3af6e33229980bea277197f56b"
+    }
+  },
+  "frozen_exact_five_result": {
+    "boards": 5,
+    "colors": [
+      "black",
+      "white"
+    ],
+    "variants": [
+      "alternating_mana_rows",
+      "forward_bridge_mana_rows",
+      "inner_wedge_mana_rows"
+    ],
+    "depth_two_chain_boards": 0,
+    "required_depth_two_chain_boards": 4,
+    "strict_return_level_root_score_change_boards": 0,
+    "required_strict_root_score_change_boards": 2,
+    "locally_depth_two_attributed_root_score_change_boards": 0,
+    "required_locally_depth_two_attributed_root_score_change_boards": 1,
+    "public_input_change_boards": 0,
+    "required_public_input_change_boards": 2,
+    "locally_depth_two_attributed_public_input_change_boards": 0,
+    "required_locally_depth_two_attributed_public_input_change_boards": 1,
+    "unattributed_change_boards": 0,
+    "illegal_nondeterministic_or_wrong_branch_boards": 0,
+    "cap_failure_boards": 0,
+    "baseline_work": 14937,
+    "candidate_work": 14935,
+    "work_ratio": 0.999866,
+    "work_ratio_limit": 1.2,
+    "candidate_board_average_ms": {
+      "minimum": 31.271,
+      "maximum": 350.949
+    },
+    "hard_latency_limit_ms": 700,
+    "pass": false
+  },
+  "decision": {
+    "candidate_strength_evidence": false,
+    "reason": "the_exact_five_surface_had_zero_nonterminal_second_ply_chains_zero_return_level_score_changes_and_zero_public_move_changes",
+    "sequential_outcome_gate_authorized": false,
+    "breadth_gate_authorized": false,
+    "direct_duel_authorized": false,
+    "retune_depth_predicate_order_budget_fixture_or_threshold": false,
+    "required_action": "kill_and_prune_the_exact_test_only_candidate"
+  },
+  "invalid_precursor": {
+    "path": "docs/automove-frontier-pro-v4-bounded-recursive-quiescence-invalid-activation-run.json",
+    "size_bytes": 2010,
+    "sha256": "8f6368cbe130a6ed12dc1d6014699ae247b7229d31b1d7222c96e2598d15239e",
+    "classification": "operator_invalid_no_candidate_evidence"
+  }
+}

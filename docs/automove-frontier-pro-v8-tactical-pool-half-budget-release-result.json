@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "result_id": "automove_frontier_pro_v8_tactical_pool_half_budget_release_no_go_20260713",
+  "candidate_id": "frontier_pro_v8_tactical_pool_half_budget_release",
+  "created_date": "2026-07-13",
+  "status": "killed_at_first_and_only_fresh_all_variant_run_before_production_or_route_change",
+  "decision": "NO_GO_half_budget_still_exceeded_immutable_individual_700ms_cap",
+  "precommit": {"path":"docs/automove-frontier-pro-v8-tactical-pool-half-budget-release-precommit.json","size_bytes":7234,"sha256":"b2a0bf7d6ba6e1cba9de58209e7a32895d523f7514e0d22f3a95f7337fe6a69f"},
+  "exact_candidate": {
+    "base": "frontier_pro_v2_guarded",
+    "enable_targeted_drainer_attack_fallback": true,
+    "enable_drainer_attack_full_pool": true,
+    "enable_root_reply_risk_guard": false,
+    "max_visited_nodes": 7011,
+    "depth": 4,
+    "other_fields": "unchanged",
+    "unit_and_compile_contracts": "pass",
+    "two_independent_pre_run_audits": "GO"
+  },
+  "single_logged_run": {
+    "run_name": "20260713_tactical_pool_half_budget_all_variant01",
+    "inner_command": "env -u SMART_AUTOMOVE_VARIANT_POLICY -u SMART_AUTOMOVE_VARIANT_SAMPLE_SIZE -u SMART_AUTOMOVE_VARIANTS -u SMART_DUEL_VERIFY_DETERMINISM cargo test --release --lib smart_automove_pro_v8_tactical_pool_half_budget_all_variant_release_probe -- --ignored --nocapture",
+    "exit_code": 101,
+    "log": {"path":"target/experiment-runs/frontier_pro_v8_tactical_pool_half_budget_release/20260713-071852_20260713_tactical_pool_half_budget_all_variant01.log","size_bytes":1511,"sha256":"accc44b075c46a0692ff2181a3344122125c72d53a9f625fceedefd644de273e"},
+    "command_receipt": {"path":"target/experiment-runs/frontier_pro_v8_tactical_pool_half_budget_release/20260713-071852_20260713_tactical_pool_half_budget_all_variant01.cmd","size_bytes":262,"sha256":"90d355b5317873dec00a70ae9bd5668f283eaea38f9bf2924fda490f94a7c50b"},
+    "meta": {"path":"target/experiment-runs/frontier_pro_v8_tactical_pool_half_budget_release/20260713-071852_20260713_tactical_pool_half_budget_all_variant01.meta","size_bytes":772,"sha256":"fe1335756a031e83191c99bc98aa556f962a5138fd2f99a1e1ddb2e0ff2ff5c2"},
+    "exit_receipt": {"path":"target/experiment-runs/frontier_pro_v8_tactical_pool_half_budget_release/20260713-071852_20260713_tactical_pool_half_budget_all_variant01.exit","size_bytes":4,"sha256":"39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c"}
+  },
+  "partial_structured_evidence": {
+    "first_repeat": {"variant":"classic","record":"1-1","candidate_average_ms":104.597,"candidate_max_call_ms":358.712,"invalid_or_empty":0,"nondeterministic":0},
+    "second_repeat": "failed_before_record",
+    "later_variants": "not_reached"
+  },
+  "decisive_blocker": {
+    "variant": "classic",
+    "repeat_index": 1,
+    "failed_assertion": "repeat_timing.profile_a_max_ms <= 700.0",
+    "meaning": "at_least_one_original_or_cold_replay_candidate_call_exceeded_the_hard_cap_even_with_the_frontier_search_node_budget_halved",
+    "hard_cap_may_not_be_relaxed": true
+  },
+  "mechanism_family_decision": "close_completed_depth_and_tactical_pool_release_attempts_under_the_current_search_enumeration_shape",
+  "permissions": {"retry_or_retune":false,"quarter_budget_followup":false,"production":false,"public_route":false,"promotion":false,"Fast_or_Normal_change":false,"external_publish":false},
+  "public_Pro_after_result": "frontier_pro_v2_guarded_unchanged",
+  "next_action": "a_future_goal_continuation_requires_a_distinct_cost_bounded_mechanism_not_another_budget_fraction_or_average_only_candidate"
+}

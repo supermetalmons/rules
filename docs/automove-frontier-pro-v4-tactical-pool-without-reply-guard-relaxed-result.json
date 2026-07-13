@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "result_id": "automove_frontier_pro_v4_tactical_pool_without_reply_guard_relaxed_direct_scout_20260712_result",
+  "candidate_id": "frontier_pro_v4_tactical_pool_without_reply_guard",
+  "created_date": "2026-07-12",
+  "frozen_contract": {
+    "precommit_sha256": "e16fe8c2577311ec4e33a37d5677764f20060aadd1c235fc4d047a00df5e38de",
+    "implementation_freeze_sha256": "42db5cfd1c4e3a1338839bbf5a474d93b130a73dc938545031b0977baabdae6b",
+    "independent_audits": 2,
+    "audit_decision": "GO_for_fresh_direct_scout"
+  },
+  "fresh_direct_scout": {
+    "opponent_profile": "frontier_pro_v2_guarded",
+    "variant_policy": "all",
+    "repeats": 1,
+    "games_per_repeat": 12,
+    "mirrored_total_games": 24,
+    "max_plies": 96,
+    "seed_tag": "frontier_pro_v4_tactical_pool_without_reply_guard_direct_guarded_scout_20260712_fresh01",
+    "log": {
+      "path": "target/experiment-runs/frontier_pro_v4_tactical_pool_without_reply_guard/direct_guarded_scout_relaxed/20260712-191315_pro_profile_sweep_frontier_pro_v4_tactical_pool_without_reply_guard.log",
+      "size_bytes": 6012,
+      "sha256": "09b8ef13927dba90de28660c348dfda9a736386ea2bae4e1c22aabed3113a16f"
+    },
+    "exit_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "meta_sha256": "ad31fc435a9f2c92f1681995802e9a6450b76493169bf2a997b36b106204d981",
+    "aggregate": {
+      "wins": 14,
+      "losses": 10,
+      "draws": 0,
+      "win_rate": 0.5833,
+      "confidence": 0.7294,
+      "candidate_avg_ms": 151.72,
+      "opponent_avg_ms": 113.83
+    },
+    "variant_failures": [
+      {
+        "variant": "classic",
+        "wins": 0,
+        "losses": 2,
+        "candidate_avg_ms": 161.78
+      },
+      {
+        "variant": "bent_center_mana_rows",
+        "wins": 0,
+        "losses": 2,
+        "candidate_avg_ms": 169.09
+      },
+      {
+        "variant": "outer_edge_mana_rows",
+        "wins": 0,
+        "losses": 2,
+        "candidate_avg_ms": 200.06
+      }
+    ],
+    "maximum_variant_candidate_avg_ms": 200.06
+  },
+  "gate_evaluation": {
+    "aggregate_win_rate_pass": false,
+    "aggregate_confidence_pass": false,
+    "every_variant_floor_pass": false,
+    "latency_pass": true,
+    "violations": [
+      "direct_guarded_aggregate_win_rate:0.5833_below_0.6000",
+      "direct_guarded_aggregate_confidence:0.7294_below_0.9500",
+      "classic_win_rate:0.0000_below_0.5000",
+      "bent_center_mana_rows_win_rate:0.0000_below_0.5000",
+      "outer_edge_mana_rows_win_rate:0.0000_below_0.5000"
+    ]
+  },
+  "decision": "kill_exact_frontier_pro_v4_tactical_pool_without_reply_guard_relaxed_promotion_attempt",
+  "authorization": "none",
+  "permissions": {
+    "full_direct": false,
+    "shipping_safety": false,
+    "dashboard": false,
+    "canonical": false,
+    "public_route": false,
+    "promotion": false,
+    "toggle_variant_context_seed_or_gate_retune": false,
+    "prune_test_only_reconstruction": true
+  },
+  "next_action": "prune_and_evaluate_only_the_pre_ranked_distinct_measured_root_arbitration_candidate"
+}

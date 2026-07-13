@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "precommit_id": "automove_frontier_pro_v7_completed_depth_median_release_20260713",
+  "candidate_id": "frontier_pro_v7_completed_depth_median_release",
+  "created_date": "2026-07-13",
+  "status": "refrozen_after_independent_audit_required_observation_only_harness_repair_before_one_remaining_safety_run",
+  "objective": "promote_a_measured_stronger_public_Pro_now_by_translating_the_unchanged_terminal_safe_completed_depth_median_mechanism_after_its_only_observed_variant_regression_is_rechecked",
+  "decision_classification": {
+    "prospective_scientific_discovery": false,
+    "transparent_post_evidence_product_choice": true,
+    "old_candidate_gate_still_classified_as_failed": true,
+    "old_requirement": "at_least_14_10_confidence_at_least_0.70_and_every_variant_at_least_half",
+    "new_user_authorized_aggregate_requirement": "at_least_13_11_in_the_already_completed_fresh_all_variant_direct_current_guarded_scout",
+    "latency_requirement_relaxed": false,
+    "variant_or_context_runtime_routing_added": false,
+    "mechanism_or_parameter_retune": false
+  },
+  "selected_mechanism": {
+    "source_candidate_id": "frontier_pro_v4_completed_depth_median",
+    "base_runtime": "apply_frontier_pro_v2_guarded_config",
+    "enable_completed_depth_root_equalization": true,
+    "enable_completed_depth_median_aggregation": true,
+    "max_visited_nodes": 14022,
+    "depth": 4,
+    "scheduler": "stable_per_root_hard_quotas_and_only_layers_completed_by_every_retained_root",
+    "nonterminal_aggregation": "odd_median_or_even_middle_mean_over_all_completed_common_layers",
+    "terminal_aggregation": "preserve_deepest_terminal_win_and_minimum_observed_terminal_loss_before_nonterminal_median",
+    "zero_common_depth": "charge_completed_work_then_return_existing_root_heuristics",
+    "wrapper": "unchanged_frontier_pro_v2_guarded_fallback_wrapper",
+    "all_other_runtime_fields": "unchanged"
+  },
+  "accepted_direct_evidence": {
+    "result": {
+      "path": "docs/automove-frontier-pro-v4-completed-depth-median-relaxed-promotion-result.json",
+      "size_bytes": 3647,
+      "sha256": "4d739e62563f4e203d38e86c76c86a82185839b356c7f89c991922be938dea2f"
+    },
+    "authoritative_log": {
+      "path": "target/experiment-runs/frontier_pro_v4_completed_depth_median/direct_guarded_scout_relaxed_20260713/20260713-014338_pro_profile_sweep_frontier_pro_v4_completed_depth_median_20260713_fresh01.log",
+      "size_bytes": 6389,
+      "sha256": "4dca2c46d23402a3fe5016f1892b17d3eb953d9b977e0cd9ec487401ed11b124"
+    },
+    "opponent": "frontier_pro_v2_guarded_Pro",
+    "all_variants": 12,
+    "mirrored_games": 24,
+    "record": "13-11",
+    "point_win_rate": 0.5417,
+    "candidate_average_ms": 187.84,
+    "maximum_variant_average_ms": 225.64,
+    "equalization": "1066_attempts_1066_successes_0_fallbacks",
+    "median": "1066_attempts_1066_successes_0_fallbacks",
+    "breadth": "2_variants_2_0_9_variants_1_1_1_variant_0_2",
+    "only_losing_variant": "split_flank_mana_rows"
+  },
+  "supporting_shipping_evidence": {
+    "role": "already_completed_selection_and_safety_context_not_a_substitute_for_direct_guarded_evidence",
+    "sampled_shipping_Pro": "11-1_at_197.84ms",
+    "sampled_shipping_Normal": "8-4_at_242.19ms",
+    "hard_cap_violations": 0
+  },
+  "immutable_pre_safety_source_pins": [
+    {"path":"src/models/mons_game_model.rs","size_bytes":1874003,"sha256":"2b8bcf92880357ef8b1d19f92e8eaa122f854f23bd8b2b103d8ed6d466e5f811"},
+    {"path":"src/models/automove_runtime_variants.rs","size_bytes":34880,"sha256":"0aacc6b004e454db7c8bc4406e4690ca6eefe217881b9a0a25df5a13e7bec5e3"},
+    {"path":"src/models/automove_experiments/tests/diagnostics/mod.rs","size_bytes":1243902,"sha256":"e3a7f7e21e6909d10013801e26d0e0a291474482c07854ab29f3b5626bf0b2eb"},
+    {"path":"src/models/automove_experiments/mod.rs","size_bytes":9044,"sha256":"36abb8dc98454472dbea3fb469057ae664ae11e8324ab56bb08292d0be1531d3"},
+    {"path":"src/models/automove_experiments/harness/runner.rs","size_bytes":45969,"sha256":"ae8d040cc0dbed1536f5f1d6b663bf246dd1327355948930b83ff9dc1e41f6d4"},
+    {"path":"scripts/automove-experiment-common.sh","size_bytes":17236,"sha256":"f901eb8111d42a9ca04dca106d39f674fb3a23f635bba7ad5a430e635ea1cfdd"},
+    {"path":"scripts/run-experiment-logged.sh","size_bytes":3246,"sha256":"2985108c3df9d81830631f29cda4908803116af07f51191fbc3db4fbda9d216e"}
+  ],
+  "observation_only_audit_repair": {
+    "reason": "the_generic_profile_sweep_could_not_prove_each_repeat_each_color_max_individual_call_legality_determinism_or_node_cap",
+    "candidate_selector_or_runtime_changed": false,
+    "production_source_changed": false,
+    "test_only_changes": [
+      "DuelTimingStats_tracks_max_call_invalid_or_empty_and_nondeterministic_replay_counts",
+      "play_one_game_budget_duel_with_timing_optionally_replays_each_selector_call_for_determinism",
+      "dedicated_Split_Flank_probe_generates_four_exact_openings_and_emits_four_isolated_repeat_rows_plus_one_result",
+      "white_and_black_games_each_assert_and_emit_their_own_attempts_times_14022_node_envelope_before_repeat_or_aggregate_summing"
+    ],
+    "compile_only_command": "cargo test --release --lib smart_automove_pro_v7_completed_depth_median_split_flank_safety_probe --no-run",
+    "compile_only_exit_code": 0,
+    "real_evidence_consumed": false
+  },
+  "single_remaining_split_flank_safety": {
+    "purpose": "recheck_the_only_observed_0_2_variant_without_changing_or_routing_the_candidate",
+    "test_name": "smart_automove_pro_v7_completed_depth_median_split_flank_safety_probe",
+    "variant": "split_flank_mana_rows",
+    "opponent_profile": "frontier_pro_v2_guarded",
+    "opponent_mode": "pro",
+    "fresh_repeats": 4,
+    "openings_per_repeat": 1,
+    "mirrored_games": 8,
+    "max_plies": 96,
+    "seed_tag": "frontier_pro_v7_completed_depth_median_split_flank_safety_20260713_fresh01",
+    "aggregate_gate": "2_times_wins_plus_draws_at_least_8_over_exactly_8_games",
+    "candidate_white_gate": "2_times_wins_plus_draws_at_least_4_over_exactly_4_games",
+    "candidate_black_gate": "2_times_wins_plus_draws_at_least_4_over_exactly_4_games",
+    "equalization_attempts_positive_and_successes_equal_attempts": true,
+    "median_attempts_positive_and_successes_equal_attempts": true,
+    "equalization_and_median_fallbacks": 0,
+    "invalid_or_empty_candidate_outputs": 0,
+    "cold_replay_nondeterministic_candidate_outputs": 0,
+    "hard_node_cap_gate": "each_isolated_game_and_aggregate_equalization_visited_nodes_at_most_attempts_times_14022",
+    "required_structured_records": "exactly_4_MEDIAN_SPLIT_FLANK_SAFETY_REPEAT_and_1_MEDIAN_SPLIT_FLANK_SAFETY_RESULT",
+    "hard_latency_ms_for_every_candidate_aggregate_color_repeat_average_and_individual_cold_call_including_replay": 700,
+    "warning_only_ms": 650,
+    "failure": "kill_without_seed_repeat_variant_gate_mechanism_or_parameter_retry",
+    "pass": "authorize_exact_production_translation_parity_release_verification_and_public_Pro_route_change",
+    "run_name": "20260713_median_split_flank_safety01",
+    "inner_command": "env -u SMART_AUTOMOVE_VARIANT_POLICY -u SMART_AUTOMOVE_VARIANT_SAMPLE_SIZE -u SMART_AUTOMOVE_VARIANTS -u SMART_DUEL_VERIFY_DETERMINISM cargo test --release --lib smart_automove_pro_v7_completed_depth_median_split_flank_safety_probe -- --ignored --nocapture",
+    "wrapper_command": "env -u SMART_EXPERIMENT_LOG_DIR -u SMART_EXPERIMENT_LOG_ROOT -u SMART_EXPERIMENT_VARIANT_POLICY -u SMART_EXPERIMENT_VARIANTS -u SMART_EXPERIMENT_STAGE -u SMART_EXPERIMENT_SHIPPING -u SMART_EXPERIMENT_TARGET_MODE SMART_EXPERIMENT_FRONTIER=frontier_pro_v7_completed_depth_median_release scripts/run-experiment-logged.sh 20260713_median_split_flank_safety01 -- env -u SMART_AUTOMOVE_VARIANT_POLICY -u SMART_AUTOMOVE_VARIANT_SAMPLE_SIZE -u SMART_AUTOMOVE_VARIANTS -u SMART_DUEL_VERIFY_DETERMINISM cargo test --release --lib smart_automove_pro_v7_completed_depth_median_split_flank_safety_probe -- --ignored --nocapture"
+  },
+  "production_translation_after_pass": {
+    "public_profile_id_remains": "frontier_pro_v2_guarded",
+    "Fast_and_Normal_routes_unchanged": true,
+    "Pro_route": "unchanged_guarded_wrapper_with_completed_depth_equalization_and_terminal_safe_median_runtime",
+    "candidate_profile_not_retained_or_shipped": true,
+    "required_parity": "old_cfg_test_median_selector_equals_new_public_runtime_on_frozen_discriminating_positions",
+    "required_release_checks": ["focused_native_contracts","cargo_fmt_check","cargo_check","cargo_test_release_lib","wasm_web_build","wasm_node_build","release_package_surface","node_public_route_assertion"],
+    "external_package_publish": false
+  },
+  "permissions": {
+    "run_exact_split_flank_safety_once_after_independent_audit": true,
+    "observation_only_test_harness_repair_completed_and_frozen": true,
+    "change_source_again_before_safety_pass": false,
+    "productionize_after_pass": true,
+    "change_public_Pro_route_after_translation_and_release_checks_pass": true,
+    "change_Fast_or_Normal": false,
+    "relax_700ms": false,
+    "retry_after_failure": false
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "result_id": "automove_frontier_pro_v6_grouped_pareto_listwise_rootset_v1_prefit_no_go_20260713",
+  "candidate_id": "frontier_pro_v6_grouped_pareto_listwise_rootset_v1",
+  "created_date": "2026-07-13",
+  "status": "killed_at_read_only_prefit_before_any_fit_or_runtime_source",
+  "decision": "NO_GO_unverifiable_fifth_domain_quarantine_and_ineligible_frozen_representation",
+  "precommit": {
+    "path": "docs/automove-frontier-pro-v6-grouped-pareto-listwise-rootset-v1-precommit.json",
+    "size_bytes": 24984,
+    "sha256": "40c8a438f40e8d3959fe3d36f5d5f4765eb43a21739429843201dcad908f40ec"
+  },
+  "implementation_freeze": {
+    "path": "docs/automove-frontier-pro-v6-grouped-pareto-listwise-rootset-v1-prefit-implementation-freeze.json",
+    "size_bytes": 4312,
+    "sha256": "268dea72c3f47e0934a1395ec79b9d0c05c801518016d4dab08067d998c2df61"
+  },
+  "audited_validator_before_prune": {
+    "path": "scripts/train-automove-grouped-pareto-listwise-rootset-v1.py",
+    "size_bytes": 49611,
+    "sha256": "125eaffbaf40088d7a23bce08483abf60824140c548c42a77c750381cd6bf9c7",
+    "self_test": "pass",
+    "fit_code_present": false,
+    "model_output_present": false,
+    "runtime_source_present": false
+  },
+  "invalid_prior_invocation": {
+    "classification": "protocol_invalid_non_evidentiary_unlogged_pre_audit_execution",
+    "artifact_or_model_emitted": false,
+    "authorization_consumed": false,
+    "reason_replacement_was_allowed": "integrity_and_logging_repair_not_result_conditioned_retry"
+  },
+  "formal_replacement": {
+    "run_name": "20260713_prefit_kill_only_replacement01",
+    "inner_command": "env PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/train-automove-grouped-pareto-listwise-rootset-v1.py --preflight docs/automove-frontier-pro-v6-grouped-pareto-listwise-rootset-v1-precommit.json",
+    "exit_code": 1,
+    "log": {"path":"target/experiment-runs/frontier_pro_v6_grouped_pareto_listwise_rootset_v1/20260713-053703_20260713_prefit_kill_only_replacement01.log","size_bytes":7121,"sha256":"423466182d23fcd4662d0b979e0e43f6600249797e8f4bc74ad2adebc8110b6f"},
+    "command_receipt": {"path":"target/experiment-runs/frontier_pro_v6_grouped_pareto_listwise_rootset_v1/20260713-053703_20260713_prefit_kill_only_replacement01.cmd","size_bytes":195,"sha256":"bff74b357770a2911cfb09c1fbffce39430ceac73cf26d2faace4daeab6deb37"},
+    "meta": {"path":"target/experiment-runs/frontier_pro_v6_grouped_pareto_listwise_rootset_v1/20260713-053703_20260713_prefit_kill_only_replacement01.meta","size_bytes":739,"sha256":"10b3362edec96b6d90131d7a133e9b6e798c616eb1fbd302359e4f7cf92690a9"},
+    "exit_receipt": {"path":"target/experiment-runs/frontier_pro_v6_grouped_pareto_listwise_rootset_v1/20260713-053703_20260713_prefit_kill_only_replacement01.exit","size_bytes":2,"sha256":"4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"},
+    "structured_report_complete": true,
+    "fit_authorized": false,
+    "model_emitted": false,
+    "runtime_modified": false
+  },
+  "authenticated_passed_checks": [
+    "all_15_corpus_hashes",
+    "strict_schema_v4_and_exact_Pro_Normal_Fast_join",
+    "36_state_208_root_624_row_discovery_input",
+    "31_state_178_root_534_row_frozen_five_filter",
+    "three_discovery_only_seed_families_both_colors_three_duels_two_panels_eight_variants",
+    "38_Pareto_safe_improving_roots_in_18_states_and_15_clusters",
+    "historical_v1_plus_v2_inventory_receipts",
+    "zero_admitted_exact_five_or_retired_104_state_raw_and_canonical_overlap",
+    "precommit_v4_v3_and_v2_parser_size_and_SHA_pins"
+  ],
+  "decisive_blockers": {
+    "sixth_viewed_resource_overlap": {
+      "state_id": "f6fd5efd9b59e97b",
+      "frozen_denylist_had_only_five": true,
+      "domain_witness": "raw_source_FEN_appears_in_complete_PairNet_v2_and_v3_emitted_candidate_universes",
+      "precommitted_rule": "any_additional_overlap_kills_without_denylist_retry"
+    },
+    "conflicting_identical_allowed_features": {
+      "count": 4,
+      "states": ["b2447c74844324f7","f73a2c45c35cced2"],
+      "label_pairs": [
+        [[0,0,0],[0,2,-2]],
+        [[0,0,0],[0,2,0]],
+        [[0,0,0],[0,2,0]],
+        [[-2,2,0],[2,0,0]]
+      ],
+      "precommitted_rule": "zero_conflicting_identical_42_feature_vectors_required"
+    },
+    "unverifiable_fifth_domain": {
+      "candidate_openings_recovered_from_authenticated_ply_zero_clusters": 18,
+      "candidate_state_openings_missing": 18,
+      "v1_openings_recovered_from_authenticated_ply_zero_rows": 32,
+      "v1_rows_missing_opening": 40,
+      "full_v1_v2_v3_inventory_receipt_emitted": false,
+      "classification": "NO_GO_unverifiable_quarantine_not_a_model_quality_result"
+    }
+  },
+  "permissions": {
+    "fit": false,
+    "model": false,
+    "runtime_source": false,
+    "new_labels": false,
+    "profile": false,
+    "dashboard": false,
+    "public_route": false,
+    "promotion": false,
+    "retry_or_retune_this_ID": false
+  },
+  "prune_contract": {
+    "delete_candidate_only_validator": true,
+    "candidate_runtime_or_model_files_to_delete": 0,
+    "retain_precommit_freeze_result_and_logged_evidence": true
+  },
+  "next_action": "new_architecture_ID_with_the_prospectively_known_six_state_quarantine_a_non_aliasing_production_shaped_feature_representation_and_test_only_raw_opening_provenance_before_any_fit"
+}

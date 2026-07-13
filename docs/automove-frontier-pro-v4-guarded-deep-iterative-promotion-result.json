@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "candidate_id": "frontier_pro_v4_guarded_deep_iterative_promotion",
+  "created_date": "2026-07-12",
+  "status": "killed_at_frozen_exact_five_causality_gate",
+  "canonical_precommit": {
+    "path": "docs/automove-frontier-pro-v4-guarded-deep-iterative-promotion-precommit.json",
+    "size_bytes": 14913,
+    "sha256": "f58c07a9bb0739ba32666cb02be1d707aa9ca13afd75847ff1e2b8bed48e513d"
+  },
+  "implementation_freeze": {
+    "path": "docs/automove-frontier-pro-v4-guarded-deep-iterative-promotion-implementation-freeze.json",
+    "size_bytes": 4284,
+    "sha256": "b0f1e4a611820f6b73bb6b212d2a3a46a0bec0bbe1c63ec7e44f7ff95a0a25e7",
+    "independent_audit": "GO"
+  },
+  "first_and_only_candidate_evidence_gate": {
+    "gate": "frozen_exact_five_causality",
+    "run_name": "guarded_deep_iterative_promotion_exact_five_causality_20260712_fresh01",
+    "command": "cargo test --release --lib smart_automove_pro_guarded_deep_iterative_promotion_exact_five_causality_probe -- --ignored --nocapture",
+    "exit_code": 101,
+    "log": {
+      "path": "target/experiment-runs/frontier_pro_v4_guarded_deep_iterative_promotion/20260712-221402_guarded_deep_iterative_promotion_exact_five_causality_20260712_fresh01.log",
+      "size_bytes": 5253,
+      "sha256": "1d133de6ea7c0b018ea52ed6256114867b04c6642f833b02e7402578e9f203ac"
+    },
+    "command_record": {
+      "path": "target/experiment-runs/frontier_pro_v4_guarded_deep_iterative_promotion/20260712-221402_guarded_deep_iterative_promotion_exact_five_causality_20260712_fresh01.cmd",
+      "size_bytes": 132,
+      "sha256": "87ab54c600a83ee9a8801d7fbaa9d48bc9a090414b77214ae3c079591f81c5b8"
+    },
+    "metadata": {
+      "path": "target/experiment-runs/frontier_pro_v4_guarded_deep_iterative_promotion/20260712-221402_guarded_deep_iterative_promotion_exact_five_causality_20260712_fresh01.meta",
+      "size_bytes": 877,
+      "sha256": "7814dc67db6a223cf8e3ac457579123ce877f22861d201deabff84f579e52915"
+    },
+    "exit_record": {
+      "path": "target/experiment-runs/frontier_pro_v4_guarded_deep_iterative_promotion/20260712-221402_guarded_deep_iterative_promotion_exact_five_causality_20260712_fresh01.exit",
+      "size_bytes": 4,
+      "sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c"
+    }
+  },
+  "frozen_exact_five_result": {
+    "boards": 5,
+    "baseline_reproduction_failures": 0,
+    "candidate_frontier_execute_boards": 5,
+    "public_input_change_boards": 1,
+    "required_public_input_change_boards_at_least": 2,
+    "public_input_change_colors": [
+      "white"
+    ],
+    "required_public_input_change_colors": [
+      "black",
+      "white"
+    ],
+    "strict_common_root_score_change_boards": 5,
+    "required_strict_common_root_score_change_boards_at_least": 2,
+    "preliminary_depth_3_activation_boards": 5,
+    "required_preliminary_depth_3_activation_boards": 5,
+    "preliminary_depth_3_completed_boards": 5,
+    "required_preliminary_depth_3_completed_boards_at_least": 2,
+    "nondeterministic_boards": 0,
+    "illegal_boards": 0,
+    "runtime_shape_or_branch_failure_boards": 0,
+    "cap_failure_boards": 0,
+    "latency_failure_boards": 0,
+    "baseline_board_average_ms": {
+      "values": [
+        212.139,
+        30.99,
+        76.828,
+        78.478,
+        353.005
+      ],
+      "minimum": 30.99,
+      "maximum": 353.005
+    },
+    "candidate_board_average_ms": {
+      "values": [
+        565.954,
+        81.263,
+        184.763,
+        137.777,
+        403.992
+      ],
+      "minimum": 81.263,
+      "maximum": 565.954
+    },
+    "hard_candidate_average_limit_ms": 700,
+    "work_ratio_gate": null,
+    "strict_gate": false,
+    "first_failing_requirement": "public_input_changes_were_observed_on_only_1_board_and_only_for_white_instead_of_at_least_2_boards_spanning_black_and_white"
+  },
+  "board_results": [
+    {
+      "repeat": 0,
+      "opening_index": 0,
+      "variant": "inner_wedge_mana_rows",
+      "color": "white",
+      "baseline_move": "l9,5;l8,4",
+      "candidate_move": "l9,5;l8,4",
+      "public_changed": false,
+      "strict_common_root_score_changed": true,
+      "preliminary_depth_3_active": true,
+      "preliminary_depth_3_completed": true,
+      "preliminary_passes": 1,
+      "preliminary_roots_requested": 16,
+      "preliminary_roots_attempted": 16,
+      "preliminary_roots_completed": 16,
+      "deterministic": true,
+      "baseline_legal": true,
+      "candidate_legal": true,
+      "baseline_branch": "frontier_execute",
+      "candidate_branch": "frontier_execute",
+      "baseline_average_ms": 212.139,
+      "candidate_average_ms": 565.954
+    },
+    {
+      "repeat": 0,
+      "opening_index": 0,
+      "variant": "inner_wedge_mana_rows",
+      "color": "black",
+      "baseline_move": "l1,5;l2,4",
+      "candidate_move": "l1,5;l2,4",
+      "public_changed": false,
+      "strict_common_root_score_changed": true,
+      "preliminary_depth_3_active": true,
+      "preliminary_depth_3_completed": true,
+      "preliminary_passes": 1,
+      "preliminary_roots_requested": 16,
+      "preliminary_roots_attempted": 16,
+      "preliminary_roots_completed": 16,
+      "deterministic": true,
+      "baseline_legal": true,
+      "candidate_legal": true,
+      "baseline_branch": "frontier_execute",
+      "candidate_branch": "frontier_execute",
+      "baseline_average_ms": 30.99,
+      "candidate_average_ms": 81.263
+    },
+    {
+      "repeat": 1,
+      "opening_index": 1,
+      "variant": "forward_bridge_mana_rows",
+      "color": "white",
+      "baseline_move": "l10,0;l10,1",
+      "candidate_move": "l10,0;l10,1",
+      "public_changed": false,
+      "strict_common_root_score_changed": true,
+      "preliminary_depth_3_active": true,
+      "preliminary_depth_3_completed": true,
+      "preliminary_passes": 1,
+      "preliminary_roots_requested": 17,
+      "preliminary_roots_attempted": 17,
+      "preliminary_roots_completed": 17,
+      "deterministic": true,
+      "baseline_legal": true,
+      "candidate_legal": true,
+      "baseline_branch": "frontier_execute",
+      "candidate_branch": "frontier_execute",
+      "baseline_average_ms": 76.828,
+      "candidate_average_ms": 184.763
+    },
+    {
+      "repeat": 2,
+      "opening_index": 0,
+      "variant": "forward_bridge_mana_rows",
+      "color": "black",
+      "baseline_move": "l3,7;l1,9;l0,10",
+      "candidate_move": "l3,7;l1,9;l0,10",
+      "public_changed": false,
+      "strict_common_root_score_changed": true,
+      "preliminary_depth_3_active": true,
+      "preliminary_depth_3_completed": true,
+      "preliminary_passes": 1,
+      "preliminary_roots_requested": 6,
+      "preliminary_roots_attempted": 6,
+      "preliminary_roots_completed": 6,
+      "deterministic": true,
+      "baseline_legal": true,
+      "candidate_legal": true,
+      "baseline_branch": "frontier_execute",
+      "candidate_branch": "frontier_execute",
+      "baseline_average_ms": 78.478,
+      "candidate_average_ms": 137.777
+    },
+    {
+      "repeat": 2,
+      "opening_index": 1,
+      "variant": "alternating_mana_rows",
+      "color": "white",
+      "baseline_move": "l8,3;l7,3",
+      "candidate_move": "l7,7;l6,8",
+      "public_changed": true,
+      "strict_common_root_score_changed": true,
+      "preliminary_depth_3_active": true,
+      "preliminary_depth_3_completed": true,
+      "preliminary_passes": 1,
+      "preliminary_roots_requested": 16,
+      "preliminary_roots_attempted": 16,
+      "preliminary_roots_completed": 16,
+      "deterministic": true,
+      "baseline_legal": true,
+      "candidate_legal": true,
+      "baseline_branch": "frontier_execute",
+      "candidate_branch": "frontier_execute",
+      "baseline_average_ms": 353.005,
+      "candidate_average_ms": 403.992
+    }
+  ],
+  "decision": {
+    "candidate_strength_evidence": false,
+    "first_gate_failure": true,
+    "reason": "the_frozen_exact_five_surface_changed_only_one_white_move_and_did_not_meet_the_required_two_or_more_public_changes_spanning_both_colors",
+    "later_gates_run": false,
+    "exact_five_sequential_outcome_gate_run": false,
+    "unique_FEN_breadth_gate_run": false,
+    "fresh_direct_guarded_scout_run": false,
+    "full_direct_shipping_dashboard_or_canonical_gates_run": false,
+    "public_promotion_or_release_gates_run": false,
+    "depth_node_iterative_fixture_seed_or_threshold_retune": false,
+    "public_Pro_route_changed": false,
+    "required_action": "kill_and_prune_all_promotion_specific_test_code",
+    "required_pruning_scope": [
+      "frontier_pro_v4_guarded_deep_iterative_promotion_test_selector_runtime_and_registry_entry",
+      "guarded_deep_iterative_promotion_diagnostics_module",
+      "promotion_support_preliminary_iterative_deepening_test_instrumentation",
+      "frontier_pro_v4_guarded_deep_iterative_promotion_script_allowlist_and_metadata"
+    ],
+    "preexisting_frontier_pro_v4_deep_teacher": "leave_unchanged_as_diagnostic_only",
+    "retain_immutable_precommit_freeze_result_and_logged_receipts": true
+  },
+  "pruning_completion": {
+    "completed": true,
+    "promotion_identifier_absent_from_src_and_scripts": true,
+    "promotion_probe_module_deleted": true,
+    "preexisting_frontier_pro_v4_deep_teacher_unchanged": true,
+    "restored_source_pins": [
+      {
+        "path": "src/models/mons_game_model.rs",
+        "sha256": "2b8bcf92880357ef8b1d19f92e8eaa122f854f23bd8b2b103d8ed6d466e5f811"
+      },
+      {
+        "path": "src/models/automove_experiments/tests/diagnostics/mod.rs",
+        "sha256": "9799d7316e7084595129aa797f5583db0b4ec1e9222bf972cf94cfca5233ed63"
+      },
+      {
+        "path": "scripts/automove-experiment-common.sh",
+        "sha256": "f901eb8111d42a9ca04dca106d39f674fb3a23f635bba7ad5a430e635ea1cfdd"
+      }
+    ],
+    "post_prune_validation": [
+      "cargo_fmt_all_check_passed",
+      "cargo_check_tests_passed",
+      "script_syntax_passed",
+      "git_diff_check_passed"
+    ]
+  }
+}

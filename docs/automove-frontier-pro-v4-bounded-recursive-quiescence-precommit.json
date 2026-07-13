@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "precommit_id": "automove_frontier_pro_v4_bounded_recursive_quiescence_20260712_fresh01",
+  "candidate_id": "frontier_pro_v4_bounded_recursive_quiescence",
+  "objective": "promote_a_stronger_public_pro_route_by_backing_up_one_additional_tactical_quiescence_layer_under_the_existing_hard_budgets",
+  "created_date": "2026-07-12",
+  "status": "prospectively_frozen_before_implementation_or_candidate_evidence",
+  "selection_provenance": {
+    "three_independent_code_and_archive_reviews_converged": true,
+    "all_archived_promotion_candidates_exhausted": true,
+    "reply_branch_completion_killed_before_duel_for_zero_public_causality": true,
+    "mechanism_is_not_selected_from_variant_or_result_row_tuning": true
+  },
+  "distinctness": {
+    "from_existing_public_quiescence": "recursive_alpha_beta_backup_instead_of_static_scoring_after_one_tactical_layer",
+    "from_work_conserving_quiescence": "same_existing_front_loaded_global_budget_allocation_not_per_root_budget_redistribution",
+    "from_productive_accounting": "same_existing_charge_timing_not_charge_suppression_on_empty_sets",
+    "from_empty_prefix_rescue": "same_existing_tactical_child_set_not_broader_enumeration",
+    "from_same_turn_extension": "depth_zero_tactical_quiescence_only_not_ordinary_search_depth_extension",
+    "from_reply_root_or_selector_lines": "shared_leaf_backup_not_root_routing_or_comparison",
+    "variant_color_turn_fen_opponent_policy_or_move_identity_routing": false
+  },
+  "retained_baselines": {
+    "public_pro_route": "frontier_pro_v2_guarded",
+    "shipping_search_control": "shipping_pro_search",
+    "public_route_unchanged_until_all_gates_pass": true
+  },
+  "fixed_mechanism": {
+    "only_candidate_flag": "enable_bounded_recursive_quiescence=true_on_top_of_apply_frontier_pro_v2_guarded_config",
+    "only_behavioral_seam": "depth_zero_tactical_quiescence_backup",
+    "quiescence_max_ply": 2,
+    "legacy_equivalent_ply": 1,
+    "quiescence_node_budget": 120,
+    "quiescence_tactical_enum_limit": 12,
+    "global_max_visited_nodes": "unchanged_guarded_Pro_limit",
+    "tactical_child_generator": "existing_enumerate_quiescence_tactical_games",
+    "tactical_predicate_and_order": "unchanged",
+    "stand_pat": "preserve_existing_fail_soft_clamp_as_an_evaluation_approximation_not_a_claimed_legal_pass",
+    "alpha_beta": "recompute_maximizing_or_minimizing_at_every_recursive_state_from_active_color_equal_to_perspective",
+    "terminal_children": "score_with_existing_terminal_score_before_static_or_recursive_backup",
+    "quiet_or_ply_cap_children": "evaluate_with_existing_evaluate_search_preferability",
+    "cycle_handling": "path_local_search_state_hash_is_only_a_prefilter_and_cycle_stop_requires_search_states_exactly_equal_before_returning_current_state_stand_pat",
+    "hash_collision_behavior": "same_hash_but_not_exactly_equal_search_state_must_continue_recursion",
+    "transposition_table_in_quiescence": false,
+    "quiescence_state_charge": "one_existing_quiescence_node_charge_per_expanded_quiescence_state",
+    "transition_charge": "one_existing_visited_node_charge_per_evaluated_tactical_child",
+    "hard_stops": [
+      "quiescence_ply_2",
+      "global_quiescence_node_budget_120",
+      "global_max_visited_nodes",
+      "terminal_state",
+      "quiet_state",
+      "path_cycle"
+    ],
+    "test_only_flags_combined": false,
+    "work_conserving_productive_empty_prefix_stratified_completed_depth_or_reply_candidate_flags": false,
+    "retune_depth_predicate_order_or_budget_after_results": false
+  },
+  "parity_and_safety_contract": {
+    "flag_off_behavior_and_accounting_exactly_legacy": true,
+    "ply_1_parity_scope": "nonterminal_synthetic_trees_only",
+    "terminal_child_difference": "candidate_intentionally_uses_terminal_sentinel_where_legacy_one_ply_static_eval_did_not_call_terminal_score_explicitly",
+    "all_candidate_changes_require_a_depth_2_or_terminal_child_trace": true,
+    "candidate_q_nodes_at_most": 120,
+    "candidate_visited_nodes_at_most_guarded_global_cap": true,
+    "candidate_extension_nodes_at_most_guarded_extension_cap": true
+  },
+  "pre_implementation_source_pins": [
+    {
+      "path": "src/models/mons_game_model.rs",
+      "size_bytes": 1874003,
+      "sha256": "2b8bcf92880357ef8b1d19f92e8eaa122f854f23bd8b2b103d8ed6d466e5f811"
+    },
+    {
+      "path": "src/models/automove_runtime_variants.rs",
+      "size_bytes": 34880,
+      "sha256": "0aacc6b004e454db7c8bc4406e4690ca6eefe217881b9a0a25df5a13e7bec5e3"
+    },
+    {
+      "path": "src/models/automove_experiments/tests/diagnostics/mod.rs",
+      "size_bytes": 1231469,
+      "sha256": "9799d7316e7084595129aa797f5583db0b4ec1e9222bf972cf94cfca5233ed63"
+    },
+    {
+      "path": "src/models/automove_experiments/mod.rs",
+      "size_bytes": 7552,
+      "sha256": "ddd26e2a62c8cf9447f3a998d7c03b1387af76ec24e8498c5f3d074c4f6b09fd"
+    },
+    {
+      "path": "src/models/automove_experiments/harness/runner.rs",
+      "size_bytes": 44321,
+      "sha256": "40f983b6694efe8400b36d1dc696c4a5e3af8af30ee1d51fbd8cc032d45c5111"
+    },
+    {
+      "path": "scripts/automove-experiment-common.sh",
+      "size_bytes": 17236,
+      "sha256": "f901eb8111d42a9ca04dca106d39f674fb3a23f635bba7ad5a430e635ea1cfdd"
+    }
+  ],
+  "frozen_exact_five_source": {
+    "fixture_code": {
+      "path": "src/models/automove_experiments/tests/diagnostics/expansion_only_tt_accounting.rs",
+      "size_bytes": 48833,
+      "sha256": "40ceba62bac1718e0923c15c3dc20d2850477b5bf8af5e8d84c95ead8801d4b8"
+    },
+    "source_log": {
+      "path": "target/experiment-runs/frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_bridge_shipping_pro_search_co_983314459/20260624-232056_pro_policy_outcome_corpus_frontier_pro_v2_guarded_frontier_pro_v3_targeted_opening_br_3916922365.log",
+      "size_bytes": 430857,
+      "sha256": "dc1def82b5534a46fcb36b7030002e8060712cf4912165a58dee796e6904a2cc"
+    },
+    "boards": 5,
+    "colors": [
+      "black",
+      "white"
+    ],
+    "variants": [
+      "alternating_mana_rows",
+      "forward_bridge_mana_rows",
+      "inner_wedge_mana_rows"
+    ],
+    "guarded_source_outcome": "loss_on_all_five_against_shipping_pro"
+  },
+  "prior_directional_evidence": {
+    "role": "one_ply_quiescence_surface_and_cost_prior_only_not_recursive_candidate_strength_evidence",
+    "work_conserving_log": {
+      "path": "target/experiment-runs/frontier_pro_v4_work_conserving_quiescence/20260711-182314_pro_promotion_dashboard_frontier_pro_v4_work_conserving_quiescence.log",
+      "size_bytes": 5345,
+      "sha256": "9e53962eebae8e48e4d29e8ae1b0d14e69e895589962b660cf478f486cf99a65"
+    },
+    "sampled_shipping_pro": "8-4_candidate_avg_ms_132.81_but_alternating_and_inner_wedge_each_0-2",
+    "exact_five_one_ply_surface": "960_reached_leaf_scans_split_240_120_120_120_360_in_the_archived_consumable_classification_no_go"
+  },
+  "focused_contracts_before_causality": [
+    "flag_off_behavior_root_scores_inputs_and_all_work_counters_exactly_legacy",
+    "nonterminal_q_ply_1_matches_legacy_one_ply_backup",
+    "two_ply_maximizing_and_minimizing_alpha_beta_exchange",
+    "actor_retention_and_actor_handoff_recompute_max_or_min",
+    "terminal_children_use_terminal_sentinels",
+    "quiet_and_ply_cap_states_use_stand_pat_or_static_evaluation_as_frozen",
+    "path_cycles_stop_deterministically_without_TT",
+    "quiescence_120_global_visited_and_extension_caps_are_never_exceeded",
+    "candidate_is_test_only_and_public_and_retained_profiles_are_unchanged"
+  ],
+  "frozen_exact_five_causality_gate": {
+    "candidate_runs_per_board": 2,
+    "required": {
+      "depth_2_tactical_chain_boards_at_least": 4,
+      "depth_2_tactical_chain_colors": [
+        "black",
+        "white"
+      ],
+      "strict_backed_up_root_score_change_boards_at_least": 2,
+      "locally_depth_2_attributed_strict_root_score_change_boards_at_least": 1,
+      "public_input_change_boards_at_least": 2,
+      "locally_depth_2_attributed_public_input_change_boards_at_least": 1,
+      "public_input_change_colors": [
+        "black",
+        "white"
+      ],
+      "changes_without_depth_2_or_terminal_trace": 0,
+      "terminal_only_or_global_budget_displacement_changes_may_authorize_recursion": false,
+      "illegal_nondeterministic_or_wrong_branch_boards": 0,
+      "quiescence_visited_or_extension_cap_failures": 0,
+      "aggregate_search_work_ratio_at_most": 1.2,
+      "each_board_candidate_avg_ms_at_most": 700
+    },
+    "failure": "kill_exact_candidate_without_depth_predicate_order_budget_fixture_or_threshold_retune",
+    "success": "authorize_only_the_exact_five_sequential_outcome_gate"
+  },
+  "frozen_exact_five_sequential_outcome_gate": {
+    "opponent_profile": "shipping_pro_search",
+    "opponent_mode": "pro",
+    "max_plies": 96,
+    "required_loss_to_nonloss_repairs_at_least": 1,
+    "determinism_legality_and_all_caps": true,
+    "every_candidate_average_ms_at_most": 700,
+    "failure": "kill_exact_candidate_before_72_state_or_duel_spend",
+    "success": "authorize_only_the_72_digest_breadth_gate"
+  },
+  "frozen_72_digest_breadth_gate": {
+    "corpus": {
+      "path": "target/experiment-runs/frontier_pro_v4_completed_depth_equalized/plan_head_support_requests_r107_r108.tsv",
+      "size_bytes": 67043,
+      "sha256": "49421d67ff4807577795b939fc3111450ae1cc898a27d56b6e55f1a5de50a647",
+      "rows": 333,
+      "digest_states": 72,
+      "unique_fens": 71
+    },
+    "required": {
+      "depth_2_tactical_chain_states_at_least": 8,
+      "depth_2_tactical_chain_colors": [
+        "black",
+        "white"
+      ],
+      "depth_2_tactical_chain_variants_at_least": 4,
+      "strict_quiescence_or_root_score_change_states_at_least": 4,
+      "changes_without_depth_2_or_terminal_trace": 0,
+      "illegal_nondeterministic_or_cap_failure_states": 0,
+      "aggregate_search_work_ratio_at_most": 1.2,
+      "every_variant_color_candidate_avg_ms_at_most": 700
+    },
+    "failure": "kill_exact_candidate_before_direct_scout",
+    "success": "authorize_only_the_fresh_direct_scout"
+  },
+  "fresh_direct_scout": {
+    "opponent_profile": "frontier_pro_v2_guarded",
+    "opponent_mode": "pro",
+    "duel_filter": "vs_shipping_pro",
+    "variant_policy": "all",
+    "repeats": 1,
+    "games_per_repeat": 12,
+    "mirrored_total_games": 24,
+    "max_plies": 96,
+    "seed_tag": "frontier_pro_v4_bounded_recursive_quiescence_direct_guarded_scout_20260712_fresh01",
+    "aggregate_min_win_rate": 0.6,
+    "aggregate_min_confidence": 0.95,
+    "every_variant_min_win_rate": 0.5
+  },
+  "fresh_full_gates_after_scout": {
+    "direct_current_guarded": {
+      "opponent_profile": "frontier_pro_v2_guarded",
+      "opponent_mode": "pro",
+      "duel_filter": "vs_shipping_pro",
+      "variant_policy": "all",
+      "repeats": 4,
+      "games_per_repeat": 12,
+      "max_plies": 96,
+      "seed_tag": "frontier_pro_v4_bounded_recursive_quiescence_direct_guarded_full_20260712_fresh02",
+      "aggregate_min_win_rate": 0.6,
+      "aggregate_min_confidence": 0.95,
+      "every_variant_min_win_rate": 0.5
+    },
+    "shipping_safety": {
+      "variant_policy": "all",
+      "opponent_modes": [
+        "pro",
+        "normal",
+        "fast"
+      ],
+      "repeats": 2,
+      "games_per_repeat": 12,
+      "max_plies": 96,
+      "seed_tag": "frontier_pro_v4_bounded_recursive_quiescence_shipping_safety_20260712_fresh02",
+      "each_aggregate_min_win_rate": 0.5,
+      "every_variant_each_duel_min_win_rate": 0.5
+    },
+    "promotion_dashboard": {
+      "sampled_each_shipping_matchup_min_record": "9-3",
+      "active_blocker_each_shipping_matchup_min_record": "4-2",
+      "no_variant_row": "0-2"
+    }
+  },
+  "latency_contract": {
+    "hard_limit_ms": 700,
+    "applies_to_every_aggregate_and_per_variant_candidate_average": true,
+    "warning_threshold_ms": 650,
+    "warning_is_not_a_failure": true,
+    "hard_limit_may_not_be_relaxed": true
+  },
+  "decision_contract": {
+    "any_pre_duel_gate_failure": "kill_and_prune_exact_candidate",
+    "direct_scout_failure": "kill_and_prune_exact_candidate",
+    "any_full_gate_or_latency_failure": "kill_and_prune_exact_candidate",
+    "all_gates_pass": "move_the_exact_two_ply_recursive_quiescence_behavior_into_the_wasm_reachable_public_pro_route_under_the_stable_frontier_pro_v2_guarded_profile_id_and_prune_the_provisional_candidate_id",
+    "external_package_publish": false
+  },
+  "permissions": {
+    "implement_exact_test_only_candidate": true,
+    "run_focused_contracts": true,
+    "run_exact_five_causality_first": true,
+    "run_each_later_gate_only_after_prior_gate_passes": true,
+    "change_public_route_before_all_gates_pass": false,
+    "retune_after_results": false,
+    "relax_700ms_limit": false
+  }
+}
