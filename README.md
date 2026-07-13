@@ -70,5 +70,5 @@ Use `keep/<name>` for any branch that should survive repo cleanup.
 - Run `cargo test --release --lib automove_runtime_black_turn_eight_deadline_tail_probe -- --ignored --nocapture` to enforce the whole-call `700ms` ceiling.
 - Run `./scripts/check-automove-hygiene.sh`.
 - Run `./scripts/assert-release-package-surface.sh pkg/web pkg/node` after the Wasm packages are built.
-- Run `node ./scripts/assert-release-automove-route.cjs pkg/node/mons_rust.js` to verify the generated package routes public Pro through bounded tactical v10 on a fixture that differs from both retained v2 and shipping search.
+- Run `node ./scripts/assert-release-automove-route.cjs pkg/node/mons-rust.js` to verify the generated package routes public Pro through bounded tactical v10 on a fixture that differs from both retained v2 and shipping search.
 - Clean disposable experiment artifacts after validation with `./scripts/clean-experiment-artifacts.sh`.

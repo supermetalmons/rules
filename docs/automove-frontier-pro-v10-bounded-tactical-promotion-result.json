@@ -319,7 +319,7 @@
   },
   "final_source_sha256": {
     "src/models/automove_deadline.rs": "9bfeebbd535ea666e18d97f16cc2bea7b5ec333f15855a5d187293d9fb0668b1",
-    "src/models/automove_runtime_variants.rs": "5061c3d6fc7094d2fe3de741f1b0a68a0c50fe91ad22987d57b921742d5a27e4",
+    "src/models/automove_runtime_variants.rs": "be3ee9297d13a687e33a9abb37aa10545e6f788ef62b1ecee14025a62e00e9b9",
     "src/models/mons_game_model.rs": "2e0435ac875aeaec53194382d55b0293497a20f6827027dd29a6300ba20f85b4",
     "src/models/automove_exact.rs": "5d7f7e29b273e102369d8478c78879ef273f3b1cab1eae768ee19d330762d1f6",
     "src/models/automove_turn_engine.rs": "099b609e9459e630c479959c9c134fcafd06bac33a5f10bda3d0c35be5b99a14",
@@ -332,6 +332,6 @@
     "src/models/automove_experiments/tests/diagnostics/mod.rs": "b04137c47693b73f15b99b52826c66752cc96b4e4216e93f6655d80ba4d7d45f",
     "scripts/run-experiment-logged.sh": "2985108c3df9d81830631f29cda4908803116af07f51191fbc3db4fbda9d216e",
     "scripts/automove-experiment-common.sh": "9da91745f3672fadaea6494d87316067352ae99aeac8916fbbaf1f6b27b16b79",
-    "scripts/assert-release-automove-route.cjs": "18efed4e0bd7fa23b5ecf900cf9d97bac57f76227f227dd8a1ef8397ec29ef19"
+    "scripts/assert-release-automove-route.cjs": "b8c6ce8422c2663e45b6dc799cc9e4cc39cb560f052a9e9469302a860a5c13f4"
   }
 }

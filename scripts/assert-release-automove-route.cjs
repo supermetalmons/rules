@@ -6,7 +6,7 @@ const path = require("node:path");
 
 const packagePath = path.resolve(
   process.cwd(),
-  process.argv[2] ?? "pkg/node/mons_rust.js",
+  process.argv[2] ?? "pkg/node/mons-rust.js",
 );
 const wasmPackage = require(packagePath);
 

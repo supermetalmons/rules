@@ -22,9 +22,15 @@ if ! cargo test --release --lib smart_automove_release_mixed_runtime_speed_gate 
     exit 1
 fi
 
+echo "Enforcing the 700ms Pro selector hard limit..."
+if ! cargo test --release --lib automove_runtime_black_turn_eight_deadline_tail_probe -- --ignored --nocapture; then
+    echo "Pro selector hard-limit gate failed. Aborting publish."
+    exit 1
+fi
+
 echo "Confirming optimized public Pro route..."
 cargo test --release --lib \
-    smart_automove_pro_matches_frontier_guarded_selector_on_discriminating_fixture
+    smart_automove_pro_matches_frontier_bounded_tactical_selector_on_release_fixture
 
 echo "Running release hygiene checks..."
 ./scripts/check-automove-hygiene.sh
