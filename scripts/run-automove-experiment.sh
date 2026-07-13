@@ -15,7 +15,7 @@ stages:
   runtime-preflight       stage-1 cpu report (advisory for Pro) + exact-lite diagnostics; writes the duel stamp
   pro-triage              deterministic retained Classic primary_pro triage
   pro-reliability         sampled-variant Pro-vs-Pro, Pro-vs-Normal, and Pro-vs-Fast reliability gate
-  pro-reliability-confirm all-variant confirmation gate with the same three Pro matchups
+  pro-reliability-confirm all-variant confirmation of the Pro frontier vs Pro/Normal/Fast opponent budgets
   pro-profile-sweep       diagnostic: sweep one or more test-only Pro profile candidates
   pro-profile-attribution diagnostic: attribute outcome deltas between two sweep candidates
   pro-promotion-dashboard diagnostic: summarize sampled + active-blocker promotion shape
@@ -27,25 +27,26 @@ stages:
   pro-policy-corpus      diagnostic: policy-winner plus guarded mechanism aggregates
 
 defaults:
-  shipping = shipping_pro_search for Pro stages
+  shipping = shipping_pro_search as the duel comparator for Pro stages
 EOF_HELP
   cat <<'EOF_HELP'
 examples:
-  ./scripts/run-automove-experiment.sh guardrails frontier_pro_v2_guarded
-  ./scripts/run-automove-experiment.sh variant-smoke frontier_pro_v2_guarded
-  ./scripts/run-automove-experiment.sh runtime-preflight frontier_pro_v2_guarded
-  ./scripts/run-automove-experiment.sh pro-triage frontier_pro_v2_guarded
-  ./scripts/run-automove-experiment.sh pro-reliability frontier_pro_v2_guarded
-  ./scripts/run-automove-experiment.sh pro-reliability-confirm frontier_pro_v2_guarded
+  ./scripts/run-automove-experiment.sh guardrails frontier_pro_v10_bounded_tactical
+  ./scripts/run-automove-experiment.sh variant-smoke frontier_pro_v10_bounded_tactical
+  ./scripts/run-automove-experiment.sh runtime-preflight frontier_pro_v10_bounded_tactical
+  ./scripts/run-automove-experiment.sh pro-triage frontier_pro_v10_bounded_tactical
+  ./scripts/run-automove-experiment.sh pro-reliability frontier_pro_v10_bounded_tactical
+  ./scripts/run-automove-experiment.sh pro-reliability-confirm frontier_pro_v10_bounded_tactical
+  # Historical v2-derived reset and attribution diagnostics:
   ./scripts/run-automove-experiment.sh pro-profile-sweep frontier_pro_v2_raw
   SMART_PRO_SWEEP_ATTRIBUTION_RIGHT=frontier_pro_v2_raw ./scripts/run-automove-experiment.sh pro-profile-attribution frontier_pro_v2_guarded
   ./scripts/run-automove-experiment.sh pro-promotion-dashboard frontier_pro_v2_raw
   ./scripts/run-automove-experiment.sh pro-sweep-decision-record frontier_pro_v2_guarded
-  ./scripts/run-automove-experiment.sh pro-policy-matrix frontier_pro_v2_guarded,frontier_pro_v2_no_selected_followup_projection,frontier_pro_v3_full_scored_reply_guard
-  ./scripts/run-automove-experiment.sh pro-policy-outcome-corpus frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,frontier_pro_v3_white_opening_utility_mana,shipping_pro_search_control,frontier_pro_v2_raw,frontier_pro_v2_no_selected_followup_projection,frontier_pro_v3_full_scored_reply_guard,frontier_pro_v2_no_low_budget_guard
-  ./scripts/run-automove-experiment.sh pro-policy-cross-budget frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,shipping_pro_search_control
-  ./scripts/run-automove-experiment.sh pro-policy-winner frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,shipping_pro_search_control
-  ./scripts/run-automove-experiment.sh pro-policy-corpus frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,frontier_pro_v3_white_opening_utility_mana,shipping_pro_search_control,frontier_pro_v2_raw,frontier_pro_v2_no_selected_followup_projection,frontier_pro_v3_full_scored_reply_guard,frontier_pro_v2_no_low_budget_guard
+  ./scripts/run-automove-experiment.sh pro-policy-matrix frontier_pro_v10_bounded_tactical,frontier_pro_v2_guarded,frontier_pro_v2_no_selected_followup_projection,frontier_pro_v3_full_scored_reply_guard
+  ./scripts/run-automove-experiment.sh pro-policy-outcome-corpus frontier_pro_v10_bounded_tactical,frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,frontier_pro_v3_white_opening_utility_mana,shipping_pro_search_control,frontier_pro_v2_raw,frontier_pro_v2_no_selected_followup_projection,frontier_pro_v3_full_scored_reply_guard,frontier_pro_v2_no_low_budget_guard
+  ./scripts/run-automove-experiment.sh pro-policy-cross-budget frontier_pro_v10_bounded_tactical,frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,shipping_pro_search_control
+  ./scripts/run-automove-experiment.sh pro-policy-winner frontier_pro_v10_bounded_tactical,frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,shipping_pro_search_control
+  ./scripts/run-automove-experiment.sh pro-policy-corpus frontier_pro_v10_bounded_tactical,frontier_pro_v2_guarded,frontier_pro_v3_alternating_white_edge_mana,frontier_pro_v3_white_opening_utility_mana,shipping_pro_search_control,frontier_pro_v2_raw,frontier_pro_v2_no_selected_followup_projection,frontier_pro_v3_full_scored_reply_guard,frontier_pro_v2_no_low_budget_guard
 EOF_HELP
 }
 
@@ -115,6 +116,7 @@ require_fresh_preflight_stamp() {
   local dependency_paths=(
     "src/models/mons_game.rs"
     "src/models/scoring.rs"
+    "src/models/automove_deadline.rs"
     "src/models/automove_exact.rs"
     "src/models/automove_turn_engine.rs"
     "src/models/automove_runtime_variants.rs"
@@ -266,6 +268,7 @@ case "${stage}" in
       "SMART_PRO_RELIABILITY_REPEATS=3" \
       "SMART_PRO_RELIABILITY_GAMES=2" \
       "SMART_PRO_RELIABILITY_MAX_PLIES=96" \
+      "SMART_DUEL_VERIFY_DETERMINISM=true" \
       "SMART_SKIP_RUNTIME_PREFLIGHT=true"
     ;;
   pro-reliability-confirm)
@@ -277,6 +280,7 @@ case "${stage}" in
       "SMART_PRO_RELIABILITY_REPEATS=2" \
       "SMART_PRO_RELIABILITY_GAMES=12" \
       "SMART_PRO_RELIABILITY_MAX_PLIES=96" \
+      "SMART_DUEL_VERIFY_DETERMINISM=true" \
       "SMART_SKIP_RUNTIME_PREFLIGHT=true"
     ;;
   pro-profile-sweep)

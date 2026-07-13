@@ -6,14 +6,15 @@ const path = require("node:path");
 
 const packagePath = path.resolve(
   process.cwd(),
-  process.argv[2] ?? "pkg/node/mons-rust.js",
+  process.argv[2] ?? "pkg/node/mons_rust.js",
 );
 const wasmPackage = require(packagePath);
 
 const discriminatingFen =
-  "0 0 b 0 0 2 0 0 2 n03y0xn01d0xa0xn04/n04s0xn01e0xn04/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n04A0xD0xn05/n03E0xn02S0xn02Y0xn01";
-const guardedInputs = "l1,4;l3,6;l2,7";
-const shippingBaselineInputs = "l1,4;l3,4;l3,3";
+  "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n02E0xn01A0xD0xS0xY0xn03";
+const boundedTacticalInputs = "l10,5;l9,4";
+const previousGuardedInputs = "l10,6;l9,6";
+const shippingBaselineInputs = "l10,6;l9,6";
 
 const model = wasmPackage.MonsGameModel.from_fen(discriminatingFen);
 assert(model, "failed to load the release-route fixture");
@@ -24,14 +25,24 @@ try {
   const actualInputs = output.input_fen();
 
   assert.notEqual(
-    guardedInputs,
+    boundedTacticalInputs,
+    previousGuardedInputs,
+    "release-route fixture no longer discriminates v10 from retained v2",
+  );
+  assert.notEqual(
+    boundedTacticalInputs,
     shippingBaselineInputs,
-    "release-route fixture no longer discriminates between selectors",
+    "release-route fixture no longer discriminates v10 from shipping search",
   );
   assert.equal(
     actualInputs,
-    guardedInputs,
+    boundedTacticalInputs,
     `generated package public Pro route returned ${actualInputs}`,
+  );
+  assert.notEqual(
+    actualInputs,
+    previousGuardedInputs,
+    "generated package public Pro route fell back to frontier_pro_v2_guarded",
   );
   assert.notEqual(
     actualInputs,

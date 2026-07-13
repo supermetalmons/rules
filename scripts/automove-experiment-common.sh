@@ -3,6 +3,7 @@
 retained_profiles=(
   shipping_pro_search
   frontier_pro_v2_guarded
+  frontier_pro_v10_bounded_tactical
 )
 
 sweep_candidates=(
@@ -14,9 +15,11 @@ sweep_candidates=(
   frontier_pro_v2_no_low_budget_guard
   frontier_pro_v3_alternating_white_edge_mana
   frontier_pro_v3_white_opening_utility_mana
+  frontier_pro_v10_bounded_tactical
 )
 
 reset_portfolio=(
+  frontier_pro_v10_bounded_tactical
   frontier_pro_v2_guarded
   frontier_pro_v3_alternating_white_edge_mana
   frontier_pro_v3_white_opening_utility_mana
@@ -50,10 +53,16 @@ sweep_candidate_metadata() {
       metadata_kill_condition="no repeated non-regressing mechanism below policy label"
       ;;
     frontier_pro_v2_guarded)
-      metadata_mechanism="retained shipped Pro guarded wrapper path"
-      metadata_expected_invariant="anchor promotion and corpus comparisons to the public Pro route"
+      metadata_mechanism="retained previous-production guarded Pro comparator"
+      metadata_expected_invariant="anchor historical corpus comparisons to the pre-v10 production route"
       metadata_risk_rows="self-scouts can only report promotion shape or no-source evidence"
       metadata_kill_condition="dashboard not_promising or corpus source_permission no_source"
+      ;;
+    frontier_pro_v10_bounded_tactical)
+      metadata_mechanism="guarded ProV2 with targeted drainer fallback, exact bounded lexicographic attack generation, the root reply-risk veto disabled, a 550ms frontier outer deadline, and a 200ms Fast-bank child deadline; shipping modes retain 650ms"
+      metadata_expected_invariant="preserve completed lexical fallback selection, bank an unchanged completed Fast move or deterministic emergency move, clear timeout caches, and keep every whole-selector original/cold call at or below 700ms"
+      metadata_risk_rows="at most two below-0.50 variants are tolerated per all-variant confirmation panel"
+      metadata_kill_condition="aggregate point rate below 7/12 or confidence below 0.60 in any matchup, more than two below-0.50 confirmation variants, any functional failure, replay mismatch rate above 3% for either profile, or either profile above 700ms on an independently cold call"
       ;;
     frontier_pro_v2_raw)
       metadata_mechanism="direct ProV2 turn-engine path without guarded wrapper fallback routing"
