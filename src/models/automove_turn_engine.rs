@@ -17,7 +17,7 @@ const TURN_ENGINE_COMPILE_LIMIT_MAX: usize = 256;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum TurnEngineMode {
     ProV1,
-    ProV2,
+    CurrentPro,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,27 +34,12 @@ pub(crate) struct TurnEngineConfig {
     pub expansion_cap: usize,
     pub enable_spirit_family: bool,
     pub scoring_weights: &'static ScoringWeights,
-    pub allow_exact_static_evaluation: bool,
     pub enable_lazy_oracle_score_window_projection: bool,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct TurnSnapshot {
     pub state_hash: u64,
-    #[allow(dead_code)]
-    pub active_color: Color,
-    #[allow(dead_code)]
-    pub white_score: i32,
-    #[allow(dead_code)]
-    pub black_score: i32,
-    #[allow(dead_code)]
-    pub remaining_mon_moves: i32,
-    #[allow(dead_code)]
-    pub can_use_action: bool,
-    #[allow(dead_code)]
-    pub can_move_mana: bool,
-    #[allow(dead_code)]
-    pub occupied: Vec<(Location, Item)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -216,31 +201,7 @@ impl TurnEngineUtility {
 }
 
 #[cfg(test)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct TurnEngineUtilityComponentsForTest {
-    pub win_state: i32,
-    pub avoid_immediate_loss: i32,
-    pub score_delta: i32,
-    pub deny_gain: i32,
-    pub drainer_attack: i32,
-    pub drainer_safety: i32,
-    pub eval_score: i32,
-}
-
-#[cfg(test)]
 impl TurnEngineUtility {
-    pub(crate) fn components_for_test(self) -> TurnEngineUtilityComponentsForTest {
-        TurnEngineUtilityComponentsForTest {
-            win_state: self.win_state,
-            avoid_immediate_loss: self.avoid_immediate_loss,
-            score_delta: self.score_delta,
-            deny_gain: self.deny_gain,
-            drainer_attack: self.drainer_attack,
-            drainer_safety: self.drainer_safety,
-            eval_score: self.eval_score,
-        }
-    }
-
     pub(crate) fn from_eval_score_for_test(eval_score: i32) -> Self {
         Self {
             win_state: 0,
@@ -296,56 +257,6 @@ pub(crate) struct TurnPackageMeta {
     pub spirit_only_setup: bool,
     pub ends_nonnegative_drainer_safety: bool,
     pub opponent_immediate_window_after: i32,
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct TurnEngineDiagnostics {
-    pub cache_hits: usize,
-    pub cache_misses: usize,
-    pub seed_immediate_score: usize,
-    pub seed_deny_window: usize,
-    pub seed_drainer_kill: usize,
-    pub seed_safe_supermana_progress: usize,
-    pub seed_safe_opponent_mana_progress: usize,
-    pub seed_safety_recovery: usize,
-    pub seed_spirit_impact: usize,
-    pub seed_mana_tempo: usize,
-    pub accepted_plans: usize,
-    pub accepted_immediate_score: usize,
-    pub accepted_deny_window: usize,
-    pub accepted_drainer_kill: usize,
-    pub accepted_safe_supermana_progress: usize,
-    pub accepted_safe_opponent_mana_progress: usize,
-    pub accepted_safety_recovery: usize,
-    pub accepted_spirit_impact: usize,
-    pub accepted_mana_tempo: usize,
-    pub compile_attempts: usize,
-    pub compile_failures: usize,
-    pub compile_failures_at_limit: usize,
-    pub compile_state_mismatches: usize,
-    pub compile_walk_attempts: usize,
-    pub compile_walk_failures: usize,
-    pub compile_attack_attempts: usize,
-    pub compile_attack_failures: usize,
-    pub compile_spirit_shift_attempts: usize,
-    pub compile_spirit_shift_failures: usize,
-    pub compile_bomb_attempts: usize,
-    pub compile_bomb_failures: usize,
-    pub compile_move_mana_attempts: usize,
-    pub compile_move_mana_failures: usize,
-    pub compile_score_attempts: usize,
-    pub compile_score_failures: usize,
-    pub compile_retreat_attempts: usize,
-    pub compile_retreat_failures: usize,
-    pub reply_search_calls: usize,
-    pub fallback_no_plan: usize,
-    pub fallback_budget_exceeded: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct TurnEngineCacheKey {
-    state_hash: u64,
-    mode: TurnEngineMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -509,17 +420,6 @@ struct PlanNode {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
-struct OpportunityPlanNode {
-    game: MonsGame,
-    opportunities: Vec<TurnOpportunity>,
-    compiled_chunks: Vec<Vec<Input>>,
-    head_utility: TurnEngineUtility,
-    head_family: TurnPlanFamily,
-    goal_family: TurnPlanFamily,
-}
-
-#[derive(Debug, Clone)]
 struct MacroPlanNode {
     game: MonsGame,
     actions: Vec<TurnAction>,
@@ -528,19 +428,6 @@ struct MacroPlanNode {
     head_family: TurnPlanFamily,
     goal_family: TurnPlanFamily,
     signature: u64,
-}
-
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub(crate) struct OpportunityPlan {
-    pub opportunities: Vec<TurnOpportunity>,
-    pub compiled_chunks: Vec<Vec<Input>>,
-    pub end_game: MonsGame,
-    pub end_snapshot: TurnSnapshot,
-    pub utility: TurnEngineUtility,
-    pub head_utility: TurnEngineUtility,
-    pub head_family: TurnPlanFamily,
-    pub goal_family: TurnPlanFamily,
 }
 
 #[derive(Clone)]
@@ -559,8 +446,6 @@ enum PlanBuildStatus {
 thread_local! {
     static TURN_ENGINE_CONTINUATION_CACHE: RefCell<HashMap<TurnEngineContinuationCacheKey, Vec<Input>>> =
         RefCell::new(HashMap::new());
-    static TURN_ENGINE_ELIGIBILITY_CACHE: RefCell<HashMap<TurnEngineCacheKey, bool>> =
-        RefCell::new(HashMap::new());
     static TURN_ENGINE_ORACLE_CACHE: RefCell<HashMap<TurnOracleCacheKey, TurnOracleContext>> =
         RefCell::new(HashMap::new());
     static TURN_ENGINE_UTILITY_CACHE: RefCell<HashMap<TurnEngineUtilityCacheKey, TurnEngineUtility>> =
@@ -569,97 +454,21 @@ thread_local! {
         RefCell::new(HashMap::new());
     static TURN_ENGINE_NO_PLAN_CACHE: RefCell<HashSet<TurnEnginePlanCacheKey>> =
         RefCell::new(HashSet::new());
-    static TURN_ENGINE_DIAGNOSTICS: RefCell<TurnEngineDiagnostics> =
-        RefCell::new(TurnEngineDiagnostics::default());
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn clear_turn_engine_plan_cache() {
     TURN_ENGINE_CONTINUATION_CACHE.with(|cache| cache.borrow_mut().clear());
-    TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| cache.borrow_mut().clear());
     TURN_ENGINE_ORACLE_CACHE.with(|cache| cache.borrow_mut().clear());
     TURN_ENGINE_UTILITY_CACHE.with(|cache| cache.borrow_mut().clear());
     TURN_ENGINE_BEST_PLAN_CACHE.with(|cache| cache.borrow_mut().clear());
     TURN_ENGINE_NO_PLAN_CACHE.with(|cache| cache.borrow_mut().clear());
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
-pub(crate) fn clear_turn_engine_diagnostics() {
-    TURN_ENGINE_DIAGNOSTICS.with(|diagnostics| {
-        *diagnostics.borrow_mut() = TurnEngineDiagnostics::default();
-    });
-}
-
-#[cfg(test)]
-pub(crate) fn turn_engine_diagnostics_snapshot() -> TurnEngineDiagnostics {
-    TURN_ENGINE_DIAGNOSTICS.with(|diagnostics| *diagnostics.borrow())
-}
-
-fn update_turn_engine_diagnostics(update: impl FnOnce(&mut TurnEngineDiagnostics)) {
-    TURN_ENGINE_DIAGNOSTICS.with(|diagnostics| update(&mut diagnostics.borrow_mut()));
-}
-
-fn record_accepted_plan_family(family: TurnPlanFamily) {
-    update_turn_engine_diagnostics(|diagnostics| match family {
-        TurnPlanFamily::ImmediateScore => diagnostics.accepted_immediate_score += 1,
-        TurnPlanFamily::DenyOpponentWindow => diagnostics.accepted_deny_window += 1,
-        TurnPlanFamily::DrainerKill => diagnostics.accepted_drainer_kill += 1,
-        TurnPlanFamily::SafeSupermanaProgress => diagnostics.accepted_safe_supermana_progress += 1,
-        TurnPlanFamily::SafeOpponentManaProgress => {
-            diagnostics.accepted_safe_opponent_mana_progress += 1
-        }
-        TurnPlanFamily::DrainerSafetyRecovery => diagnostics.accepted_safety_recovery += 1,
-        TurnPlanFamily::SpiritImpact => diagnostics.accepted_spirit_impact += 1,
-        TurnPlanFamily::ManaTempo => diagnostics.accepted_mana_tempo += 1,
-    });
-}
-
-fn record_compile_attempt_for_action(action: TurnAction) {
-    update_turn_engine_diagnostics(|diagnostics| match action {
-        TurnAction::Walk { .. } => diagnostics.compile_walk_attempts += 1,
-        TurnAction::Attack { .. } => diagnostics.compile_attack_attempts += 1,
-        TurnAction::SpiritShift { .. } => diagnostics.compile_spirit_shift_attempts += 1,
-        TurnAction::Bomb { .. } => diagnostics.compile_bomb_attempts += 1,
-        TurnAction::MoveMana { .. } => diagnostics.compile_move_mana_attempts += 1,
-        TurnAction::ScoreCarry { .. } => diagnostics.compile_score_attempts += 1,
-        TurnAction::SafetyRetreat { .. } => diagnostics.compile_retreat_attempts += 1,
-    });
-}
-
-fn record_compile_failure_for_action(action: TurnAction, at_limit: bool) {
-    update_turn_engine_diagnostics(|diagnostics| {
-        if at_limit {
-            diagnostics.compile_failures_at_limit += 1;
-        }
-        match action {
-            TurnAction::Walk { .. } => diagnostics.compile_walk_failures += 1,
-            TurnAction::Attack { .. } => diagnostics.compile_attack_failures += 1,
-            TurnAction::SpiritShift { .. } => diagnostics.compile_spirit_shift_failures += 1,
-            TurnAction::Bomb { .. } => diagnostics.compile_bomb_failures += 1,
-            TurnAction::MoveMana { .. } => diagnostics.compile_move_mana_failures += 1,
-            TurnAction::ScoreCarry { .. } => diagnostics.compile_score_failures += 1,
-            TurnAction::SafetyRetreat { .. } => diagnostics.compile_retreat_failures += 1,
-        }
-    });
-}
-
 impl TurnSnapshot {
     pub(crate) fn from_game(game: &MonsGame) -> Self {
-        let mut occupied = game
-            .board
-            .occupied()
-            .map(|(location, item)| (location, *item))
-            .collect::<Vec<_>>();
-        occupied.sort_by(|a, b| a.0.cmp(&b.0));
         Self {
             state_hash: MonsGameModel::search_state_hash(game),
-            active_color: game.active_color,
-            white_score: game.white_score,
-            black_score: game.black_score,
-            remaining_mon_moves: remaining_moves_for_color(game, game.active_color),
-            can_use_action: game.player_can_use_action(),
-            can_move_mana: game.player_can_move_mana(),
-            occupied,
         }
     }
 }
@@ -727,34 +536,6 @@ pub(crate) fn turn_engine_next_inputs_from_allowed_heads(
     best_plan.compiled_chunks.first().cloned()
 }
 
-pub(crate) fn turn_engine_head_candidate_plans(
-    game: &MonsGame,
-    perspective: Color,
-    config: TurnEngineConfig,
-    limit: usize,
-) -> Vec<TurnPlan> {
-    if checkpoint() || game.active_color != perspective || limit == 0 {
-        return Vec::new();
-    }
-
-    let mut seen_heads = HashSet::<Vec<Input>>::new();
-    let plans = ranked_head_candidate_plans(game, perspective, config)
-        .into_iter()
-        .filter(|plan| {
-            plan.compiled_chunks
-                .first()
-                .map(|head| seen_heads.insert(head.clone()))
-                .unwrap_or(false)
-        })
-        .take(limit)
-        .collect();
-    if checkpoint() {
-        Vec::new()
-    } else {
-        plans
-    }
-}
-
 #[cfg(test)]
 pub(crate) fn turn_engine_best_plan_for_test(
     game: &MonsGame,
@@ -764,13 +545,7 @@ pub(crate) fn turn_engine_best_plan_for_test(
     turn_engine_candidate_plan_live(game, perspective, config)
 }
 
-#[allow(dead_code)]
-pub(crate) fn pro_v2_turn_engine_eligible(game: &MonsGame) -> bool {
-    should_attempt_pro_v2_turn_engine(game, game.active_color)
-}
-
 #[cfg(test)]
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TurnEnginePlanDigest {
     pub head_inputs_fen: String,
@@ -816,13 +591,6 @@ pub(crate) fn turn_engine_cached_step(
     if checkpoint() {
         return None;
     }
-    update_turn_engine_diagnostics(|diagnostics| {
-        if cached.is_some() {
-            diagnostics.cache_hits += 1;
-        } else {
-            diagnostics.cache_misses += 1;
-        }
-    });
     cached
 }
 
@@ -843,7 +611,6 @@ pub(crate) fn turn_engine_candidate_plan(
         if checkpoint() {
             return None;
         }
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
         return None;
     }
     if let Some(plan) = cached_best_plan_if_legal(game, no_plan_key) {
@@ -879,13 +646,9 @@ pub(crate) fn turn_engine_candidate_plan(
                     cache.insert(no_plan_key);
                 });
             }
-            update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
             None
         }
-        Err(PlanBuildStatus::BudgetExceeded) => {
-            update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_budget_exceeded += 1);
-            None
-        }
+        Err(PlanBuildStatus::BudgetExceeded) => None,
     }
 }
 
@@ -903,14 +666,7 @@ pub(crate) fn turn_engine_candidate_plan_live(
     }
     match result {
         Ok(Some(plan)) => Some(plan),
-        Ok(None) | Err(PlanBuildStatus::NoPlan) => {
-            update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
-            None
-        }
-        Err(PlanBuildStatus::BudgetExceeded) => {
-            update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_budget_exceeded += 1);
-            None
-        }
+        Ok(None) | Err(PlanBuildStatus::NoPlan) | Err(PlanBuildStatus::BudgetExceeded) => None,
     }
 }
 
@@ -944,14 +700,7 @@ pub(crate) fn turn_engine_candidate_plan_from_allowed_heads(
     }
     match result {
         Ok(Some(plan)) => Some(plan),
-        Ok(None) | Err(PlanBuildStatus::NoPlan) => {
-            update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_no_plan += 1);
-            None
-        }
-        Err(PlanBuildStatus::BudgetExceeded) => {
-            update_turn_engine_diagnostics(|diagnostics| diagnostics.fallback_budget_exceeded += 1);
-            None
-        }
+        Ok(None) | Err(PlanBuildStatus::NoPlan) | Err(PlanBuildStatus::BudgetExceeded) => None,
     }
 }
 
@@ -1072,7 +821,7 @@ fn build_best_plan(
     }
     let result = match config.mode {
         TurnEngineMode::ProV1 => build_best_plan_v1(game, perspective, config),
-        TurnEngineMode::ProV2 => build_best_opportunity_plan(game, perspective, config),
+        TurnEngineMode::CurrentPro => build_best_opportunity_plan(game, perspective, config),
     };
     if checkpoint() {
         Err(PlanBuildStatus::BudgetExceeded)
@@ -1101,7 +850,7 @@ fn ranked_candidate_plans(
         config.expansion_cap.max(1),
     ) {
         Ok(plans) => {
-            if matches!(config.mode, TurnEngineMode::ProV2) {
+            if matches!(config.mode, TurnEngineMode::CurrentPro) {
                 shortlist_macro_plans_for_reply(plans, config)
             } else {
                 plans
@@ -1109,51 +858,6 @@ fn ranked_candidate_plans(
         }
         Err(_) => Vec::new(),
     };
-    if checkpoint() {
-        return Vec::new();
-    }
-
-    if plans.is_empty() {
-        if let Some(plan) = fallback_single_action_plan(game, perspective, config) {
-            plans.push(plan);
-        }
-    }
-    if checkpoint() {
-        return Vec::new();
-    }
-
-    for plan in plans.iter_mut() {
-        if checkpoint() {
-            return Vec::new();
-        }
-        plan.utility = evaluate_plan_with_replies(game, plan, perspective, config);
-        if cancelled() {
-            return Vec::new();
-        }
-    }
-    plans.sort_by(|a, b| compare_plans(b, a));
-    plans
-}
-
-fn ranked_head_candidate_plans(
-    game: &MonsGame,
-    perspective: Color,
-    config: TurnEngineConfig,
-) -> Vec<TurnPlan> {
-    if checkpoint() || game.active_color != perspective {
-        return Vec::new();
-    }
-
-    let mut plans = generate_plans_for_mode(
-        game,
-        perspective,
-        config,
-        config.own_seed_cap.max(1),
-        config.own_beam.max(1),
-        config.step_cap.max(1),
-        config.expansion_cap.max(1),
-    )
-    .unwrap_or_default();
     if checkpoint() {
         return Vec::new();
     }
@@ -1295,10 +999,6 @@ fn build_best_plan_v1(
         }
     }
 
-    if let Some(best_plan) = best_plan.as_ref() {
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.accepted_plans += 1);
-        record_accepted_plan_family(best_plan.head_family);
-    }
     Ok(best_plan)
 }
 
@@ -1343,12 +1043,7 @@ fn best_plan_from_allowed_heads(
         }
     }
 
-    let best_plan = best_plan.map(|(plan, _)| plan);
-    if let Some(best_plan) = best_plan.as_ref() {
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.accepted_plans += 1);
-        record_accepted_plan_family(best_plan.head_family);
-    }
-    best_plan
+    best_plan.map(|(plan, _)| plan)
 }
 
 fn fallback_single_action_plan(
@@ -1514,10 +1209,6 @@ fn fallback_single_action_plan_from_allowed_heads(
     }
 
     let best_plan = best_plan.map(|(plan, _)| plan);
-    if let Some(best_plan) = best_plan.as_ref() {
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.accepted_plans += 1);
-        record_accepted_plan_family(best_plan.head_family);
-    }
     if checkpoint() {
         None
     } else {
@@ -1649,59 +1340,8 @@ fn compare_package_meta(left: TurnPackageMeta, right: TurnPackageMeta) -> Orderi
         ))
 }
 
-#[allow(dead_code)]
-fn compare_opportunity_plans(left: &OpportunityPlan, right: &OpportunityPlan) -> Ordering {
-    compare_plan_rank(
-        left.utility,
-        left.head_utility,
-        left.head_family,
-        right.utility,
-        right.head_utility,
-        right.head_family,
-    )
-    .then_with(|| family_rank(right.goal_family).cmp(&family_rank(left.goal_family)))
-    .then_with(|| family_rank(right.head_family).cmp(&family_rank(left.head_family)))
-    .then_with(|| right.opportunities.len().cmp(&left.opportunities.len()))
-    .then_with(|| left.compiled_chunks.cmp(&right.compiled_chunks))
-}
-
 fn opportunity_reply_shortlist_len(total: usize, beam: usize) -> usize {
     total.min(beam.saturating_mul(2).clamp(6, 12))
-}
-
-#[allow(dead_code)]
-fn shortlist_opportunity_plans_for_reply(
-    mut plans: Vec<OpportunityPlan>,
-    config: TurnEngineConfig,
-) -> Vec<OpportunityPlan> {
-    if plans.len() <= 1 {
-        return plans;
-    }
-
-    plans.sort_by(|a, b| compare_opportunity_plans(b, a));
-    let shortlist_len = opportunity_reply_shortlist_len(plans.len(), config.own_beam);
-    let per_signature_cap = if config.own_beam >= 4 { 2 } else { 1 };
-    let mut kept = Vec::with_capacity(shortlist_len);
-    let mut per_signature = HashMap::<(Vec<Input>, TurnPlanFamily, TurnPlanFamily), usize>::new();
-
-    for plan in plans.into_iter() {
-        let signature = (
-            plan.compiled_chunks.first().cloned().unwrap_or_default(),
-            plan.head_family,
-            plan.goal_family,
-        );
-        let count = per_signature.entry(signature).or_insert(0);
-        if *count >= per_signature_cap {
-            continue;
-        }
-        *count += 1;
-        kept.push(plan);
-        if kept.len() >= shortlist_len {
-            break;
-        }
-    }
-
-    kept
 }
 
 fn compare_plan_rank(
@@ -1786,26 +1426,6 @@ fn merge_plan_family(current: TurnPlanFamily, next: TurnPlanFamily) -> TurnPlanF
     }
 }
 
-#[allow(dead_code)]
-fn opportunity_plan_into_turn_plan(plan: OpportunityPlan) -> TurnPlan {
-    TurnPlan {
-        actions: plan
-            .opportunities
-            .iter()
-            .map(|opportunity| opportunity.action)
-            .collect(),
-        compiled_chunks: plan.compiled_chunks,
-        end_game: plan.end_game,
-        #[cfg(test)]
-        end_snapshot: plan.end_snapshot,
-        utility: plan.utility,
-        head_utility: plan.head_utility,
-        head_family: plan.head_family,
-        goal_family: plan.goal_family,
-        package_meta: TurnPackageMeta::default(),
-    }
-}
-
 fn build_best_opportunity_plan(
     game: &MonsGame,
     perspective: Color,
@@ -1862,305 +1482,11 @@ fn build_best_opportunity_plan(
         }
     }
 
-    if let Some(best_plan) = best_plan.as_ref() {
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.accepted_plans += 1);
-        record_accepted_plan_family(best_plan.head_family);
-    }
-
     if checkpoint() {
         Err(PlanBuildStatus::BudgetExceeded)
     } else {
         Ok(best_plan)
     }
-}
-
-#[allow(dead_code)]
-fn generate_opportunity_plans(
-    game: &MonsGame,
-    perspective: Color,
-    config: TurnEngineConfig,
-    opportunity_cap: usize,
-    beam_width: usize,
-    step_cap: usize,
-    expansion_cap: usize,
-) -> Result<Vec<OpportunityPlan>, PlanBuildStatus> {
-    if checkpoint() {
-        return Err(PlanBuildStatus::BudgetExceeded);
-    }
-    let mut expansions = 0usize;
-    let mut budget_exhausted = false;
-    let opportunities =
-        discover_turn_opportunities_v2(game, perspective, config, opportunity_cap, None);
-    if checkpoint() {
-        return Err(PlanBuildStatus::BudgetExceeded);
-    }
-    if opportunities.is_empty() {
-        return Err(PlanBuildStatus::NoPlan);
-    }
-
-    let seed_actions = opportunities
-        .iter()
-        .map(|opportunity| ActionSeed {
-            family: opportunity.family,
-            action: opportunity.action,
-            priority: opportunity.priority,
-        })
-        .collect::<Vec<_>>();
-    let mut compile_pool = TransitionCompilePool::new(game, seed_actions.as_slice(), config);
-    if checkpoint() {
-        return Err(PlanBuildStatus::BudgetExceeded);
-    }
-    let mut frontier = Vec::<(i64, OpportunityPlanNode)>::new();
-    let mut seen = HashMap::<u64, i64>::new();
-
-    for opportunity in opportunities {
-        if checkpoint() {
-            return Err(PlanBuildStatus::BudgetExceeded);
-        }
-        let Some((after, chunk)) =
-            compile_action_from_pool(game, perspective, opportunity.action, &mut compile_pool)
-        else {
-            continue;
-        };
-        if checkpoint() {
-            return Err(PlanBuildStatus::BudgetExceeded);
-        }
-        expansions += 1;
-        if expansions > expansion_cap {
-            budget_exhausted = true;
-            break;
-        }
-        let order = quick_order_score(game, &after, perspective, opportunity.family, 1, config);
-        let snapshot = TurnSnapshot::from_game(&after);
-        let head_utility = evaluate_state_utility(&after, game, perspective, config);
-        if cancelled() {
-            return Err(PlanBuildStatus::BudgetExceeded);
-        }
-        let should_keep = seen
-            .get(&snapshot.state_hash)
-            .is_none_or(|existing| order > *existing);
-        if !should_keep {
-            continue;
-        }
-        seen.insert(snapshot.state_hash, order);
-        let head_family = opportunity.family;
-        frontier.push((
-            order,
-            OpportunityPlanNode {
-                game: after,
-                opportunities: vec![opportunity],
-                compiled_chunks: vec![chunk],
-                head_utility,
-                head_family,
-                goal_family: head_family,
-            },
-        ));
-    }
-
-    if frontier.is_empty() {
-        return if budget_exhausted {
-            Err(PlanBuildStatus::BudgetExceeded)
-        } else {
-            Err(PlanBuildStatus::NoPlan)
-        };
-    }
-
-    frontier.sort_by(|a, b| {
-        b.0.cmp(&a.0).then_with(|| {
-            compare_chunks(
-                a.1.compiled_chunks.as_slice(),
-                b.1.compiled_chunks.as_slice(),
-            )
-        })
-    });
-    let mut frontier = frontier
-        .into_iter()
-        .take(beam_width.max(1))
-        .map(|(_, node)| node)
-        .collect::<Vec<_>>();
-    let mut terminal = Vec::new();
-
-    for _ in 1..step_cap.max(1) {
-        if checkpoint() {
-            return Err(PlanBuildStatus::BudgetExceeded);
-        }
-        let mut candidates = Vec::<(i64, OpportunityPlanNode)>::new();
-        let mut expanded_any = false;
-        let mut stop_expansion = false;
-        let current_frontier = std::mem::take(&mut frontier);
-
-        for node in current_frontier {
-            if checkpoint() {
-                return Err(PlanBuildStatus::BudgetExceeded);
-            }
-            if node.game.winner_color().is_some() || node.game.active_color != perspective {
-                terminal.push(node);
-                continue;
-            }
-
-            let opportunities = discover_turn_opportunities_v2(
-                &node.game,
-                perspective,
-                config,
-                opportunity_cap,
-                None,
-            );
-            if checkpoint() {
-                return Err(PlanBuildStatus::BudgetExceeded);
-            }
-            if opportunities.is_empty() {
-                terminal.push(node);
-                continue;
-            }
-            let node_seeds = opportunities
-                .iter()
-                .map(|opportunity| ActionSeed {
-                    family: opportunity.family,
-                    action: opportunity.action,
-                    priority: opportunity.priority,
-                })
-                .collect::<Vec<_>>();
-            let mut compile_pool =
-                TransitionCompilePool::new(&node.game, node_seeds.as_slice(), config);
-            if checkpoint() {
-                return Err(PlanBuildStatus::BudgetExceeded);
-            }
-            let mut node_expanded = false;
-
-            for opportunity in opportunities {
-                if checkpoint() {
-                    return Err(PlanBuildStatus::BudgetExceeded);
-                }
-                let Some((after, chunk)) = compile_action_from_pool(
-                    &node.game,
-                    perspective,
-                    opportunity.action,
-                    &mut compile_pool,
-                ) else {
-                    continue;
-                };
-                if checkpoint() {
-                    return Err(PlanBuildStatus::BudgetExceeded);
-                }
-                expansions += 1;
-                if expansions > expansion_cap {
-                    terminal.push(node.clone());
-                    budget_exhausted = true;
-                    stop_expansion = true;
-                    break;
-                }
-                let mut plan_opportunities = node.opportunities.clone();
-                plan_opportunities.push(opportunity.clone());
-                let mut compiled_chunks = node.compiled_chunks.clone();
-                compiled_chunks.push(chunk);
-                let goal_family = merge_plan_family(node.goal_family, opportunity.family);
-                let order = quick_order_score(
-                    game,
-                    &after,
-                    perspective,
-                    goal_family,
-                    plan_opportunities.len(),
-                    config,
-                );
-                let snapshot = TurnSnapshot::from_game(&after);
-                let should_keep = seen
-                    .get(&snapshot.state_hash)
-                    .is_none_or(|existing| order > *existing);
-                if !should_keep {
-                    continue;
-                }
-                seen.insert(snapshot.state_hash, order);
-                candidates.push((
-                    order,
-                    OpportunityPlanNode {
-                        game: after,
-                        opportunities: plan_opportunities,
-                        compiled_chunks,
-                        head_utility: node.head_utility,
-                        head_family: node.head_family,
-                        goal_family,
-                    },
-                ));
-                expanded_any = true;
-                node_expanded = true;
-            }
-
-            if stop_expansion {
-                break;
-            }
-            if !node_expanded {
-                terminal.push(node);
-            }
-        }
-
-        if stop_expansion {
-            if !candidates.is_empty() {
-                candidates.sort_by(|a, b| {
-                    b.0.cmp(&a.0).then_with(|| {
-                        compare_chunks(
-                            a.1.compiled_chunks.as_slice(),
-                            b.1.compiled_chunks.as_slice(),
-                        )
-                    })
-                });
-                frontier = candidates
-                    .into_iter()
-                    .take(beam_width.max(1))
-                    .map(|(_, node)| node)
-                    .collect();
-            }
-            break;
-        }
-
-        if !expanded_any || candidates.is_empty() {
-            break;
-        }
-
-        candidates.sort_by(|a, b| {
-            b.0.cmp(&a.0).then_with(|| {
-                compare_chunks(
-                    a.1.compiled_chunks.as_slice(),
-                    b.1.compiled_chunks.as_slice(),
-                )
-            })
-        });
-        frontier = candidates
-            .into_iter()
-            .take(beam_width.max(1))
-            .map(|(_, node)| node)
-            .collect();
-    }
-
-    terminal.extend(frontier);
-    if checkpoint() {
-        return Err(PlanBuildStatus::BudgetExceeded);
-    }
-    if terminal.is_empty() {
-        return if budget_exhausted {
-            Err(PlanBuildStatus::BudgetExceeded)
-        } else {
-            Err(PlanBuildStatus::NoPlan)
-        };
-    }
-
-    let mut plans = terminal
-        .into_iter()
-        .map(|node| OpportunityPlan {
-            opportunities: node.opportunities,
-            compiled_chunks: node.compiled_chunks,
-            end_game: node.game.clone_for_simulation(),
-            end_snapshot: TurnSnapshot::from_game(&node.game),
-            utility: evaluate_state_utility(&node.game, game, perspective, config),
-            head_utility: node.head_utility,
-            head_family: node.head_family,
-            goal_family: node.goal_family,
-        })
-        .collect::<Vec<_>>();
-    if checkpoint() {
-        return Err(PlanBuildStatus::BudgetExceeded);
-    }
-    plans.sort_by(|a, b| compare_opportunity_plans(b, a));
-    Ok(plans)
 }
 
 fn macro_plan_into_turn_plan(
@@ -2365,7 +1691,7 @@ fn macro_followup_seed_candidates(
     let emergency = oracle.opportunity.opponent_can_win_immediately
         || oracle.opportunity.delta.drainer_safety < 0;
     let allowed_families = macro_followup_families(head_family, goal_family);
-    let mut candidates = discover_turn_opportunities_v2(
+    let mut candidates = discover_turn_opportunities(
         game,
         perspective,
         config,
@@ -2591,7 +1917,7 @@ fn build_macro_from_head_opportunity(
     })
 }
 
-fn discover_macro_opportunities_v2(
+fn discover_macro_opportunities(
     game: &MonsGame,
     perspective: Color,
     config: TurnEngineConfig,
@@ -2603,7 +1929,7 @@ fn discover_macro_opportunities_v2(
     }
     let mut macros = Vec::new();
     let mut seen = HashSet::<(u64, u64)>::new();
-    let root_opportunities = discover_turn_opportunities_v2(
+    let root_opportunities = discover_turn_opportunities(
         game,
         perspective,
         config,
@@ -2691,7 +2017,7 @@ fn generate_macro_plans(
     let mut budget_exhausted = false;
     let bundle_cap = bundle_cap.max(1).min(bundle_plan_cap_for_config(config));
     let opportunities =
-        discover_macro_opportunities_v2(game, perspective, config, opportunity_cap, None);
+        discover_macro_opportunities(game, perspective, config, opportunity_cap, None);
     if checkpoint() {
         return Err(PlanBuildStatus::BudgetExceeded);
     }
@@ -2783,7 +2109,7 @@ fn generate_macro_plans(
             }
 
             let allowed_families = macro_followup_families(node.head_family, node.goal_family);
-            let opportunities = discover_macro_opportunities_v2(
+            let opportunities = discover_macro_opportunities(
                 &node.game,
                 perspective,
                 config,
@@ -3162,7 +2488,7 @@ fn generate_plans_for_mode(
         return Err(PlanBuildStatus::BudgetExceeded);
     }
     let result = match config.mode {
-        TurnEngineMode::ProV2 => generate_macro_plans(
+        TurnEngineMode::CurrentPro => generate_macro_plans(
             game,
             perspective,
             config,
@@ -3203,7 +2529,6 @@ fn evaluate_plan_with_replies(
         return evaluate_state_utility(after, root, perspective, config);
     }
 
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.reply_search_calls += 1);
     let opponent_config = TurnEngineConfig {
         mode: config.mode,
         own_seed_cap: config.opponent_seed_cap.max(1),
@@ -3217,7 +2542,6 @@ fn evaluate_plan_with_replies(
         expansion_cap: (config.expansion_cap / 2).max(24),
         enable_spirit_family: config.enable_spirit_family,
         scoring_weights: config.scoring_weights,
-        allow_exact_static_evaluation: config.allow_exact_static_evaluation,
         enable_lazy_oracle_score_window_projection: config
             .enable_lazy_oracle_score_window_projection,
     };
@@ -3296,7 +2620,6 @@ fn evaluate_plan_with_replies(
         expansion_cap: (config.expansion_cap / 3).max(16),
         enable_spirit_family: config.enable_spirit_family,
         scoring_weights: config.scoring_weights,
-        allow_exact_static_evaluation: config.allow_exact_static_evaluation,
         enable_lazy_oracle_score_window_projection: config
             .enable_lazy_oracle_score_window_projection,
     };
@@ -3451,7 +2774,7 @@ fn evaluate_state_utility_uncached(
         game,
         perspective,
         config.scoring_weights,
-        config.allow_exact_static_evaluation,
+        false,
     );
     if checkpoint() {
         return TurnEngineUtility::default();
@@ -3859,7 +3182,7 @@ fn family_allowed(allowed_families: Option<&[TurnPlanFamily]>, family: TurnPlanF
         .unwrap_or(true)
 }
 
-fn discover_turn_opportunities_v2(
+fn discover_turn_opportunities(
     game: &MonsGame,
     perspective: Color,
     config: TurnEngineConfig,
@@ -4047,8 +3370,8 @@ fn generate_action_seeds(
         return Vec::new();
     }
     match config.mode {
-        TurnEngineMode::ProV2 => {
-            let seeds = discover_turn_opportunities_v2(game, perspective, config, seed_cap, None)
+        TurnEngineMode::CurrentPro => {
+            let seeds = discover_turn_opportunities(game, perspective, config, seed_cap, None)
                 .into_iter()
                 .map(|opportunity| ActionSeed {
                     family: opportunity.family,
@@ -4239,7 +3562,6 @@ fn immediate_score_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed>
             });
         }
     }
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_immediate_score += seeds.len());
     seeds
 }
 
@@ -4278,7 +3600,6 @@ fn deny_window_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed> {
             });
         }
     }
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_deny_window += seeds.len());
     seeds
 }
 
@@ -4289,9 +3610,7 @@ fn drainer_kill_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed> {
     if !opponent_drainer_kill_is_high_value(game, perspective, target) {
         return Vec::new();
     }
-    let seeds = attack_family_seeds(game, perspective, TurnPlanFamily::DrainerKill, 9_000);
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_drainer_kill += seeds.len());
-    seeds
+    attack_family_seeds(game, perspective, TurnPlanFamily::DrainerKill, 9_000)
 }
 
 fn attack_family_seeds(
@@ -4407,31 +3726,23 @@ fn attack_family_seeds(
 }
 
 fn safe_supermana_progress_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed> {
-    let seeds = safe_progress_seeds(
+    safe_progress_seeds(
         game,
         perspective,
         Mana::Supermana,
         TurnPlanFamily::SafeSupermanaProgress,
         8_900,
-    );
-    update_turn_engine_diagnostics(|diagnostics| {
-        diagnostics.seed_safe_supermana_progress += seeds.len()
-    });
-    seeds
+    )
 }
 
 fn safe_opponent_mana_progress_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed> {
-    let seeds = safe_progress_seeds(
+    safe_progress_seeds(
         game,
         perspective,
         Mana::Regular(perspective.other()),
         TurnPlanFamily::SafeOpponentManaProgress,
         8_600,
-    );
-    update_turn_engine_diagnostics(|diagnostics| {
-        diagnostics.seed_safe_opponent_mana_progress += seeds.len()
-    });
-    seeds
+    )
 }
 
 fn safe_progress_seeds(
@@ -4665,7 +3976,6 @@ fn safety_recovery_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed>
                     .saturating_mul(260),
         });
     }
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_safety_recovery += seeds.len());
     seeds
 }
 
@@ -4750,7 +4060,6 @@ fn fallback_walk_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed> {
         }
     }
 
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_mana_tempo += seeds.len());
     seeds
 }
 
@@ -4787,7 +4096,7 @@ fn risky_recovery_setup_seeds(
     perspective: Color,
     config: TurnEngineConfig,
 ) -> Vec<ActionSeed> {
-    if !matches!(config.mode, TurnEngineMode::ProV2)
+    if !matches!(config.mode, TurnEngineMode::CurrentPro)
         || remaining_moves_for_color(game, perspective) <= 0
     {
         return Vec::new();
@@ -4842,7 +4151,6 @@ fn risky_recovery_setup_seeds(
         });
     }
 
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_mana_tempo += seeds.len());
     seeds
 }
 
@@ -5140,31 +4448,6 @@ fn oracle_walk_seeds_with_projection_mode(
         }
     }
 
-    if !seeds.is_empty() {
-        let mut seed_supermana = 0usize;
-        let mut seed_opponent = 0usize;
-        let mut seed_safety = 0usize;
-        let mut seed_spirit = 0usize;
-        for seed in seeds.iter() {
-            match seed.family {
-                TurnPlanFamily::SafeSupermanaProgress => seed_supermana += 1,
-                TurnPlanFamily::SafeOpponentManaProgress => seed_opponent += 1,
-                TurnPlanFamily::DrainerSafetyRecovery => seed_safety += 1,
-                TurnPlanFamily::SpiritImpact => seed_spirit += 1,
-                TurnPlanFamily::ImmediateScore
-                | TurnPlanFamily::DenyOpponentWindow
-                | TurnPlanFamily::DrainerKill
-                | TurnPlanFamily::ManaTempo => {}
-            }
-        }
-        update_turn_engine_diagnostics(|diagnostics| {
-            diagnostics.seed_safe_supermana_progress += seed_supermana;
-            diagnostics.seed_safe_opponent_mana_progress += seed_opponent;
-            diagnostics.seed_safety_recovery += seed_safety;
-            diagnostics.seed_spirit_impact += seed_spirit;
-        });
-    }
-
     seeds
 }
 
@@ -5318,7 +4601,6 @@ fn spirit_impact_seeds(
             .then_with(|| action_key(a.action).cmp(&action_key(b.action)))
     });
     seeds.truncate(12);
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_spirit_impact += seeds.len());
     seeds
 }
 
@@ -5481,7 +4763,6 @@ fn mana_tempo_seeds(game: &MonsGame, perspective: Color) -> Vec<ActionSeed> {
             });
         }
     }
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.seed_mana_tempo += seeds.len());
     seeds
 }
 
@@ -5595,11 +4876,6 @@ fn compile_action_direct(
     if !transition_matches_action(game, &after, events.as_slice(), perspective, action) {
         return None;
     }
-    let consistent_hash = MonsGameModel::search_state_hash(&after);
-    let snapshot = TurnSnapshot::from_game(&after);
-    if consistent_hash != snapshot.state_hash {
-        return None;
-    }
     Some((after, inputs))
 }
 
@@ -5663,13 +4939,6 @@ fn compile_action_from_pool_fallback(
     let (_, best_index) = best?;
     let best_transition = &compile_pool.transitions[best_index];
 
-    let consistent_hash = MonsGameModel::search_state_hash(&best_transition.game);
-    let snapshot = TurnSnapshot::from_game(&best_transition.game);
-    if consistent_hash != snapshot.state_hash {
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.compile_state_mismatches += 1);
-        return None;
-    }
-
     Some((
         best_transition.game.clone_for_simulation(),
         best_transition.inputs.clone(),
@@ -5685,8 +4954,6 @@ fn compile_action_from_pool(
     if checkpoint() {
         return None;
     }
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.compile_attempts += 1);
-    record_compile_attempt_for_action(action);
 
     if let Some(compiled) = compile_action_direct(game, perspective, action) {
         return Some(compiled);
@@ -5695,15 +4962,7 @@ fn compile_action_from_pool(
         return None;
     }
 
-    let Some(compiled) = compile_action_from_pool_fallback(game, perspective, action, compile_pool)
-    else {
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.compile_failures += 1);
-        record_compile_failure_for_action(
-            action,
-            compile_pool.transitions.len() >= compile_pool.limit,
-        );
-        return None;
-    };
+    let compiled = compile_action_from_pool_fallback(game, perspective, action, compile_pool)?;
 
     Some(compiled)
 }
@@ -5717,8 +4976,6 @@ fn compile_action(
     if checkpoint() {
         return None;
     }
-    update_turn_engine_diagnostics(|diagnostics| diagnostics.compile_attempts += 1);
-    record_compile_attempt_for_action(action);
 
     if let Some(compiled) = compile_action_direct(game, perspective, action) {
         return Some(compiled);
@@ -5733,16 +4990,7 @@ fn compile_action(
         priority: 0,
     };
     let mut compile_pool = TransitionCompilePool::new(game, std::slice::from_ref(&seed), config);
-    let Some(compiled) =
-        compile_action_from_pool_fallback(game, perspective, action, &mut compile_pool)
-    else {
-        update_turn_engine_diagnostics(|diagnostics| diagnostics.compile_failures += 1);
-        record_compile_failure_for_action(
-            action,
-            compile_pool.transitions.len() >= compile_pool.limit,
-        );
-        return None;
-    };
+    let compiled = compile_action_from_pool_fallback(game, perspective, action, &mut compile_pool)?;
     Some(compiled)
 }
 
@@ -6192,71 +5440,11 @@ fn cached_step_if_legal(game: &MonsGame, config: TurnEngineConfig) -> Option<Vec
     })
 }
 
-#[allow(dead_code)]
-fn should_attempt_pro_v2_turn_engine(game: &MonsGame, perspective: Color) -> bool {
-    if checkpoint() {
-        return false;
-    }
-    let key = TurnEngineCacheKey {
-        state_hash: MonsGameModel::search_state_hash(game),
-        mode: TurnEngineMode::ProV2,
-    };
-    if let Some(cached) =
-        TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| cache.borrow().get(&key).copied())
-    {
-        return !checkpoint() && cached;
-    }
-
-    let is_turn_start =
-        game.mons_moves_count == 0 && game.player_can_use_action() && game.player_can_move_mana();
-    let state_hash = key.state_hash;
-    let context = exact_opportunity_context_with_search_hash(game, perspective, state_hash);
-    if checkpoint() {
-        return false;
-    }
-    let has_meaningful_budget = context.budget.remaining_mon_moves >= 2
-        || context.budget.can_use_action
-        || context.budget.can_move_mana;
-    let allowed = if !has_meaningful_budget {
-        false
-    } else {
-        let strategic =
-            exact_strategic_analysis_with_search_hash(game, state_hash).color_summary(perspective);
-        if checkpoint() {
-            return false;
-        }
-        let spirit_setup_gain = strategic.spirit.next_turn_setup_gain;
-        let turn_start_strategic_surface = is_turn_start
-            && (spirit_setup_gain > 0
-                || context.delta.spirit_gain > 0
-                || context.delta.safe_supermana_progress_steps.is_some()
-                || context.delta.safe_opponent_mana_progress_steps.is_some());
-
-        turn_start_strategic_surface
-            || context.opponent_can_win_immediately
-            || context.delta.same_turn_score_window_value > 0
-            || context.delta.opponent_window_deny_gain > 0
-            || context.delta.drainer_attack_available
-            || context.delta.drainer_safety < 0
-    };
-
-    if cache_write_allowed() {
-        TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.len() >= TURN_ENGINE_CACHE_MAX_ENTRIES && !cache.contains_key(&key) {
-                cache.clear();
-            }
-            cache.insert(key, allowed);
-        });
-    }
-    allowed
-}
-
 fn turn_engine_config_fingerprint(config: TurnEngineConfig) -> u64 {
     let mut hash = 1469598103934665603_u64;
     let mode_id = match config.mode {
         TurnEngineMode::ProV1 => 1_u64,
-        TurnEngineMode::ProV2 => 2_u64,
+        TurnEngineMode::CurrentPro => 2_u64,
     };
     for value in [
         config.own_seed_cap as u64,
@@ -6269,7 +5457,6 @@ fn turn_engine_config_fingerprint(config: TurnEngineConfig) -> u64 {
         config.reply_beam as u64,
         config.expansion_cap as u64,
         config.enable_spirit_family as u64,
-        config.allow_exact_static_evaluation as u64,
         mode_id,
         config.scoring_weights as *const ScoringWeights as usize as u64,
     ] {
@@ -6295,7 +5482,7 @@ fn register_plan_continuations(
         if checkpoint() {
             return;
         }
-        if chunk_index > 0 && matches!(mode, TurnEngineMode::ProV2) {
+        if chunk_index > 0 && matches!(mode, TurnEngineMode::CurrentPro) {
             let Some(fresh_plan) = turn_engine_candidate_plan(&state, perspective, config) else {
                 break;
             };
@@ -6472,14 +5659,13 @@ mod tests {
             expansion_cap: 192,
             enable_spirit_family: true,
             scoring_weights: &DEFAULT_SCORING_WEIGHTS,
-            allow_exact_static_evaluation: false,
             enable_lazy_oracle_score_window_projection: false,
         }
     }
 
-    fn pro_v2_engine_config() -> TurnEngineConfig {
+    fn current_pro_engine_config() -> TurnEngineConfig {
         TurnEngineConfig {
-            mode: TurnEngineMode::ProV2,
+            mode: TurnEngineMode::CurrentPro,
             own_seed_cap: 14,
             own_beam: 5,
             per_node_family_cap: 4,
@@ -6491,7 +5677,6 @@ mod tests {
             expansion_cap: 176,
             enable_spirit_family: true,
             scoring_weights: &DEFAULT_SCORING_WEIGHTS,
-            allow_exact_static_evaluation: false,
             enable_lazy_oracle_score_window_projection: false,
         }
     }
@@ -6557,35 +5742,35 @@ mod tests {
     #[test]
     fn oracle_walk_lazy_score_window_preserves_primary_spirit_setup_fixture() {
         let game = primary_spirit_setup_fixture();
-        let legacy = turn_engine_ranked_plan_digests_for_test(
+        let eager = turn_engine_ranked_plan_digests_for_test(
             &game,
             Color::White,
-            pro_v2_engine_config(),
+            current_pro_engine_config(),
             8,
         );
-        let mut lazy_config = pro_v2_engine_config();
+        let mut lazy_config = current_pro_engine_config();
         lazy_config.enable_lazy_oracle_score_window_projection = true;
         let lazy = turn_engine_ranked_plan_digests_for_test(&game, Color::White, lazy_config, 8);
 
-        assert!(!legacy.is_empty());
-        assert_eq!(lazy, legacy);
+        assert!(!eager.is_empty());
+        assert_eq!(lazy, eager);
     }
 
     #[test]
     fn oracle_walk_lazy_score_window_preserves_primary_pvs_fixture() {
         let game = primary_pvs_sensitive_search_fixture();
-        let legacy = turn_engine_ranked_plan_digests_for_test(
+        let eager = turn_engine_ranked_plan_digests_for_test(
             &game,
             Color::Black,
-            pro_v2_engine_config(),
+            current_pro_engine_config(),
             8,
         );
-        let mut lazy_config = pro_v2_engine_config();
+        let mut lazy_config = current_pro_engine_config();
         lazy_config.enable_lazy_oracle_score_window_projection = true;
         let lazy = turn_engine_ranked_plan_digests_for_test(&game, Color::Black, lazy_config, 8);
 
-        assert!(!legacy.is_empty());
-        assert_eq!(lazy, legacy);
+        assert!(!eager.is_empty());
+        assert_eq!(lazy, eager);
     }
 
     fn exhaustive_same_turn_reachable<F>(game: &MonsGame, color: Color, predicate: F) -> bool
@@ -7114,14 +6299,14 @@ mod tests {
     }
 
     #[test]
-    fn frontier_pro_v2_guarded_builds_multi_chunk_black_opening_macro_plan() {
+    fn current_pro_builds_multi_chunk_black_opening_macro_plan() {
         let game = MonsGame::from_fen(
             "1 0 b 1 0 0 0 0 4 n07e0xn03/n03y0xn01s0xa0xn04/n05d0mn01xxmn03/n02xxmn08/n05xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n11/n05S0xn01xxMn03/n05A0xn02Y0xn02/D0xn01E0xn08",
             false,
         )
         .expect("primary black opening ply19 fen should be valid");
-        let plan = turn_engine_best_plan_for_test(&game, Color::Black, pro_v2_engine_config())
-            .expect("pro v2 macro plan");
+        let plan = turn_engine_best_plan_for_test(&game, Color::Black, current_pro_engine_config())
+            .expect("current Pro macro plan");
         assert_eq!(
             plan.compiled_chunks.first(),
             Some(&vec![
@@ -7138,7 +6323,7 @@ mod tests {
     }
 
     #[test]
-    fn frontier_pro_v2_guarded_plan_cache_replays_remaining_chunks() {
+    fn current_pro_plan_cache_replays_remaining_chunks() {
         clear_turn_engine_plan_cache();
         let game = game_with_items(
             vec![
@@ -7370,25 +6555,8 @@ mod tests {
     }
 
     #[test]
-    fn turn_engine_head_candidate_plans_dedup_and_respect_limit() {
-        let game = primary_pvs_sensitive_search_fixture();
-        let plans = turn_engine_head_candidate_plans(&game, Color::Black, engine_config(), 2);
-        assert_eq!(plans.len(), 2);
-        let first = plans[0]
-            .compiled_chunks
-            .first()
-            .expect("first plan should have a head");
-        let second = plans[1]
-            .compiled_chunks
-            .first()
-            .expect("second plan should have a head");
-        assert_ne!(first, second);
-    }
-
-    #[test]
     fn turn_engine_cache_invalidates_on_diverged_state() {
         clear_turn_engine_plan_cache();
-        clear_turn_engine_diagnostics();
         let game = game_with_items(
             vec![
                 (
@@ -7421,7 +6589,6 @@ mod tests {
         let after_first = MonsGameModel::apply_inputs_for_search(&game, first.as_slice())
             .expect("first chunk legal");
 
-        clear_turn_engine_diagnostics();
         let mut diverged = after_first.clone_for_simulation();
         let diverged_items = diverged
             .board
@@ -7442,15 +6609,13 @@ mod tests {
             .collect::<Vec<_>>();
         diverged.replace_board_items(diverged_items);
 
+        assert!(turn_engine_cached_step(&diverged, engine_config()).is_none());
         let _ = turn_engine_next_inputs(
             &diverged,
             Color::White,
             TurnEngineMode::ProV1,
             engine_config(),
         );
-        let diagnostics = turn_engine_diagnostics_snapshot();
-        assert_eq!(diagnostics.cache_hits, 0);
-        assert_eq!(diagnostics.cache_misses, 1);
     }
 
     #[test]
@@ -7463,9 +6628,6 @@ mod tests {
             crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
                 assert!(turn_engine_candidate_plan(&game, Color::White, config).is_none());
                 assert!(turn_engine_candidate_plan_live(&game, Color::White, config).is_none());
-                assert!(
-                    turn_engine_head_candidate_plans(&game, Color::White, config, 4).is_empty()
-                );
                 assert!(matches!(
                     generate_turn_plans(&game, Color::White, config, 8, 4, 4, 64),
                     Err(PlanBuildStatus::BudgetExceeded)
@@ -7490,7 +6652,6 @@ mod tests {
                     TurnEngineUtility::default()
                 );
                 let _ = turn_oracle_context(&game, Color::White);
-                assert!(!should_attempt_pro_v2_turn_engine(&game, Color::White));
                 turn_engine_store_cached_step(
                     &game,
                     TurnEngineMode::ProV1,
@@ -7509,7 +6670,6 @@ mod tests {
         });
 
         assert!(TURN_ENGINE_CONTINUATION_CACHE.with(|cache| cache.borrow().is_empty()));
-        assert!(TURN_ENGINE_ELIGIBILITY_CACHE.with(|cache| cache.borrow().is_empty()));
         assert!(TURN_ENGINE_ORACLE_CACHE.with(|cache| cache.borrow().is_empty()));
         assert!(TURN_ENGINE_UTILITY_CACHE.with(|cache| cache.borrow().is_empty()));
         assert!(TURN_ENGINE_BEST_PLAN_CACHE.with(|cache| cache.borrow().is_empty()));

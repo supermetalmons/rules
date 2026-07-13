@@ -2339,6 +2339,134 @@ mod tests {
     }
 
     #[test]
+    fn process_input_bomb_explosion_removes_carrier_and_faints_target() {
+        let mystic_location = Location::new(4, 4);
+        let target_location = Location::new(6, 6);
+        let mystic = Mon::new(MonKind::Mystic, Color::White, 0);
+        let target = Mon::new(MonKind::Demon, Color::Black, 0);
+        let mut game = MonsGame::new(false, GameVariant::Classic);
+        game.replace_board_items([
+            (mystic_location, Item::Mon { mon: mystic }),
+            (
+                target_location,
+                Item::MonWithConsumable {
+                    mon: target,
+                    consumable: Consumable::Bomb,
+                },
+            ),
+        ]);
+        game.turn_number = 2;
+
+        let output = game.process_input(
+            vec![
+                Input::Location(mystic_location),
+                Input::Location(target_location),
+            ],
+            false,
+            false,
+        );
+        let events = match output {
+            Output::Events(events) => events,
+            other => panic!("expected resolved mystic action, got {other:?}"),
+        };
+
+        assert!(events.contains(&Event::BombExplosion {
+            at: target_location
+        }));
+        assert_eq!(game.board.item(target_location), None);
+        assert_eq!(
+            game.board.item(mystic_location),
+            Some(&Item::Mon { mon: mystic })
+        );
+        assert_eq!(
+            game.board.item(game.board.base(target)),
+            Some(&Item::Mon {
+                mon: Mon::new(MonKind::Demon, Color::Black, 2),
+            })
+        );
+        assert_eq!(game.actions_used_count, 1);
+    }
+
+    #[test]
+    fn process_input_takeback_restores_previous_state_and_emits_event() {
+        let source = Location::new(5, 3);
+        let destination = Location::new(5, 4);
+        let mon = Mon::new(MonKind::Drainer, Color::White, 0);
+        let mut game = MonsGame::new(false, GameVariant::Classic);
+        game.replace_board_items([(source, Item::Mon { mon })]);
+        game.turn_number = 2;
+        let before = game.fen();
+
+        let move_output = game.process_input(
+            vec![Input::Location(source), Input::Location(destination)],
+            false,
+            false,
+        );
+        assert!(matches!(move_output, Output::Events(_)));
+        assert_ne!(game.fen(), before);
+        assert_eq!(game.takeback_fens.len(), 2);
+
+        assert_eq!(
+            game.process_input(vec![Input::Takeback], false, false),
+            Output::Events(vec![Event::Takeback])
+        );
+        assert_eq!(game.fen(), before);
+        assert_eq!(game.board.item(source), Some(&Item::Mon { mon }));
+        assert_eq!(game.board.item(destination), None);
+        assert_eq!(game.takeback_fens, vec![before]);
+    }
+
+    #[test]
+    fn process_input_cancel_rejects_consumable_choice_without_mutating_state() {
+        let source = Location::new(5, 3);
+        let destination = Location::new(5, 4);
+        let mon = Mon::new(MonKind::Drainer, Color::White, 0);
+        let mut game = MonsGame::new(false, GameVariant::Classic);
+        game.replace_board_items([
+            (source, Item::Mon { mon }),
+            (
+                destination,
+                Item::Consumable {
+                    consumable: Consumable::BombOrPotion,
+                },
+            ),
+        ]);
+        game.turn_number = 2;
+        let before = game.fen();
+
+        let prompt = game.process_input(
+            vec![Input::Location(source), Input::Location(destination)],
+            false,
+            false,
+        );
+        assert!(matches!(
+            prompt,
+            Output::NextInputOptions(ref options)
+                if options.iter().any(|option| {
+                    option.input == Input::Modifier(Modifier::SelectBomb)
+                }) && options.iter().any(|option| {
+                    option.input == Input::Modifier(Modifier::SelectPotion)
+                })
+        ));
+        assert_eq!(game.fen(), before);
+
+        assert_eq!(
+            game.process_input(
+                vec![
+                    Input::Location(source),
+                    Input::Location(destination),
+                    Input::Modifier(Modifier::Cancel),
+                ],
+                false,
+                false,
+            ),
+            Output::InvalidInput
+        );
+        assert_eq!(game.fen(), before);
+        assert!(game.takeback_fens.is_empty());
+    }
+
+    #[test]
     fn is_later_than_rejects_cross_variant_games() {
         let mut classic = MonsGame::new(false, GameVariant::Classic);
         classic.turn_number = 3;

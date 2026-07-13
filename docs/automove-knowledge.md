@@ -1,126 +1,222 @@
 # Automove Knowledge
 
-This file keeps durable automove rules and reusable heuristics only.
+This is the compact durable record for shipping automove work. It preserves decisions,
+measurements, and reusable failure lessons; it is not an experiment diary. Use
+`HOW_TO_ITERATE_ON_AUTOMOVE.md` for the workflow and `AUTOMOVE_IDEAS.md` for the one
+next mechanism. Detailed receipts deleted during the cleanup remain available in Git
+history before the cleanup revision.
 
-Use `HOW_TO_ITERATE_ON_AUTOMOVE.md` for workflow, `AUTOMOVE_IDEAS.md` for the live state, and `docs/automove-archive.md` for retired wave detail.
+## Current Shipping Truth
 
-## Stable Runtime Truths
+Public Fast and Normal retain their shipping search configurations. Public Pro routes
+through the behavior promoted as `frontier_pro_v10_bounded_tactical`, built on the
+guarded Pro machinery with targeted drainer fallback. The profile name is historical;
+production internals may be renamed or flattened as long as the public behavior and
+tests remain stable.
 
-- Public Pro routes through `frontier_pro_v10_bounded_tactical`; `frontier_pro_v2_guarded` remains the previous-production comparator and `shipping_pro_search` remains the retained search-only baseline.
-- Public Fast and Normal retain their shipping search configurations. “Three-mode reliability” means the promoted Pro frontier is evaluated against shipping Pro, Normal, and Fast opponents; it does not mean the Pro-only experiment profile is installed as the Fast or Normal policy.
-- The replacement comparison is also direct: bounded tactical v10 beat previous-production guarded v2 `16-8` over all 12 variants at `562.10ms` maximum, zero invalid output, and `0.35%` replay mismatch. The unwrapped historical comparator produced a `5,016.97ms` call, so it remains evidence/control only. No retained Fast- or Normal-specific candidate had promotable evidence; do not relabel unchanged shipping routes as promotions.
-- Shipping selectors retain a cooperative `650ms` outer deadline; promoted frontier Pro uses `550ms`. Frontier Pro first banks a result from the unchanged shipping-Fast search configuration under a `200ms` child deadline, then attempts its stronger search; cancellation returns that core-search move or a deterministic legal emergency fallback and blocks partial cache writes. Forced and targeted drainer fallback generation emits the exact bounded lexical prefix previously obtained by full enumeration followed by sort/filter/truncate. The mechanism remains checkpoint-driven and non-preemptive, so it cannot interrupt scheduler/browser suspension. Promotion rejects either of two independently cold selector calls above `700ms`; that empirical whole-call gate remains authoritative instead of a node cap, average, or nominal deadline.
-- Deterministic transposition PUCT at the post-scout ProV2 root-scoring seam is cost-blocked. The exact five-board gate used a sound shared state+horizon graph, path-context cycle exhaustion, one-sided proof fixpoint, checked integer PUCT, and the full `14,022` internal work cap; Full calls still averaged `1.836s` and no board met `700ms`. Do not retune its horizon, work formula, widening, prior/coefficient, or proof/cycle rules. The next structural search candidate must reduce expensive node enumeration by construction rather than redistribute the same cap.
-- A model preflight must join the complete viewed-resource inventory before freezing its quarantine and must reject feature aliases before fitting. The first set-conditioned grouped Pareto freeze authenticated its nominal five-state filter but the complete PairNet v2/v3 universe added a sixth raw-FEN hit, while four identical 42-feature vectors carried conflicting three-budget labels. Missing raw-opening fields also prevented a full five-domain receipt. Do not repair a frozen denylist or fit through conflicting aliases; use a new architecture ID, a prospectively complete quarantine, and deterministic provenance regeneration first.
-- Release wiring is intentionally narrower than the experiment surface: public `Pro` dispatch goes through `MonsGameModel::public_runtime_inputs` to `select_frontier_pro_v10_bounded_tactical_inputs`, while `automove_experiments` and experiment profile selectors are included only under `#[cfg(test)]`.
-- Probe paths are diagnostics only; they do not describe shipping behavior.
-- Promotion evidence comes from direct frontier-vs-baseline duels, not fixture churn alone.
-- Automove users can play any current `GameVariant`; promotion evidence must cover variant breadth, not just Classic.
-- Retained `primary_pro` fixtures are Classic regression controls. They are not broad variant evidence.
-- Publish builds should run `scripts/assert-release-package-surface.sh` against generated web and node Wasm packages so test-only diagnostic identifiers and `SMART_PRO_*` / `PRO_*` corpus logs cannot silently ship.
+Public selection is protected by cooperative deadlines:
 
-## Experiment Rules
+- shipping selector outer deadline: `650ms`;
+- promoted Pro frontier deadline: `550ms`;
+- unchanged shipping-Fast bank inside Pro: `200ms` child deadline;
+- immutable measured ceiling: `<700ms` for each independently cold complete call.
 
-- Large internal ordering changes can still have zero public decision value. The frozen learned transition oracle reordered hundreds of dynamically evaluated children under thousands of dual-teacher consensus edges while preserving admission and actual depth plans, yet all five guarded public moves stayed unchanged. Do not collect or train a child-order residual on that seam; first require a different mechanism with direct public-boundary reach.
-- A same-game average can make an episode-cached planner appear latency-safe while its first eligible public call is unusable. The terminal-plan search5 hotspot averaged `540.53ms` over full matches because one expensive plan was reused by many cache hits; an independently frozen cold two-run-per-board gate measured `3.57–26.73s` on every retained witness. For any stateful or cached selector, require a pre-direct cold first-call gate with the entire public selector inside the timer and enforce the `700ms` cap per position, not only per match or variant.
-- When a new selector is layered on an experimental search substrate, an applied internal counter does not prove that layer caused the returned public move. The rank-consensus audit required a separately cold equalized-only shadow with exact branch and search-accounting parity; only output differences from both public guarded and the equalized shadow counted. Use this three-way counterfactual pattern for future layered selectors.
-- More completed search work is not enough when it rarely crosses the public decision boundary. Guarded depth `5`/`56,000` with a fully completed iterative depth-`3` pass changed common-root scores on all five retained losses but changed only one public move, in White only. Do not retune that budget family; require an oracle reach check at the exact insertion seam before funding another expensive search or learned mechanism.
-- A deeper tactical mechanism needs public-surface reach before duel spend. The frozen two-ply recursive-quiescence candidate was fully active and contract-correct but found zero nonterminal second-ply chains, return-score changes, or public changes on the exact five retained losses, with essentially identical work. Do not widen its depth, q budget, tactical predicate/order, or fixtures; first prove that a new structural site is actually reached by retained decisions.
-- Treat fresh repeat offsets as a mandatory holdout, not optional extra evidence. The 2026-07-10 v5/v6 portfolio wave moved from `22-2`/`23-1` on calibrated repeats to `11-13` on unseen offset 2, exposing seed-fit that ordinary repeat confirmation did not catch.
-- Quarantine raw openings before freezing the denylist, not after. The 2026-07-13 Full170 provenance repair made all opening FENs recoverable and showed that a discovery state with otherwise fresh source/state/cluster/canonical resources (`b2447c74844324f7`) still reused a viewed PairNet opening. The prospectively frozen six-state filter was therefore incomplete even though every model/support gate passed. Future trainable corpora must be generated against the complete five-domain inventory up front; expanding a denylist after provenance is result-conditioned source selection.
-- Aggregate and per-variant move averages do not prove the immutable individual-call cap. Completed-depth median (`187.84ms` aggregate, `225.64ms` worst variant average) and tactical-pool (`151.72ms`, `200.06ms`) both produced an individual cold or cold-replay call above `700ms` when instrumented. Halving tactical frontier search from `14,022` to `7,011` nodes only moved the failure to the second Classic repeat. Even a central selector-scoped ledger over every production `visited_nodes` charge still produced a `6,118.820ms` candidate-Black call while its accounting invariants passed. Therefore `max_visited_nodes` is not a whole-selector cost bound: turn-engine enumeration, exact analysis, root generation, and other non-charged work can dominate. Future promotion harnesses must capture the maximum original and independently cold replay call, and the next cost mechanism must meter or architecturally bound the complete selector rather than another node fraction or ledger.
-- A high policy-oracle score is not opponent-agnostic strength. Terminal planning can perfectly exploit the continuation policy it simulates while failing other shipping budgets: Fast rollouts were `12-0` vs Fast but `8-4` vs Normal and `7-5` vs Pro; Normal rollouts were only `9-3` vs Normal.
-- Online multi-policy terminal planning is cost-blocked. Pro terminal planning reached `12-0` vs Pro at `669.11ms`, leaving too little budget to add robust Fast/Normal evaluation; dual- and tri-policy planners exceeded the `700ms` promotion cap.
-- Use forced-root and terminal-rollout outcomes as offline labels, never direct runtime selectors. The durable next step is a corpus-trained source-time root evaluator with held-out seed/variant validation, not exact FEN, phase/rank, variant, or opponent-policy routing.
-- Do not train another absolute scalar afterstate target on the current `36`-state/`208`-root corpus. The frozen `8*min(points)+sum(points)` target can rank two guarded-save-violating roots highest even under perfect prediction; exact local n-tuple support retained only `279/3,939` key types, left `123/208` roots with zero signal, and reduced OOF within-state concordance. Any successor must use guarded-relative, per-budget/Pareto safety labels and a decoder trained in exactly the units used at runtime.
-- For any duel-agnostic learned evaluator, enforce source uniqueness jointly across every duel/panel before generating root labels. The frozen PairNet-v1 pilot passed all three 24-state duel gates but independently selected the same White alternating board in Pro-save, Normal-loss, and Fast-save, leaving only `70/72` unique model inputs despite `72` distinct opening-cluster IDs. Seed/cluster provenance is not a substitute for model-input disjointness. Do not repair a viewed corpus by dropping, swapping, or re-keying duplicates; kill that architecture ID and use a fresh, prospectively joint assignment under a new ID.
-- One globally unique source assignment is not evidence of reserve depth, even when every cell has dozens of candidates. PairNet v2 had `24,127` post-quarantine candidates, minimum cell size `42`, an immediate balanced `72`-source solve, and five resource domains unique `72/72`, yet one selected Normal/bent-center loss bundle was an articulation resource: all `42` loss candidates shared its raw cluster and opening FEN, so its deletion made the slot infeasible and only `71/72` rematches passed. If deletion resilience is required, construct redundant globally disjoint assignments prospectively in the optimization itself; never repair a viewed primary by choosing a different row or rerunning the seed.
-- Cell breadth and abundant legal single pairs do not imply redundant source assignments. PairNet v3 retained `43` Normal/inner-wedge loss bundles, `474` saves, and `18,705` legal single loss/save pairs, but all `903` possible loss/loss pairs shared the same raw cluster and opening resources, making two globally disjoint lanes impossible before a complete trial. Audit pairwise resource diversity inside the scarcest panel before funding another redundancy architecture; do not reinterpret zero counted complete trials as solver starvation when forward feasibility proves the slot empty.
-- Do not build a continuation-set evaluator over the existing pre-reply shortlisted multi-chunk plan heads. The prospective `208`-root reach audit found only seven available roots, the guarded root unavailable in `34/36` states, one pair-comparable state, and zero reachable repairs or risks. Widening plan eligibility, executing stored tails, or adding online rollout/search would be a different, already retired persistent-continuation or cost-blocked terminal-planning path.
-- When a release follows a failed experiment wave, prune temporary runtime candidates before publishing and retain only explicit comparison profiles plus release-boundary tests. Public Pro, the default frontier profile, and the retained registry must agree on `frontier_pro_v10_bounded_tactical` until a later challenger clears the then-current sampled, all-variant, cross-budget, safety, determinism, and latency gates.
-- The 2026-07-13 release review deliberately relaxed strength and scheduler-sensitive replay requirements only: each Pro-vs-shipping-mode aggregate needs `>= 7/12` score points (wins plus half of draws) and `>= 0.60` confidence, so a canonical `7-5` sample passes while `6-6` does not. All-variant confirmation allows at most two variants below the `0.50` target per panel; independently cold replay mismatch rate may not exceed `3%` of turns for either profile. Invalid/empty moves and the per-call `700ms` maximum remain zero-tolerance requirements. This admitted bounded tactical v10; it does not revive the rejected full tactical-pool runtime.
-- Pick one hypothesis before editing runtime code.
-- Probe first when the mechanism is unclear. Do not spend canonical gates on a guess.
-- When the live board has no challenger, read `docs/automove-major-reset-plan.md` and use structural reset mode instead of continuing the seam-fix loop.
-- Do not write another selector over existing policy labels, branch labels, exact contexts, first moves, variants, or singleton-heavy corpus rows unless a corpus first shows repeated low-fragmentation evidence with clean baseline-save separation.
-- Use `./scripts/run-automove-structural-scout.sh <candidate>` before retaining any broad Pro runtime change. A candidate must look strong on both canonical sampled and active-blocker panels.
-- Use seeded sampled variants for quick kill/pass evidence, then all-variant confirmation for promotion.
-- Separate `pre_accept` search choice from final `engine_post_search` output before changing shared heuristics.
-- A seam can move while the duel gate still fails; local seam coverage is not duel strength.
-- Config-toggle sweep candidates should preserve the public `frontier_pro_v10_bounded_tactical` wrapper unless the candidate is explicitly a previous-production or raw-control profile.
-- Read `AUTOMOVE_SWEEP_CANDIDATE_METADATA` before sweep, dashboard, policy-matrix, policy-corpus, outcome-corpus, cross-budget, winner, or attribution logs.
-- Run `./scripts/check-automove-hygiene.sh` before ending an automove session. Clean target logs/stamps only after the dry-run shows disposable evidence you no longer need.
+When stronger Pro work cancels, selection returns the completed Fast-bank result or a
+deterministic legal emergency input. Timeout paths suppress partial cache writes and
+clear selector caches. Forced and targeted drainer fallbacks generate the same bounded
+lexical prefix formerly obtained by full enumeration, sorting, filtering, and
+truncation. These behaviors are part of the reliability contract.
 
-## Structural Reset Rules
+Deadlines are cooperative rather than preemptive. They cannot stop checkpoint-free
+enumeration, browser suspension, or scheduler delay. The measured whole-call ceiling
+therefore remains authoritative even when internal timers and counters pass.
 
-- Start reset work from one of these paths:
-  - bounded `pro-policy-outcome-corpus` over the retained portfolio;
-  - a test-only ProV4/root-policy candidate registered as a sweep candidate with metadata;
-  - a new measured root feature that can be emitted into the outcome corpus before source work.
-- A complete policy portfolio with `no_policy_wins=0` is oracle coverage, not source permission. If repeated mechanisms remain singleton-heavy or contaminated by baseline saves, improve the corpus instead of writing source.
-- `coverage_gap`, `baseline_save_risk`, `singleton_no_source`, `no_candidate_route`, `fragmented_no_source`, `budget_conflict`, `partial_repair_coverage_gap`, `singleton_selector_pressure`, and `postprocess_only` are no-source decisions.
-- `repeated_mechanism_class` at count 2 is routing evidence only. It is not permission to encode a runtime selector.
-- A repeated active-Fast `exact_pressure window0/deny0/safe` class is still no-source when it fragments by policy, branch transition, or first-move pair. The 2026-05-18 bounded outcome-corpus slice had candidate-only wins and no baseline-only wins, but `source_candidate_axis_count=0` and all candidate-bearing axes were `singleton_non_regressing` or `fragmented_no_source`.
-- Root-origin provenance is diagnostic only. The 2026-05-18 root-origin postprocess exposed `root_origin_profile` and `family`/`progress`/`path` compounds, but candidate roots still overlapped guarded/advisor/scored provenance, blockers, or same-state guarded saves; exact and compound root-origin rollups had zero low-fragmentation repeated signals and no source permission.
-- Coarse first-divergence move-shape axes are diagnostic only. The 2026-05-18 move-shape postprocess exposed repeated candidate shapes, but the repeated buckets were still fragmented by candidate policy, branch, and exact first-move pair; no low-fragmentation source candidate survived.
-- Board-aware first-divergence intent axes are diagnostic only. The 2026-05-18 intent postprocess exposed repeated own-Spirit-to-empty intent buckets, but they fragmented by first-move pair or by candidate policy, branch, and pair; one near-edge empty-target intent also appeared in same-outcome evidence, so no low-fragmentation source candidate survived.
-- First-divergence local-pressure axes are diagnostic only. The 2026-05-18 local-pressure postprocess exposed repeated supported empty-target and less-pressured-target buckets, but the repeated rows were still fragmented by candidate policy, branch, and first-move pair, and one candidate target-pressure bucket also appeared in same-outcome evidence.
-- First-divergence move-goal axes are diagnostic only. The workbench JSONL `policy_axis` rows include these axes so they match `corpus_axis_summary`; the 2026-06-18 aggregate still produced `source_candidate_axis_count=0`, with move-goal blockers either singleton-heavy or baseline-save contaminated.
-- Source-move interference axes are diagnostic only. The 2026-06-25 active Fast slice exposed whether each compared move stayed legal after applying the other move first, but the main `both_legal` row stayed `fragmented_no_source` across four candidate policies, four branch transitions, and six first-move pairs, with one same-outcome state.
-- Source-divergence prompt-relation axes are diagnostic only. The 2026-06-25 active Fast slices exposed whether compared moves diverged as legal sibling choices at the same source prompt, but the broad `prefix0/start/locations/both_legal/same_kind` bucket mixed candidate-better and baseline-better states, while the only cleaner tail divergence bucket was singleton.
-- Source-move order commutation axes are diagnostic only. The 2026-06-25 active Fast and sampled Pro slices applied both first-divergence moves in both orders on the source board, but the only concrete active candidate row was `same_state` and singleton with same-outcome evidence; sampled Pro had no candidate route.
-- Source-remaining budget axes are diagnostic only. The 2026-06-25 active Fast and sampled Pro slices exposed same-turn action, mana, and mon-move budget left after each compared first-divergence move, but candidate-bearing rows were singleton or mixed with same-outcome evidence, and the only concrete active candidate row spent more budget than guarded; source permission stayed `no_source`.
-- Post-reply reversal root-pool fields are diagnostic only. The 2026-06-25 active Fast ProV4 root-pool slices exposed `post_reply_reversal_profile`, but root rows were almost entirely same-active/no-reply buckets; the two-state follow-up still ended `baseline_save_risk`, `root_pool_decision=singleton_root_pool_signal`, and `source_candidate_rollups=0`.
-- Lower-tail reply-recovery envelope overrides are not a direct selector. The 2026-06-25 sampled Pro scout fired 33 floor overrides and failed at `5-7`, with `center_spoke_mana_rows` `0-2`; recovery-floor overrides need corpus separation before any source work.
-- Color/rotation-equivariance disagreement is not a direct selector. The 2026-06-25 sampled Pro scout mapped guarded output from a 180-degree color-rotated board back onto the source board, but it failed at `2-2`, lost `inner_wedge_mana_rows` `0-2`, and ran about 5x slower than shipping Pro.
-- Source-residual agency axes are diagnostic only. The 2026-06-25 sampled Pro slice exposed same-turn legal continuation fanout after each first-divergence move, but candidate-bearing rows were singleton and mixed with same-outcome evidence; route permission stayed `no_source`.
-- Source-handoff opponent-mobility axes are diagnostic only. The 2026-06-25 active Fast and sampled Pro slices exposed opponent response fanout only when a compared first-divergence move handed over the turn, but candidate-bearing rows were merely `same_turn -> same_turn`, with same-outcome contamination and fragmentation by candidate policy, branch transition, and first-move pair; source permission stayed `no_source`.
-- Realized-reply event-profile axes are future-only diagnostics. The 2026-06-25 active Fast and sampled Pro slices exposed the opponent turn actually chosen after first divergence, but active evidence was only singleton/fragmented and sampled Pro was baseline-better-only; these axes observe rollout behavior and must stay `future_only_no_source`.
-- Source-mana corridor topology axes are diagnostic only. The 2026-06-25 sampled Pro slice exposed source-board mana pool/base/superbase layout by active-perspective corridor, but candidate-bearing corridor rows were either mixed with same-outcome evidence or baseline-better heavy; route permission stayed `no_source` with an exact-pressure baseline-save blocker.
-- Source-prefix completion axes are diagnostic only. The 2026-06-25 active Fast slice exposed source-board legal completion fanout after the compared move prefixes, but the token-level route was `fragmented_no_source` across seven candidate policies, five branch transitions, and eight first-move pairs, with eight same-outcome records.
-- Source-prompt topology axes are diagnostic only. The 2026-06-25 active Fast slice exposed coarse first-divergence prompt depth, prompt count, and max-option buckets, but the token-level route was `fragmented_no_source` across seven candidate policies, five branch transitions, and eight first-move pairs, with eight same-outcome records.
-- Source-start option-profile axes are diagnostic only. The 2026-06-25 active Fast slice exposed legal source-start count buckets before either compared move was applied, but the repeated `mon_only` row still fragmented across four candidate policies, four branch transitions, and seven first-move pairs, with one same-outcome row.
-- Post-diff initiative-debt timing axes are diagnostic only. The 2026-06-25 active Fast slice exposed recovery buckets for how quickly each trace next had both action and mana after first divergence, but the matching rows were fragmented across four candidate policies, four branch transitions, and seven first-move pairs, with one same-outcome row.
-- Decision-effort timing axes are diagnostic only. The 2026-06-25 active Fast slice exposed selector/exact/engine decision-work buckets around first divergent candidate turns, but the token-level route was `fragmented_no_source` across seven policies, five branch transitions, and eight first-move pairs, while detailed bucket rollups were singleton non-regressing or shared/no-candidate-signal.
-- Pre-diff entry timing axes are diagnostic only. The 2026-06-25 active Fast and sampled Pro slices exposed `axis=pre_diff_entry` buckets for hidden same-move branch/path disagreement before visible move divergence, but the candidate-bearing rows were singleton, mixed with same-outcome evidence, or fragmented by candidate policy, branch, and first-move pair.
-- Terminal outcome axes are future-only diagnostics. The 2026-05-18 terminal-swing postprocess exposed repeated candidate/preferred lead margins and one repeated resource-custody swing, but those features come from `baseline_final`/`candidate_final` rollout states and must stay `future_only_no_source` even when repeated.
-- Portfolio-support axes are future-only diagnostics. The 2026-05-18 portfolio-support postprocess exposed repeated candidate-supported and candidate-winner-count rows, but those features come from outcome-corpus `policy_results` and `winning_policies`; they measure oracle breadth after rollout and must stay `future_only_no_source` even when candidate support repeats.
-- First-divergence source-board balance axes are diagnostic only. The 2026-05-18 source-board postprocess exposed repeated even-score/even-custody and own-to-move buckets, but they were broad, shared with same-outcome evidence, and fragmented by policy, branch, and first-move pair.
-- `promotable_shape` earns confirm spend; `sampled_only` and `active_only` require decision-record proof before more source work; `cost_blocked` kills or narrows the line; `not_promising` kills the candidate unless it exposed a harness issue.
-- A `promotable_scout` dashboard is not promotion by itself. The 2026-05-31 phase-gated context composite cleared sampled strict gates and active directional gates, but all-variant confirmation failed Pro `15-9`, Normal `13-11`, and Fast `19-5`; confirm breadth remains mandatory.
-- Runtime source stays untouched unless a candidate separates wins from guarded saves across sampled and active evidence with low fragmentation and acceptable cost.
+The public release-route fixture is deliberately discriminating. For its frozen FEN,
+public Pro must return `l10,5;l9,4`; retained guarded-v2 and shipping search returned
+`l10,6;l9,6`. This is a route regression check, not a position to optimize against.
 
-## Retired Evidence Groups
+## Promoted v10 Evidence
 
-Do not reopen these as direct runtime source paths without new corpus evidence below the retired label:
+The final sampled reliability panels scored:
 
-- Static selectors over policy labels, branch labels, exact contexts, exact or coarse first-divergence moves, realized-reply event-profile buckets, post-reply reversal buckets, source-divergence prompt-relation buckets, source-move order commutation buckets, source-remaining budget buckets, source-handoff opponent-mobility buckets, source-residual agency buckets, source-mana corridor topology buckets, source-move interference buckets, source-prefix completion buckets, source-prompt topology buckets, source-start option-profile buckets, post-diff initiative-debt timing, decision-effort timing, pre-diff entry timing, first-divergence move-shape, board-intent, local-pressure, source-board balance buckets, terminal outcome buckets, portfolio-support and winner-count buckets, variants, guarded-selected moves, color/rotation-equivariance disagreement, copied FENs, or singleton-heavy move pairs.
-- Phase-gated composites over existing reset policies, including exact-FEN patches. They can demonstrate oracle coverage on sampled/active dashboards but do not generalize to all variants and remain no-source unless a below-policy mechanism explains the separation.
-- Broad ProV2 wrapper or config toggles: raw ProV2 routing, no selected-followup projection, full-scored reply guard, no low-budget guard, no late fallback, head rerank, spirit-family removal, mid-turn tactical-guard removal, expansion-cap tuning, root/node/branch uplifts, reply-risk guard toggles, normal-root-safety toggles, strict anti-help filters, and interview soft-prior toggles.
-- Search-ordering and root-ordering toggles: PVS, killer/history ordering, TT replacement tuning, root aspiration, child-ordering shortlist tuning, futility/quiescence/quiet-reduction/selective-extension changes, deterministic tiebreaks, event ordering, root allocation, depth consensus, and shallow root-value tuples over existing score/rank/family/utility fields.
-- ProV4 selector experiments over existing root fields: unified root-policy comparators over current family/rank/score/utility/reply-floor fields, reply-floor/progress, bounded followup/reply breadth, lower-tail reply-recovery envelope overrides, objective latency, scoring-context robustness, move-efficiency delta, static-eval consensus, turn-completion stability, two-turn resilience, online policy rollout, policy-root-pool, forced drainer pressure, drainer walk-threat filtering, targeted exact narrowing, root-breadth rebalancing, and shallow utility switching.
-- Root injection and eligibility paths: turn-engine root injection, eligibility guards, exact-lite progress/spirit-window toggles, pre-exact/exact-tactics disabling, safe-mana tactical prepass selectors, root drainer-safety prefilters, enhanced drainer vulnerability toggles, child-vulnerability plausibility screens, and backtrack penalties.
-- Current ProV4 root-pool fields and guarded deltas, including root-origin provenance, exact pressure, exact score, score-term leaders, board resource custody/material, mana identity/base/path/contest/pool/pickup access, objective proximity/control/square/screen, carrier route/contact/action/escape/score profiles, consumable/potion/bomb profiles, drainer geometry, demon-line blockers, role coordination/deployment/pressure/contact/escape/mobility/state/base/lane/cohesion/formation/territory/control-map, action threat/reach/target/role/guard/actor/safety/zone/payload/escape/counter/score/denial/pickup/square/vector/fork, Spirit item/handoff, legal fanout, follow-up shape/role/payload, root sequence/transition, worst-reply transition, reply-spectrum fields, and post-reply reversal fields.
-- Root class-vector and root-budget stability fields. The 2026-06-25 focused sampled Pro slice exposed `class_vector`/`class_family`/`class_priority` and root-level Pro/Normal/Fast eval/reply/value-reply stability, but root class-vector stayed contaminated and the `root_budget_stability` family had zero low-fragmentation repeated candidate signals with guarded and same-state blockers. Keep these as diagnostics only.
+| Opponent budget | Score | Candidate maximum |
+|---|---:|---:|
+| Shipping Pro | `7-5` | `550.43ms` |
+| Shipping Normal | `7-5` | `550.05ms` |
+| Shipping Fast | `10-2` | `551.31ms` |
 
-Those paths produced no source permission because evidence stayed `coverage_gap`, `baseline_save_risk`, `no_candidate_route`, singleton-only, fragmented by policy/branch/pair/budget, shared with blockers, or contaminated by guarded baseline saves. Detailed wave notes are archived in `docs/automove-archive.md`.
+The all-variant confirmation covered all 12 variants and 48 mirrored games per panel:
 
-## Useful Diagnostics
+| Opponent budget | Score | Candidate maximum | Replay mismatch |
+|---|---:|---:|---:|
+| Shipping Pro | `33-15` | `550.23ms` | `6/2299` |
+| Shipping Normal | `32-16` | `550.05ms` | `0/2288` |
+| Shipping Fast | `40-8` | `550.03ms` | `5/2311` |
 
-- Use `smart_automove_pro_reliability_hotspot_probe` with `SMART_PRO_RELIABILITY_HOTSPOT_FEN` for one-off board inspection. Do not add temporary source cases just to inspect a copied trace board.
-- Use `SMART_PRO_RELIABILITY_DUEL_FILTER` on duel/nonwin trace probes when only one duel bucket needs recurrence evidence.
-- Use `pro-promotion-dashboard` before spending runtime code on a broad Pro candidate. Read `PRO_PROMOTION_DASHBOARD_STOPLIGHT` first.
-- Use `pro-policy-outcome-corpus` when policy-winner coverage exists but selector evidence is singleton-heavy.
-- Use `scripts/postprocess-automove-outcome-corpus-log.sh <log>` or `scripts/summarize-automove-policy-matrix-log.py <log>` after logged policy-matrix runs, then read `corpus_decision`, `next_action`, `source_blocker`, `corpus_axis_summary`, `cross_budget_axis_summary`, and coverage gaps before opening raw records.
-- Pass multiple logs to the outcome summarizer when comparing slices; read `rollup_decision`, `rollup_next_action`, `rollup_permission`, and source/blocker counts first.
+All panels had zero invalid or empty moves. Corner Chain was the sole below-target
+variant against Pro and Normal; no variant was below target against Fast.
 
-## Handoff Rule
+The direct all-variant replacement duel against historical guarded v2 scored `16-8`
+over 24 mirrored games. Promoted v10 averaged `244.33ms`, reached `562.10ms` maximum,
+produced zero invalid moves, and had `4/1139` (`0.35%`) replay mismatches. The historical
+unwrapped comparator reached `5,016.97ms`; it is evidence only, not an acceptable
+runtime. The direct result proves a Pro replacement. It does not claim that Fast or
+Normal were replaced.
 
-End each reset iteration with exactly one of:
+The final tail regression observed promoted repetitions around `530ms`, with a native
+maximum of `539.185ms`; the final generated Node/Wasm cold tail measured approximately
+Fast `246.86ms`, Normal `412.364ms`, and Pro `532.25ms`. A prior `703.067ms` failure was
+not excused: the frontier deadline was reduced, the Fast bank bounded, and fallback
+generation structurally limited before final evidence was accepted.
 
-- a promotable candidate plus confirm instructions;
-- a repeated mechanism and the next focused validation command;
-- a corpus or harness improvement that reduces singleton ambiguity;
-- a documented no-go and no retained runtime source.
+## What Counts as Evidence
 
-If none of those exists, do not commit runtime changes.
+### Public causal reach
+
+Automove is judged at the public returned input, not at an internal seam. A changed
+score, reordered child list, completed depth, visited-node counter, or activated branch
+with the same final input is diagnostic activity, not decision value. For a layer over
+another experimental substrate, compare the public baseline, the substrate without the
+layer, and the complete candidate under equivalent cold accounting. Only a difference
+caused by the layer proves reach.
+
+### Complete cold cost
+
+Time the public selector from entry to returned input. Include root generation, exact
+queries, turn-engine enumeration, evaluation, fallback construction, cache setup, and
+cleanup. Measure fresh processes or completely cleared selector state and retain the
+maximum individual call. Warm match averages are useful operational statistics but do
+not satisfy the hard ceiling.
+
+### Strength and breadth
+
+Promotion evidence must be a direct candidate-versus-baseline duel with deterministic
+seeds, mirrored colors, legal replay, and all variants. Sampled panels are only a cheap
+failure gate. Fresh repeat offsets are mandatory holdouts. Report each opponent budget
+and variant because aggregate wins can conceal a budget-specific save loss or a variant
+collapse.
+
+The retained threshold is `7/12` aggregate points with confidence at least `0.60` for
+the sampled gate; `6-6` fails. Confirmation permits no more than two variants below
+`0.50` in a panel, no invalid/empty moves, at most `3%` replay mismatch per profile and
+panel, and no original or cold-replay call at or above `700ms`.
+
+### Clean discovery
+
+Do not train, select features, freeze a denylist, or tune policy using confirmation
+openings. Preserve full opening provenance before fitting. Raw-state quarantine must be
+prospective and cover every viewed data source. Identical features with conflicting
+labels are an architecture failure, not noise to fit through. A new architecture needs
+a new ID, fresh disjoint data, and deterministic provenance regeneration.
+
+## Durable Failed-Direction Lessons
+
+### Static selectors and policy stitching
+
+Selectors assembled from existing policy labels repeatedly rotated losses rather than
+creating strength. Candidate-only wins were mixed with baseline-save cases, fragmented
+by context and move pair, or reversed across Pro/Normal/Fast budgets. Singleton or
+low-frequency axes are routing clues only. Do not install a runtime rule until the same
+mechanism repeats on disjoint states without baseline-save contamination.
+
+Opponent-specific continuation planners also exposed a structural trap: a policy can
+perfectly exploit the continuation it simulates and lose against another shipping
+budget. Cross-budget conflict cannot be repaired by stitching opponent labels into the
+public selector without fresh, stable causal evidence.
+
+### More depth, work, or nodes
+
+Guarded depth-five work with a completed iterative depth-three pass changed common-root
+scores on all five retained losses but changed only one public move, on White. This was
+a reach failure, not a reason to raise the budget.
+
+Completed-depth median and tactical-pool variants had attractive aggregate or
+per-variant averages (`187.84/225.64ms` and `151.72/200.06ms`) yet each produced an
+individual cold or replay call above `700ms`. Halving tactical nodes merely moved the
+failure to another repeat. A centralized visited-node ledger still allowed a
+`6,118.820ms` candidate-Black call while its accounting invariants passed. Node budgets
+do not bound root generation, turn-engine enumeration, exact analysis, or other
+uncharged work. Future cost control must bound the whole computation by construction.
+
+Completed-depth consensus and tactical-pool tweaks are exhausted families. Do not
+revive them through a different percentage, completed-depth statistic, cumulative
+budget, or selector wrapper.
+
+### Recursive tactics and terminal planning
+
+The frozen two-ply recursive-quiescence candidate was active and contract-correct but
+found no nonterminal second-ply chains, return-score changes, or public changes on the
+five retained losses. Widening its depth or tactical predicate would spend more on an
+unreached seam.
+
+Terminal-plan search appeared acceptable at a `540.53ms` full-match average because an
+expensive plan was cached across many calls. A separately frozen cold two-run-per-board
+gate measured `3.57–26.73s` on every retained witness. Cached or stateful mechanisms
+must pass cold first-call timing before match duels.
+
+Deterministic transposition PUCT used a sound shared state/horizon graph, cycle
+exhaustion, proof fixpoint, checked integer arithmetic, and the full `14,022` work cap.
+Full calls still averaged `1.836s`, and no witness met `700ms`. Do not retune its
+horizon, widening, priors, coefficients, proof rules, or the same work formula. A
+future planner must avoid generating expensive nodes rather than redistribute them.
+
+### Learned evaluators and ordering oracles
+
+Fresh offsets exposed selection fit: a model portfolio that scored `22-2`/`23-1` on
+calibrated repeats fell to `11-13` on unseen offset 2. Another provenance audit found a
+discovery opening reused by an apparently fresh corpus. Four identical 42-feature
+vectors also carried conflicting three-budget labels. Current-corpus PairNet, grouped
+Pareto, factorized DeepSets, and related evaluator lines are retired until genuinely
+fresh data and non-aliasing representations exist.
+
+A learned transition-priority oracle reordered hundreds of dynamically evaluated
+children under thousands of dual-teacher consensus edges while leaving all five
+guarded public moves unchanged. Ordering quality without admission/depth-plan or public
+root reach has no product value. Require a public oracle reach check before collecting
+another residual dataset.
+
+### Internal reach is not public reach
+
+Several mechanisms were proven active only by counters. Rank consensus required an
+equalized-only shadow before its own contribution could be separated from the search
+substrate. Root-policy probes found candidate wins but also same-state blockers and
+opposite-side saves. The reusable rule is simple: preserve branch/accounting parity,
+change one mechanism, and inspect the actual public move before any expensive duel.
+
+## Direction for the Next Mechanism
+
+The next candidate is deterministic bounded/lazy root generation. Its purpose is to
+make the expensive candidate set small before exact and turn-engine work begins, not to
+limit a counter after the roots already exist.
+
+Required design properties:
+
+- enumerate incrementally into a fixed-cap root pool;
+- admit mandatory tactical families even when the cap is nearly full;
+- fill remaining capacity in stable lexical/priority order;
+- deduplicate without unbounded secondary collections;
+- pass only the capped pool to exact, reply-risk, scoring, and turn-engine work;
+- retain a completed legal baseline result before stronger work begins;
+- make cancellation and emergency fallback deterministic;
+- expose test-only counts for generated, admitted, mandatory, deduplicated, and
+  downstream-analyzed roots;
+- prove that total downstream work is a function of the admitted cap.
+
+The first experiment is not a strength tournament. Freeze a few positions where the
+bounded generator chooses a different public root while retaining mandatory tactics.
+Prove legality and replay across all variants, causal output reach, and at least two
+independently cold complete calls below `700ms`. Only then run sampled and all-variant
+direct duels using fresh offsets.
+
+Kill this line if mandatory roots can disappear, hidden work grows outside the cap,
+the public result never changes, or cold timing fails. Do not turn it into another node
+fraction, completed-depth heuristic, tactical-pool resize, static selector, policy
+stitch, or evaluator trained on the existing corpus.
+
+## Maintenance Rule
+
+Keep this document between 8 and 12 KB. Add only promoted evidence, a changed shipping
+contract, or a lesson that rules out a meaningful class of future work. Replace stale
+detail instead of appending a diary. Keep `AUTOMOVE_IDEAS.md` under 1 KB and limited to
+one prospective mechanism. Candidate-specific harnesses and logs are deleted when the
+line ends; permanent tests cover the shipping behavior and release gates.

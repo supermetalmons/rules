@@ -6,20 +6,27 @@ description = "super metal mons"
 license = "CC0-1.0"
 repository = "https://github.com/supermetalmons/mons-rust"
 readme = "README.md"
-exclude = [
-  "rules-tests/",
-  "rules-tests-chunks/",
-  "target/",
-  "pkg/",
-  ".DS_Store",
-  "src/.DS_Store",
-  "nohup.out",
+include = [
+  "Cargo.toml",
+  "Cargo.lock",
+  "src/**",
+  "README.md",
+  "LICENSE",
 ]
 
 [dependencies]
-rand = "0.8.5"
 getrandom = { version = "0.2.15", features = ["js"] }
 wasm-bindgen = "0.2"
 
+[dev-dependencies]
+rand = "0.8.5"
+
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"

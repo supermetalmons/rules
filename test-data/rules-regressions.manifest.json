@@ -1,0 +1,572 @@
+{
+  "schemaVersion": 1,
+  "selectionVersion": "rules-regressions-v1",
+  "source": {
+    "commit": "5c79f22441a83e66b3a9875f0bf7354aee6f98a0",
+    "archives": [
+      {
+        "path": "rules-tests-chunks/chunk-00001.tar.gz",
+        "sha256": "6b3be00538dccb5e98f6ea0784f3f310a3a9c34795eec458645c50f3461ecb31",
+        "validCaseCount": 100000
+      },
+      {
+        "path": "rules-tests-chunks/chunk-00002.tar.gz",
+        "sha256": "3364787cdbbc2334ca7b02105d580c62133a682f3de672ea0c11f01dd7fdbb41",
+        "validCaseCount": 100000
+      },
+      {
+        "path": "rules-tests-chunks/chunk-00003.tar.gz",
+        "sha256": "194f590a7eebf1720b7fb80072282e91ecf92fe21db602625e84857a4fab06ee",
+        "validCaseCount": 100000
+      },
+      {
+        "path": "rules-tests-chunks/chunk-00004.tar.gz",
+        "sha256": "9528778d416b5c08279f34017f2174124a0c65da14cfbcb6ada12cb6b5dbac42",
+        "validCaseCount": 100000
+      },
+      {
+        "path": "rules-tests-chunks/chunk-00005.tar.gz",
+        "sha256": "48191a5684142463b8289cb8973fec92cb8692d8f76e93abf92a6c69942474af",
+        "validCaseCount": 100000
+      },
+      {
+        "path": "rules-tests-chunks/chunk-00006.tar.gz",
+        "sha256": "3c6cb6437a1c76aa5df670d251fbfa95da77d77424c5e667cf092bf8b20c381e",
+        "validCaseCount": 100000
+      },
+      {
+        "path": "rules-tests-chunks/chunk-00007.tar.gz",
+        "sha256": "daf951a55942bfa36818bd415f0246dbf53e4a34bfa4262ee862a919c6b7a1bf",
+        "validCaseCount": 99999
+      }
+    ],
+    "caseCount": 699999,
+    "uniqueCanonicalTransitions": 699994,
+    "baseline": {
+      "passed": 699999,
+      "failed": 0
+    }
+  },
+  "selection": {
+    "policy": [
+      "Retain every InvalidInput output, modifier input, and input sequence of length at least three.",
+      "Retain every case containing an event kind with source frequency at most 1000 or a next-input kind with source frequency at most 500.",
+      "Greedily add lowest-FNV candidates until every observed coverage value is represented.",
+      "Fill to 10000 by round-robin lowest-FNV selection across (output kind, active color, score pair, turn bucket) strata; break ties lexicographically."
+    ],
+    "selectedCaseCount": 10000,
+    "uniqueFnv1a64Ids": 10000,
+    "uniqueTransitions": 10000,
+    "mandatoryCaseCount": 4685,
+    "greedyCoverageAdditions": 18,
+    "roundRobinAdditions": 5297,
+    "rareEventOccurrenceThreshold": 1000,
+    "rareNextInputOccurrenceThreshold": 500,
+    "rareEventKinds": {
+      "ba": 10,
+      "da": 134,
+      "das": 20,
+      "go": 964,
+      "ma": 115,
+      "md": 295,
+      "mf": 259,
+      "pb": 12,
+      "pp": 15,
+      "sb": 8,
+      "up": 14
+    },
+    "rareNextInputKinds": {
+      "ba": 21,
+      "da": 283,
+      "das": 136,
+      "ma": 247,
+      "sc": 36
+    }
+  },
+  "artifact": {
+    "path": "test-data/rules-regressions.jsonl.gz",
+    "compression": "gzip -n -9",
+    "uncompressedBytes": 4032569,
+    "uncompressedSha256": "5c3e3a5034d187ee0daf528bc0fb5bedeb3a27a864d8e7f6ce0aa0880fd02afc",
+    "compressedBytes": 654974,
+    "compressedSha256": "4f96c9a638ff81ef1c07bd63f7d528a70676281bd18cabc20eef86b42dbb68dc"
+  },
+  "coverage": {
+    "distinctValueCounts": {
+      "output_kind": {
+        "source": 4,
+        "selected": 4
+      },
+      "output_cardinality": {
+        "source": 27,
+        "selected": 27
+      },
+      "event_kind": {
+        "source": 18,
+        "selected": 18
+      },
+      "next_input_kind": {
+        "source": 9,
+        "selected": 9
+      },
+      "input_kind": {
+        "source": 3,
+        "selected": 3
+      },
+      "input_length": {
+        "source": 5,
+        "selected": 5
+      },
+      "color": {
+        "source": 2,
+        "selected": 2
+      },
+      "score_pair": {
+        "source": 28,
+        "selected": 28
+      },
+      "item_kind": {
+        "source": 5,
+        "selected": 5
+      },
+      "mon_kind": {
+        "source": 5,
+        "selected": 5
+      },
+      "mana_kind": {
+        "source": 3,
+        "selected": 3
+      },
+      "source_square": {
+        "source": 6,
+        "selected": 6
+      },
+      "target_square": {
+        "source": 6,
+        "selected": 6
+      },
+      "direction": {
+        "source": 9,
+        "selected": 9
+      },
+      "distance": {
+        "source": 11,
+        "selected": 11
+      },
+      "geometry": {
+        "source": 254,
+        "selected": 254
+      },
+      "turn_bucket": {
+        "source": 4,
+        "selected": 4
+      },
+      "variant": {
+        "source": 1,
+        "selected": 1
+      }
+    },
+    "sourceCaseFrequencies": {
+      "output_kind": {
+        "events": 337999,
+        "invalid": 17,
+        "locations": 336243,
+        "next": 25740
+      },
+      "output_cardinality": {
+        "events:1": 19855,
+        "events:2": 287374,
+        "events:3": 30295,
+        "events:4": 468,
+        "events:5": 7,
+        "invalid:0": 17,
+        "locations:1": 2170,
+        "locations:2": 637,
+        "locations:3": 868,
+        "locations:4": 28176,
+        "locations:5": 304391,
+        "locations:6": 1,
+        "next:1": 942,
+        "next:10": 293,
+        "next:11": 171,
+        "next:12": 80,
+        "next:13": 18,
+        "next:14": 1,
+        "next:15": 2,
+        "next:2": 886,
+        "next:3": 1388,
+        "next:4": 2343,
+        "next:5": 4046,
+        "next:6": 4296,
+        "next:7": 6142,
+        "next:8": 4554,
+        "next:9": 578
+      },
+      "event_kind": {
+        "ba": 10,
+        "da": 134,
+        "das": 20,
+        "go": 964,
+        "ma": 115,
+        "maw": 25810,
+        "md": 295,
+        "mf": 259,
+        "mm": 31506,
+        "mma": 303499,
+        "ms": 3754,
+        "nt": 316556,
+        "pb": 12,
+        "pm": 1639,
+        "pp": 15,
+        "sb": 8,
+        "stm": 2735,
+        "up": 14
+      },
+      "next_input_kind": {
+        "ba": 14,
+        "da": 278,
+        "das": 21,
+        "ma": 238,
+        "mm": 17617,
+        "mma": 3321,
+        "sc": 18,
+        "stc": 4401,
+        "stm": 2600
+      },
+      "input_kind": {
+        "empty": 336246,
+        "location": 363753,
+        "modifier": 22
+      },
+      "input_length": {
+        "0": 336246,
+        "1": 23110,
+        "2": 337866,
+        "3": 2775,
+        "4": 2
+      },
+      "color": {
+        "b": 349353,
+        "w": 350646
+      },
+      "score_pair": {
+        "0:0": 165284,
+        "0:1": 43280,
+        "0:2": 25333,
+        "0:3": 18322,
+        "0:4": 7206,
+        "1:0": 42497,
+        "1:1": 35377,
+        "1:2": 24667,
+        "1:3": 20679,
+        "1:4": 11442,
+        "1:5": 1,
+        "2:0": 20202,
+        "2:1": 24477,
+        "2:2": 24631,
+        "2:3": 22984,
+        "2:4": 18599,
+        "2:6": 1,
+        "3:0": 14464,
+        "3:1": 20072,
+        "3:2": 21958,
+        "3:3": 22874,
+        "3:4": 24218,
+        "4:0": 7242,
+        "4:1": 13787,
+        "4:2": 16890,
+        "4:3": 24695,
+        "4:4": 28816,
+        "4:5": 1
+      },
+      "item_kind": {
+        "consumable": 150130,
+        "mana": 699999,
+        "mon": 699999,
+        "mon_with_consumable": 8756,
+        "mon_with_mana": 610482
+      },
+      "mon_kind": {
+        "angel": 699999,
+        "demon": 699999,
+        "drainer": 699999,
+        "mystic": 699999,
+        "spirit": 699999
+      },
+      "mana_kind": {
+        "regular_black": 692107,
+        "regular_white": 692843,
+        "supermana": 668603
+      },
+      "source_square": {
+        "consumable_base": 5175,
+        "mana_base": 49364,
+        "mana_pool": 1070,
+        "mon_base": 2396,
+        "regular": 307163,
+        "supermana_base": 105
+      },
+      "target_square": {
+        "consumable_base": 6431,
+        "mana_base": 51472,
+        "mana_pool": 6627,
+        "mon_base": 2794,
+        "regular": 313434,
+        "supermana_base": 392
+      },
+      "direction": {
+        "-1,-1": 59140,
+        "-1,0": 63689,
+        "-1,1": 59344,
+        "0,-1": 62174,
+        "0,0": 5,
+        "0,1": 62494,
+        "1,-1": 59914,
+        "1,0": 63218,
+        "1,1": 59389
+      },
+      "distance": {
+        "0": 5,
+        "1": 361364,
+        "10": 4,
+        "2": 10530,
+        "3": 69,
+        "4": 39,
+        "5": 37,
+        "6": 34,
+        "7": 26,
+        "8": 20,
+        "9": 9
+      },
+      "turn_bucket": {
+        "1-2": 3852,
+        "10+": 680562,
+        "3-5": 6745,
+        "6-9": 8840
+      },
+      "variant": {
+        "0": 699999
+      }
+    },
+    "selectedCaseFrequencies": {
+      "output_kind": {
+        "events": 5938,
+        "invalid": 17,
+        "locations": 1799,
+        "next": 2246
+      },
+      "output_cardinality": {
+        "events:1": 2672,
+        "events:2": 1820,
+        "events:3": 1374,
+        "events:4": 67,
+        "events:5": 5,
+        "invalid:0": 17,
+        "locations:1": 15,
+        "locations:2": 3,
+        "locations:3": 2,
+        "locations:4": 147,
+        "locations:5": 1631,
+        "locations:6": 1,
+        "next:1": 237,
+        "next:10": 19,
+        "next:11": 10,
+        "next:12": 5,
+        "next:13": 1,
+        "next:14": 1,
+        "next:15": 1,
+        "next:2": 89,
+        "next:3": 121,
+        "next:4": 169,
+        "next:5": 281,
+        "next:6": 311,
+        "next:7": 478,
+        "next:8": 433,
+        "next:9": 90
+      },
+      "event_kind": {
+        "ba": 10,
+        "da": 134,
+        "das": 20,
+        "go": 964,
+        "ma": 115,
+        "maw": 158,
+        "md": 295,
+        "mf": 259,
+        "mm": 934,
+        "mma": 2010,
+        "ms": 992,
+        "nt": 1764,
+        "pb": 12,
+        "pm": 288,
+        "pp": 15,
+        "sb": 8,
+        "stm": 2735,
+        "up": 14
+      },
+      "next_input_kind": {
+        "ba": 14,
+        "da": 278,
+        "das": 21,
+        "ma": 238,
+        "mm": 1480,
+        "mma": 213,
+        "sc": 18,
+        "stc": 296,
+        "stm": 182
+      },
+      "input_kind": {
+        "empty": 1802,
+        "location": 8198,
+        "modifier": 22
+      },
+      "input_length": {
+        "0": 1802,
+        "1": 2034,
+        "2": 3387,
+        "3": 2775,
+        "4": 2
+      },
+      "color": {
+        "b": 4970,
+        "w": 5030
+      },
+      "score_pair": {
+        "0:0": 2054,
+        "0:1": 556,
+        "0:2": 407,
+        "0:3": 507,
+        "0:4": 332,
+        "1:0": 387,
+        "1:1": 392,
+        "1:2": 230,
+        "1:3": 355,
+        "1:4": 260,
+        "1:5": 1,
+        "2:0": 219,
+        "2:1": 263,
+        "2:2": 318,
+        "2:3": 234,
+        "2:4": 322,
+        "2:6": 1,
+        "3:0": 242,
+        "3:1": 248,
+        "3:2": 436,
+        "3:3": 280,
+        "3:4": 442,
+        "4:0": 167,
+        "4:1": 268,
+        "4:2": 316,
+        "4:3": 368,
+        "4:4": 394,
+        "4:5": 1
+      },
+      "item_kind": {
+        "consumable": 2123,
+        "mana": 10000,
+        "mon": 10000,
+        "mon_with_consumable": 160,
+        "mon_with_mana": 8357
+      },
+      "mon_kind": {
+        "angel": 10000,
+        "demon": 10000,
+        "drainer": 10000,
+        "mystic": 10000,
+        "spirit": 10000
+      },
+      "mana_kind": {
+        "regular_black": 9917,
+        "regular_white": 9924,
+        "supermana": 9455
+      },
+      "source_square": {
+        "consumable_base": 107,
+        "mana_base": 1273,
+        "mana_pool": 92,
+        "mon_base": 150,
+        "regular": 7397,
+        "supermana_base": 30
+      },
+      "target_square": {
+        "consumable_base": 257,
+        "mana_base": 1795,
+        "mana_pool": 1214,
+        "mon_base": 497,
+        "regular": 6857,
+        "supermana_base": 64
+      },
+      "direction": {
+        "-1,-1": 2609,
+        "-1,0": 2521,
+        "-1,1": 2676,
+        "0,-1": 2490,
+        "0,0": 5,
+        "0,1": 2546,
+        "1,-1": 2661,
+        "1,0": 2572,
+        "1,1": 2692
+      },
+      "distance": {
+        "0": 5,
+        "1": 7640,
+        "10": 4,
+        "2": 4007,
+        "3": 69,
+        "4": 39,
+        "5": 37,
+        "6": 34,
+        "7": 26,
+        "8": 20,
+        "9": 9
+      },
+      "turn_bucket": {
+        "1-2": 209,
+        "10+": 9242,
+        "3-5": 251,
+        "6-9": 298
+      },
+      "variant": {
+        "0": 10000
+      }
+    },
+    "sourceEventOccurrences": {
+      "ba": 10,
+      "da": 134,
+      "das": 20,
+      "go": 964,
+      "ma": 115,
+      "maw": 25860,
+      "md": 295,
+      "mf": 259,
+      "mm": 31506,
+      "mma": 303499,
+      "ms": 3754,
+      "nt": 316556,
+      "pb": 12,
+      "pm": 1639,
+      "pp": 15,
+      "sb": 8,
+      "stm": 2735,
+      "up": 14
+    },
+    "sourceNextInputOccurrences": {
+      "ba": 21,
+      "da": 283,
+      "das": 136,
+      "ma": 247,
+      "mm": 106003,
+      "mma": 20481,
+      "sc": 36,
+      "stc": 9109,
+      "stm": 16617
+    }
+  },
+  "knownGaps": [
+    "The source corpus contains only the Classic variant; variants 1 through 11 are covered by focused Rust tests instead.",
+    "The source corpus contains no BombExplosion (be) event.",
+    "The source corpus contains no takeback input or Takeback (z) event.",
+    "The source corpus contains no Cancel (mc) modifier input.",
+    "The source corpus contains no turn-number-zero transition; observed turn buckets are 1-2, 3-5, 6-9, and 10+."
+  ]
+}

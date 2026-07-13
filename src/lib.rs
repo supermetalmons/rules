@@ -89,12 +89,6 @@ mod tests {
     use std::io::{self};
 
     #[test]
-    fn explore_memory_footprint() -> io::Result<()> {
-        log_message("ok")?;
-        Ok(())
-    }
-
-    #[test]
     fn automove_till_end() -> io::Result<()> {
         let mut game = MonsGameModel::new(GameVariant::Classic);
         loop {
@@ -211,15 +205,6 @@ mod tests {
         let model = MonsGameModel::new(GameVariant::Classic);
         let other = MonsGame::new(false, GameVariant::SwappedManaRows);
         assert!(!model.is_later_than(other.fen().as_str()));
-        Ok(())
-    }
-
-    fn log_message(msg: &str) -> io::Result<()> {
-        use std::io::Write;
-        let stdout = std::io::stdout();
-        let mut handle = stdout.lock();
-        writeln!(handle, "{}", msg)?;
-        handle.flush()?;
         Ok(())
     }
 }

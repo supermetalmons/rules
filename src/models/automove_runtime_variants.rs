@@ -9,35 +9,6 @@ const FRONTIER_FAST_BANK_BUDGET_MS: f64 = 200.0;
 const FRONTIER_PRO_START_RESERVE_MS: f64 = 100.0;
 const FRONTIER_SELECTOR_BUDGET_MS: f64 = 550.0;
 
-#[cfg(test)]
-pub(crate) const SHIPPING_PRO_SEARCH_PROFILE_ID: &str = "shipping_pro_search";
-#[cfg(test)]
-pub(crate) const FRONTIER_PRO_V2_GUARDED_PROFILE_ID: &str = "frontier_pro_v2_guarded";
-#[cfg(test)]
-pub(crate) const FRONTIER_PRO_V10_BOUNDED_TACTICAL_PROFILE_ID: &str =
-    "frontier_pro_v10_bounded_tactical";
-
-#[cfg(test)]
-thread_local! {
-    static FRONTIER_RUNTIME_VARIANT_BRANCH: std::cell::RefCell<&'static str> =
-        const { std::cell::RefCell::new("unset") };
-}
-
-#[cfg(test)]
-pub(crate) fn clear_frontier_runtime_variant_branch() {
-    FRONTIER_RUNTIME_VARIANT_BRANCH.with(|branch| *branch.borrow_mut() = "unset");
-}
-
-#[cfg(test)]
-pub(crate) fn frontier_runtime_variant_branch_snapshot() -> &'static str {
-    FRONTIER_RUNTIME_VARIANT_BRANCH.with(|branch| *branch.borrow())
-}
-
-#[cfg(test)]
-fn set_frontier_runtime_variant_branch(branch: &'static str) {
-    FRONTIER_RUNTIME_VARIANT_BRANCH.with(|last_branch| *last_branch.borrow_mut() = branch);
-}
-
 fn shipping_search_config_for_game(
     game: &MonsGame,
     preference: SmartAutomovePreference,
@@ -74,8 +45,8 @@ fn select_frontier_shipping_fallback_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
 ) -> Vec<Input> {
-    // The bounded v10 route already has an outer frontier deadline, while the
-    // retained v2 comparator intentionally has none. Inherit whichever state
+    // The bounded current-Pro route already has an outer frontier deadline, while the
+    // The retained current comparator intentionally has none. Inherit whichever state
     // the caller established instead of starting a fresh shipping deadline.
     select_shipping_search_inputs_internal(game, config)
 }
@@ -89,7 +60,6 @@ fn select_search_inputs_with_fresh_frontier_cache(
     }
     if config.enable_turn_engine_selector {
         crate::models::automove_turn_engine::clear_turn_engine_plan_cache();
-        crate::models::automove_turn_engine::clear_turn_engine_diagnostics();
     }
     select_shipping_search_inputs_internal(game, config)
 }
@@ -220,24 +190,14 @@ pub(crate) fn select_shipping_search_inputs(
     })
 }
 
-#[cfg(test)]
-pub(crate) fn select_shipping_pro_search_inputs(
-    game: &MonsGame,
-    config: AutomoveSearchConfig,
-) -> Vec<Input> {
-    select_shipping_search_inputs(game, config)
-}
-
-pub(crate) fn apply_frontier_pro_v2_guarded_config(
-    config: AutomoveSearchConfig,
-) -> AutomoveSearchConfig {
+pub(crate) fn apply_current_pro_config(config: AutomoveSearchConfig) -> AutomoveSearchConfig {
     let mut runtime = config;
     if runtime.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
         && runtime.enable_normal_root_safety_deep_floor
     {
         runtime.enable_turn_head_rerank = false;
         runtime.enable_turn_engine_selector = true;
-        runtime.turn_engine_mode = TurnEngineMode::ProV2;
+        runtime.turn_engine_mode = TurnEngineMode::CurrentPro;
         runtime.turn_engine_seed_cap = 14;
         runtime.turn_engine_beam_width = 5;
         runtime.turn_engine_per_node_family_cap = 4;
@@ -253,28 +213,13 @@ pub(crate) fn apply_frontier_pro_v2_guarded_config(
         runtime.enable_turn_engine_low_budget_guard = true;
         runtime.enable_turn_engine_mid_turn_tactical_guard = true;
         runtime.enable_turn_engine_late_safe_mana_root_preference = true;
-    }
-    runtime
-}
-
-pub(crate) fn apply_frontier_pro_v10_bounded_tactical_config(
-    config: AutomoveSearchConfig,
-) -> AutomoveSearchConfig {
-    let mut runtime = apply_frontier_pro_v2_guarded_config(config);
-    if runtime.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-        && runtime.enable_normal_root_safety_deep_floor
-    {
         runtime.enable_targeted_drainer_attack_fallback = true;
-        runtime.enable_drainer_attack_full_pool = false;
         runtime.enable_root_reply_risk_guard = false;
     }
     runtime
 }
 
-fn select_early_white_fallback_inputs(
-    game: &MonsGame,
-    config: AutomoveSearchConfig,
-) -> Option<Vec<Input>> {
+fn select_early_white_fallback_inputs(game: &MonsGame) -> Option<Vec<Input>> {
     let early_white_turn_start = game.active_color == Color::White
         && game.turn_number <= 3
         && !game.player_can_use_action()
@@ -322,16 +267,10 @@ fn select_early_white_fallback_inputs(
         return None;
     }
 
-    let drainer_vulnerable = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-        game,
-        game.active_color,
-        config.enable_enhanced_drainer_vulnerability,
-    );
-    let drainer_walk_vulnerable = MonsGameModel::is_own_drainer_walk_vulnerable_next_turn(
-        game,
-        game.active_color,
-        config.enable_enhanced_drainer_vulnerability,
-    );
+    let drainer_vulnerable =
+        MonsGameModel::is_own_drainer_vulnerable_next_turn(game, game.active_color, true);
+    let drainer_walk_vulnerable =
+        MonsGameModel::is_own_drainer_walk_vulnerable_next_turn(game, game.active_color, true);
     if !drainer_vulnerable && !drainer_walk_vulnerable {
         return None;
     }
@@ -363,7 +302,7 @@ fn select_score_window_tactical_fallback_inputs(
 
     Some(select_search_inputs_with_fresh_frontier_cache(
         game,
-        apply_frontier_pro_v2_guarded_config(config),
+        apply_current_pro_config(config),
     ))
 }
 
@@ -391,7 +330,7 @@ fn select_white_early_engine_disabled_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_frontier_pro_v2_guarded_config(config);
+    let frontier_runtime = apply_current_pro_config(config);
     let frontier_roots =
         MonsGameModel::ranked_root_moves(game, game.active_color, frontier_runtime);
     let frontier_selected = frontier_roots
@@ -473,7 +412,7 @@ fn select_white_nonnegative_deny_search_only_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_frontier_pro_v2_guarded_config(config);
+    let frontier_runtime = apply_current_pro_config(config);
     let frontier_roots =
         MonsGameModel::ranked_root_moves(game, game.active_color, frontier_runtime);
     let frontier_selected = frontier_roots
@@ -528,7 +467,7 @@ fn select_white_negative_deny_search_only_selected_rank_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_frontier_pro_v2_guarded_config(config);
+    let frontier_runtime = apply_current_pro_config(config);
     let frontier_roots =
         MonsGameModel::ranked_root_moves(game, game.active_color, frontier_runtime);
     let frontier_selected = frontier_roots
@@ -649,7 +588,7 @@ fn focused_scored_roots_for_frontier_runtime(
     } else {
         None
     };
-    let advisor_decision = MonsGameModel::pro_v2_root_advisor_presearch(
+    let advisor_decision = MonsGameModel::current_pro_root_advisor_presearch(
         game,
         perspective,
         config,
@@ -658,7 +597,7 @@ fn focused_scored_roots_for_frontier_runtime(
     );
     let advisor_priority_inputs = advisor_decision
         .as_ref()
-        .map(MonsGameModel::pro_v2_root_advisor_priority_inputs)
+        .map(MonsGameModel::current_pro_root_advisor_priority_inputs)
         .unwrap_or_default();
     let (root_moves, scout_visited_nodes) =
         MonsGameModel::focused_root_candidates_with_priority_inputs(
@@ -684,8 +623,6 @@ fn focused_scored_roots_for_frontier_runtime(
         0
     };
     let mut extension_nodes_used = 0usize;
-    let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-    let mut history_table: HistoryTable = HistoryTable::default();
     let mut quiescence_nodes_used = 0usize;
 
     for candidate in root_moves {
@@ -703,8 +640,6 @@ fn focused_scored_roots_for_frontier_runtime(
             &mut extension_nodes_used,
             extension_node_budget,
             true,
-            &mut killer_table,
-            &mut history_table,
             &mut quiescence_nodes_used,
         );
         if candidate_score > alpha {
@@ -743,7 +678,7 @@ fn select_white_confirm_prov1_search_only_tiebreak_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_frontier_pro_v2_guarded_config(config);
+    let frontier_runtime = apply_current_pro_config(config);
     let frontier_roots = focused_scored_roots_for_frontier_runtime(game, frontier_runtime);
     let frontier_index = frontier_roots
         .iter()
@@ -828,7 +763,7 @@ fn select_white_confirm_prov1_better_ordered_search_only_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_frontier_pro_v2_guarded_config(config);
+    let frontier_runtime = apply_current_pro_config(config);
     let frontier_roots = focused_scored_roots_for_frontier_runtime(game, frontier_runtime);
     let frontier_index = frontier_roots
         .iter()
@@ -966,7 +901,7 @@ fn execute_frontier_candidate_inputs_with_runtime(
     select_search_inputs_with_fresh_frontier_cache(game, runtime)
 }
 
-fn select_frontier_pro_v2_guarded_inputs_with_runtime(
+fn select_current_pro_inputs_with_runtime(
     game: &MonsGame,
     config: AutomoveSearchConfig,
     frontier_runtime: AutomoveSearchConfig,
@@ -974,25 +909,19 @@ fn select_frontier_pro_v2_guarded_inputs_with_runtime(
     if automove_deadline::checkpoint() {
         return Vec::new();
     }
-    if let Some(inputs) = select_early_white_fallback_inputs(game, config) {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch("early_white_fallback");
+    if let Some(inputs) = select_early_white_fallback_inputs(game) {
         return inputs;
     }
     if automove_deadline::checkpoint() {
         return Vec::new();
     }
     if let Some(inputs) = select_score_window_tactical_fallback_inputs(game, config) {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch("score_window_tactical_fallback");
         return inputs;
     }
     if automove_deadline::checkpoint() {
         return Vec::new();
     }
     if let Some(inputs) = select_unconditional_black_search_fallback_inputs(game) {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch("late_black_shipping_fallback");
         return inputs;
     }
 
@@ -1003,8 +932,6 @@ fn select_frontier_pro_v2_guarded_inputs_with_runtime(
     if let Some(inputs) =
         select_white_early_engine_disabled_fallback_inputs(game, config, frontier_inputs.as_slice())
     {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch("white_early_engine_disabled_fallback");
         return inputs;
     }
     if automove_deadline::checkpoint() {
@@ -1015,8 +942,6 @@ fn select_frontier_pro_v2_guarded_inputs_with_runtime(
         config,
         frontier_inputs.as_slice(),
     ) {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch("white_nonnegative_deny_search_only_fallback");
         return inputs;
     }
     if automove_deadline::checkpoint() {
@@ -1027,10 +952,6 @@ fn select_frontier_pro_v2_guarded_inputs_with_runtime(
         config,
         frontier_inputs.as_slice(),
     ) {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch(
-            "white_negative_deny_search_only_selected_rank_fallback",
-        );
         return inputs;
     }
     if automove_deadline::checkpoint() {
@@ -1041,8 +962,6 @@ fn select_frontier_pro_v2_guarded_inputs_with_runtime(
         config,
         frontier_inputs.as_slice(),
     ) {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch("white_confirm_prov1_search_only_tiebreak_fallback");
         return inputs;
     }
     if automove_deadline::checkpoint() {
@@ -1053,10 +972,6 @@ fn select_frontier_pro_v2_guarded_inputs_with_runtime(
         config,
         frontier_inputs.as_slice(),
     ) {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch(
-            "white_confirm_prov1_better_ordered_search_only_fallback",
-        );
         return inputs;
     }
     if automove_deadline::checkpoint() {
@@ -1064,48 +979,17 @@ fn select_frontier_pro_v2_guarded_inputs_with_runtime(
     }
     if let Some(inputs) = select_late_black_search_fallback_inputs(game, frontier_inputs.as_slice())
     {
-        #[cfg(test)]
-        set_frontier_runtime_variant_branch("late_black_shipping_fallback");
         return inputs;
     }
-    #[cfg(test)]
-    set_frontier_runtime_variant_branch("frontier_execute");
     frontier_inputs
 }
 
-#[cfg(test)]
-pub(crate) fn select_frontier_pro_v2_guarded_inputs_with_frontier_runtime(
-    game: &MonsGame,
-    config: AutomoveSearchConfig,
-    frontier_runtime: AutomoveSearchConfig,
-) -> Vec<Input> {
-    select_frontier_with_shared_deadline(game, || {
-        select_frontier_pro_v2_guarded_inputs_with_runtime(game, config, frontier_runtime)
-    })
-}
-
-#[cfg(test)]
-pub(crate) fn select_frontier_pro_v2_guarded_inputs(
-    game: &MonsGame,
-    config: AutomoveSearchConfig,
-) -> Vec<Input> {
-    select_frontier_pro_v2_guarded_inputs_with_runtime(
-        game,
-        config,
-        apply_frontier_pro_v2_guarded_config(config),
-    )
-}
-
-pub(crate) fn select_frontier_pro_v10_bounded_tactical_inputs(
+pub(crate) fn select_current_pro_bounded_tactical_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
 ) -> Vec<Input> {
     select_frontier_with_shared_deadline(game, || {
-        select_frontier_pro_v2_guarded_inputs_with_runtime(
-            game,
-            config,
-            apply_frontier_pro_v10_bounded_tactical_config(config),
-        )
+        select_current_pro_inputs_with_runtime(game, config, apply_current_pro_config(config))
     })
 }
 
@@ -1125,9 +1009,7 @@ pub(crate) fn turn_engine_config_from_search_config(
         expansion_cap: config.turn_engine_expansion_cap.max(1),
         enable_spirit_family: config.turn_engine_enable_spirit_family,
         scoring_weights: config.scoring_weights,
-        allow_exact_static_evaluation: config.enable_static_exact_evaluation,
-        enable_lazy_oracle_score_window_projection: config
-            .enable_turn_engine_lazy_oracle_score_window_projection,
+        enable_lazy_oracle_score_window_projection: false,
     }
 }
 
@@ -1181,7 +1063,7 @@ mod tests {
                 let pro_config =
                     shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
                 let selected = automove_deadline::with_deadline_if_absent(0.0, || {
-                    select_frontier_pro_v10_bounded_tactical_inputs(&game, pro_config)
+                    select_current_pro_bounded_tactical_inputs(&game, pro_config)
                 });
                 assert_eq!(selected, expected, "variant={variant_id} mode=Pro");
                 assert_inputs_yield_events(&game, selected.as_slice());
@@ -1268,95 +1150,54 @@ mod tests {
     }
 
     #[test]
-    fn frontier_pro_v10_bounded_tactical_isolates_promoted_runtime_delta() {
+    fn current_pro_config_applies_shipping_runtime_contract() {
         let game = MonsGame::new(false, GameVariant::Classic);
         let config = shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-        let guarded = apply_frontier_pro_v2_guarded_config(config);
-        let promoted = apply_frontier_pro_v10_bounded_tactical_config(config);
+        let current = apply_current_pro_config(config);
 
-        assert!(!guarded.enable_targeted_drainer_attack_fallback);
-        assert!(guarded.enable_root_reply_risk_guard);
-        assert!(promoted.enable_targeted_drainer_attack_fallback);
-        assert!(!promoted.enable_drainer_attack_full_pool);
-        assert!(!promoted.enable_root_reply_risk_guard);
-        assert_eq!(promoted.depth, guarded.depth);
-        assert_eq!(promoted.max_visited_nodes, guarded.max_visited_nodes);
+        assert!(config.enable_root_reply_risk_guard);
+        assert!(current.enable_targeted_drainer_attack_fallback);
+        assert!(!current.enable_root_reply_risk_guard);
+        assert_eq!(current.depth, config.depth);
+        assert_eq!(current.max_visited_nodes, config.max_visited_nodes);
     }
 
     #[test]
-    #[ignore = "diagnostic: cold replay the Black turn-8 whole-selector deadline tail"]
-    fn automove_runtime_black_turn_eight_deadline_tail_probe() {
+    #[ignore = "release gate: five cold Black turn-eight public Pro calls must stay under 700ms"]
+    fn smart_automove_public_black_turn_eight_deadline_tail_gate() {
         let game = MonsGame::from_fen(
             "1 0 b 0 0 0 0 0 8 n11/n02y0xn01s0xn01a0xxxmn03/n02xxmn02d0xn05/n03xxmn02xxmn04/n04e0xn02xxmn03/xxQn03S0xxxUn04xxQ/n03xxMY0xn06/n04xxMn03xxMn02/n11/n04E0xA0xn02xxMn02/n09D0xn01",
             false,
         )
         .expect("valid Black turn-8 deadline-tail fixture");
-        let config = shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-        let fast_config = shipping_search_config_for_game(&game, SmartAutomovePreference::Fast);
-        let emergency_inputs = deterministic_legal_fallback_inputs(&game);
-        clear_selector_caches_after_timeout();
-        let fast_inputs = MonsGameModel::smart_search_best_inputs(&game, fast_config);
-        clear_selector_caches_after_timeout();
-        let shipping_pro_inputs = select_shipping_search_inputs(&game, config);
-        println!(
-            "AUTOMOVE_BLACK_TURN_EIGHT_DEADLINE_TAIL_BASELINES emergency={} fast={} shipping_pro={}",
-            Input::fen_from_array(emergency_inputs.as_slice()),
-            Input::fen_from_array(fast_inputs.as_slice()),
-            Input::fen_from_array(shipping_pro_inputs.as_slice()),
-        );
-
-        let guarded_runtime = apply_frontier_pro_v2_guarded_config(config);
-        let bounded_tactical_runtime = apply_frontier_pro_v10_bounded_tactical_config(config);
-        let mut per_mon_runtime = bounded_tactical_runtime;
-        per_mon_runtime.enable_targeted_drainer_attack_fallback = false;
-        per_mon_runtime.enable_per_mon_drainer_attack_fallback = true;
-        for (label, runtime) in [
-            ("guarded", guarded_runtime),
-            ("targeted", bounded_tactical_runtime),
-            ("per_mon", per_mon_runtime),
-        ] {
-            for repeat in 0..2 {
-                clear_selector_caches_after_timeout();
-                clear_frontier_runtime_variant_branch();
-                let start = std::time::Instant::now();
-                let inputs = select_frontier_pro_v2_guarded_inputs_with_frontier_runtime(
-                    &game, config, runtime,
-                );
-                let elapsed_ms = start.elapsed().as_secs_f64() * 1_000.0;
-                println!(
-                    "AUTOMOVE_BLACK_TURN_EIGHT_DEADLINE_TAIL_RUNTIME label={} repeat={} elapsed_ms={:.3} branch={} inputs={}",
-                    label,
-                    repeat,
-                    elapsed_ms,
-                    frontier_runtime_variant_branch_snapshot(),
-                    Input::fen_from_array(inputs.as_slice()),
-                );
-                assert!(
-                    elapsed_ms <= 700.0,
-                    "Black turn-8 {label} selector exceeded hard limit: repeat={repeat} elapsed_ms={elapsed_ms:.3}"
-                );
-                assert_inputs_yield_events(&game, inputs.as_slice());
-            }
-        }
-
-        for repeat in 0..8 {
+        for repeat in 0..5 {
             clear_selector_caches_after_timeout();
-            clear_frontier_runtime_variant_branch();
+            let model = MonsGameModel::with_game(game.clone_for_simulation());
             let start = std::time::Instant::now();
-            let inputs = select_frontier_pro_v10_bounded_tactical_inputs(&game, config);
+            let output = model.smart_automove_output(SmartAutomovePreference::Pro);
             let elapsed_ms = start.elapsed().as_secs_f64() * 1_000.0;
+            assert_eq!(output.kind, OutputModelKind::Events);
+            assert_eq!(output.input_fen(), "l1,4;l3,6;l2,5");
+
+            let mut replay = game.clone_for_simulation();
+            assert!(matches!(
+                replay.process_input(
+                    Input::array_from_fen(output.input_fen().as_str()),
+                    false,
+                    false,
+                ),
+                Output::Events(_)
+            ));
             println!(
-                "AUTOMOVE_BLACK_TURN_EIGHT_DEADLINE_TAIL repeat={} elapsed_ms={:.3} branch={} inputs={}",
+                "AUTOMOVE_PUBLIC_BLACK_TURN_EIGHT repeat={} elapsed_ms={:.3} inputs={}",
                 repeat,
                 elapsed_ms,
-                frontier_runtime_variant_branch_snapshot(),
-                Input::fen_from_array(inputs.as_slice()),
+                output.input_fen(),
             );
             assert!(
                 elapsed_ms <= 700.0,
-                "Black turn-8 promoted selector exceeded hard limit: repeat={repeat} elapsed_ms={elapsed_ms:.3}"
+                "Black turn-8 public Pro call exceeded hard limit: repeat={repeat} elapsed_ms={elapsed_ms:.3}"
             );
-            assert_inputs_yield_events(&game, inputs.as_slice());
         }
     }
 }

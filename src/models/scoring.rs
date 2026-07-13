@@ -765,22 +765,6 @@ pub const BALANCED_DISTANCE_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
     attacker_close_to_opponent_drainer: 0,
 };
 
-#[cfg(test)]
-pub const MANA_RACE_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    regular_mana_to_owner_pool: 260,
-    regular_mana_drainer_control: 26,
-    supermana_drainer_control: 44,
-    mana_carrier_at_risk: -260,
-    mana_carrier_guarded: 140,
-    drainer_close_to_own_pool: 300,
-    drainer_close_to_supermana: 220,
-    drainer_holding_mana: 380,
-    spirit_close_to_enemy: 210,
-    angel_guarding_drainer: 290,
-    angel_close_to_friendly_drainer: 190,
-    ..BALANCED_DISTANCE_SCORING_WEIGHTS
-};
-
 pub const MANA_RACE_LITE_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
     regular_mana_to_owner_pool: 150,
     regular_mana_drainer_control: 15,
@@ -807,32 +791,6 @@ pub const MANA_RACE_LITE_TACTICAL_SCORING_WEIGHTS: ScoringWeights = ScoringWeigh
     mana_carrier_guarded: 120,
     mana_carrier_one_step_from_pool: 270,
     supermana_carrier_one_step_from_pool_extra: 170,
-    ..MANA_RACE_LITE_SCORING_WEIGHTS
-};
-
-#[cfg(test)]
-pub const FINISHER_BALANCED_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    mana_carrier_one_step_from_pool: 260,
-    supermana_carrier_one_step_from_pool_extra: 140,
-    immediate_winning_carrier: 850,
-    ..BALANCED_DISTANCE_SCORING_WEIGHTS
-};
-
-#[cfg(test)]
-pub const FINISHER_MANA_RACE_LITE_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    mana_carrier_one_step_from_pool: 300,
-    supermana_carrier_one_step_from_pool_extra: 180,
-    immediate_winning_carrier: 980,
-    ..MANA_RACE_LITE_SCORING_WEIGHTS
-};
-
-#[cfg(test)]
-pub const FINISHER_MANA_RACE_LITE_AGGRESSIVE_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    mana_carrier_at_risk: -190,
-    mana_carrier_guarded: 90,
-    mana_carrier_one_step_from_pool: 340,
-    supermana_carrier_one_step_from_pool_extra: 220,
-    immediate_winning_carrier: 1200,
     ..MANA_RACE_LITE_SCORING_WEIGHTS
 };
 
@@ -876,36 +834,6 @@ pub const MANA_RACE_LITE_D2_TUNED_SCORING_WEIGHTS: ScoringWeights = ScoringWeigh
     supermana_carrier_one_step_from_pool_extra: 150,
     immediate_winning_carrier: 300,
     ..MANA_RACE_LITE_SCORING_WEIGHTS
-};
-
-#[cfg(test)]
-pub const MANA_RACE_LITE_D2_TUNED_AGGRESSIVE_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    regular_mana_to_owner_pool: 190,
-    regular_mana_drainer_control: 22,
-    mana_close_to_same_pool: 360,
-    drainer_close_to_own_pool: 340,
-    mana_carrier_at_risk: -250,
-    mana_carrier_guarded: 110,
-    mana_carrier_one_step_from_pool: 300,
-    supermana_carrier_one_step_from_pool_extra: 180,
-    immediate_winning_carrier: 420,
-    ..MANA_RACE_LITE_SCORING_WEIGHTS
-};
-
-#[cfg(test)]
-pub const MANA_RACE_NEUTRAL_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    regular_mana_to_owner_pool: 220,
-    regular_mana_drainer_control: 18,
-    supermana_drainer_control: 34,
-    mana_carrier_at_risk: -180,
-    mana_carrier_guarded: 90,
-    mana_close_to_same_pool: 300,
-    drainer_close_to_own_pool: 300,
-    drainer_close_to_supermana: 210,
-    fainted_cooldown_step: -90,
-    mana_carrier_one_step_from_pool: 200,
-    supermana_carrier_one_step_from_pool_extra: 100,
-    ..BALANCED_DISTANCE_SCORING_WEIGHTS
 };
 
 pub const TACTICAL_BALANCED_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
@@ -1008,43 +936,6 @@ pub const RUNTIME_RUSH_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
     opponent_immediate_score_window: 190,
     spirit_action_utility: 55,
     ..BALANCED_DISTANCE_SCORING_WEIGHTS
-};
-
-#[cfg(test)]
-pub const RUNTIME_NORMAL_WINLOSS_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    confirmed_score: 900,
-    fainted_cooldown_step: -130,
-    spirit_close_to_enemy: 235,
-    angel_guarding_drainer: 310,
-    regular_mana_to_owner_pool: 70,
-    regular_mana_drainer_control: 8,
-    supermana_drainer_control: 16,
-    mana_carrier_at_risk: -230,
-    mana_carrier_guarded: 125,
-    mana_carrier_one_step_from_pool: 300,
-    supermana_carrier_one_step_from_pool_extra: 185,
-    immediate_winning_carrier: 520,
-    drainer_best_mana_path: 70,
-    drainer_pickup_score_this_turn: 55,
-    mana_carrier_score_this_turn: 150,
-    drainer_immediate_threat: -100,
-    ..TACTICAL_BALANCED_SCORING_WEIGHTS
-};
-
-#[cfg(test)]
-pub const RUNTIME_FAST_DRAINER_PRIORITY_SCORING_WEIGHTS: ScoringWeights = ScoringWeights {
-    drainer_at_risk: -520,
-    drainer_close_to_mana: 370,
-    drainer_holding_mana: 470,
-    drainer_close_to_own_pool: 350,
-    regular_mana_drainer_control: 24,
-    mana_carrier_at_risk: -240,
-    mana_carrier_guarded: 120,
-    mana_carrier_one_step_from_pool: 310,
-    supermana_carrier_one_step_from_pool_extra: 190,
-    immediate_winning_carrier: 460,
-    angel_guarding_drainer: 340,
-    ..MANA_RACE_LITE_D2_TUNED_SCORING_WEIGHTS
 };
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -2766,23 +2657,6 @@ fn color_slot(color: Color) -> usize {
     }
 }
 
-#[allow(dead_code)]
-fn score_path_window_to_any_pool(
-    board: &Board,
-    color: Color,
-    include_drainer_pickups: bool,
-    include_regular_mana_move_windows: bool,
-) -> ScorePathWindow {
-    let mana_snapshot = ManaPathSnapshot::from_board(board);
-    score_path_window_to_any_pool_with_snapshot(
-        board,
-        &mana_snapshot,
-        color,
-        include_drainer_pickups,
-        include_regular_mana_move_windows,
-    )
-}
-
 fn score_path_window_to_any_pool_with_snapshot(
     board: &Board,
     mana_snapshot: &ManaPathSnapshot,
@@ -2842,27 +2716,6 @@ fn score_path_window_to_any_pool_with_snapshot(
         best_steps,
         multi_pressure,
     }
-}
-
-#[allow(dead_code)]
-fn immediate_score_window_summary(
-    board: &Board,
-    color: Color,
-    remaining_mon_moves: i32,
-    include_drainer_pickups: bool,
-    include_regular_mana_move_windows: bool,
-    allow_mana_move: bool,
-) -> ImmediateScoreWindow {
-    let mana_snapshot = ManaPathSnapshot::from_board(board);
-    immediate_score_window_summary_with_snapshot(
-        board,
-        &mana_snapshot,
-        color,
-        remaining_mon_moves,
-        include_drainer_pickups,
-        include_regular_mana_move_windows,
-        allow_mana_move,
-    )
 }
 
 fn immediate_score_window_summary_with_snapshot(
@@ -2928,12 +2781,6 @@ fn immediate_score_window_summary_with_snapshot(
     }
 }
 
-#[allow(dead_code)]
-fn best_regular_mana_move_score_window(board: &Board, color: Color) -> i32 {
-    let mana_snapshot = ManaPathSnapshot::from_board(board);
-    best_regular_mana_move_score_window_with_snapshot(&mana_snapshot, color)
-}
-
 fn best_regular_mana_move_score_window_with_snapshot(
     mana_snapshot: &ManaPathSnapshot,
     color: Color,
@@ -2979,16 +2826,6 @@ enum Destination {
     Center,
     AnyClosestPool,
     ClosestPool(Color),
-}
-
-#[allow(dead_code)]
-fn drainer_distances(
-    board: &Board,
-    color: Color,
-    location: Location,
-    use_legacy_formula: bool,
-) -> (i32, i32, bool) {
-    drainer_distances_with_context(board, color, location, use_legacy_formula, None)
 }
 
 fn drainer_distances_with_context(
@@ -3126,24 +2963,6 @@ fn drainer_distances_with_context(
     }
 }
 
-#[allow(dead_code)]
-fn drainer_safety_snapshot(
-    board: &Board,
-    color: Color,
-    location: Location,
-    use_legacy_formula: bool,
-    include_walk_threat: bool,
-) -> DrainerSafetySnapshot {
-    drainer_safety_snapshot_with_context(
-        board,
-        color,
-        location,
-        use_legacy_formula,
-        include_walk_threat,
-        None,
-    )
-}
-
 fn drainer_safety_snapshot_with_context(
     board: &Board,
     color: Color,
@@ -3182,12 +3001,6 @@ fn drainer_safety_snapshot_with_context(
     }
 }
 
-#[allow(dead_code)]
-fn best_drainer_pickup_path(board: &Board, color: Color, from: Location) -> Option<(i32, i32)> {
-    let mana_snapshot = ManaPathSnapshot::from_board(board);
-    best_drainer_pickup_path_with_snapshot(&mana_snapshot, color, from)
-}
-
 fn best_drainer_pickup_path_with_snapshot(
     mana_snapshot: &ManaPathSnapshot,
     color: Color,
@@ -3216,16 +3029,6 @@ fn best_drainer_pickup_path_with_snapshot(
     best
 }
 
-#[allow(dead_code)]
-fn drainer_immediate_threats(
-    board: &Board,
-    color: Color,
-    location: Location,
-    _use_legacy_formula: bool,
-) -> (i32, i32) {
-    drainer_immediate_threats_with_context(board, color, location, false, None)
-}
-
 fn drainer_immediate_threats_with_context(
     board: &Board,
     color: Color,
@@ -3238,16 +3041,6 @@ fn drainer_immediate_threats_with_context(
     } else {
         crate::models::automove_exact::drainer_immediate_threats(board, color, location)
     }
-}
-
-#[allow(dead_code)]
-fn is_drainer_under_walk_threat(
-    board: &Board,
-    color: Color,
-    location: Location,
-    angel_nearby: bool,
-) -> bool {
-    is_drainer_under_walk_threat_with_context(board, color, location, angel_nearby, None)
 }
 
 fn is_drainer_under_walk_threat_with_context(
@@ -3267,24 +3060,6 @@ fn is_drainer_under_walk_threat_with_context(
         color,
         location,
         angel_nearby,
-    )
-}
-
-#[allow(dead_code)]
-fn is_drainer_under_danger_threat(
-    board: &Board,
-    color: Color,
-    location: Location,
-    angel_nearby: bool,
-    use_legacy_formula: bool,
-) -> bool {
-    is_drainer_under_danger_threat_with_context(
-        board,
-        color,
-        location,
-        angel_nearby,
-        use_legacy_formula,
-        None,
     )
 }
 
@@ -3340,11 +3115,6 @@ fn is_drainer_under_immediate_threat(
     )
 }
 
-#[allow(dead_code)]
-fn nearest_enemy_mon_distance(board: &Board, color: Color, location: Location) -> i32 {
-    nearest_enemy_mon_distance_with_context(board, color, location, None)
-}
-
 fn nearest_enemy_mon_distance_with_context(
     board: &Board,
     color: Color,
@@ -3372,11 +3142,6 @@ fn nearest_enemy_mon_distance_with_context(
         }
     }
     best.max(1)
-}
-
-#[allow(dead_code)]
-fn nearest_friendly_drainer_distance(board: &Board, color: Color, location: Location) -> i32 {
-    nearest_friendly_drainer_distance_with_context(board, color, location, None)
 }
 
 fn nearest_friendly_drainer_distance_with_context(
@@ -4348,7 +4113,16 @@ mod tests {
             )],
             GameVariant::Classic,
         );
-        let window = immediate_score_window_summary(&board, Color::White, 3, true, true, true);
+        let mana_snapshot = ManaPathSnapshot::from_board(&board);
+        let window = immediate_score_window_summary_with_snapshot(
+            &board,
+            &mana_snapshot,
+            Color::White,
+            3,
+            true,
+            true,
+            true,
+        );
         assert_eq!(
             window.best_score,
             Mana::Regular(Color::Black).score(Color::White)
@@ -4366,8 +4140,25 @@ mod tests {
             )],
             GameVariant::Classic,
         );
-        let disallowed = immediate_score_window_summary(&board, Color::White, 3, true, true, false);
-        let allowed = immediate_score_window_summary(&board, Color::White, 3, true, true, true);
+        let mana_snapshot = ManaPathSnapshot::from_board(&board);
+        let disallowed = immediate_score_window_summary_with_snapshot(
+            &board,
+            &mana_snapshot,
+            Color::White,
+            3,
+            true,
+            true,
+            false,
+        );
+        let allowed = immediate_score_window_summary_with_snapshot(
+            &board,
+            &mana_snapshot,
+            Color::White,
+            3,
+            true,
+            true,
+            true,
+        );
         assert_eq!(disallowed.best_score, 0);
         assert!(allowed.best_score > 0);
     }

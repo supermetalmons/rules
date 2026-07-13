@@ -4,33 +4,54 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}"
 
-if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+check_only=false
+if [ "${1:-}" = "--check-only" ]; then
+    check_only=true
+elif [ "$#" -ne 0 ]; then
+    echo "usage: $0 [--check-only]"
+    exit 2
+fi
+
+if [ "${check_only}" = false ] && \
+    { ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; }; then
     echo "Publish requires a clean worktree. Commit or remove all changes first."
     exit 1
 fi
 
-# Run tests first
 echo "Running tests..."
-if ! cargo test; then
+cargo test --lib -- --test-threads=1
+
+echo "Running selected rules regression corpus..."
+if ! ./scripts/run-rules-tests.sh; then
+    echo "Rules regression corpus failed. Aborting publish."
+    exit 1
+fi
+
+echo "Running all-variant public legality/replay gate..."
+if ! cargo test --release --lib smart_automove_public_variant_legality_and_replay_gate \
+    -- --ignored --nocapture --test-threads=1; then
+    echo "All-variant public legality/replay gate failed. Aborting publish."
+    exit 1
+fi
+
+echo "Running independently cold public runtime gate..."
+if ! cargo test --release --lib smart_automove_public_runtime_budget_gate \
+    -- --ignored --nocapture --test-threads=1; then
     echo "Tests failed. Aborting publish."
     exit 1
 fi
 
-echo "Running release mixed runtime speed gate..."
-if ! cargo test --release --lib smart_automove_release_mixed_runtime_speed_gate -- --ignored --nocapture; then
-    echo "Release mixed runtime speed gate failed. Aborting publish."
-    exit 1
-fi
-
-echo "Enforcing the 700ms Pro selector hard limit..."
-if ! cargo test --release --lib automove_runtime_black_turn_eight_deadline_tail_probe -- --ignored --nocapture; then
+echo "Running repeated Black turn-eight deadline-tail gate..."
+if ! cargo test --release --lib smart_automove_public_black_turn_eight_deadline_tail_gate \
+    -- --ignored --nocapture --test-threads=1; then
     echo "Pro selector hard-limit gate failed. Aborting publish."
     exit 1
 fi
 
 echo "Confirming optimized public Pro route..."
 cargo test --release --lib \
-    smart_automove_pro_matches_frontier_bounded_tactical_selector_on_release_fixture
+    smart_automove_pro_matches_frontier_bounded_tactical_selector_on_release_fixture \
+    -- --test-threads=1
 
 echo "Running release hygiene checks..."
 ./scripts/check-automove-hygiene.sh
@@ -38,50 +59,42 @@ echo "Running release hygiene checks..."
 RELEASE_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
 echo "Publishing committed version ${RELEASE_VERSION}"
 
-# Never let stale generated files enter either package.
 rm -rf pkg
 trap 'rm -rf "${script_dir}/pkg"' EXIT
 
-# Build for web
 echo "Building web Wasm package..."
-wasm-pack build --target web --out-dir pkg/web --out-name mons-web
+wasm-pack build --profile wasm-release --target web --out-dir pkg/web --out-name mons-web
 
-# Build for nodejs 
 echo "Building node Wasm package..."
-wasm-pack build --target nodejs --out-dir pkg/node --out-name mons-rust
+wasm-pack build --profile wasm-release --target nodejs --out-dir pkg/node --out-name mons-rust
 
-# Modify package.json to use mons-web as the name
-sed -i '' 's/"name": "mons-rust"/"name": "mons-web"/' pkg/web/package.json
-# Verify the change was made
-if grep -q '"name": "mons-web"' pkg/web/package.json; then
-    echo "Package name successfully changed to mons-web"
-else
-    echo "Failed to change package name to mons-web"
-    exit 1
-fi
+node -e '
+const fs = require("node:fs");
+const file = process.argv[1];
+const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+manifest.name = "mons-web";
+fs.writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`);
+' pkg/web/package.json
 
 echo "Checking release package surface..."
 ./scripts/assert-release-package-surface.sh pkg/web pkg/node
 
-echo "Confirming generated Node/Wasm public Pro route..."
-node ./scripts/assert-release-automove-route.cjs pkg/node/mons-rust.js
-
-echo "Checking both npm package manifests before publishing..."
-for package_dir in pkg/web pkg/node; do
-    (
-        cd "${package_dir}"
-        npm pack --dry-run --json >/dev/null
-    )
+echo "Checking generated Node and web Wasm routes in cold processes..."
+for package_entry in pkg/node/mons-rust.js pkg/web/mons-web.js; do
+    for preference in fast normal pro; do
+        node ./scripts/assert-release-automove-route.cjs "${package_entry}" "${preference}"
+    done
 done
 
-# Publish web package
+if [ "${check_only}" = true ]; then
+    echo "Release checks passed; --check-only skipped npm publish."
+    exit 0
+fi
+
 cd pkg/web
 npm publish --access public
 
-# Publish nodejs package
 cd ../node
-# Ensure the package.json has the correct name for nodejs (should already be mons-rust)
 npm publish --access public
 
-# Return to project root
 cd ../..

@@ -88,6 +88,21 @@ for package_dir in "$@"; do
         echo "${leaked_files}"
         exit 1
     fi
+
+    case "$(basename "${package_dir}")" in
+        web)
+            package_target="web"
+            ;;
+        node)
+            package_target="node"
+            ;;
+        *)
+            echo "unsupported package directory: ${package_dir}"
+            exit 1
+            ;;
+    esac
+
+    node ./scripts/assert-release-npm-package.cjs "${package_dir}" "${package_target}"
 done
 
 echo "release package surface check passed for: $*"

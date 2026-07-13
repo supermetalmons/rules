@@ -1,11 +1,10 @@
 #[cfg(any(target_arch = "wasm32", test))]
 use crate::models::scoring::{
-    evaluate_preferability_with_context, evaluate_preferability_with_weights_and_exact_policy,
-    ScoringEvalContext, ScoringWeights, BALANCED_DISTANCE_SCORING_WEIGHTS, DEFAULT_SCORING_WEIGHTS,
+    evaluate_preferability_with_weights_and_exact_policy, ScoringWeights,
+    BALANCED_DISTANCE_SCORING_WEIGHTS, DEFAULT_SCORING_WEIGHTS,
     FINISHER_BALANCED_SOFT_AGGRESSIVE_SCORING_WEIGHTS, FINISHER_BALANCED_SOFT_SCORING_WEIGHTS,
     MANA_RACE_LITE_D2_TUNED_SCORING_WEIGHTS, RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS,
     RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS_POTION_PREF,
-    RUNTIME_FAST_DRAINER_CONTEXT_SCORING_WEIGHTS,
     RUNTIME_FAST_DRAINER_CONTEXT_SCORING_WEIGHTS_POTION_PREF,
     TACTICAL_BALANCED_AGGRESSIVE_SCORING_WEIGHTS, TACTICAL_BALANCED_SCORING_WEIGHTS,
 };
@@ -23,54 +22,9 @@ pub struct MonsGameModel {
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TurnEngineRootInjectionAcceptance {
-    Accepted,
-    RejectedTopWins,
-    RejectedCandidateUnsafe,
-    RejectedNoTacticalSignal,
-    RejectedHeuristicGap,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TurnEngineEmergencyRootInjectionAcceptance {
-    Accepted,
-    RejectedTopWins,
-    RejectedIntroducedImmediateLoss,
-    RejectedNoCrisisSignal,
-    RejectedManaHandoff,
-    RejectedDrainerUnsafe,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TurnEngineRerankOverrideAcceptance {
     Accepted,
     Rejected(TurnEngineRerankOverrideRejectReason),
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TurnEngineRootInjectionAttemptOutcome {
-    Accepted,
-    RejectedBuild,
-    RejectedEmergencyGuard,
-    RejectedEmergencyIntroducedImmediateLoss,
-    RejectedEmergencyNoCrisisSignal,
-    RejectedEmergencyManaHandoff,
-    RejectedEmergencyDrainerUnsafe,
-    RejectedTopWins,
-    RejectedCandidateUnsafe,
-    RejectedNoTacticalSignal,
-    RejectedHeuristicGap,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TurnEngineRerankOverrideAttemptOutcome {
-    NoPlan,
-    Accepted,
-    RejectedAcceptance,
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -84,269 +38,6 @@ enum TurnEngineRerankOverrideRejectReason {
     ProgressGate,
     TacticalGate,
     SafetyProgressGate,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Debug, Clone, Copy, Default)]
-struct TurnEngineRootSelectionDiagnostics {
-    injected_root_attempts: usize,
-    injected_root_accepts: usize,
-    injected_root_candidates_seen: usize,
-    injected_root_duplicates: usize,
-    injected_root_reject_build: usize,
-    injected_root_reject_emergency_guard: usize,
-    injected_root_reject_emergency_introduced_loss: usize,
-    injected_root_reject_emergency_no_crisis_signal: usize,
-    injected_root_reject_emergency_mana_handoff: usize,
-    injected_root_reject_emergency_drainer_unsafe: usize,
-    injected_root_reject_top_wins: usize,
-    injected_root_reject_candidate_unsafe: usize,
-    injected_root_reject_no_tactical_signal: usize,
-    injected_root_reject_heuristic_gap: usize,
-    rerank_override_no_plan: usize,
-    rerank_override_attempts: usize,
-    rerank_override_accepts: usize,
-    rerank_override_rejects: usize,
-    rerank_override_reject_not_in_root: usize,
-    rerank_override_reject_missing_top: usize,
-    rerank_override_reject_top_not_tactical_or_unsafe: usize,
-    rerank_override_reject_top_wins: usize,
-    rerank_override_reject_candidate_unsafe: usize,
-    rerank_override_reject_progress_gate: usize,
-    rerank_override_reject_tactical_gate: usize,
-    rerank_override_reject_safety_progress_gate: usize,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-thread_local! {
-    static TURN_ENGINE_ROOT_SELECTION_DIAGNOSTICS: std::cell::RefCell<TurnEngineRootSelectionDiagnostics> =
-        std::cell::RefCell::new(TurnEngineRootSelectionDiagnostics::default());
-}
-
-#[cfg(test)]
-fn clear_turn_engine_root_selection_diagnostics() {
-    TURN_ENGINE_ROOT_SELECTION_DIAGNOSTICS.with(|diagnostics| {
-        *diagnostics.borrow_mut() = TurnEngineRootSelectionDiagnostics::default();
-    });
-}
-
-#[cfg(test)]
-fn turn_engine_root_selection_diagnostics_snapshot() -> TurnEngineRootSelectionDiagnostics {
-    TURN_ENGINE_ROOT_SELECTION_DIAGNOSTICS.with(|diagnostics| *diagnostics.borrow())
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[inline]
-fn update_turn_engine_root_selection_diagnostics(
-    update: impl FnOnce(&mut TurnEngineRootSelectionDiagnostics),
-) {
-    TURN_ENGINE_ROOT_SELECTION_DIAGNOSTICS
-        .with(|diagnostics| update(&mut diagnostics.borrow_mut()));
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn record_turn_engine_root_injection_attempt(outcome: TurnEngineRootInjectionAttemptOutcome) {
-    update_turn_engine_root_selection_diagnostics(|diagnostics| {
-        diagnostics.injected_root_attempts = diagnostics.injected_root_attempts.saturating_add(1);
-        match outcome {
-            TurnEngineRootInjectionAttemptOutcome::Accepted => {
-                diagnostics.injected_root_accepts =
-                    diagnostics.injected_root_accepts.saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedBuild => {
-                diagnostics.injected_root_reject_build =
-                    diagnostics.injected_root_reject_build.saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyGuard => {
-                diagnostics.injected_root_reject_emergency_guard = diagnostics
-                    .injected_root_reject_emergency_guard
-                    .saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyIntroducedImmediateLoss => {
-                diagnostics.injected_root_reject_emergency_guard = diagnostics
-                    .injected_root_reject_emergency_guard
-                    .saturating_add(1);
-                diagnostics.injected_root_reject_emergency_introduced_loss = diagnostics
-                    .injected_root_reject_emergency_introduced_loss
-                    .saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyNoCrisisSignal => {
-                diagnostics.injected_root_reject_emergency_guard = diagnostics
-                    .injected_root_reject_emergency_guard
-                    .saturating_add(1);
-                diagnostics.injected_root_reject_emergency_no_crisis_signal = diagnostics
-                    .injected_root_reject_emergency_no_crisis_signal
-                    .saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyManaHandoff => {
-                diagnostics.injected_root_reject_emergency_guard = diagnostics
-                    .injected_root_reject_emergency_guard
-                    .saturating_add(1);
-                diagnostics.injected_root_reject_emergency_mana_handoff = diagnostics
-                    .injected_root_reject_emergency_mana_handoff
-                    .saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyDrainerUnsafe => {
-                diagnostics.injected_root_reject_emergency_guard = diagnostics
-                    .injected_root_reject_emergency_guard
-                    .saturating_add(1);
-                diagnostics.injected_root_reject_emergency_drainer_unsafe = diagnostics
-                    .injected_root_reject_emergency_drainer_unsafe
-                    .saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedTopWins => {
-                diagnostics.injected_root_reject_top_wins =
-                    diagnostics.injected_root_reject_top_wins.saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedCandidateUnsafe => {
-                diagnostics.injected_root_reject_candidate_unsafe = diagnostics
-                    .injected_root_reject_candidate_unsafe
-                    .saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedNoTacticalSignal => {
-                diagnostics.injected_root_reject_no_tactical_signal = diagnostics
-                    .injected_root_reject_no_tactical_signal
-                    .saturating_add(1);
-            }
-            TurnEngineRootInjectionAttemptOutcome::RejectedHeuristicGap => {
-                diagnostics.injected_root_reject_heuristic_gap = diagnostics
-                    .injected_root_reject_heuristic_gap
-                    .saturating_add(1);
-            }
-        }
-    });
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn record_turn_engine_root_injection_candidates(count: usize) {
-    update_turn_engine_root_selection_diagnostics(|diagnostics| {
-        diagnostics.injected_root_candidates_seen = diagnostics
-            .injected_root_candidates_seen
-            .saturating_add(count);
-    });
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn record_turn_engine_root_injection_duplicate() {
-    update_turn_engine_root_selection_diagnostics(|diagnostics| {
-        diagnostics.injected_root_duplicates =
-            diagnostics.injected_root_duplicates.saturating_add(1);
-    });
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn record_turn_engine_rerank_override_attempt(outcome: TurnEngineRerankOverrideAttemptOutcome) {
-    update_turn_engine_root_selection_diagnostics(|diagnostics| match outcome {
-        TurnEngineRerankOverrideAttemptOutcome::NoPlan => {
-            diagnostics.rerank_override_no_plan =
-                diagnostics.rerank_override_no_plan.saturating_add(1);
-        }
-        TurnEngineRerankOverrideAttemptOutcome::Accepted => {
-            diagnostics.rerank_override_attempts =
-                diagnostics.rerank_override_attempts.saturating_add(1);
-            diagnostics.rerank_override_accepts =
-                diagnostics.rerank_override_accepts.saturating_add(1);
-        }
-        TurnEngineRerankOverrideAttemptOutcome::RejectedAcceptance => {
-            diagnostics.rerank_override_attempts =
-                diagnostics.rerank_override_attempts.saturating_add(1);
-            diagnostics.rerank_override_rejects =
-                diagnostics.rerank_override_rejects.saturating_add(1);
-        }
-    });
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn record_turn_engine_rerank_override_reject_reason(reason: TurnEngineRerankOverrideRejectReason) {
-    update_turn_engine_root_selection_diagnostics(|diagnostics| match reason {
-        TurnEngineRerankOverrideRejectReason::NotInRoot => {
-            diagnostics.rerank_override_reject_not_in_root = diagnostics
-                .rerank_override_reject_not_in_root
-                .saturating_add(1);
-        }
-        TurnEngineRerankOverrideRejectReason::MissingTop => {
-            diagnostics.rerank_override_reject_missing_top = diagnostics
-                .rerank_override_reject_missing_top
-                .saturating_add(1);
-        }
-        TurnEngineRerankOverrideRejectReason::TopNotTacticalOrUnsafe => {
-            diagnostics.rerank_override_reject_top_not_tactical_or_unsafe = diagnostics
-                .rerank_override_reject_top_not_tactical_or_unsafe
-                .saturating_add(1);
-        }
-        TurnEngineRerankOverrideRejectReason::TopWins => {
-            diagnostics.rerank_override_reject_top_wins = diagnostics
-                .rerank_override_reject_top_wins
-                .saturating_add(1);
-        }
-        TurnEngineRerankOverrideRejectReason::CandidateUnsafe => {
-            diagnostics.rerank_override_reject_candidate_unsafe = diagnostics
-                .rerank_override_reject_candidate_unsafe
-                .saturating_add(1);
-        }
-        TurnEngineRerankOverrideRejectReason::ProgressGate => {
-            diagnostics.rerank_override_reject_progress_gate = diagnostics
-                .rerank_override_reject_progress_gate
-                .saturating_add(1);
-        }
-        TurnEngineRerankOverrideRejectReason::TacticalGate => {
-            diagnostics.rerank_override_reject_tactical_gate = diagnostics
-                .rerank_override_reject_tactical_gate
-                .saturating_add(1);
-        }
-        TurnEngineRerankOverrideRejectReason::SafetyProgressGate => {
-            diagnostics.rerank_override_reject_safety_progress_gate = diagnostics
-                .rerank_override_reject_safety_progress_gate
-                .saturating_add(1);
-        }
-    });
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn turn_engine_root_injection_emergency_state(game: &MonsGame, perspective: Color) -> bool {
-    if turn_engine_opponent_can_win_immediately(game, perspective) {
-        return true;
-    }
-
-    if turn_engine_own_drainer_safety_score(&game.board, perspective) <= -2 {
-        return true;
-    }
-
-    let needed =
-        Config::TARGET_SCORE.saturating_sub(MonsGameModel::score_for_color(game, perspective));
-    if needed > 0 {
-        let same_turn = exact_turn_summary(game, perspective).same_turn_score_window_value;
-        if same_turn >= needed {
-            return true;
-        }
-    }
-
-    false
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn turn_engine_opponent_can_win_immediately(game: &MonsGame, perspective: Color) -> bool {
-    if game.winner_color().is_some() || game.active_color != perspective.other() {
-        return false;
-    }
-
-    let opponent = perspective.other();
-    let needed =
-        Config::TARGET_SCORE.saturating_sub(MonsGameModel::score_for_color(game, opponent));
-    if needed <= 0 {
-        return true;
-    }
-
-    exact_turn_summary(game, opponent).same_turn_score_window_value >= needed
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-fn turn_engine_own_drainer_safety_score(board: &Board, color: Color) -> i32 {
-    crate::models::automove_exact::exact_own_drainer_safety_score_with_hash(
-        board,
-        crate::models::automove_exact::exact_board_hash(board),
-        color,
-    )
 }
 
 impl Clone for MonsGameModel {
@@ -372,23 +63,13 @@ const SMART_TRANSPOSITION_TABLE_MAX_ENTRIES: usize = 12_000;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_NO_EFFECT_ROOT_PENALTY: i32 = 120;
 #[cfg(any(target_arch = "wasm32", test))]
-const SMART_NO_EFFECT_CHILD_PENALTY: i32 = 0;
-#[cfg(any(target_arch = "wasm32", test))]
 const SMART_LOW_IMPACT_ROOT_PENALTY: i32 = 40;
-#[cfg(any(target_arch = "wasm32", test))]
-const SMART_LOW_IMPACT_CHILD_PENALTY: i32 = 0;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_EFFICIENCY_SCORE_MARGIN: i32 = 2_500;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_BACKTRACK_PENALTY: i32 = 140;
 #[cfg(any(target_arch = "wasm32", test))]
-const SMART_ROOT_ASPIRATION_WINDOW: i32 = 1_600;
-#[cfg(any(target_arch = "wasm32", test))]
 const SMART_TT_BEST_CHILD_BONUS: i32 = 2_400;
-#[cfg(any(target_arch = "wasm32", test))]
-const SMART_KILLER_MOVE_BONUS: i32 = 1_200;
-#[cfg(any(target_arch = "wasm32", test))]
-const SMART_HISTORY_BONUS_CAP: i32 = 800;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_TWO_PASS_ROOT_SCOUT_DEPTH: usize = 2;
 #[cfg(any(target_arch = "wasm32", test))]
@@ -404,42 +85,37 @@ const SMART_ROOT_MANA_HANDOFF_PENALTY: i32 = 220;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_DRAINER_SAFETY_SCORE_MARGIN: i32 = 2_200;
 #[cfg(any(target_arch = "wasm32", test))]
+#[cfg(test)]
 const SMART_NORMAL_ROOT_SAFETY_SHORTLIST_MAX: usize = 4;
 #[cfg(any(target_arch = "wasm32", test))]
+#[cfg(test)]
 const SMART_NORMAL_ROOT_SAFETY_SCORE_MARGIN: i32 = 3_000;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MIN: usize = 12;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MAX: usize = 36;
 #[cfg(any(target_arch = "wasm32", test))]
-const SMART_NORMAL_ROOT_SAFETY_SCORE_RACE_TRIGGER: i32 = 3;
-#[cfg(any(target_arch = "wasm32", test))]
 const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_RACE_TRIGGER: i32 = 3;
 #[cfg(any(target_arch = "wasm32", test))]
+#[cfg(test)]
 const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_MARGIN: i32 = 2_400;
 #[cfg(any(target_arch = "wasm32", test))]
+#[cfg(test)]
 const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_MAX_CANDIDATES: usize = 3;
 #[cfg(any(target_arch = "wasm32", test))]
+#[cfg(test)]
 const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_REPLY_LIMIT_MIN: usize = 8;
 #[cfg(any(target_arch = "wasm32", test))]
+#[cfg(test)]
 const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_REPLY_LIMIT_MAX: usize = 16;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_REPLY_RISK_SCORE_MARGIN: i32 = 140;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_REPLY_RISK_SHORTLIST_FAST: usize = 3;
 #[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const SMART_ROOT_REPLY_RISK_SHORTLIST_NORMAL: usize = 5;
-#[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_REPLY_RISK_REPLY_LIMIT_FAST: usize = 8;
 #[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const SMART_ROOT_REPLY_RISK_REPLY_LIMIT_NORMAL: usize = 12;
-#[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_REPLY_RISK_NODE_SHARE_BP_FAST: i32 = 600;
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const SMART_ROOT_REPLY_RISK_NODE_SHARE_BP_NORMAL: i32 = 1_000;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_REPLY_RISK_WINNER_SPREAD_SKIP: i32 = SMART_TWO_PASS_ROOT_NARROW_SPREAD_FALLBACK;
 #[cfg(any(target_arch = "wasm32", test))]
@@ -452,9 +128,6 @@ const SMART_MOVE_CLASS_CHILD_SCORE_MARGIN: i32 = 110;
 const SMART_ROOT_ANTI_HELP_SCORE_MARGIN: i32 = 180;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_ANTI_HELP_REPLY_LIMIT_FAST: usize = 6;
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const SMART_ROOT_ANTI_HELP_REPLY_LIMIT_NORMAL: usize = 8;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP_NORMAL: i32 = 1_200;
 #[cfg(any(target_arch = "wasm32", test))]
@@ -694,192 +367,6 @@ const RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BA
 };
 
 #[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_STRONG_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        drainer_danger_boolean: -1800,
-        mana_carrier_danger_boolean: -1200,
-        ..RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_STRONG_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        drainer_danger_boolean: -1800,
-        mana_carrier_danger_boolean: -1200,
-        ..RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_STRONG_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_danger_boolean: -1800,
-    mana_carrier_danger_boolean: -1200,
-    ..RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_STRONG_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_danger_boolean: -1800,
-    mana_carrier_danger_boolean: -1200,
-    ..RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_STRONG_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_danger_boolean: -1800,
-    mana_carrier_danger_boolean: -1200,
-    ..RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_ATTACK_BONUS_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        opponent_drainer_attack_bonus: 400,
-        ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_ATTACK_BONUS_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        opponent_drainer_attack_bonus: 400,
-        ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_ATTACK_BONUS_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_ATTACK_BONUS_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_ATTACK_BONUS_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACK_BONUS_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 800,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACK_BONUS_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 800,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACK_BONUS_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 800,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACK_BONUS_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 800,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACK_BONUS_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    opponent_drainer_attack_bonus: 800,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        drainer_walk_threat_boolean: -600,
-        mana_carrier_walk_threat_boolean: -400,
-        ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        drainer_walk_threat_boolean: -600,
-        mana_carrier_walk_threat_boolean: -400,
-        ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -600,
-    mana_carrier_walk_threat_boolean: -400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -600,
-    mana_carrier_walk_threat_boolean: -400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -600,
-    mana_carrier_walk_threat_boolean: -400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_LIGHT_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -200,
-    mana_carrier_walk_threat_boolean: -100,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_LIGHT_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -200,
-    mana_carrier_walk_threat_boolean: -100,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_LIGHT_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -200,
-    mana_carrier_walk_threat_boolean: -100,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_LIGHT_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -200,
-    mana_carrier_walk_threat_boolean: -100,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_LIGHT_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -200,
-    mana_carrier_walk_threat_boolean: -100,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
@@ -887,7 +374,6 @@ const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WE
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
 };
 #[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
@@ -895,7 +381,6 @@ const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WE
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
 };
 #[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
@@ -903,7 +388,6 @@ const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
 #[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
@@ -911,124 +395,11 @@ const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORI
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
 };
 #[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
     mana_carrier_walk_threat_boolean: -150,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_MODERATE_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -400,
-    mana_carrier_walk_threat_boolean: -200,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_MODERATE_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -400,
-    mana_carrier_walk_threat_boolean: -200,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_MODERATE_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -400,
-    mana_carrier_walk_threat_boolean: -200,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_MODERATE_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -400,
-    mana_carrier_walk_threat_boolean: -200,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_WALK_THREAT_MODERATE_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_walk_threat_boolean: -400,
-    mana_carrier_walk_threat_boolean: -200,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_DRAINER_SHIELD_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        drainer_immediate_threat: -200,
-        drainer_at_risk: -520,
-        angel_guarding_drainer: 190,
-        mana_carrier_at_risk: -320,
-        drainer_danger_boolean: -1200,
-        mana_carrier_danger_boolean: -800,
-        drainer_walk_threat_boolean: -600,
-        mana_carrier_walk_threat_boolean: -400,
-        ..RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_DRAINER_SHIELD_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
-    ScoringWeights {
-        drainer_immediate_threat: -260,
-        drainer_at_risk: -560,
-        angel_guarding_drainer: 240,
-        mana_carrier_at_risk: -340,
-        drainer_danger_boolean: -1200,
-        mana_carrier_danger_boolean: -800,
-        drainer_walk_threat_boolean: -600,
-        mana_carrier_walk_threat_boolean: -400,
-        ..RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-    };
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_DRAINER_SHIELD_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_immediate_threat: -320,
-    drainer_at_risk: -600,
-    angel_guarding_drainer: 260,
-    mana_carrier_at_risk: -360,
-    drainer_danger_boolean: -1200,
-    mana_carrier_danger_boolean: -800,
-    drainer_walk_threat_boolean: -600,
-    mana_carrier_walk_threat_boolean: -400,
-    ..RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_DRAINER_SHIELD_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_immediate_threat: -80,
-    drainer_at_risk: -480,
-    angel_guarding_drainer: 210,
-    mana_carrier_at_risk: -310,
-    drainer_danger_boolean: -1200,
-    mana_carrier_danger_boolean: -800,
-    drainer_walk_threat_boolean: -600,
-    mana_carrier_walk_threat_boolean: -400,
-    ..RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-#[allow(dead_code)]
-const RUNTIME_NORMAL_DRAINER_SHIELD_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    drainer_immediate_threat: -100,
-    drainer_at_risk: -500,
-    angel_guarding_drainer: 220,
-    mana_carrier_at_risk: -330,
-    drainer_danger_boolean: -1200,
-    mana_carrier_danger_boolean: -800,
-    drainer_walk_threat_boolean: -600,
-    mana_carrier_walk_threat_boolean: -400,
-    ..RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -1059,73 +430,6 @@ const RUNTIME_NORMAL_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORI
 const RUNTIME_NORMAL_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     attacker_close_to_opponent_drainer: 200,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 200,
-    opponent_drainer_attack_bonus: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 200,
-    opponent_drainer_attack_bonus: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 200,
-    opponent_drainer_attack_bonus: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 200,
-    opponent_drainer_attack_bonus: 400,
-    ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-};
-#[cfg(any(target_arch = "wasm32", test))]
-const RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
-    ScoringWeights = ScoringWeights {
-    attacker_close_to_opponent_drainer: 200,
-    opponent_drainer_attack_bonus: 400,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
 
@@ -1188,11 +492,6 @@ pub(crate) struct AutomoveSearchConfig {
     node_enum_limit: usize,
     node_branch_limit: usize,
     scoring_weights: &'static ScoringWeights,
-    enable_root_efficiency: bool,
-    enable_event_ordering_bonus: bool,
-    enable_backtrack_penalty: bool,
-    enable_tt_best_child_ordering: bool,
-    enable_root_aspiration: bool,
     enable_two_pass_root_allocation: bool,
     root_focus_k: usize,
     root_focus_budget_share_bp: i32,
@@ -1200,32 +499,15 @@ pub(crate) struct AutomoveSearchConfig {
     enable_quiet_reductions: bool,
     max_extensions_per_path: usize,
     selective_extension_node_share_bp: i32,
-    enable_root_mana_handoff_guard: bool,
-    enable_forced_drainer_attack: bool,
-    enable_forced_drainer_attack_fallback: bool,
     enable_targeted_drainer_attack_fallback: bool,
-    enable_per_mon_drainer_attack_fallback: bool,
-    enable_drainer_attack_priority_enum: bool,
-    drainer_attack_priority_enum_boost: usize,
-    enable_drainer_attack_minimax_selection: bool,
-    enable_drainer_attack_full_pool: bool,
-    enable_conditional_forced_drainer_attack: bool,
-    conditional_forced_attack_score_margin: i32,
     enable_forced_tactical_prepass: bool,
-    enable_root_exact_tactics: bool,
-    enable_child_exact_tactics: bool,
-    enable_static_exact_evaluation: bool,
     enable_turn_head_rerank: bool,
     enable_turn_engine_selector: bool,
-    enable_turn_engine_eligibility_guard: bool,
     enable_turn_engine_low_budget_guard: bool,
-    enable_turn_engine_mid_turn_progress_guard: bool,
     enable_turn_engine_mid_turn_tactical_guard: bool,
     enable_turn_engine_secondary_analysis: bool,
     enable_turn_engine_selected_followup_projection: bool,
-    enable_turn_engine_lazy_oracle_score_window_projection: bool,
     enable_turn_engine_late_safe_mana_root_preference: bool,
-    enable_turn_engine_late_black_setup_progress_rescue: bool,
     turn_engine_mode: TurnEngineMode,
     turn_engine_seed_cap: usize,
     turn_engine_beam_width: usize,
@@ -1237,51 +519,25 @@ pub(crate) struct AutomoveSearchConfig {
     turn_engine_reply_beam_width: usize,
     turn_engine_expansion_cap: usize,
     turn_engine_enable_spirit_family: bool,
-    enable_turn_engine_root_injection: bool,
-    turn_engine_root_injection_limit: usize,
-    turn_engine_root_max_heuristic_gap: i32,
-    turn_engine_root_injection_emergency_only: bool,
-    enable_targeted_exact_turn_summary_memo: bool,
-    enable_targeted_score_window_narrowing: bool,
     enable_exact_lite_progress_checks: bool,
     enable_exact_lite_spirit_window_checks: bool,
     exact_lite_root_call_budget: usize,
     exact_lite_static_call_budget: usize,
-    enable_root_drainer_safety_prefilter: bool,
     enable_root_spirit_development_pref: bool,
     enable_root_reply_risk_guard: bool,
     root_reply_risk_score_margin: i32,
     root_reply_risk_shortlist_max: usize,
     root_reply_risk_reply_limit: usize,
     root_reply_risk_node_share_bp: i32,
-    enable_child_eval_bundle: bool,
-    enable_local_scoring_eval_ctx: bool,
-    enable_scoring_attack_reach_summary: bool,
-    enable_scoring_attack_reach_target_narrowing: bool,
-    enable_scoring_drainer_attack_reach_target_narrowing: bool,
-    enable_child_vulnerability_scoring_ctx_reuse: bool,
-    enable_child_vulnerability_attack_plausibility_screen: bool,
-    enable_move_efficiency_tactical_score_window_narrowing: bool,
-    enable_two_stage_child_ordering: bool,
-    child_ordering_shortlist_multiplier: usize,
-    child_ordering_tactical_reserve: usize,
-    enable_move_class_coverage: bool,
-    enable_child_move_class_coverage: bool,
-    enable_strict_tactical_class_coverage: bool,
-    enable_strict_anti_help_filter: bool,
     root_anti_help_score_margin: i32,
     root_anti_help_reply_limit: usize,
     enable_two_pass_volatility_focus: bool,
     enable_normal_root_safety_rerank: bool,
     enable_normal_root_safety_deep_floor: bool,
     enable_interview_hard_spirit_deploy: bool,
-    enable_interview_soft_root_priors: bool,
     enable_interview_deterministic_tiebreak: bool,
-    enable_mana_start_mix_with_potion_actions: bool,
-    enable_potion_progress_compensation: bool,
     prefer_clean_reply_risk_roots: bool,
     root_drainer_safety_score_margin: i32,
-    root_drainer_exposure_penalty: i32,
     root_mana_handoff_penalty: i32,
     root_backtrack_penalty: i32,
     root_efficiency_score_margin: i32,
@@ -1294,26 +550,12 @@ pub(crate) struct AutomoveSearchConfig {
     interview_soft_opponent_mana_score_bonus: i32,
     interview_soft_mana_handoff_penalty: i32,
     interview_soft_roundtrip_penalty: i32,
-    enable_enhanced_drainer_vulnerability: bool,
     enable_supermana_prepass_exception: bool,
-    enable_opponent_mana_prepass_exception: bool,
-    enable_walk_threat_prefilter: bool,
-    root_walk_threat_score_margin: i32,
-    enable_killer_move_ordering: bool,
-    enable_history_heuristic: bool,
     enable_quiescence_search: bool,
     quiescence_node_budget: usize,
     enable_quiescence_tactical_children_only: bool,
     quiescence_tactical_enum_limit: usize,
-    enable_tt_depth_preferred_replacement: bool,
-    enable_pvs: bool,
     quiet_reduction_depth_threshold: usize,
-    #[allow(dead_code)]
-    enable_iterative_deepening: bool,
-    #[allow(dead_code)]
-    iterative_deepening_depth_offset: usize,
-    #[allow(dead_code)]
-    iterative_deepening_alpha_margin: i32,
     enable_futility_pruning: bool,
     futility_margin: i32,
 }
@@ -1326,11 +568,6 @@ impl AutomoveSearchConfig {
         match preference {
             SmartAutomovePreference::Fast => {
                 let mut tuned = Self::with_fast_wideroot_shape(config);
-                tuned.enable_root_efficiency = true;
-                tuned.enable_event_ordering_bonus = true;
-                tuned.enable_backtrack_penalty = true;
-                tuned.enable_tt_best_child_ordering = true;
-                tuned.enable_root_aspiration = false;
                 tuned.enable_two_pass_root_allocation = false;
                 tuned.root_focus_k = 2;
                 tuned.root_focus_budget_share_bp = 6_000;
@@ -1338,31 +575,20 @@ impl AutomoveSearchConfig {
                 tuned.enable_quiet_reductions = true;
                 tuned.max_extensions_per_path = 1;
                 tuned.selective_extension_node_share_bp = 0;
-                tuned.enable_root_mana_handoff_guard = true;
-                tuned.enable_forced_drainer_attack = true;
-                tuned.enable_forced_drainer_attack_fallback = true;
                 tuned.enable_forced_tactical_prepass = true;
-                tuned.enable_root_drainer_safety_prefilter = true;
                 tuned.enable_root_spirit_development_pref = true;
                 tuned.enable_root_reply_risk_guard = true;
                 tuned.root_reply_risk_score_margin = 125;
                 tuned.root_reply_risk_shortlist_max = 4;
                 tuned.root_reply_risk_reply_limit = 10;
                 tuned.root_reply_risk_node_share_bp = 650;
-                tuned.enable_move_class_coverage = true;
-                tuned.enable_child_move_class_coverage = true;
-                tuned.enable_strict_tactical_class_coverage = true;
-                tuned.enable_strict_anti_help_filter = true;
                 tuned.root_anti_help_score_margin = 220;
                 tuned.root_anti_help_reply_limit = SMART_ROOT_ANTI_HELP_REPLY_LIMIT_FAST;
                 tuned.enable_two_pass_volatility_focus = false;
                 tuned.enable_normal_root_safety_rerank = false;
                 tuned.enable_normal_root_safety_deep_floor = false;
                 tuned.enable_interview_hard_spirit_deploy = false;
-                tuned.enable_interview_soft_root_priors = true;
                 tuned.enable_interview_deterministic_tiebreak = false;
-                tuned.enable_mana_start_mix_with_potion_actions = true;
-                tuned.enable_potion_progress_compensation = true;
                 tuned.prefer_clean_reply_risk_roots = false;
                 tuned.root_drainer_safety_score_margin = SMART_ROOT_DRAINER_SAFETY_SCORE_MARGIN;
                 tuned.root_mana_handoff_penalty = 300;
@@ -1378,7 +604,6 @@ impl AutomoveSearchConfig {
                 tuned.interview_soft_opponent_mana_score_bonus = 310;
                 tuned.interview_soft_mana_handoff_penalty = 280;
                 tuned.interview_soft_roundtrip_penalty = 220;
-                tuned.enable_enhanced_drainer_vulnerability = true;
                 tuned.enable_supermana_prepass_exception = true;
                 tuned.scoring_weights = &RUNTIME_FAST_DRAINER_CONTEXT_SCORING_WEIGHTS_POTION_PREF;
                 tuned
@@ -1395,11 +620,6 @@ impl AutomoveSearchConfig {
                     (tuned.root_branch_limit * 6).clamp(tuned.root_branch_limit, 240);
                 tuned.node_enum_limit =
                     ((tuned.node_branch_limit + 2) * 6).clamp(tuned.node_branch_limit, 156);
-                tuned.enable_root_efficiency = true;
-                tuned.enable_event_ordering_bonus = false;
-                tuned.enable_backtrack_penalty = true;
-                tuned.enable_tt_best_child_ordering = true;
-                tuned.enable_root_aspiration = false;
                 tuned.enable_two_pass_root_allocation = true;
                 tuned.root_focus_k = 3;
                 tuned.root_focus_budget_share_bp = 7_000;
@@ -1408,34 +628,22 @@ impl AutomoveSearchConfig {
                 tuned.max_extensions_per_path = 1;
                 tuned.selective_extension_node_share_bp =
                     SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP_NORMAL;
-                tuned.enable_root_mana_handoff_guard = true;
-                tuned.enable_forced_drainer_attack = true;
-                tuned.enable_forced_drainer_attack_fallback = true;
                 tuned.enable_forced_tactical_prepass = true;
-                tuned.enable_root_drainer_safety_prefilter = true;
                 tuned.enable_root_spirit_development_pref = true;
                 tuned.enable_root_reply_risk_guard = true;
                 tuned.root_reply_risk_score_margin = 145;
                 tuned.root_reply_risk_shortlist_max = 7;
                 tuned.root_reply_risk_reply_limit = 16;
                 tuned.root_reply_risk_node_share_bp = 1_350;
-                tuned.enable_move_class_coverage = true;
-                tuned.enable_child_move_class_coverage = true;
-                tuned.enable_strict_tactical_class_coverage = true;
-                tuned.enable_strict_anti_help_filter = true;
                 tuned.root_anti_help_score_margin = 300;
                 tuned.root_anti_help_reply_limit = 10;
                 tuned.enable_two_pass_volatility_focus = true;
                 tuned.enable_normal_root_safety_rerank = true;
                 tuned.enable_normal_root_safety_deep_floor = true;
                 tuned.enable_interview_hard_spirit_deploy = true;
-                tuned.enable_interview_soft_root_priors = true;
                 tuned.enable_interview_deterministic_tiebreak = false;
-                tuned.enable_mana_start_mix_with_potion_actions = true;
-                tuned.enable_potion_progress_compensation = true;
                 tuned.prefer_clean_reply_risk_roots = true;
                 tuned.root_drainer_safety_score_margin = 4_200;
-                tuned.enable_enhanced_drainer_vulnerability = true;
                 tuned.root_mana_handoff_penalty = 340;
                 tuned.root_backtrack_penalty = 240;
                 tuned.root_efficiency_score_margin = 1_400;
@@ -1460,11 +668,6 @@ impl AutomoveSearchConfig {
                     (tuned.root_branch_limit * 6).clamp(tuned.root_branch_limit, 204);
                 tuned.node_enum_limit =
                     ((tuned.node_branch_limit + 2) * 6).clamp(tuned.node_branch_limit, 132);
-                tuned.enable_root_efficiency = true;
-                tuned.enable_event_ordering_bonus = false;
-                tuned.enable_backtrack_penalty = true;
-                tuned.enable_tt_best_child_ordering = true;
-                tuned.enable_root_aspiration = false;
                 tuned.enable_two_pass_root_allocation = true;
                 tuned.root_focus_k = 3;
                 tuned.root_focus_budget_share_bp = 7_000;
@@ -1472,34 +675,22 @@ impl AutomoveSearchConfig {
                 tuned.enable_quiet_reductions = true;
                 tuned.max_extensions_per_path = 1;
                 tuned.selective_extension_node_share_bp = 1_500;
-                tuned.enable_root_mana_handoff_guard = true;
-                tuned.enable_forced_drainer_attack = true;
-                tuned.enable_forced_drainer_attack_fallback = true;
                 tuned.enable_forced_tactical_prepass = false;
-                tuned.enable_root_drainer_safety_prefilter = true;
                 tuned.enable_root_spirit_development_pref = true;
                 tuned.enable_root_reply_risk_guard = true;
                 tuned.root_reply_risk_score_margin = 165;
                 tuned.root_reply_risk_shortlist_max = 9;
                 tuned.root_reply_risk_reply_limit = 24;
                 tuned.root_reply_risk_node_share_bp = 2_000;
-                tuned.enable_move_class_coverage = true;
-                tuned.enable_child_move_class_coverage = true;
-                tuned.enable_strict_tactical_class_coverage = true;
-                tuned.enable_strict_anti_help_filter = true;
                 tuned.root_anti_help_score_margin = 300;
                 tuned.root_anti_help_reply_limit = 10;
                 tuned.enable_two_pass_volatility_focus = true;
                 tuned.enable_normal_root_safety_rerank = true;
                 tuned.enable_normal_root_safety_deep_floor = true;
                 tuned.enable_interview_hard_spirit_deploy = true;
-                tuned.enable_interview_soft_root_priors = true;
                 tuned.enable_interview_deterministic_tiebreak = false;
-                tuned.enable_mana_start_mix_with_potion_actions = true;
-                tuned.enable_potion_progress_compensation = true;
                 tuned.prefer_clean_reply_risk_roots = true;
                 tuned.root_drainer_safety_score_margin = 4_800;
-                tuned.enable_enhanced_drainer_vulnerability = true;
                 tuned.root_mana_handoff_penalty = 340;
                 tuned.root_backtrack_penalty = 240;
                 tuned.root_efficiency_score_margin = 1_400;
@@ -1541,11 +732,6 @@ impl AutomoveSearchConfig {
             node_enum_limit,
             node_branch_limit,
             scoring_weights: &DEFAULT_SCORING_WEIGHTS,
-            enable_root_efficiency: false,
-            enable_event_ordering_bonus: false,
-            enable_backtrack_penalty: false,
-            enable_tt_best_child_ordering: true,
-            enable_root_aspiration: true,
             enable_two_pass_root_allocation: false,
             root_focus_k: 2,
             root_focus_budget_share_bp: 7_000,
@@ -1553,32 +739,15 @@ impl AutomoveSearchConfig {
             enable_quiet_reductions: false,
             max_extensions_per_path: 0,
             selective_extension_node_share_bp: 0,
-            enable_root_mana_handoff_guard: false,
-            enable_forced_drainer_attack: true,
-            enable_forced_drainer_attack_fallback: true,
             enable_targeted_drainer_attack_fallback: false,
-            enable_per_mon_drainer_attack_fallback: false,
-            enable_drainer_attack_priority_enum: false,
-            drainer_attack_priority_enum_boost: 0,
-            enable_drainer_attack_minimax_selection: false,
-            enable_drainer_attack_full_pool: false,
-            enable_conditional_forced_drainer_attack: false,
-            conditional_forced_attack_score_margin: 1,
             enable_forced_tactical_prepass: true,
-            enable_root_exact_tactics: true,
-            enable_child_exact_tactics: true,
-            enable_static_exact_evaluation: true,
             enable_turn_head_rerank: false,
             enable_turn_engine_selector: false,
-            enable_turn_engine_eligibility_guard: false,
             enable_turn_engine_low_budget_guard: false,
-            enable_turn_engine_mid_turn_progress_guard: false,
             enable_turn_engine_mid_turn_tactical_guard: false,
             enable_turn_engine_secondary_analysis: true,
             enable_turn_engine_selected_followup_projection: true,
-            enable_turn_engine_lazy_oracle_score_window_projection: false,
             enable_turn_engine_late_safe_mana_root_preference: false,
-            enable_turn_engine_late_black_setup_progress_rescue: false,
             turn_engine_mode: TurnEngineMode::ProV1,
             turn_engine_seed_cap: 0,
             turn_engine_beam_width: 0,
@@ -1590,51 +759,25 @@ impl AutomoveSearchConfig {
             turn_engine_reply_beam_width: 0,
             turn_engine_expansion_cap: 0,
             turn_engine_enable_spirit_family: false,
-            enable_turn_engine_root_injection: false,
-            turn_engine_root_injection_limit: 0,
-            turn_engine_root_max_heuristic_gap: 0,
-            turn_engine_root_injection_emergency_only: false,
-            enable_targeted_exact_turn_summary_memo: false,
-            enable_targeted_score_window_narrowing: false,
             enable_exact_lite_progress_checks: false,
             enable_exact_lite_spirit_window_checks: false,
             exact_lite_root_call_budget: 0,
             exact_lite_static_call_budget: 0,
-            enable_root_drainer_safety_prefilter: true,
             enable_root_spirit_development_pref: true,
             enable_root_reply_risk_guard: false,
             root_reply_risk_score_margin: SMART_ROOT_REPLY_RISK_SCORE_MARGIN,
             root_reply_risk_shortlist_max: SMART_ROOT_REPLY_RISK_SHORTLIST_FAST,
             root_reply_risk_reply_limit: SMART_ROOT_REPLY_RISK_REPLY_LIMIT_FAST,
             root_reply_risk_node_share_bp: SMART_ROOT_REPLY_RISK_NODE_SHARE_BP_FAST,
-            enable_child_eval_bundle: false,
-            enable_local_scoring_eval_ctx: false,
-            enable_scoring_attack_reach_summary: false,
-            enable_scoring_attack_reach_target_narrowing: false,
-            enable_scoring_drainer_attack_reach_target_narrowing: false,
-            enable_child_vulnerability_scoring_ctx_reuse: false,
-            enable_child_vulnerability_attack_plausibility_screen: false,
-            enable_move_efficiency_tactical_score_window_narrowing: false,
-            enable_two_stage_child_ordering: false,
-            child_ordering_shortlist_multiplier: 2,
-            child_ordering_tactical_reserve: 2,
-            enable_move_class_coverage: false,
-            enable_child_move_class_coverage: false,
-            enable_strict_tactical_class_coverage: false,
-            enable_strict_anti_help_filter: false,
             root_anti_help_score_margin: SMART_ROOT_ANTI_HELP_SCORE_MARGIN,
             root_anti_help_reply_limit: SMART_ROOT_ANTI_HELP_REPLY_LIMIT_FAST,
             enable_two_pass_volatility_focus: false,
             enable_normal_root_safety_rerank: false,
             enable_normal_root_safety_deep_floor: false,
             enable_interview_hard_spirit_deploy: false,
-            enable_interview_soft_root_priors: false,
             enable_interview_deterministic_tiebreak: false,
-            enable_mana_start_mix_with_potion_actions: false,
-            enable_potion_progress_compensation: false,
             prefer_clean_reply_risk_roots: false,
             root_drainer_safety_score_margin: SMART_ROOT_DRAINER_SAFETY_SCORE_MARGIN,
-            root_drainer_exposure_penalty: 0,
             root_mana_handoff_penalty: SMART_ROOT_MANA_HANDOFF_PENALTY,
             root_backtrack_penalty: SMART_ROOT_BACKTRACK_PENALTY,
             root_efficiency_score_margin: SMART_ROOT_EFFICIENCY_SCORE_MARGIN,
@@ -1649,29 +792,17 @@ impl AutomoveSearchConfig {
                 SMART_INTERVIEW_SOFT_OPPONENT_MANA_SCORE_BONUS,
             interview_soft_mana_handoff_penalty: SMART_INTERVIEW_SOFT_MANA_HANDOFF_PENALTY,
             interview_soft_roundtrip_penalty: SMART_INTERVIEW_SOFT_ROUNDTRIP_PENALTY,
-            enable_enhanced_drainer_vulnerability: false,
             enable_supermana_prepass_exception: false,
-            enable_opponent_mana_prepass_exception: false,
-            enable_walk_threat_prefilter: false,
-            root_walk_threat_score_margin: 2000,
-            enable_killer_move_ordering: false,
-            enable_history_heuristic: false,
             enable_quiescence_search: false,
             quiescence_node_budget: 0,
             enable_quiescence_tactical_children_only: false,
             quiescence_tactical_enum_limit: 0,
-            enable_tt_depth_preferred_replacement: false,
-            enable_pvs: false,
             quiet_reduction_depth_threshold: 3,
-            enable_iterative_deepening: false,
-            iterative_deepening_depth_offset: 2,
-            iterative_deepening_alpha_margin: 0,
             enable_futility_pruning: false,
             futility_margin: 3000,
         }
     }
 
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn for_runtime(self) -> Self {
         let mut tuned = self;
 
@@ -1686,10 +817,6 @@ impl AutomoveSearchConfig {
         } else {
             tuned.scoring_weights = &MANA_RACE_LITE_D2_TUNED_SCORING_WEIGHTS;
         }
-
-        tuned.enable_root_exact_tactics = true;
-        tuned.enable_child_exact_tactics = false;
-        tuned.enable_static_exact_evaluation = false;
 
         tuned
     }
@@ -1805,8 +932,6 @@ pub(crate) struct TurnEngineSelectorDiagnostics {
     pub ranked_child_states_calls: usize,
     pub ranked_child_states_children_enumerated: usize,
     pub ranked_child_states_children_fully_scored: usize,
-    pub child_ordering_shortlist_children: usize,
-    pub child_ordering_full_pass_children: usize,
     pub move_efficiency_snapshot_builds: usize,
     pub move_efficiency_snapshot_cache_hits: usize,
     pub search_preferability_builds: usize,
@@ -1819,7 +944,7 @@ pub(crate) struct TurnEngineSelectorDiagnostics {
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum ProV2RootAdvisorReasonCode {
+pub(crate) enum CurrentProRootAdvisorReasonCode {
     RankedRoot,
     ReplyRiskShortlist,
     PreserveSpiritRepresentative,
@@ -1829,59 +954,41 @@ pub(crate) enum ProV2RootAdvisorReasonCode {
     AdmitInjectedMacroRoot,
     RejectInjectedMacroRoot,
     ApprovedReplyRiskGuard,
-    ApprovedLegacySelector,
-    ApprovedNormalSafety,
+    ApprovedBaselineSelector,
     ApprovedFamilyCompetition,
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct ProV2RootAdvisorEntry {
+pub(crate) struct CurrentProRootAdvisorEntry {
     pub inputs: Vec<Input>,
     pub family: TurnPlanFamily,
     pub root_rank: usize,
-    pub reason: ProV2RootAdvisorReasonCode,
+    pub reason: CurrentProRootAdvisorReasonCode,
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct ProV2InjectedRootAdvisorDecision {
+pub(crate) struct CurrentProInjectedRootAdvisorDecision {
     pub inputs: Vec<Input>,
     pub family: TurnPlanFamily,
     pub admitted: bool,
-    pub reason: ProV2RootAdvisorReasonCode,
+    pub reason: CurrentProRootAdvisorReasonCode,
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(crate) struct ProV2RootAdvisorDecision {
-    pub ordered_shortlist: Vec<ProV2RootAdvisorEntry>,
-    pub preserved_family_representatives: Vec<ProV2RootAdvisorEntry>,
-    pub approved_root: Option<ProV2RootAdvisorEntry>,
-    pub injected_root: Option<ProV2InjectedRootAdvisorDecision>,
-}
-
-#[cfg(test)]
-#[derive(Clone)]
-#[allow(dead_code)]
-pub(crate) struct TurnEngineRootSelectionSnapshot {
-    pub(crate) config: AutomoveSearchConfig,
-    pub(crate) scored_roots: Vec<RootEvaluation>,
-    pub(crate) selected_inputs: Vec<Input>,
+pub(crate) struct CurrentProRootAdvisorDecision {
+    pub ordered_shortlist: Vec<CurrentProRootAdvisorEntry>,
+    pub preserved_family_representatives: Vec<CurrentProRootAdvisorEntry>,
+    pub approved_root: Option<CurrentProRootAdvisorEntry>,
+    pub injected_root: Option<CurrentProInjectedRootAdvisorDecision>,
 }
 
 #[cfg(test)]
 thread_local! {
     static TURN_ENGINE_SELECTOR_DIAGNOSTICS: std::cell::RefCell<TurnEngineSelectorDiagnostics> =
         std::cell::RefCell::new(TurnEngineSelectorDiagnostics::default());
-    static TURN_ENGINE_LAST_PRO_V2_ROOT_ADVISOR_DECISION: std::cell::RefCell<
-        Option<ProV2RootAdvisorDecision>
-    > = const { std::cell::RefCell::new(None) };
-    static TURN_ENGINE_LAST_ROOT_SELECTION: std::cell::RefCell<
-        Option<TurnEngineRootSelectionSnapshot>
-    > = const { std::cell::RefCell::new(None) };
-    static TURN_ENGINE_CAPTURE_ROOT_SELECTION: std::cell::Cell<bool> =
-        const { std::cell::Cell::new(false) };
     static TURN_ENGINE_SELECTOR_RUNTIME_DEPTH: std::cell::Cell<usize> =
         const { std::cell::Cell::new(0) };
 }
@@ -1915,11 +1022,6 @@ struct SearchPreferabilityCacheKey {
     state_hash: u64,
     perspective: Color,
     scoring_weights_key: u64,
-    allow_exact_static_evaluation: bool,
-    enable_local_scoring_eval_ctx: bool,
-    enable_scoring_attack_reach_summary: bool,
-    enable_scoring_attack_reach_target_narrowing: bool,
-    enable_scoring_drainer_attack_reach_target_narrowing: bool,
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -1951,38 +1053,12 @@ pub(crate) fn clear_turn_engine_selector_diagnostics() {
     TURN_ENGINE_SELECTOR_DIAGNOSTICS.with(|diagnostics| {
         *diagnostics.borrow_mut() = TurnEngineSelectorDiagnostics::default();
     });
-    TURN_ENGINE_LAST_PRO_V2_ROOT_ADVISOR_DECISION.with(|decision| {
-        *decision.borrow_mut() = None;
-    });
-    TURN_ENGINE_LAST_ROOT_SELECTION.with(|selection| {
-        *selection.borrow_mut() = None;
-    });
     clear_turn_engine_selector_followup_floor_cache();
 }
 
 #[cfg(test)]
 pub(crate) fn turn_engine_selector_diagnostics_snapshot() -> TurnEngineSelectorDiagnostics {
     TURN_ENGINE_SELECTOR_DIAGNOSTICS.with(|diagnostics| *diagnostics.borrow())
-}
-
-#[cfg(test)]
-pub(crate) fn pro_v2_root_advisor_decision_snapshot() -> Option<ProV2RootAdvisorDecision> {
-    TURN_ENGINE_LAST_PRO_V2_ROOT_ADVISOR_DECISION.with(|decision| decision.borrow().clone())
-}
-
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn turn_engine_root_selection_snapshot() -> Option<TurnEngineRootSelectionSnapshot> {
-    TURN_ENGINE_LAST_ROOT_SELECTION.with(|selection| selection.borrow().clone())
-}
-
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn request_turn_engine_root_selection_snapshot() {
-    TURN_ENGINE_LAST_ROOT_SELECTION.with(|selection| {
-        *selection.borrow_mut() = None;
-    });
-    TURN_ENGINE_CAPTURE_ROOT_SELECTION.with(|capture| capture.set(true));
 }
 
 #[cfg(test)]
@@ -2045,40 +1121,6 @@ fn update_top_level_turn_engine_selector_last_return_stage(stage: &'static str) 
     }
 }
 
-#[cfg(test)]
-fn set_pro_v2_root_advisor_decision(decision: Option<ProV2RootAdvisorDecision>) {
-    TURN_ENGINE_LAST_PRO_V2_ROOT_ADVISOR_DECISION.with(|slot| {
-        *slot.borrow_mut() = decision;
-    });
-}
-
-#[cfg(test)]
-fn set_turn_engine_root_selection_snapshot(
-    config: AutomoveSearchConfig,
-    scored_roots: &[RootEvaluation],
-    selected_inputs: &[Input],
-) {
-    let should_capture = TURN_ENGINE_CAPTURE_ROOT_SELECTION.with(|capture| {
-        let should_capture = capture.get();
-        capture.set(false);
-        should_capture
-    });
-    if !should_capture {
-        return;
-    }
-    TURN_ENGINE_LAST_ROOT_SELECTION.with(|slot| {
-        *slot.borrow_mut() = Some(TurnEngineRootSelectionSnapshot {
-            config,
-            scored_roots: scored_roots.to_vec(),
-            selected_inputs: selected_inputs.to_vec(),
-        });
-    });
-}
-
-#[cfg(all(not(test), target_arch = "wasm32"))]
-#[inline]
-fn set_pro_v2_root_advisor_decision(_: Option<ProV2RootAdvisorDecision>) {}
-
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct MoveEfficiencySnapshot {
@@ -2124,50 +1166,11 @@ struct NormalRootSafetySnapshot {
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
-#[derive(Default)]
-struct TargetedExactTurnSummaryMemo {
-    entries: FastHashMap<u64, ExactTurnSummary>,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-impl TargetedExactTurnSummaryMemo {
-    fn get_or_compute(&mut self, game: &MonsGame, color: Color) -> ExactTurnSummary {
-        if game.active_color != color {
-            return ExactTurnSummary::default();
-        }
-
-        let state_hash = MonsGameModel::search_state_hash(game);
-        if let Some(cached) = self.entries.get(&state_hash).copied() {
-            return cached;
-        }
-
-        let summary = crate::models::automove_exact::exact_turn_summary_with_search_hash(
-            game, color, state_hash,
-        );
-        if crate::models::automove_deadline::cache_write_allowed() {
-            self.entries.insert(state_hash, summary);
-        }
-        summary
-    }
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Clone)]
-struct SameTurnScoreWindowCandidate {
-    transition: LegalInputTransition,
-    exact_turn: ExactTurnSummary,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(dead_code)]
 enum MoveClass {
     ImmediateScore,
     DrainerAttack,
     DrainerSafetyRecover,
-    CarrierProgress,
-    Material,
-    Quiet,
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -2188,9 +1191,6 @@ impl MoveClassFlags {
             MoveClass::ImmediateScore => self.immediate_score,
             MoveClass::DrainerAttack => self.drainer_attack,
             MoveClass::DrainerSafetyRecover => self.drainer_safety_recover,
-            MoveClass::CarrierProgress => self.carrier_progress,
-            MoveClass::Material => self.material,
-            MoveClass::Quiet => self.quiet,
         }
     }
 
@@ -2216,12 +1216,6 @@ enum TranspositionBound {
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
-type KillerTable = [[u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-
-#[cfg(any(target_arch = "wasm32", test))]
-type HistoryTable = U64HashMap<i32>;
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Copy)]
 struct TranspositionEntry {
     depth: usize,
@@ -2242,33 +1236,8 @@ struct RankedChildState {
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
-#[derive(Clone, Copy)]
-struct ChildEvalBundle {
-    child_hash: u64,
-    heuristic: i32,
-    #[cfg(test)]
-    after_efficiency_snapshot: Option<MoveEfficiencySnapshot>,
-    ordering_efficiency: i32,
-    #[cfg(test)]
-    own_drainer_vulnerable_after: bool,
-    tactical_extension_trigger: bool,
-    quiet_reduction_candidate: bool,
-    classes: MoveClassFlags,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Clone)]
-struct CheapChildOrderingEntry {
-    transition: LegalInputTransition,
-    child_hash: u64,
-    heuristic: i32,
-    force_full: bool,
-    eventful_reserve: bool,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 struct ChildOrderingScratch {
-    before_efficiency_snapshot: Option<MoveEfficiencySnapshot>,
+    before_efficiency_snapshot: MoveEfficiencySnapshot,
     own_drainer_vulnerable_before: bool,
 }
 
@@ -2281,10 +1250,11 @@ pub(crate) struct LegalInputTransition {
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
-type RootMoveRepresentativeSpec = (ProV2RootAdvisorReasonCode, fn(&ScoredRootMove) -> bool);
+type RootMoveRepresentativeSpec = (CurrentProRootAdvisorReasonCode, fn(&ScoredRootMove) -> bool);
 
 #[cfg(any(target_arch = "wasm32", test))]
-type RootEvaluationRepresentativeSpec = (ProV2RootAdvisorReasonCode, fn(&RootEvaluation) -> bool);
+type RootEvaluationRepresentativeSpec =
+    (CurrentProRootAdvisorReasonCode, fn(&RootEvaluation) -> bool);
 
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2316,8 +1286,6 @@ struct AsyncSmartSearchState {
     extension_node_budget: usize,
     scored_roots: Vec<RootEvaluation>,
     transposition_table: U64HashMap<TranspositionEntry>,
-    killer_table: KillerTable,
-    history_table: HistoryTable,
     quiescence_nodes_used: usize,
 }
 
@@ -2642,7 +1610,7 @@ impl MonsGameModel {
     ) -> Vec<Input> {
         match preference {
             SmartAutomovePreference::Pro => {
-                automove_runtime_variants::select_frontier_pro_v10_bounded_tactical_inputs(
+                automove_runtime_variants::select_current_pro_bounded_tactical_inputs(
                     &self.game, config,
                 )
             }
@@ -2690,8 +1658,6 @@ impl MonsGameModel {
             extension_node_budget: 0,
             scored_roots: Vec::new(),
             transposition_table: U64HashMap::default(),
-            killer_table: [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2],
-            history_table: HistoryTable::default(),
             quiescence_nodes_used: 0,
         }
     }
@@ -2787,7 +1753,6 @@ impl MonsGameModel {
             (config.root_branch_limit * 6).clamp(config.root_branch_limit, 240);
         config.node_enum_limit =
             (config.node_branch_limit * 4).clamp(config.node_branch_limit, 108);
-        config.enable_event_ordering_bonus = true;
         config.enable_two_pass_root_allocation = false;
         config.root_focus_k = 2;
         config.root_focus_budget_share_bp = 6_000;
@@ -2804,7 +1769,6 @@ impl MonsGameModel {
         config.enable_normal_root_safety_rerank = false;
         config.enable_normal_root_safety_deep_floor = false;
         config.enable_interview_hard_spirit_deploy = false;
-        config.enable_interview_soft_root_priors = true;
         config.enable_interview_deterministic_tiebreak = false;
         config.prefer_clean_reply_risk_roots = false;
         config.root_drainer_safety_score_margin = SMART_ROOT_DRAINER_SAFETY_SCORE_MARGIN;
@@ -2820,7 +1784,6 @@ impl MonsGameModel {
         config.interview_soft_opponent_mana_score_bonus = 310;
         config.interview_soft_mana_handoff_penalty = 280;
         config.interview_soft_roundtrip_penalty = 220;
-        config.enable_enhanced_drainer_vulnerability = true;
         config.enable_supermana_prepass_exception = true;
         config.scoring_weights = &RUNTIME_FAST_DRAINER_CONTEXT_SCORING_WEIGHTS_POTION_PREF;
         config
@@ -2878,7 +1841,6 @@ impl MonsGameModel {
         config.max_extensions_per_path = 1;
         config.selective_extension_node_share_bp = 1_500;
         config.enable_interview_deterministic_tiebreak = true;
-        config.enable_event_ordering_bonus = true;
         config.max_visited_nodes = config.max_visited_nodes.saturating_mul(9) / 8;
         config.root_branch_limit = config.root_branch_limit.saturating_add(1).min(16);
         config.node_branch_limit = config.node_branch_limit.saturating_add(1).min(12);
@@ -2895,9 +1857,6 @@ impl MonsGameModel {
     }
 
     fn with_pre_exact_runtime_policy(mut config: AutomoveSearchConfig) -> AutomoveSearchConfig {
-        config.enable_root_exact_tactics = false;
-        config.enable_child_exact_tactics = false;
-        config.enable_static_exact_evaluation = false;
         config.enable_exact_lite_progress_checks = false;
         config.enable_exact_lite_spirit_window_checks = false;
         config.exact_lite_root_call_budget = 0;
@@ -2905,255 +1864,21 @@ impl MonsGameModel {
         config
     }
 
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn with_runtime_scoring_weights(
         game: &MonsGame,
         mut config: AutomoveSearchConfig,
     ) -> AutomoveSearchConfig {
-        config.scoring_weights =
-            if config.depth < 3 && config.enable_mana_start_mix_with_potion_actions {
-                &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS_POTION_PREF
-            } else {
-                Self::runtime_phase_adaptive_walk_threat_medium_scoring_weights(game, config.depth)
-            };
+        config.scoring_weights = if config.depth < 3 {
+            &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS_POTION_PREF
+        } else {
+            Self::runtime_phase_adaptive_walk_threat_medium_scoring_weights(game, config.depth)
+        };
         if config.depth >= 3 {
             config.max_visited_nodes = (config.max_visited_nodes * 120) / 100;
         }
         config
     }
 
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_DRAINER_CONTEXT_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_boolean_drainer_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_attack_bonus_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_ATTACK_BONUS_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_ATTACK_BONUS_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_ATTACK_BONUS_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_ATTACK_BONUS_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_ATTACK_BONUS_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_strong_attack_bonus_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_STRONG_ATTACK_BONUS_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_STRONG_ATTACK_BONUS_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_STRONG_ATTACK_BONUS_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_STRONG_ATTACK_BONUS_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_STRONG_ATTACK_BONUS_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_drainer_shield_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_DRAINER_CONTEXT_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_DRAINER_SHIELD_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_DRAINER_SHIELD_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_DRAINER_SHIELD_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_DRAINER_SHIELD_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_DRAINER_SHIELD_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn with_drainer_shield_scoring_weights(
-        game: &MonsGame,
-        mut config: AutomoveSearchConfig,
-    ) -> AutomoveSearchConfig {
-        config.scoring_weights =
-            if config.depth < 3 && config.enable_mana_start_mix_with_potion_actions {
-                &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS_POTION_PREF
-            } else {
-                Self::runtime_phase_adaptive_walk_threat_scoring_weights(game, config.depth)
-            };
-        config
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_walk_threat_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_WALK_THREAT_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_WALK_THREAT_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_WALK_THREAT_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_WALK_THREAT_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_WALK_THREAT_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_walk_threat_light_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_WALK_THREAT_LIGHT_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_WALK_THREAT_LIGHT_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_WALK_THREAT_LIGHT_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_WALK_THREAT_LIGHT_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_WALK_THREAT_LIGHT_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
     fn runtime_phase_adaptive_walk_threat_medium_scoring_weights(
         game: &MonsGame,
         depth: usize,
@@ -3184,69 +1909,6 @@ impl MonsGameModel {
         }
     }
 
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_walk_threat_moderate_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_WALK_THREAT_MODERATE_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_WALK_THREAT_MODERATE_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_WALK_THREAT_MODERATE_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_WALK_THREAT_MODERATE_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_WALK_THREAT_MODERATE_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_strong_drainer_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_STRONG_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_STRONG_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_STRONG_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_STRONG_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_STRONG_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
     fn runtime_phase_adaptive_attacker_proximity_scoring_weights(
         game: &MonsGame,
         depth: usize,
@@ -3277,69 +1939,6 @@ impl MonsGameModel {
         }
     }
 
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_strong_attacker_proximity_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_STRONG_ATTACKER_PROXIMITY_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
-    fn runtime_phase_adaptive_combo_proximity_attack_scoring_weights(
-        game: &MonsGame,
-        depth: usize,
-    ) -> &'static ScoringWeights {
-        if depth < 3 {
-            return &RUNTIME_FAST_BOOLEAN_DRAINER_SCORING_WEIGHTS;
-        }
-
-        let (my_score, opponent_score) = if game.active_color == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        let score_gap = my_score - opponent_score;
-
-        if my_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 1 {
-            &RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if my_distance_to_win <= 2 {
-            &RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
-        } else if opponent_distance_to_win <= 2 || score_gap <= -1 {
-            &RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
-        } else {
-            &RUNTIME_NORMAL_COMBO_PROXIMITY_ATTACK_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
-        }
-    }
-
-    #[allow(dead_code)]
     fn build_scored_root_move(
         game: &MonsGame,
         perspective: Color,
@@ -3414,37 +2013,28 @@ impl MonsGameModel {
         }
         let before_state_hash = Self::search_state_hash(game);
         let simulated_state_hash = Self::search_state_hash(&simulated_game);
-        let before_efficiency_snapshot = config.enable_root_efficiency.then(|| {
-            Self::move_efficiency_snapshot_with_hash_and_narrowing(
-                game,
-                perspective,
-                config.enable_root_exact_tactics && game.active_color == perspective,
-                config.enable_static_exact_evaluation,
-                before_state_hash,
-                config.enable_move_efficiency_tactical_score_window_narrowing,
-            )
-        });
-        let efficiency = if config.enable_root_efficiency {
-            Self::move_efficiency_delta_from_before_snapshot_with_narrowing(
-                game,
-                &simulated_game,
-                perspective,
-                &events,
-                before_efficiency_snapshot
-                    .expect("snapshot should exist when root efficiency is enabled"),
-                simulated_state_hash,
-                true,
-                config.enable_backtrack_penalty,
-                config.enable_root_mana_handoff_guard,
-                config.enable_root_exact_tactics,
-                config.enable_static_exact_evaluation,
-                config.root_backtrack_penalty,
-                config.root_mana_handoff_penalty,
-                config.enable_move_efficiency_tactical_score_window_narrowing,
-            )
-        } else {
-            0
-        };
+        let before_efficiency_snapshot = Self::move_efficiency_snapshot_with_hash(
+            game,
+            perspective,
+            false,
+            false,
+            before_state_hash,
+        );
+        let efficiency = Self::move_efficiency_delta_from_before_snapshot(
+            game,
+            &simulated_game,
+            perspective,
+            &events,
+            before_efficiency_snapshot,
+            simulated_state_hash,
+            true,
+            true,
+            true,
+            false,
+            false,
+            config.root_backtrack_penalty,
+            config.root_mana_handoff_penalty,
+        );
         if crate::models::automove_deadline::checkpoint() {
             return None;
         }
@@ -3454,16 +2044,11 @@ impl MonsGameModel {
             config.depth.saturating_sub(1),
             config.depth,
             config.scoring_weights,
-            config.enable_static_exact_evaluation,
         );
         if crate::models::automove_deadline::checkpoint() {
             return None;
         }
-        let ordering_bonus = if config.enable_event_ordering_bonus {
-            Self::ordering_event_bonus(game.active_color, perspective, &events)
-        } else {
-            0
-        };
+        let ordering_bonus = Self::ordering_event_bonus(game.active_color, perspective, &events);
         let attacks_opponent_drainer =
             Self::events_include_opponent_drainer_fainted(&events, perspective);
         let wins_immediately = simulated_game.winner_color() == Some(perspective);
@@ -3481,7 +2066,7 @@ impl MonsGameModel {
                 Self::approximate_active_turn_summary(
                     &simulated_game,
                     perspective,
-                    config.enable_static_exact_evaluation || allow_exact_lite_static,
+                    allow_exact_lite_static,
                 )
             }
         } else {
@@ -3509,19 +2094,12 @@ impl MonsGameModel {
             && same_turn_score_window_value > 0;
         let spirit_own_mana_setup_now =
             Self::events_spirit_scoring_mana_setup(&events, &simulated_game.board, perspective);
-        let spirit_setup_gain = if config.enable_static_exact_evaluation {
-            exact_strategic_analysis(&simulated_game)
-                .color_summary(perspective)
-                .spirit
-                .next_turn_setup_gain
-        } else {
-            Self::live_spirit_setup_gain(
-                &exact_turn,
-                spirit_development,
-                spirit_same_turn_score_setup_now,
-                spirit_own_mana_setup_now,
-            )
-        };
+        let spirit_setup_gain = Self::live_spirit_setup_gain(
+            &exact_turn,
+            spirit_development,
+            spirit_same_turn_score_setup_now,
+            spirit_own_mana_setup_now,
+        );
         if crate::models::automove_deadline::checkpoint() {
             return None;
         }
@@ -3551,25 +2129,9 @@ impl MonsGameModel {
             || exact_turn.spirit_assisted_opponent_mana_progress
             || exact_turn.spirit_assisted_denial;
         let spirit_assisted_score = exact_turn.spirit_assisted_score;
-        let own_drainer_vulnerable = if config.enable_root_drainer_safety_prefilter {
-            Self::is_own_drainer_vulnerable_next_turn(
-                &simulated_game,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            )
-        } else {
-            false
-        };
-        let own_drainer_walk_vulnerable =
-            if config.enable_walk_threat_prefilter && !own_drainer_vulnerable {
-                Self::is_own_drainer_walk_vulnerable_next_turn(
-                    &simulated_game,
-                    perspective,
-                    config.enable_enhanced_drainer_vulnerability,
-                )
-            } else {
-                false
-            };
+        let own_drainer_vulnerable =
+            Self::is_own_drainer_vulnerable_next_turn(&simulated_game, perspective, true);
+        let own_drainer_walk_vulnerable = false;
         if crate::models::automove_deadline::checkpoint() {
             return None;
         }
@@ -3583,13 +2145,8 @@ impl MonsGameModel {
             || scores_supermana_this_turn
             || scores_opponent_mana_this_turn
             || spirit_assisted_score
-            || (config.enable_potion_progress_compensation
-                && !own_drainer_vulnerable
-                && (supermana_progress || opponent_mana_progress));
-        let potion_spend_penalty = if config.enable_mana_start_mix_with_potion_actions
-            && spent_potion
-            && !potion_compensated
-        {
+            || (!own_drainer_vulnerable && (supermana_progress || opponent_mana_progress));
+        let potion_spend_penalty = if spent_potion && !potion_compensated {
             if config.depth >= 3 {
                 config.potion_spend_penalty_normal.max(0)
             } else {
@@ -3610,18 +2167,14 @@ impl MonsGameModel {
                 config.root_mana_handoff_penalty.max(0),
             ) > 0;
         let has_roundtrip = Self::has_roundtrip_mon_move(&events);
-        let classes = if config.enable_move_class_coverage {
-            Self::classify_move_classes(
-                game,
-                &simulated_game,
-                perspective,
-                &events,
-                own_drainer_vulnerable_before,
-                own_drainer_vulnerable,
-            )
-        } else {
-            MoveClassFlags::default()
-        };
+        let classes = Self::classify_move_classes(
+            game,
+            &simulated_game,
+            perspective,
+            &events,
+            own_drainer_vulnerable_before,
+            own_drainer_vulnerable,
+        );
         let interview_soft_priority = Self::interview_root_soft_priority(
             config,
             supermana_progress,
@@ -3635,59 +2188,10 @@ impl MonsGameModel {
             has_roundtrip,
         );
 
-        let drainer_exposure_penalty = if own_drainer_vulnerable
-            && config.root_drainer_exposure_penalty > 0
-            && !wins_immediately
-            && !attacks_opponent_drainer
-            && !scores_supermana_this_turn
-            && !scores_opponent_mana_this_turn
-            && !spirit_assisted_score
-        {
-            config.root_drainer_exposure_penalty
-        } else {
-            0
-        };
-
         let heuristic_with_policy = heuristic
             .saturating_add(ordering_bonus)
-            .saturating_add(if config.enable_interview_soft_root_priors {
-                interview_soft_priority
-            } else {
-                0
-            })
-            .saturating_sub(potion_spend_penalty)
-            .saturating_sub(drainer_exposure_penalty);
-        let intent_profile_bonus = if config.enable_turn_engine_root_injection
-            && config.turn_engine_root_injection_limit > 0
-        {
-            let mut bonus: i32 = 0;
-            if classes.drainer_safety_recover {
-                bonus = bonus.saturating_add(40);
-            }
-            if attacks_opponent_drainer {
-                bonus = bonus.saturating_add(40);
-            }
-            if spirit_same_turn_score_setup_now {
-                bonus = bonus.saturating_add(30);
-            }
-            if own_drainer_vulnerable && !classes.drainer_safety_recover {
-                bonus = bonus.saturating_sub(80);
-            }
-            if own_drainer_walk_vulnerable {
-                bonus = bonus.saturating_sub(50);
-            }
-            if mana_handoff_to_opponent {
-                bonus = bonus.saturating_sub(80);
-            }
-            if has_roundtrip {
-                bonus = bonus.saturating_sub(40);
-            }
-            bonus
-        } else {
-            0
-        };
-        let heuristic_with_policy = heuristic_with_policy.saturating_add(intent_profile_bonus);
-
+            .saturating_add(interview_soft_priority)
+            .saturating_sub(potion_spend_penalty);
         if crate::models::automove_deadline::checkpoint() {
             return None;
         }
@@ -3999,10 +2503,6 @@ impl MonsGameModel {
         mana_handoff_to_opponent: bool,
         has_roundtrip: bool,
     ) -> i32 {
-        if !config.enable_interview_soft_root_priors {
-            return 0;
-        }
-
         let mut score = 0i32;
         if scores_supermana_this_turn {
             score = score.saturating_add(config.interview_soft_supermana_score_bonus.max(0));
@@ -4128,22 +2628,6 @@ impl MonsGameModel {
         }
     }
 
-    fn spirit_score_fallback_candidates_limit(config: AutomoveSearchConfig) -> usize {
-        if config.depth >= 3 {
-            8
-        } else {
-            4
-        }
-    }
-
-    fn same_turn_score_window_fallback_candidates_limit(config: AutomoveSearchConfig) -> usize {
-        if config.depth >= 3 {
-            8
-        } else {
-            4
-        }
-    }
-
     fn drainer_safety_fallback_candidates_limit(config: AutomoveSearchConfig) -> usize {
         if config.depth >= 3 {
             8
@@ -4160,22 +2644,6 @@ impl MonsGameModel {
         }
     }
 
-    fn child_exact_progress_fallback_candidates_limit(config: AutomoveSearchConfig) -> usize {
-        if config.depth >= 3 {
-            6
-        } else {
-            4
-        }
-    }
-
-    fn child_exact_progress_fallback_enum_limit(config: AutomoveSearchConfig) -> usize {
-        if config.depth >= 3 {
-            192
-        } else {
-            96
-        }
-    }
-
     fn generic_root_fallback_enum_limit(config: AutomoveSearchConfig) -> usize {
         if config.depth >= 3 {
             24
@@ -4184,10 +2652,9 @@ impl MonsGameModel {
         }
     }
 
-    fn automove_start_input_options(config: AutomoveSearchConfig) -> SuggestedStartInputOptions {
+    fn automove_start_input_options() -> SuggestedStartInputOptions {
         SuggestedStartInputOptions {
-            include_mana_starts_with_potion_action: config
-                .enable_mana_start_mix_with_potion_actions,
+            include_mana_starts_with_potion_action: true,
         }
     }
 
@@ -4307,101 +2774,6 @@ impl MonsGameModel {
         attackers
     }
 
-    fn target_attack_plausible_on_board(
-        board: &Board,
-        attacker_color: Color,
-        target_color: Color,
-        target: Location,
-        remaining_moves: i32,
-        can_use_action: bool,
-    ) -> bool {
-        if remaining_moves < 0 || !can_use_action || board.item(target).is_none() {
-            return false;
-        }
-
-        let target_guarded = Self::is_location_guarded_by_angel(board, target_color, target);
-        let bomb_pickup_locations = board
-            .occupied()
-            .filter_map(|(location, item)| match item {
-                Item::Consumable {
-                    consumable: Consumable::BombOrPotion,
-                } => Some(location),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
-        for (location, item) in board.occupied() {
-            let Some(mon) = item.mon() else {
-                continue;
-            };
-            if mon.color != attacker_color || mon.is_fainted() {
-                continue;
-            }
-
-            if matches!(
-                item,
-                Item::MonWithConsumable {
-                    consumable: Consumable::Bomb,
-                    ..
-                }
-            ) && location.distance(&target) <= remaining_moves + 3
-            {
-                return true;
-            }
-
-            if !target_guarded {
-                let action_distance = match mon.kind {
-                    MonKind::Mystic => Self::min_steps_to_mystic_attack_source(location, target),
-                    MonKind::Demon => Self::min_steps_to_demon_attack_source(location, target),
-                    _ => i32::MAX,
-                };
-                if action_distance <= remaining_moves {
-                    return true;
-                }
-            }
-
-            if matches!(item, Item::MonWithMana { .. }) {
-                continue;
-            }
-
-            for bomb_location in &bomb_pickup_locations {
-                let to_bomb = location.distance(bomb_location);
-                if to_bomb > remaining_moves {
-                    continue;
-                }
-                let moves_after_pickup = remaining_moves - to_bomb;
-                if bomb_location.distance(&target) <= moves_after_pickup + 3 {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
-    fn is_own_drainer_vulnerability_plausible_next_turn(
-        game: &MonsGame,
-        perspective: Color,
-    ) -> bool {
-        let (own_drainer_location, own_drainer_fainted) =
-            Self::own_awake_drainer_location_and_fainted(&game.board, perspective);
-        if own_drainer_fainted {
-            return true;
-        }
-        let Some(own_drainer_location) = own_drainer_location else {
-            return false;
-        };
-
-        Self::target_attack_plausible_on_board(
-            &game.board,
-            perspective.other(),
-            perspective,
-            own_drainer_location,
-            Config::MONS_MOVES_PER_TURN,
-            !game.is_first_turn(),
-        )
-    }
-
     fn can_attempt_forced_drainer_attack_fallback(game: &MonsGame, perspective: Color) -> bool {
         if !game.player_can_move_mon() {
             return false;
@@ -4455,7 +2827,7 @@ impl MonsGameModel {
             return Vec::new();
         }
 
-        let start_options = Self::automove_start_input_options(config);
+        let start_options = Self::automove_start_input_options();
         let per_spirit_enum_limit = Self::spirit_setup_fallback_enum_limit(config);
         let mut setup_inputs = Vec::new();
 
@@ -4503,305 +2875,11 @@ impl MonsGameModel {
         setup_inputs
     }
 
-    fn targeted_exact_turn_summary(
-        game: &MonsGame,
-        perspective: Color,
-        exact_turn_memo: &mut Option<TargetedExactTurnSummaryMemo>,
-    ) -> ExactTurnSummary {
-        if let Some(memo) = exact_turn_memo.as_mut() {
-            memo.get_or_compute(game, perspective)
-        } else {
-            exact_turn_summary(game, perspective)
-        }
-    }
-
-    fn targeted_score_window_candidate_sort(
-        a: &SameTurnScoreWindowCandidate,
-        b: &SameTurnScoreWindowCandidate,
-    ) -> std::cmp::Ordering {
-        b.exact_turn
-            .same_turn_score_window_value
-            .cmp(&a.exact_turn.same_turn_score_window_value)
-            .then_with(|| {
-                b.exact_turn
-                    .spirit_assisted_denial_value
-                    .cmp(&a.exact_turn.spirit_assisted_denial_value)
-            })
-            .then_with(|| {
-                Self::events_include_spirit_target_move(&b.transition.events).cmp(
-                    &Self::events_include_spirit_target_move(&a.transition.events),
-                )
-            })
-            .then_with(|| a.transition.inputs.cmp(&b.transition.inputs))
-    }
-
-    fn targeted_same_turn_score_window_transition_plausible(
-        game: &MonsGame,
-        transition: &LegalInputTransition,
-        perspective: Color,
-    ) -> bool {
-        let after = &transition.game;
-        if after.active_color != perspective {
-            return false;
-        }
-        if !after.player_can_move_mon() && !after.player_can_use_action() {
-            return false;
-        }
-        if Self::approximate_same_turn_score_window_value(after, perspective) > 0 {
-            return true;
-        }
-        if transition
-            .events
-            .iter()
-            .any(|event| matches!(event, Event::PickupMana { .. } | Event::ManaMove { .. }))
-        {
-            return true;
-        }
-
-        let before_drainer_steps = Self::approximate_best_drainer_to_mana_steps(game, perspective);
-        let after_drainer_steps = Self::approximate_best_drainer_to_mana_steps(after, perspective);
-        if after_drainer_steps
-            .zip(before_drainer_steps)
-            .is_some_and(|(after_steps, before_steps)| after_steps < before_steps)
-        {
-            return true;
-        }
-
-        let before_carrier_steps = Self::approximate_best_carrier_steps(game, perspective);
-        let after_carrier_steps = Self::approximate_best_carrier_steps(after, perspective);
-        after_carrier_steps
-            .zip(before_carrier_steps)
-            .is_some_and(|(after_steps, before_steps)| after_steps < before_steps)
-    }
-
-    fn collect_targeted_spirit_score_inputs(
-        game: &MonsGame,
-        perspective: Color,
-        max_candidates: usize,
-        opponent_mana_only: bool,
-        exact_turn_memo: &mut Option<TargetedExactTurnSummaryMemo>,
-    ) -> Vec<LegalInputTransition> {
-        if crate::models::automove_deadline::checkpoint() {
-            return Vec::new();
-        }
-        let spirit_locations = Self::find_awake_spirit_locations(game, perspective);
-        if spirit_locations.is_empty() || !game.player_can_use_action() {
-            return Vec::new();
-        }
-
-        let score_before = Self::score_for_color(game, perspective);
-        let mut score_inputs = Vec::new();
-
-        for spirit_loc in spirit_locations {
-            if crate::models::automove_deadline::checkpoint() {
-                return Vec::new();
-            }
-            if score_inputs.len() >= max_candidates.max(1) {
-                break;
-            }
-            if matches!(game.board.square(spirit_loc), Square::MonBase { .. }) {
-                continue;
-            }
-
-            for &target in spirit_loc.reachable_by_spirit_action_ref() {
-                if crate::models::automove_deadline::checkpoint() {
-                    return Vec::new();
-                }
-                if score_inputs.len() >= max_candidates.max(1) {
-                    break;
-                }
-                let Some(target_item) = game.board.item(target).copied() else {
-                    continue;
-                };
-                if !Self::spirit_target_allowed_for_root_fallback(target_item) {
-                    continue;
-                }
-
-                for &dest in target.nearby_locations_ref() {
-                    if crate::models::automove_deadline::checkpoint() {
-                        return Vec::new();
-                    }
-                    if score_inputs.len() >= max_candidates.max(1) {
-                        break;
-                    }
-                    if !Self::spirit_destination_allowed_for_root_fallback(
-                        &game.board,
-                        target_item,
-                        dest,
-                    ) {
-                        continue;
-                    }
-                    let inputs = vec![
-                        Input::Location(spirit_loc),
-                        Input::Location(target),
-                        Input::Location(dest),
-                    ];
-                    let Some((after_game, events)) =
-                        Self::apply_inputs_for_search_with_events(game, &inputs)
-                    else {
-                        continue;
-                    };
-                    if !Self::events_include_spirit_target_move(&events) {
-                        continue;
-                    }
-                    let after_turn = if after_game.active_color == perspective {
-                        Some(Self::targeted_exact_turn_summary(
-                            &after_game,
-                            perspective,
-                            exact_turn_memo,
-                        ))
-                    } else {
-                        None
-                    };
-                    if crate::models::automove_deadline::cancelled() {
-                        return Vec::new();
-                    }
-                    let after_same_turn_score_window_value =
-                        after_turn.map_or(0, |turn| turn.same_turn_score_window_value);
-                    let scores_now = if opponent_mana_only {
-                        Self::events_score_opponent_mana(&events, perspective)
-                            || after_turn.is_some_and(|turn| turn.safe_opponent_mana_progress)
-                    } else {
-                        Self::score_for_color(&after_game, perspective) > score_before
-                            || after_same_turn_score_window_value > 0
-                    };
-                    if scores_now {
-                        score_inputs.push(LegalInputTransition {
-                            inputs,
-                            game: after_game,
-                            events,
-                        });
-                    }
-                }
-            }
-        }
-
-        score_inputs.sort_by(|a, b| a.inputs.cmp(&b.inputs));
-        score_inputs
-    }
-
-    fn collect_targeted_same_turn_score_window_inputs(
-        game: &MonsGame,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-        max_candidates: usize,
-        exact_turn_memo: &mut Option<TargetedExactTurnSummaryMemo>,
-    ) -> Vec<LegalInputTransition> {
-        if crate::models::automove_deadline::checkpoint() {
-            return Vec::new();
-        }
-        if !game.player_can_move_mon() && !game.player_can_use_action() {
-            return Vec::new();
-        }
-
-        let mut actor_locations = Self::find_awake_drainer_locations(game, perspective);
-        if !config.enable_targeted_score_window_narrowing {
-            actor_locations.extend(Self::find_awake_spirit_locations(game, perspective));
-        }
-        if actor_locations.is_empty() {
-            return Vec::new();
-        }
-
-        let start_options = Self::automove_start_input_options(config);
-        let per_actor_enum_limit = Self::spirit_setup_fallback_enum_limit(config);
-        let mut score_window_inputs = Vec::new();
-        let mut seen_inputs = std::collections::HashSet::new();
-
-        for actor_loc in actor_locations {
-            if crate::models::automove_deadline::checkpoint() {
-                return Vec::new();
-            }
-            let mut actor_transitions = Vec::new();
-            let mut partial_inputs = vec![Input::Location(actor_loc)];
-            let mut simulated_game = game.clone_for_simulation();
-            Self::collect_legal_transitions(
-                &mut simulated_game,
-                &mut partial_inputs,
-                &mut actor_transitions,
-                per_actor_enum_limit,
-                start_options,
-            );
-            if crate::models::automove_deadline::cancelled() {
-                return Vec::new();
-            }
-            actor_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
-
-            for transition in actor_transitions {
-                if crate::models::automove_deadline::checkpoint() {
-                    return Vec::new();
-                }
-                if transition.game.active_color != perspective {
-                    continue;
-                }
-                if config.enable_targeted_score_window_narrowing
-                    && !Self::targeted_same_turn_score_window_transition_plausible(
-                        game,
-                        &transition,
-                        perspective,
-                    )
-                {
-                    continue;
-                }
-                let exact_turn = Self::targeted_exact_turn_summary(
-                    &transition.game,
-                    perspective,
-                    exact_turn_memo,
-                );
-                if crate::models::automove_deadline::cancelled() {
-                    return Vec::new();
-                }
-                if exact_turn.same_turn_score_window_value <= 0 {
-                    continue;
-                }
-                if seen_inputs.insert(transition.inputs.clone()) {
-                    score_window_inputs.push(SameTurnScoreWindowCandidate {
-                        transition,
-                        exact_turn,
-                    });
-                }
-            }
-        }
-
-        score_window_inputs.sort_by(Self::targeted_score_window_candidate_sort);
-        if score_window_inputs.len() > max_candidates.max(1) {
-            score_window_inputs.truncate(max_candidates.max(1));
-        }
-        score_window_inputs
-            .into_iter()
-            .map(|candidate| candidate.transition)
-            .collect()
-    }
-
-    #[cfg(test)]
-    fn compare_same_turn_score_window_transitions(
-        a: &LegalInputTransition,
-        b: &LegalInputTransition,
-        perspective: Color,
-    ) -> std::cmp::Ordering {
-        let a_turn = exact_turn_summary(&a.game, perspective);
-        let b_turn = exact_turn_summary(&b.game, perspective);
-
-        b_turn
-            .same_turn_score_window_value
-            .cmp(&a_turn.same_turn_score_window_value)
-            .then_with(|| {
-                b_turn
-                    .spirit_assisted_denial_value
-                    .cmp(&a_turn.spirit_assisted_denial_value)
-            })
-            .then_with(|| {
-                Self::events_include_spirit_target_move(&b.events)
-                    .cmp(&Self::events_include_spirit_target_move(&a.events))
-            })
-            .then_with(|| a.inputs.cmp(&b.inputs))
-    }
-
     fn collect_targeted_drainer_safety_inputs(
         game: &MonsGame,
         perspective: Color,
         config: AutomoveSearchConfig,
         max_candidates: usize,
-        require_walk_safe: bool,
     ) -> Vec<LegalInputTransition> {
         if crate::models::automove_deadline::checkpoint() {
             return Vec::new();
@@ -4811,7 +2889,7 @@ impl MonsGameModel {
             return Vec::new();
         }
 
-        let start_options = Self::automove_start_input_options(config);
+        let start_options = Self::automove_start_input_options();
         let per_actor_enum_limit = Self::drainer_safety_fallback_enum_limit(config);
         let mut safety_inputs = Vec::new();
         let mut seen_inputs = std::collections::HashSet::new();
@@ -4846,20 +2924,7 @@ impl MonsGameModel {
                 if safety_inputs.len() >= max_candidates.max(1) {
                     break;
                 }
-                if Self::is_own_drainer_vulnerable_next_turn(
-                    &transition.game,
-                    perspective,
-                    config.enable_enhanced_drainer_vulnerability,
-                ) {
-                    continue;
-                }
-                if require_walk_safe
-                    && Self::is_own_drainer_walk_vulnerable_next_turn(
-                        &transition.game,
-                        perspective,
-                        config.enable_enhanced_drainer_vulnerability,
-                    )
-                {
+                if Self::is_own_drainer_vulnerable_next_turn(&transition.game, perspective, true) {
                     continue;
                 }
                 if seen_inputs.insert(transition.inputs.clone()) {
@@ -4870,196 +2935,6 @@ impl MonsGameModel {
 
         safety_inputs.sort_by(|a, b| a.inputs.cmp(&b.inputs));
         safety_inputs
-    }
-
-    fn transition_preserves_exact_progress(
-        transition: &LegalInputTransition,
-        perspective: Color,
-        wanted_mana: Mana,
-    ) -> bool {
-        if matches!(wanted_mana, Mana::Supermana) {
-            if Self::events_score_supermana(&transition.events)
-                || Self::own_drainer_carries_specific_mana_safely(
-                    &transition.game.board,
-                    perspective,
-                    Mana::Supermana,
-                )
-            {
-                return true;
-            }
-            if transition.game.active_color == perspective {
-                let exact_turn = exact_turn_summary(&transition.game, perspective);
-                return exact_turn.safe_supermana_progress
-                    || exact_turn.spirit_assisted_supermana_progress;
-            }
-            return false;
-        }
-
-        if wanted_mana == Mana::Regular(perspective.other()) {
-            if Self::events_score_opponent_mana(&transition.events, perspective)
-                || Self::own_drainer_carries_specific_mana_safely(
-                    &transition.game.board,
-                    perspective,
-                    Mana::Regular(perspective.other()),
-                )
-            {
-                return true;
-            }
-            if transition.game.active_color == perspective {
-                let exact_turn = exact_turn_summary(&transition.game, perspective);
-                return exact_turn.safe_opponent_mana_progress
-                    || exact_turn.spirit_assisted_opponent_mana_progress
-                    || exact_turn.spirit_assisted_denial;
-            }
-        }
-
-        false
-    }
-
-    fn collect_targeted_exact_progress_inputs(
-        game: &MonsGame,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-        max_candidates: usize,
-        wanted_mana: Mana,
-    ) -> Vec<LegalInputTransition> {
-        if crate::models::automove_deadline::checkpoint() {
-            return Vec::new();
-        }
-        if !game.player_can_move_mon() && !game.player_can_use_action() {
-            return Vec::new();
-        }
-
-        let mut actor_locations = Self::find_awake_drainer_locations(game, perspective);
-        actor_locations.extend(Self::find_awake_spirit_locations(game, perspective));
-        if actor_locations.is_empty() {
-            return Vec::new();
-        }
-
-        let start_options = Self::automove_start_input_options(config);
-        let per_actor_enum_limit = Self::child_exact_progress_fallback_enum_limit(config);
-        let mut progress_inputs = Vec::new();
-        let mut seen_inputs = std::collections::HashSet::new();
-
-        for actor_loc in actor_locations {
-            if crate::models::automove_deadline::checkpoint() {
-                return Vec::new();
-            }
-            if progress_inputs.len() >= max_candidates.max(1) {
-                break;
-            }
-
-            let mut actor_transitions = Vec::new();
-            let mut partial_inputs = vec![Input::Location(actor_loc)];
-            let mut simulated_game = game.clone_for_simulation();
-            Self::collect_legal_transitions(
-                &mut simulated_game,
-                &mut partial_inputs,
-                &mut actor_transitions,
-                per_actor_enum_limit,
-                start_options,
-            );
-            if crate::models::automove_deadline::cancelled() {
-                return Vec::new();
-            }
-            actor_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
-
-            for transition in actor_transitions {
-                if crate::models::automove_deadline::checkpoint() {
-                    return Vec::new();
-                }
-                if progress_inputs.len() >= max_candidates.max(1) {
-                    break;
-                }
-                if !Self::transition_preserves_exact_progress(&transition, perspective, wanted_mana)
-                {
-                    continue;
-                }
-                if seen_inputs.insert(transition.inputs.clone()) {
-                    progress_inputs.push(transition);
-                }
-            }
-        }
-
-        progress_inputs.sort_by(|a, b| a.inputs.cmp(&b.inputs));
-        progress_inputs
-    }
-
-    fn spirit_target_allowed_for_root_fallback(item: Item) -> bool {
-        match item {
-            Item::Mon { mon }
-            | Item::MonWithMana { mon, .. }
-            | Item::MonWithConsumable { mon, .. } => !mon.is_fainted(),
-            Item::Mana { .. } | Item::Consumable { .. } => true,
-        }
-    }
-
-    fn spirit_destination_allowed_for_root_fallback(
-        board: &Board,
-        target_item: Item,
-        destination: Location,
-    ) -> bool {
-        let destination_item = board.item(destination).copied();
-        let destination_square = board.square(destination);
-        let target_mon = target_item.mon().copied();
-        let target_mana = target_item.mana().copied();
-
-        let valid_destination = match destination_item {
-            Some(Item::Mon {
-                mon: destination_mon,
-            }) => match target_item {
-                Item::Mon { .. } | Item::MonWithMana { .. } | Item::MonWithConsumable { .. } => {
-                    false
-                }
-                Item::Mana { .. } => {
-                    destination_mon.kind == MonKind::Drainer && !destination_mon.is_fainted()
-                }
-                Item::Consumable {
-                    consumable: Consumable::BombOrPotion,
-                } => true,
-                Item::Consumable { .. } => false,
-            },
-            Some(Item::Mana { .. }) => {
-                matches!(target_mon, Some(mon) if mon.kind == MonKind::Drainer && !mon.is_fainted())
-            }
-            Some(Item::MonWithMana { .. }) | Some(Item::MonWithConsumable { .. }) => {
-                matches!(
-                    target_item,
-                    Item::Consumable {
-                        consumable: Consumable::BombOrPotion,
-                    }
-                )
-            }
-            Some(Item::Consumable {
-                consumable: Consumable::BombOrPotion,
-            }) => matches!(
-                target_item,
-                Item::Mon { .. } | Item::MonWithMana { .. } | Item::MonWithConsumable { .. }
-            ),
-            Some(Item::Consumable { .. }) => false,
-            None => true,
-        };
-
-        if !valid_destination {
-            return false;
-        }
-
-        match destination_square {
-            Square::Regular
-            | Square::ConsumableBase
-            | Square::ManaBase { .. }
-            | Square::ManaPool { .. } => true,
-            Square::SupermanaBase => {
-                target_mana == Some(Mana::Supermana)
-                    || (target_mana.is_none()
-                        && matches!(target_mon.map(|mon| mon.kind), Some(MonKind::Drainer)))
-            }
-            Square::MonBase { kind, color } => {
-                matches!(target_mon, Some(mon) if mon.kind == kind && mon.color == color)
-                    && target_mana.is_none()
-                    && target_item.consumable().is_none()
-            }
-        }
     }
 
     fn collect_targeted_safe_drainer_pickup_inputs(
@@ -5164,7 +3039,7 @@ impl MonsGameModel {
         let mut continuation_budget = base_budget * 2;
         let base_enum = Self::forced_drainer_attack_fallback_enum_limit(config);
         let enum_limit = base_enum * 2;
-        let start_options = Self::automove_start_input_options(config);
+        let start_options = Self::automove_start_input_options();
 
         let root_transitions = Self::enumerate_legal_transitions_lexicographic_bounded(
             game,
@@ -5206,84 +3081,6 @@ impl MonsGameModel {
         attack_inputs
     }
 
-    fn collect_per_mon_drainer_attack_inputs(
-        game: &MonsGame,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-        max_candidates: usize,
-    ) -> Vec<LegalInputTransition> {
-        if crate::models::automove_deadline::checkpoint() {
-            return Vec::new();
-        }
-        let attacker_locations = Self::find_potential_drainer_attacker_locations(game, perspective);
-        if attacker_locations.is_empty() {
-            return Vec::new();
-        }
-
-        let mut memo_true = U64HashSet::default();
-        let mut attack_inputs = Vec::new();
-        let base_budget = Self::forced_drainer_attack_fallback_node_budget(config);
-        let mut continuation_budget = base_budget * 2;
-        let per_mon_enum_limit: usize = 200;
-        let start_options = Self::automove_start_input_options(config);
-
-        for &attacker_loc in &attacker_locations {
-            if crate::models::automove_deadline::checkpoint() {
-                return Vec::new();
-            }
-            if attack_inputs.len() >= max_candidates.max(1) {
-                break;
-            }
-
-            let mut per_mon_transitions = Vec::new();
-            let mut partial_inputs = vec![Input::Location(attacker_loc)];
-            let mut simulated_game = game.clone_for_simulation();
-            Self::collect_legal_transitions(
-                &mut simulated_game,
-                &mut partial_inputs,
-                &mut per_mon_transitions,
-                per_mon_enum_limit,
-                start_options,
-            );
-            if crate::models::automove_deadline::cancelled() {
-                return Vec::new();
-            }
-            per_mon_transitions.sort_by(|a, b| a.inputs.cmp(&b.inputs));
-
-            for transition in per_mon_transitions {
-                if crate::models::automove_deadline::checkpoint() {
-                    return Vec::new();
-                }
-                if attack_inputs.len() >= max_candidates.max(1) {
-                    break;
-                }
-
-                if Self::events_include_opponent_drainer_fainted(&transition.events, perspective) {
-                    attack_inputs.push(transition);
-                    continue;
-                }
-                if transition.game.active_color != perspective {
-                    continue;
-                }
-                if continuation_budget == 0 {
-                    continue;
-                }
-                if Self::can_attack_opponent_drainer_before_turn_ends(
-                    &transition.game,
-                    perspective,
-                    per_mon_enum_limit,
-                    start_options,
-                    &mut continuation_budget,
-                    &mut memo_true,
-                ) {
-                    attack_inputs.push(transition);
-                }
-            }
-        }
-
-        attack_inputs
-    }
-
     fn collect_forced_drainer_attack_inputs(
         game: &MonsGame,
         perspective: Color,
@@ -5297,7 +3094,7 @@ impl MonsGameModel {
         let mut attack_inputs = Vec::new();
         let mut continuation_budget = Self::forced_drainer_attack_fallback_node_budget(config);
         let enum_limit = Self::forced_drainer_attack_fallback_enum_limit(config);
-        let start_options = Self::automove_start_input_options(config);
+        let start_options = Self::automove_start_input_options();
         let root_transitions = Self::enumerate_legal_transitions_lexicographic_bounded(
             game,
             enum_limit,
@@ -5372,63 +3169,16 @@ impl MonsGameModel {
             return Vec::new();
         }
         let mut candidates = Vec::new();
-        let own_drainer_vulnerable_before = if config.enable_move_class_coverage {
-            Self::is_own_drainer_vulnerable_next_turn(
-                game,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            )
-        } else {
-            false
-        };
+        let own_drainer_vulnerable_before =
+            Self::is_own_drainer_vulnerable_next_turn(game, perspective, true);
 
-        let start_options = Self::automove_start_input_options(config);
-        let effective_enum_limit = if config.enable_drainer_attack_priority_enum
-            && config.drainer_attack_priority_enum_boost > 0
-            && Self::can_attempt_forced_drainer_attack_fallback(game, perspective)
-        {
-            config.root_enum_limit + config.drainer_attack_priority_enum_boost
-        } else {
-            config.root_enum_limit
-        };
+        let start_options = Self::automove_start_input_options();
+        let mut root_transitions =
+            Self::enumerate_legal_transitions(game, config.root_enum_limit, start_options);
 
-        let mut root_transitions = if config.enable_drainer_attack_priority_enum {
-            let attacker_locs = Self::find_potential_drainer_attacker_locations(game, perspective);
-            if attacker_locs.is_empty() {
-                Self::enumerate_legal_transitions(game, effective_enum_limit, start_options)
-            } else {
-                Self::enumerate_legal_transitions_with_priority(
-                    game,
-                    effective_enum_limit,
-                    start_options,
-                    &attacker_locs,
-                )
-            }
-        } else {
-            Self::enumerate_legal_transitions(game, effective_enum_limit, start_options)
-        };
-
-        let own_drainer_walk_vulnerable_before = if config.enable_move_class_coverage
-            && config.enable_walk_threat_prefilter
-            && !own_drainer_vulnerable_before
-        {
-            Self::is_own_drainer_walk_vulnerable_next_turn(
-                game,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            )
-        } else {
-            false
-        };
-
-        if config.enable_root_drainer_safety_prefilter
-            && own_drainer_vulnerable_before
+        if own_drainer_vulnerable_before
             && !root_transitions.iter().any(|transition| {
-                !Self::is_own_drainer_vulnerable_next_turn(
-                    &transition.game,
-                    perspective,
-                    config.enable_enhanced_drainer_vulnerability,
-                )
+                !Self::is_own_drainer_vulnerable_next_turn(&transition.game, perspective, true)
             })
         {
             let fallback_limit = Self::drainer_safety_fallback_candidates_limit(config);
@@ -5437,7 +3187,6 @@ impl MonsGameModel {
                 perspective,
                 config,
                 fallback_limit,
-                false,
             );
             if !fallback_inputs.is_empty() {
                 let mut seen_inputs = root_transitions
@@ -5454,61 +3203,13 @@ impl MonsGameModel {
         if crate::models::automove_deadline::cancelled() {
             return Vec::new();
         }
-        if config.enable_walk_threat_prefilter
-            && own_drainer_walk_vulnerable_before
-            && !root_transitions.iter().any(|transition| {
-                !Self::is_own_drainer_vulnerable_next_turn(
-                    &transition.game,
-                    perspective,
-                    config.enable_enhanced_drainer_vulnerability,
-                ) && !Self::is_own_drainer_walk_vulnerable_next_turn(
-                    &transition.game,
-                    perspective,
-                    config.enable_enhanced_drainer_vulnerability,
-                )
-            })
-        {
-            let fallback_limit = Self::drainer_safety_fallback_candidates_limit(config);
-            let fallback_inputs = Self::collect_targeted_drainer_safety_inputs(
-                game,
-                perspective,
-                config,
-                fallback_limit,
-                true,
-            );
-            if !fallback_inputs.is_empty() {
-                let mut seen_inputs = root_transitions
-                    .iter()
-                    .map(|transition| transition.inputs.clone())
-                    .collect::<std::collections::HashSet<_>>();
-                for transition in fallback_inputs {
-                    if seen_inputs.insert(transition.inputs.clone()) {
-                        root_transitions.push(transition);
-                    }
-                }
-            }
-        }
         if crate::models::automove_deadline::cancelled() {
             return Vec::new();
         }
 
-        let exact_turn_before = if config.enable_root_exact_tactics {
-            exact_turn_summary(game, perspective)
-        } else {
-            Self::approximate_active_turn_summary(
-                game,
-                perspective,
-                config.enable_static_exact_evaluation,
-            )
-        };
-        let exact_spirit_setup_gain_before = if config.enable_static_exact_evaluation {
-            exact_strategic_analysis(game)
-                .color_summary(perspective)
-                .spirit
-                .next_turn_setup_gain
-        } else {
-            Self::live_spirit_setup_gain(&exact_turn_before, false, false, false)
-        };
+        let exact_turn_before = Self::approximate_active_turn_summary(game, perspective, false);
+        let exact_spirit_setup_gain_before =
+            Self::live_spirit_setup_gain(&exact_turn_before, false, false, false);
         if crate::models::automove_deadline::checkpoint() {
             return Vec::new();
         }
@@ -5560,89 +3261,6 @@ impl MonsGameModel {
                 perspective,
                 fallback_limit,
                 Mana::Regular(perspective.other()),
-            );
-            if !fallback_inputs.is_empty() {
-                let mut seen_inputs = root_transitions
-                    .iter()
-                    .map(|transition| transition.inputs.clone())
-                    .collect::<std::collections::HashSet<_>>();
-                for transition in fallback_inputs {
-                    if seen_inputs.insert(transition.inputs.clone()) {
-                        root_transitions.push(transition);
-                    }
-                }
-            }
-        }
-        if crate::models::automove_deadline::cancelled() {
-            return Vec::new();
-        }
-        if config.enable_root_exact_tactics
-            && exact_turn_before.spirit_assisted_score
-            && !root_transitions.iter().any(|transition| {
-                transition.game.active_color == perspective
-                    && exact_turn_summary(&transition.game, perspective)
-                        .same_turn_score_window_value
-                        > 0
-            })
-        {
-            let fallback_limit = Self::same_turn_score_window_fallback_candidates_limit(config);
-            let mut exact_turn_memo = config
-                .enable_targeted_exact_turn_summary_memo
-                .then(TargetedExactTurnSummaryMemo::default);
-            let mut fallback_inputs = Self::collect_targeted_spirit_score_inputs(
-                game,
-                perspective,
-                fallback_limit,
-                false,
-                &mut exact_turn_memo,
-            );
-            let mut fallback_seen_inputs = fallback_inputs
-                .iter()
-                .map(|transition| transition.inputs.clone())
-                .collect::<std::collections::HashSet<_>>();
-            for transition in Self::collect_targeted_same_turn_score_window_inputs(
-                game,
-                perspective,
-                config,
-                fallback_limit,
-                &mut exact_turn_memo,
-            ) {
-                if fallback_seen_inputs.insert(transition.inputs.clone()) {
-                    fallback_inputs.push(transition);
-                }
-            }
-            if !fallback_inputs.is_empty() {
-                let mut seen_inputs = root_transitions
-                    .iter()
-                    .map(|transition| transition.inputs.clone())
-                    .collect::<std::collections::HashSet<_>>();
-                for transition in fallback_inputs {
-                    if seen_inputs.insert(transition.inputs.clone()) {
-                        root_transitions.push(transition);
-                    }
-                }
-            }
-        }
-        if crate::models::automove_deadline::cancelled() {
-            return Vec::new();
-        }
-        if config.enable_root_exact_tactics
-            && exact_turn_before.spirit_assisted_denial
-            && !root_transitions.iter().any(|transition| {
-                Self::events_include_spirit_target_move(&transition.events)
-                    && Self::events_score_opponent_mana(&transition.events, perspective)
-            })
-        {
-            let fallback_limit = Self::spirit_score_fallback_candidates_limit(config);
-            let mut exact_turn_memo = config
-                .enable_targeted_exact_turn_summary_memo
-                .then(TargetedExactTurnSummaryMemo::default);
-            let fallback_inputs = Self::collect_targeted_spirit_score_inputs(
-                game,
-                perspective,
-                fallback_limit,
-                true,
-                &mut exact_turn_memo,
             );
             if !fallback_inputs.is_empty() {
                 let mut seen_inputs = root_transitions
@@ -5769,23 +3387,14 @@ impl MonsGameModel {
             .iter()
             .any(|candidate| candidate.wins_immediately);
         let mut forced_turn_attack_inputs: Option<std::collections::HashSet<Vec<Input>>> = None;
-        if config.enable_forced_drainer_attack
-            && config.enable_forced_drainer_attack_fallback
-            && !has_winning_candidate
+        if !has_winning_candidate
             && !candidates
                 .iter()
                 .any(|candidate| candidate.attacks_opponent_drainer)
             && Self::can_attempt_forced_drainer_attack_fallback(game, perspective)
         {
             let fallback_limit = Self::forced_drainer_attack_fallback_candidates_limit(config);
-            let fallback_inputs = if config.enable_per_mon_drainer_attack_fallback {
-                Self::collect_per_mon_drainer_attack_inputs(
-                    game,
-                    perspective,
-                    config,
-                    fallback_limit,
-                )
-            } else if config.enable_targeted_drainer_attack_fallback {
+            let fallback_inputs = if config.enable_targeted_drainer_attack_fallback {
                 Self::collect_targeted_drainer_attack_inputs(
                     game,
                     perspective,
@@ -5854,42 +3463,23 @@ impl MonsGameModel {
             }
         }
 
-        let should_filter_to_attacks = if config.enable_drainer_attack_full_pool {
-            false
-        } else if config.enable_conditional_forced_drainer_attack {
-            let (my_score, opponent_score) = if perspective == Color::White {
-                (game.white_score, game.black_score)
-            } else {
-                (game.black_score, game.white_score)
-            };
-            my_score <= opponent_score + config.conditional_forced_attack_score_margin
-        } else {
-            true
-        };
-
-        if config.enable_forced_drainer_attack
-            && should_filter_to_attacks
-            && !has_winning_candidate
+        if !has_winning_candidate
             && candidates
                 .iter()
                 .any(|candidate| candidate.attacks_opponent_drainer)
         {
             candidates.retain(|candidate| candidate.attacks_opponent_drainer);
-        } else if config.enable_forced_drainer_attack && should_filter_to_attacks {
+        } else {
             if let Some(forced_inputs) = forced_turn_attack_inputs {
                 candidates.retain(|candidate| forced_inputs.contains(&candidate.inputs));
             }
         }
         if candidates.len() > config.root_branch_limit {
-            if config.enable_move_class_coverage {
-                candidates = Self::truncate_root_candidates_with_class_coverage(
-                    candidates,
-                    config.root_branch_limit,
-                    config.enable_strict_tactical_class_coverage,
-                );
-            } else {
-                candidates.truncate(config.root_branch_limit);
-            }
+            candidates = Self::truncate_root_candidates_with_class_coverage(
+                candidates,
+                config.root_branch_limit,
+                true,
+            );
         }
         for (root_rank, candidate) in candidates.iter_mut().enumerate() {
             candidate.root_rank = root_rank;
@@ -6189,41 +3779,13 @@ impl MonsGameModel {
             && !Self::find_potential_drainer_attacker_locations(game, color).is_empty()
     }
 
-    fn has_frontier_tactical_potential(
-        game: &MonsGame,
-        allow_exact_tactical: bool,
-        allow_exact_strategic: bool,
-    ) -> bool {
+    fn has_frontier_tactical_potential(game: &MonsGame) -> bool {
         let active_color = game.active_color;
-        if allow_exact_tactical {
-            let active_summary = allow_exact_strategic
-                .then(|| exact_strategic_analysis(game).color_summary(active_color));
-            let turn_summary = exact_turn_summary(game, active_color);
-
-            return active_summary
-                .map(|summary| summary.immediate_window.best_score > 0)
-                .unwrap_or_else(|| {
-                    Self::approximate_same_turn_score_window_value(game, active_color) > 0
-                })
-                || turn_summary.can_attack_opponent_drainer
-                || turn_summary.safe_supermana_progress
-                || turn_summary.safe_opponent_mana_progress
-                || turn_summary.spirit_assisted_supermana_progress
-                || turn_summary.spirit_assisted_opponent_mana_progress
-                || turn_summary.spirit_assisted_score
-                || turn_summary.spirit_assisted_denial;
-        }
-
         let turn_summary = Self::approximate_active_turn_summary(game, active_color, false);
         turn_summary.same_turn_score_window_value > 0
             || Self::approximate_can_attack_opponent_drainer_this_turn(game, active_color)
             || turn_summary.safe_supermana_progress
             || turn_summary.safe_opponent_mana_progress
-    }
-
-    #[cfg(test)]
-    fn has_exact_frontier_tactical_potential(game: &MonsGame) -> bool {
-        Self::has_frontier_tactical_potential(game, true, true)
     }
 
     fn compare_ranked_root_indices(
@@ -6333,6 +3895,7 @@ impl MonsGameModel {
         root_moves
     }
 
+    #[cfg(test)]
     fn sort_root_moves_by_ranked_scores(
         root_moves: Vec<ScoredRootMove>,
         scores: &[i32],
@@ -6602,26 +4165,7 @@ impl MonsGameModel {
                     && !m.wins_immediately
                     && !m.attacks_opponent_drainer
             });
-        let has_safe_opponent_mana_score = config.enable_opponent_mana_prepass_exception
-            && root_moves.iter().any(|m| {
-                m.scores_opponent_mana_this_turn
-                    && !m.own_drainer_vulnerable
-                    && !m.mana_handoff_to_opponent
-                    && !m.wins_immediately
-                    && !m.attacks_opponent_drainer
-            });
-        let has_safe_opponent_mana_pickup = config.enable_opponent_mana_prepass_exception
-            && root_moves.iter().any(|m| {
-                m.safe_opponent_mana_pickup_now
-                    && !m.own_drainer_vulnerable
-                    && !m.mana_handoff_to_opponent
-                    && !m.wins_immediately
-                    && !m.attacks_opponent_drainer
-            });
-        let has_tactical_prepass_exception = has_supermana_scoring
-            || has_safe_supermana_pickup
-            || has_safe_opponent_mana_score
-            || has_safe_opponent_mana_pickup;
+        let has_tactical_prepass_exception = has_supermana_scoring || has_safe_supermana_pickup;
 
         if config.enable_supermana_prepass_exception {
             if let Some(index) = Self::best_tactical_root_index(root_moves, |candidate| {
@@ -6640,76 +4184,19 @@ impl MonsGameModel {
             }
         }
 
-        if config.enable_opponent_mana_prepass_exception {
+        if !has_tactical_prepass_exception {
             if let Some(index) = Self::best_tactical_root_index(root_moves, |candidate| {
-                candidate.scores_opponent_mana_this_turn
-                    && !candidate.own_drainer_vulnerable
-                    && !candidate.mana_handoff_to_opponent
-                    && !candidate.wins_immediately
-                    && !candidate.attacks_opponent_drainer
-            }) {
-                return Some(root_moves[index].inputs.clone());
-            }
-            if let Some(index) = Self::best_tactical_root_index(root_moves, |candidate| {
-                candidate.safe_opponent_mana_pickup_now
-                    && !candidate.own_drainer_vulnerable
-                    && !candidate.mana_handoff_to_opponent
-                    && !candidate.wins_immediately
-                    && !candidate.attacks_opponent_drainer
+                candidate.attacks_opponent_drainer
             }) {
                 return Some(root_moves[index].inputs.clone());
             }
         }
 
-        if config.enable_forced_drainer_attack
-            && !has_tactical_prepass_exception
-            && !config.enable_drainer_attack_minimax_selection
-            && !config.enable_drainer_attack_full_pool
-        {
-            let prepass_attack = if config.enable_conditional_forced_drainer_attack {
-                let (my_score, opponent_score) = if perspective == Color::White {
-                    (game.white_score, game.black_score)
-                } else {
-                    (game.black_score, game.white_score)
-                };
-                my_score <= opponent_score + config.conditional_forced_attack_score_margin
-            } else {
-                true
-            };
-            if prepass_attack {
-                if let Some(index) = Self::best_tactical_root_index(root_moves, |candidate| {
-                    candidate.attacks_opponent_drainer
-                }) {
-                    return Some(root_moves[index].inputs.clone());
-                }
-            }
-        }
-
-        if config.enable_root_drainer_safety_prefilter
-            && !has_tactical_prepass_exception
-            && Self::is_own_drainer_vulnerable_next_turn(
-                game,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            )
+        if !has_tactical_prepass_exception
+            && Self::is_own_drainer_vulnerable_next_turn(game, perspective, true)
         {
             if let Some(index) = Self::best_tactical_root_index(root_moves, |candidate| {
                 !candidate.own_drainer_vulnerable
-            }) {
-                return Some(root_moves[index].inputs.clone());
-            }
-        }
-
-        if config.enable_walk_threat_prefilter
-            && !has_tactical_prepass_exception
-            && Self::is_own_drainer_walk_vulnerable_next_turn(
-                game,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            )
-        {
-            if let Some(index) = Self::best_tactical_root_index(root_moves, |candidate| {
-                !candidate.own_drainer_vulnerable && !candidate.own_drainer_walk_vulnerable
             }) {
                 return Some(root_moves[index].inputs.clone());
             }
@@ -6738,15 +4225,15 @@ impl MonsGameModel {
         plan: &TurnPlan,
         config: AutomoveSearchConfig,
     ) -> Option<Vec<Input>> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !config.enable_turn_engine_low_budget_guard
             || root_moves.is_empty()
         {
             return None;
         }
 
-        let low_budget_opening = Self::pro_v2_is_early_white_turn_start(game)
-            || Self::pro_v2_is_safe_early_black_opening_state(game);
+        let low_budget_opening = Self::current_pro_is_early_white_turn_start(game)
+            || Self::current_pro_is_safe_early_black_opening_state(game);
         if !low_budget_opening {
             return None;
         }
@@ -6785,7 +4272,7 @@ impl MonsGameModel {
             return Some(candidate.inputs.clone());
         }
 
-        if Self::pro_v2_is_early_white_turn_start(game)
+        if Self::current_pro_is_early_white_turn_start(game)
             && top_plain_spirit
             && !top_unsafe
             && candidate_progress_surface
@@ -6795,7 +4282,7 @@ impl MonsGameModel {
             return Some(candidate.inputs.clone());
         }
 
-        if Self::pro_v2_is_safe_early_black_opening_state(game)
+        if Self::current_pro_is_safe_early_black_opening_state(game)
             && candidate_index <= 1
             && heuristic_gap <= 96
             && (candidate_progress_surface || candidate.spirit_development)
@@ -6806,19 +4293,19 @@ impl MonsGameModel {
         None
     }
 
-    fn should_skip_pro_v2_head_plan_for_root_context(
+    fn should_skip_current_pro_head_plan_for_root_context(
         game: &MonsGame,
         root_moves: &[ScoredRootMove],
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !config.enable_turn_engine_low_budget_guard
             || root_moves.is_empty()
         {
             return false;
         }
 
-        if Self::pro_v2_is_early_white_turn_start(game) {
+        if Self::current_pro_is_early_white_turn_start(game) {
             return false;
         }
 
@@ -7100,7 +4587,7 @@ impl MonsGameModel {
 
     #[cfg(any(target_arch = "wasm32", test))]
     fn turn_engine_mode_uses_macro_plans(mode: TurnEngineMode) -> bool {
-        matches!(mode, TurnEngineMode::ProV2)
+        matches!(mode, TurnEngineMode::CurrentPro)
     }
 
     #[cfg(any(target_arch = "wasm32", test))]
@@ -7112,7 +4599,7 @@ impl MonsGameModel {
         let clamp_early_white_turn_start =
             Self::turn_engine_mode_uses_macro_plans(config.turn_engine_mode)
                 && config.enable_turn_engine_low_budget_guard
-                && Self::pro_v2_is_early_white_turn_start(game);
+                && Self::current_pro_is_early_white_turn_start(game);
         if clamp_early_white_turn_start {
             engine.own_seed_cap = engine.own_seed_cap.clamp(1, 14);
             engine.own_beam = engine.own_beam.clamp(1, 5);
@@ -7130,20 +4617,28 @@ impl MonsGameModel {
     #[cfg(any(target_arch = "wasm32", test))]
     fn turn_engine_rerank_config(config: AutomoveSearchConfig) -> TurnEngineConfig {
         let mut engine = Self::turn_engine_config_from_search_config(config);
-        let pro_v2 = Self::turn_engine_mode_uses_macro_plans(config.turn_engine_mode);
-        engine.own_seed_cap = engine.own_seed_cap.clamp(1, if pro_v2 { 12 } else { 8 });
-        engine.own_beam = engine.own_beam.clamp(1, if pro_v2 { 5 } else { 4 });
+        let current_pro = Self::turn_engine_mode_uses_macro_plans(config.turn_engine_mode);
+        engine.own_seed_cap = engine
+            .own_seed_cap
+            .clamp(1, if current_pro { 12 } else { 8 });
+        engine.own_beam = engine.own_beam.clamp(1, if current_pro { 5 } else { 4 });
         engine.per_node_family_cap = engine
             .per_node_family_cap
-            .clamp(1, if pro_v2 { 4 } else { 3 });
+            .clamp(1, if current_pro { 4 } else { 3 });
         engine.step_cap = engine.step_cap.clamp(1, 5);
         engine.opponent_seed_cap = engine
             .opponent_seed_cap
-            .clamp(1, if pro_v2 { 6 } else { 4 });
-        engine.opponent_beam = engine.opponent_beam.clamp(1, if pro_v2 { 3 } else { 2 });
-        engine.reply_seed_cap = engine.reply_seed_cap.clamp(1, if pro_v2 { 3 } else { 2 });
-        engine.reply_beam = if pro_v2 { 2 } else { 1 };
-        engine.expansion_cap = engine.expansion_cap.clamp(1, if pro_v2 { 144 } else { 96 });
+            .clamp(1, if current_pro { 6 } else { 4 });
+        engine.opponent_beam = engine
+            .opponent_beam
+            .clamp(1, if current_pro { 3 } else { 2 });
+        engine.reply_seed_cap = engine
+            .reply_seed_cap
+            .clamp(1, if current_pro { 3 } else { 2 });
+        engine.reply_beam = if current_pro { 2 } else { 1 };
+        engine.expansion_cap = engine
+            .expansion_cap
+            .clamp(1, if current_pro { 144 } else { 96 });
         engine
     }
 
@@ -7153,52 +4648,27 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
     ) -> TurnEngineConfig {
         let mut engine = Self::turn_engine_config_for_game(game, config);
-        let pro_v2 = Self::turn_engine_mode_uses_macro_plans(config.turn_engine_mode);
-        engine.own_seed_cap = engine.own_seed_cap.clamp(1, if pro_v2 { 8 } else { 6 });
-        engine.own_beam = engine.own_beam.clamp(1, if pro_v2 { 3 } else { 2 });
+        let current_pro = Self::turn_engine_mode_uses_macro_plans(config.turn_engine_mode);
+        engine.own_seed_cap = engine
+            .own_seed_cap
+            .clamp(1, if current_pro { 8 } else { 6 });
+        engine.own_beam = engine.own_beam.clamp(1, if current_pro { 3 } else { 2 });
         engine.per_node_family_cap = engine
             .per_node_family_cap
-            .clamp(1, if pro_v2 { 3 } else { 2 });
+            .clamp(1, if current_pro { 3 } else { 2 });
         engine.step_cap = engine.step_cap.clamp(1, 4);
         engine.opponent_seed_cap = engine
             .opponent_seed_cap
-            .clamp(1, if pro_v2 { 2 } else { 1 });
-        engine.opponent_beam = 1;
-        engine.reply_seed_cap = 1;
-        engine.reply_beam = 1;
-        engine.expansion_cap = engine.expansion_cap.clamp(1, if pro_v2 { 64 } else { 48 });
-        engine
-    }
-
-    #[cfg(any(target_arch = "wasm32", test))]
-    fn turn_engine_injected_root_config_for_game(
-        game: &MonsGame,
-        config: AutomoveSearchConfig,
-    ) -> TurnEngineConfig {
-        let mut engine = Self::turn_engine_projection_config_for_game(game, config);
-        let pro_v2 = Self::turn_engine_mode_uses_macro_plans(config.turn_engine_mode);
-        engine.own_seed_cap = engine.own_seed_cap.min(if pro_v2 { 10 } else { 8 }).max(1);
-        engine.own_beam = engine.own_beam.min(if pro_v2 { 4 } else { 3 }).max(1);
-        engine.per_node_family_cap = engine
-            .per_node_family_cap
-            .min(if pro_v2 { 3 } else { 2 })
-            .max(1);
-        engine.step_cap = engine.step_cap.min(if pro_v2 { 5 } else { 4 }).max(1);
-        engine.opponent_seed_cap = engine
-            .opponent_seed_cap
-            .min(if pro_v2 { 3 } else { 2 })
-            .max(1);
+            .clamp(1, if current_pro { 2 } else { 1 });
         engine.opponent_beam = 1;
         engine.reply_seed_cap = 1;
         engine.reply_beam = 1;
         engine.expansion_cap = engine
             .expansion_cap
-            .min(if pro_v2 { 96 } else { 64 })
-            .max(1);
+            .clamp(1, if current_pro { 64 } else { 48 });
         engine
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
     fn accept_turn_engine_cached_step(
         root_moves: &[ScoredRootMove],
         cached_inputs: &[Input],
@@ -7475,7 +4945,7 @@ impl MonsGameModel {
         } else {
             None
         };
-        let advisor_decision = Self::pro_v2_root_advisor_presearch(
+        let advisor_decision = Self::current_pro_root_advisor_presearch(
             game,
             perspective,
             config,
@@ -7484,7 +4954,7 @@ impl MonsGameModel {
         );
         let advisor_priority_inputs = advisor_decision
             .as_ref()
-            .map(Self::pro_v2_root_advisor_priority_inputs)
+            .map(Self::current_pro_root_advisor_priority_inputs)
             .unwrap_or_default();
         let (root_moves, _) = Self::focused_root_candidates_with_priority_inputs(
             game,
@@ -7582,7 +5052,7 @@ impl MonsGameModel {
         let engine_config = Self::turn_engine_projection_config_for_game(&selected.game, config);
         let base_state_utility =
             turn_engine_evaluate_state_utility(&selected.game, root, perspective, engine_config);
-        let result = if !Self::pro_v2_secondary_analysis_live(config) {
+        let result = if !Self::current_pro_secondary_analysis_live(config) {
             base_state_utility
         } else {
             let base_utility = Self::turn_engine_root_plan_utility_with_engine_config(
@@ -7592,7 +5062,7 @@ impl MonsGameModel {
                 engine_config,
                 family,
             );
-            if !Self::pro_v2_selected_followup_projection_live(config)
+            if !Self::current_pro_selected_followup_projection_live(config)
                 || !Self::can_turn_engine_project_root(selected, perspective)
             {
                 base_utility.max(base_state_utility)
@@ -7657,15 +5127,8 @@ impl MonsGameModel {
             .iter()
             .find(|candidate| candidate.inputs == candidate_inputs)
             .cloned();
-        let own_drainer_vulnerable_before = if config.enable_move_class_coverage {
-            Self::is_own_drainer_vulnerable_next_turn(
-                game,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            )
-        } else {
-            false
-        };
+        let own_drainer_vulnerable_before =
+            Self::is_own_drainer_vulnerable_next_turn(game, perspective, true);
         let candidate = if let Some(candidate) = existing_candidate.clone() {
             candidate
         } else {
@@ -7721,11 +5184,7 @@ impl MonsGameModel {
             projected_complete && Self::has_roundtrip_mon_move(projected_events.as_slice());
         let projected_end_vulnerable = projected_complete
             && projected_state.winner_color() != Some(perspective)
-            && Self::is_own_drainer_vulnerable_next_turn(
-                &projected_state,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            );
+            && Self::is_own_drainer_vulnerable_next_turn(&projected_state, perspective, true);
         let completed_plan_override = if macro_mode {
             let projected_end_safe = projected_near_turn_completion
                 && !projected_mana_handoff
@@ -7932,8 +5391,8 @@ impl MonsGameModel {
             || candidate.safe_opponent_mana_pickup_now;
         let candidate_progress_surface =
             Self::turn_engine_root_move_has_progress_surface(&candidate);
-        let allow_pro_v2_black_turn_six_plain_spirit_head_injection = macro_mode
-            && Self::pro_v2_black_turn_six_plain_spirit_head_injection_override(
+        let allow_current_pro_black_turn_six_plain_spirit_head_injection = macro_mode
+            && Self::current_pro_black_turn_six_plain_spirit_head_injection_override(
                 game,
                 config,
                 root_moves.as_slice(),
@@ -7965,7 +5424,7 @@ impl MonsGameModel {
                 && !candidate_spirit_tactical
                 && !candidate.spirit_same_turn_score_setup_now
                 && !candidate.spirit_own_mana_setup_now
-                && !allow_pro_v2_black_turn_six_plain_spirit_head_injection
+                && !allow_current_pro_black_turn_six_plain_spirit_head_injection
             {
                 return None;
             }
@@ -7975,11 +5434,11 @@ impl MonsGameModel {
             && !candidate_spirit_tactical
             && !utility_override
         {
-            let allow_pro_v2_spirit_setup = macro_mode
+            let allow_current_pro_spirit_setup = macro_mode
                 && (candidate.spirit_same_turn_score_setup_now
                     || candidate.spirit_own_mana_setup_now);
-            if !allow_pro_v2_spirit_setup
-                && !allow_pro_v2_black_turn_six_plain_spirit_head_injection
+            if !allow_current_pro_spirit_setup
+                && !allow_current_pro_black_turn_six_plain_spirit_head_injection
             {
                 return None;
             }
@@ -7994,14 +5453,14 @@ impl MonsGameModel {
         Some(candidate_inputs)
     }
 
-    fn pro_v2_black_turn_six_plain_spirit_head_injection_override(
+    fn current_pro_black_turn_six_plain_spirit_head_injection_override(
         game: &MonsGame,
         config: AutomoveSearchConfig,
         root_moves: &[ScoredRootMove],
         candidate: &ScoredRootMove,
         plan: &TurnPlan,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 6
             || game.mons_moves_count != 0
@@ -8032,7 +5491,7 @@ impl MonsGameModel {
             .iter()
             .take(4)
             .filter(|root| {
-                Self::is_pro_v2_black_turn_six_plain_spirit_followup_setup_pair_move(
+                Self::is_current_pro_black_turn_six_plain_spirit_followup_setup_pair_move(
                     game, candidate, root, config,
                 )
             })
@@ -8040,13 +5499,13 @@ impl MonsGameModel {
             >= 2
     }
 
-    fn is_pro_v2_black_turn_six_plain_spirit_followup_setup_pair_move(
+    fn is_current_pro_black_turn_six_plain_spirit_followup_setup_pair_move(
         game: &MonsGame,
         plain: &ScoredRootMove,
         setup: &ScoredRootMove,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && game.active_color == Color::Black
             && game.turn_number == 6
             && game.mons_moves_count == 0
@@ -8204,14 +5663,14 @@ impl MonsGameModel {
             })
         };
         let black_plain_spirit_followup_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && matches!(plan.head_family, TurnPlanFamily::SpiritImpact)
-                && Self::is_pro_v2_black_plain_spirit_followup_setup_pair(
+                && Self::is_current_pro_black_plain_spirit_followup_setup_pair(
                     game, candidate, selected, config,
                 )
                 && candidate.score > selected.score;
         let black_turn_six_route_change_plain_spirit_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number == 6
                 && game.mons_moves_count == 0
@@ -8248,7 +5707,7 @@ impl MonsGameModel {
                 && candidate_utility_value()
                     .supports_primary_axes_eval_tolerance(selected_utility_value(), 64);
         let white_spirit_setup_gain_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && matches!(plan.head_family, TurnPlanFamily::SpiritImpact)
                 && !selected_unsafe
@@ -8271,7 +5730,7 @@ impl MonsGameModel {
                 && !drainer_attack_better
                 && score_gap <= 96;
         let early_white_safe_mana_blocks_setup_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 3
                 && game.mons_moves_count <= 2
@@ -8297,7 +5756,7 @@ impl MonsGameModel {
                 && !scores_now_better
                 && !drainer_attack_better;
         let black_turn_start_safe_mana_blocks_plain_spirit_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number >= 5
                 && game.mons_moves_count == 0
@@ -8326,7 +5785,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && score_gap > 96;
         let white_turn_start_safe_mana_blocks_plain_spirit_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number >= 5
                 && game.mons_moves_count == 0
@@ -8356,7 +5815,7 @@ impl MonsGameModel {
                 && !drainer_attack_better
                 && !same_turn_window_better;
         let white_late_safe_mana_blocks_plain_spirit_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number >= 5
                 && game.mons_moves_count >= 1
@@ -8380,7 +5839,7 @@ impl MonsGameModel {
                 && !drainer_attack_better
                 && !same_turn_window_better;
         let black_no_action_vulnerable_progress_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number >= 6
                 && game.mons_moves_count == 0
@@ -8421,7 +5880,7 @@ impl MonsGameModel {
                 && !drainer_attack_better
                 && !same_turn_window_better;
         let black_early_same_window_mana_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number <= 4
                 && !game.player_can_use_action()
@@ -8453,7 +5912,7 @@ impl MonsGameModel {
                 && !scores_now_better
                 && !drainer_attack_better;
         let black_no_action_windowed_vulnerable_mana_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number >= 6
                 && game.mons_moves_count == 0
@@ -8486,7 +5945,7 @@ impl MonsGameModel {
                 && !scores_now_better
                 && !drainer_attack_better;
         let black_late_windowed_vulnerable_mana_head_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number >= 8
                 && game.mons_moves_count >= 1
@@ -8514,7 +5973,7 @@ impl MonsGameModel {
                 && candidate.score.saturating_sub(selected.score) <= 32
                 && !scores_now_better
                 && !drainer_attack_better;
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
             let selected_utility = selected_utility_value();
             let candidate_utility = candidate_utility_value();
             let black_non_concrete_window_head_blocks_spirit_progress = game.active_color
@@ -8528,7 +5987,7 @@ impl MonsGameModel {
                 && matches!(plan.goal_family, TurnPlanFamily::ImmediateScore)
                 && candidate_family == TurnPlanFamily::ManaTempo
                 && selected_family == TurnPlanFamily::SpiritImpact
-                && Self::is_pro_v2_non_concrete_mana_window_root(candidate)
+                && Self::is_current_pro_non_concrete_mana_window_root(candidate)
                 && Self::turn_engine_root_evaluation_has_progress_surface(selected)
                 && crate::models::automove_turn_engine::compare_utility_primary_axes(
                     plan.head_utility,
@@ -8592,7 +6051,7 @@ impl MonsGameModel {
             && !selected.safe_supermana_pickup_now)
             || (candidate.safe_opponent_mana_pickup_now && !selected.safe_opponent_mana_pickup_now);
         let selected_early_black_progress_root_blocks_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number <= 4
                 && matches!(candidate_family, TurnPlanFamily::ManaTempo)
@@ -8612,7 +6071,7 @@ impl MonsGameModel {
                 && (Self::root_progress_or_setup_better(selected, candidate)
                     || (selected_progress_surface && !candidate_progress_surface));
         let selected_early_black_progress_root_blocks_non_concrete_window_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number <= 4
                 && matches!(
@@ -8659,7 +6118,7 @@ impl MonsGameModel {
             .utility
             .improves_non_score_override_axes(selected_utility_value());
         let selected_early_black_safe_mana_root_blocks_weaker_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number <= 4
                 && game.mons_moves_count >= 1
@@ -8706,7 +6165,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_black_quiet_mana_root_blocks_lower_scored_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number <= 6
                 && game.mons_moves_count >= 1
@@ -8756,7 +6215,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_white_same_window_mana_root_blocks_lower_scored_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 5
                 && game.mons_moves_count == 0
@@ -8807,7 +6266,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_white_mid_turn_mana_root_blocks_lower_scored_window_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 5
                 && game.mons_moves_count >= 1
@@ -8859,7 +6318,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_white_mid_turn_spirit_setup_root_blocks_window_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 5
                 && game.mons_moves_count >= 1
@@ -8912,7 +6371,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_white_turn_start_spirit_setup_root_blocks_window_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 5
                 && game.mons_moves_count == 0
@@ -8929,7 +6388,7 @@ impl MonsGameModel {
                         | TurnPlanFamily::SafeOpponentManaProgress
                 )
                 && matches!(plan.goal_family, TurnPlanFamily::ImmediateScore)
-                && Self::is_pro_v2_non_concrete_mana_window_root(candidate)
+                && Self::is_current_pro_non_concrete_mana_window_root(candidate)
                 && matches!(selected_family, TurnPlanFamily::SpiritImpact)
                 && candidate_unsafe
                 && !selected_unsafe
@@ -8971,7 +6430,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_white_safe_mana_root_blocks_deferred_recovery_progress_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 5
                 && game.mons_moves_count >= 1
@@ -9033,7 +6492,7 @@ impl MonsGameModel {
                     .head_utility
                     .supports_primary_axes_eval_tolerance(selected_utility_value(), 192);
         let selected_white_safe_mana_root_blocks_vulnerable_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 3
                 && game.mons_moves_count >= 1
@@ -9076,7 +6535,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_black_late_safe_progress_root_blocks_quiet_mana_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number == 6
                 && game.mons_moves_count == 0
@@ -9132,7 +6591,7 @@ impl MonsGameModel {
                 && !same_turn_window_better
                 && !pickup_upgrade;
         let selected_black_recovery_root_blocks_non_concrete_window_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::Black
                 && game.turn_number == 4
                 && game.mons_moves_count >= 1
@@ -9146,7 +6605,7 @@ impl MonsGameModel {
                     || exact_context.delta.opponent_window_deny_gain > 0)
                 && matches!(plan.head_family, TurnPlanFamily::ImmediateScore)
                 && matches!(plan.goal_family, TurnPlanFamily::ImmediateScore)
-                && Self::is_pro_v2_non_concrete_mana_window_root(candidate)
+                && Self::is_current_pro_non_concrete_mana_window_root(candidate)
                 && matches!(selected_family, TurnPlanFamily::DrainerSafetyRecovery)
                 && selected.classes.drainer_safety_recover
                 && !selected_unsafe
@@ -9176,7 +6635,7 @@ impl MonsGameModel {
                 && !drainer_attack_better
                 && !pickup_upgrade;
         let selected_white_recovery_root_blocks_non_concrete_window_head =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && game.turn_number == 3
                 && game.mons_moves_count == 0
@@ -9188,7 +6647,7 @@ impl MonsGameModel {
                         | TurnPlanFamily::SafeOpponentManaProgress
                 )
                 && matches!(plan.goal_family, TurnPlanFamily::ImmediateScore)
-                && Self::is_pro_v2_non_concrete_mana_window_root(candidate)
+                && Self::is_current_pro_non_concrete_mana_window_root(candidate)
                 && matches!(selected_family, TurnPlanFamily::DrainerSafetyRecovery)
                 && selected.classes.drainer_safety_recover
                 && !selected_unsafe
@@ -9305,11 +6764,7 @@ impl MonsGameModel {
             projected_complete && Self::has_roundtrip_mon_move(projected_events.as_slice());
         let projected_end_vulnerable = projected_complete
             && projected_state.winner_color() != Some(perspective)
-            && Self::is_own_drainer_vulnerable_next_turn(
-                &projected_state,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            );
+            && Self::is_own_drainer_vulnerable_next_turn(&projected_state, perspective, true);
         let projected_end_safe = projected_complete
             && projected_near_turn_completion
             && !projected_mana_handoff
@@ -9447,7 +6902,7 @@ impl MonsGameModel {
                 TurnPlanFamily::SafeSupermanaProgress | TurnPlanFamily::SafeOpponentManaProgress
             )
             && !candidate_progress_surface
-            && Self::pro_v2_is_early_white_turn_start(game)
+            && Self::current_pro_is_early_white_turn_start(game)
             && Self::is_plain_spirit_development_root(selected)
             && !selected_unsafe
             && (!candidate_unsafe || projected_completed_plan_override)
@@ -9485,9 +6940,9 @@ impl MonsGameModel {
         {
             return false;
         }
-        let pro_v2_secondary_analysis = Self::pro_v2_secondary_analysis_live(config);
+        let current_pro_secondary_analysis = Self::current_pro_secondary_analysis_live(config);
         let selected_white_setup_recovery_blocks_utility_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && matches!(plan.head_family, TurnPlanFamily::DrainerSafetyRecovery)
                 && selected.spirit_own_mana_setup_now
@@ -9501,7 +6956,7 @@ impl MonsGameModel {
                 && !drainer_attack_better
                 && !same_turn_window_better;
         let selected_white_vulnerable_progress_head_blocks_immediate_score_override =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && game.active_color == Color::White
                 && matches!(
                     plan.head_family,
@@ -9541,11 +6996,11 @@ impl MonsGameModel {
         if selected_white_vulnerable_progress_head_blocks_immediate_score_override {
             return false;
         }
-        let allow_generic_pro_v2_override = match plan.head_family {
+        let allow_generic_current_pro_override = match plan.head_family {
             TurnPlanFamily::ImmediateScore
             | TurnPlanFamily::DenyOpponentWindow
             | TurnPlanFamily::DrainerKill => true,
-            TurnPlanFamily::DrainerSafetyRecovery => pro_v2_secondary_analysis,
+            TurnPlanFamily::DrainerSafetyRecovery => current_pro_secondary_analysis,
             TurnPlanFamily::SpiritImpact
             | TurnPlanFamily::SafeSupermanaProgress
             | TurnPlanFamily::SafeOpponentManaProgress
@@ -9553,7 +7008,7 @@ impl MonsGameModel {
         };
         if macro_mode
             && !selected.wins_immediately
-            && allow_generic_pro_v2_override
+            && allow_generic_current_pro_override
             && plan.utility.passes_override_guard(selected_utility_value())
             && !selected_white_setup_recovery_blocks_utility_override
             && (!candidate_unsafe || selected_unsafe)
@@ -9620,7 +7075,7 @@ impl MonsGameModel {
                 }
                 TurnPlanFamily::ManaTempo => false,
             },
-            TurnEngineMode::ProV2 => match plan.head_family {
+            TurnEngineMode::CurrentPro => match plan.head_family {
                 TurnPlanFamily::ImmediateScore => {
                     (candidate.wins_immediately
                         || scores_now_better
@@ -9651,7 +7106,7 @@ impl MonsGameModel {
                         .supports_family_fallback(selected_utility_value());
                     let safer_now =
                         selected.own_drainer_vulnerable && !candidate.own_drainer_vulnerable;
-                    let utility_only_recovery_override = pro_v2_secondary_analysis
+                    let utility_only_recovery_override = current_pro_secondary_analysis
                         && engine_not_worse_than_selected
                         && (selected_unsafe || !candidate_unsafe)
                         && !selected_white_setup_recovery_blocks_utility_override;
@@ -9850,7 +7305,7 @@ impl MonsGameModel {
                         && (!selected_safe_non_progress || strategic_override_axes_better);
                     let white_plain_spirit_progress_override =
                         allow_non_concrete_white_progress_head
-                            || (Self::pro_v2_is_early_white_turn_start(game)
+                            || (Self::current_pro_is_early_white_turn_start(game)
                                 && Self::is_plain_spirit_development_root(selected)
                                 && !selected_unsafe
                                 && !candidate_unsafe
@@ -10070,7 +7525,7 @@ impl MonsGameModel {
     }
 
     #[cfg(any(target_arch = "wasm32", test))]
-    fn pro_v2_root_advisor_conflicts_with_choice(
+    fn current_pro_root_advisor_conflicts_with_choice(
         game: &MonsGame,
         perspective: Color,
         config: AutomoveSearchConfig,
@@ -10079,7 +7534,7 @@ impl MonsGameModel {
         inputs: &[Input],
     ) -> bool {
         let mut advisor_root_moves = root_moves.to_vec();
-        let decision = Self::pro_v2_root_advisor_presearch(
+        let decision = Self::current_pro_root_advisor_presearch(
             game,
             perspective,
             config,
@@ -10113,330 +7568,6 @@ impl MonsGameModel {
             || candidate.classes.drainer_safety_recover
             || candidate.same_turn_score_window_value > 0
             || candidate.spirit_same_turn_score_setup_now
-    }
-
-    #[cfg(any(target_arch = "wasm32", test))]
-    fn classify_turn_engine_root_injection_candidate(
-        top: &ScoredRootMove,
-        candidate: &ScoredRootMove,
-        max_heuristic_gap: i32,
-        emergency_resolves_immediate_loss: bool,
-    ) -> TurnEngineRootInjectionAcceptance {
-        if candidate.wins_immediately {
-            return TurnEngineRootInjectionAcceptance::Accepted;
-        }
-        if top.wins_immediately {
-            return TurnEngineRootInjectionAcceptance::RejectedTopWins;
-        }
-
-        let candidate_unsafe = candidate.mana_handoff_to_opponent
-            || (candidate.own_drainer_vulnerable
-                && !candidate.classes.drainer_safety_recover
-                && !candidate.attacks_opponent_drainer
-                && !Self::turn_engine_root_move_has_concrete_score_surface(candidate));
-        if candidate_unsafe {
-            return TurnEngineRootInjectionAcceptance::RejectedCandidateUnsafe;
-        }
-
-        let top_unsafe = top.mana_handoff_to_opponent
-            || (top.own_drainer_vulnerable
-                && !top.classes.drainer_safety_recover
-                && !top.attacks_opponent_drainer
-                && !Self::turn_engine_root_move_has_concrete_score_surface(top));
-        let decisive_tactical = candidate.attacks_opponent_drainer
-            || candidate.scores_supermana_this_turn
-            || candidate.scores_opponent_mana_this_turn
-            || candidate.safe_supermana_pickup_now
-            || candidate.safe_opponent_mana_pickup_now;
-        let deny_window_signal = top.same_turn_score_window_value >= 2
-            && candidate.same_turn_score_window_value < top.same_turn_score_window_value;
-        let safety_upgrade = (candidate.classes.drainer_safety_recover
-            && !top.classes.drainer_safety_recover)
-            || (!candidate.own_drainer_vulnerable && top.own_drainer_vulnerable);
-        let progress_signal = candidate.supermana_progress
-            || candidate.opponent_mana_progress
-            || candidate.safe_supermana_progress_steps < top.safe_supermana_progress_steps
-            || candidate.safe_opponent_mana_progress_steps < top.safe_opponent_mana_progress_steps;
-        let tactical_signal =
-            decisive_tactical || deny_window_signal || safety_upgrade || progress_signal;
-        if !tactical_signal {
-            return TurnEngineRootInjectionAcceptance::RejectedNoTacticalSignal;
-        }
-
-        let effective_heuristic_gap = if emergency_resolves_immediate_loss {
-            max_heuristic_gap.saturating_add(260)
-        } else {
-            max_heuristic_gap
-        };
-        let heuristic_gap = top.heuristic.saturating_sub(candidate.heuristic);
-        if heuristic_gap <= effective_heuristic_gap.max(0) {
-            return TurnEngineRootInjectionAcceptance::Accepted;
-        }
-
-        if decisive_tactical
-            && (safety_upgrade || top_unsafe)
-            && heuristic_gap <= effective_heuristic_gap.saturating_add(220)
-        {
-            return TurnEngineRootInjectionAcceptance::Accepted;
-        }
-
-        TurnEngineRootInjectionAcceptance::RejectedHeuristicGap
-    }
-
-    #[cfg(any(target_arch = "wasm32", test))]
-    #[cfg(test)]
-    fn accept_turn_engine_root_injection_candidate(
-        top: &ScoredRootMove,
-        candidate: &ScoredRootMove,
-        max_heuristic_gap: i32,
-        emergency_resolves_immediate_loss: bool,
-    ) -> bool {
-        matches!(
-            Self::classify_turn_engine_root_injection_candidate(
-                top,
-                candidate,
-                max_heuristic_gap,
-                emergency_resolves_immediate_loss,
-            ),
-            TurnEngineRootInjectionAcceptance::Accepted
-        )
-    }
-
-    #[cfg(any(target_arch = "wasm32", test))]
-    fn turn_engine_root_injection_limit_for_game(
-        game: &MonsGame,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-        root_moves: &[ScoredRootMove],
-    ) -> usize {
-        if !config.enable_turn_engine_root_injection
-            || config.turn_engine_root_injection_limit == 0
-            || root_moves.is_empty()
-            || game.active_color != perspective
-        {
-            return 0;
-        }
-
-        if config.turn_engine_root_injection_emergency_only
-            && !turn_engine_root_injection_emergency_state(game, perspective)
-        {
-            return 0;
-        }
-
-        config.turn_engine_root_injection_limit
-    }
-
-    #[cfg(any(target_arch = "wasm32", test))]
-    fn classify_turn_engine_emergency_root_injection_candidate(
-        top: &ScoredRootMove,
-        candidate: &ScoredRootMove,
-        top_opponent_can_win_immediately_after: bool,
-        opponent_can_win_immediately_after: bool,
-    ) -> TurnEngineEmergencyRootInjectionAcceptance {
-        if candidate.wins_immediately {
-            return TurnEngineEmergencyRootInjectionAcceptance::Accepted;
-        }
-        if top.wins_immediately {
-            return TurnEngineEmergencyRootInjectionAcceptance::RejectedTopWins;
-        }
-        if opponent_can_win_immediately_after && !top_opponent_can_win_immediately_after {
-            // Emergency injections should never introduce a new immediate-loss state.
-            return TurnEngineEmergencyRootInjectionAcceptance::RejectedIntroducedImmediateLoss;
-        }
-
-        let crisis_resolving = candidate.attacks_opponent_drainer
-            || candidate.classes.drainer_safety_recover
-            || candidate.scores_supermana_this_turn
-            || candidate.scores_opponent_mana_this_turn;
-        if !crisis_resolving {
-            return TurnEngineEmergencyRootInjectionAcceptance::RejectedNoCrisisSignal;
-        }
-
-        if candidate.mana_handoff_to_opponent {
-            return TurnEngineEmergencyRootInjectionAcceptance::RejectedManaHandoff;
-        }
-
-        if candidate.own_drainer_vulnerable
-            && !candidate.classes.drainer_safety_recover
-            && !candidate.attacks_opponent_drainer
-        {
-            return TurnEngineEmergencyRootInjectionAcceptance::RejectedDrainerUnsafe;
-        }
-
-        TurnEngineEmergencyRootInjectionAcceptance::Accepted
-    }
-
-    #[cfg(test)]
-    fn accept_turn_engine_emergency_root_injection_candidate(
-        top: &ScoredRootMove,
-        candidate: &ScoredRootMove,
-        top_opponent_can_win_immediately_after: bool,
-        opponent_can_win_immediately_after: bool,
-    ) -> bool {
-        matches!(
-            Self::classify_turn_engine_emergency_root_injection_candidate(
-                top,
-                candidate,
-                top_opponent_can_win_immediately_after,
-                opponent_can_win_immediately_after,
-            ),
-            TurnEngineEmergencyRootInjectionAcceptance::Accepted
-        )
-    }
-
-    #[cfg(any(target_arch = "wasm32", test))]
-    fn inject_turn_engine_root_candidates(
-        game: &MonsGame,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-        root_moves: &mut Vec<ScoredRootMove>,
-    ) {
-        let injection_limit = Self::turn_engine_root_injection_limit_for_game(
-            game,
-            perspective,
-            config,
-            root_moves.as_slice(),
-        );
-        if injection_limit == 0 {
-            return;
-        }
-
-        let engine_config = Self::turn_engine_injected_root_config_for_game(game, config);
-        let engine_candidate_plans =
-            turn_engine_head_candidate_plans(game, perspective, engine_config, injection_limit);
-        if engine_candidate_plans.is_empty() {
-            return;
-        }
-        record_turn_engine_root_injection_candidates(engine_candidate_plans.len());
-
-        let own_drainer_vulnerable_before = if config.enable_move_class_coverage {
-            Self::is_own_drainer_vulnerable_next_turn(
-                game,
-                perspective,
-                config.enable_enhanced_drainer_vulnerability,
-            )
-        } else {
-            false
-        };
-        let top = root_moves[0].clone();
-        let mut seen_inputs = root_moves
-            .iter()
-            .map(|candidate| candidate.inputs.clone())
-            .collect::<std::collections::HashSet<_>>();
-        let mut injected_any = false;
-        let top_opponent_can_win_immediately_after = {
-            let opponent = perspective.other();
-            let needed =
-                Config::TARGET_SCORE.saturating_sub(Self::score_for_color(&top.game, opponent));
-            needed <= 0
-                || (top.game.active_color == opponent
-                    && exact_turn_summary(&top.game, opponent).same_turn_score_window_value
-                        >= needed)
-        };
-        for plan in engine_candidate_plans {
-            let Some(inputs) = plan.compiled_chunks.first().cloned() else {
-                continue;
-            };
-            if !seen_inputs.insert(inputs.clone()) {
-                record_turn_engine_root_injection_duplicate();
-                continue;
-            }
-            let Some(candidate) = Self::build_scored_root_move(
-                game,
-                perspective,
-                config,
-                own_drainer_vulnerable_before,
-                inputs.as_slice(),
-            ) else {
-                record_turn_engine_root_injection_attempt(
-                    TurnEngineRootInjectionAttemptOutcome::RejectedBuild,
-                );
-                continue;
-            };
-            let opponent_can_win_immediately_after = {
-                let opponent = perspective.other();
-                let needed = Config::TARGET_SCORE
-                    .saturating_sub(Self::score_for_color(&candidate.game, opponent));
-                needed <= 0
-                    || (candidate.game.active_color == opponent
-                        && exact_turn_summary(&candidate.game, opponent)
-                            .same_turn_score_window_value
-                            >= needed)
-            };
-            if config.turn_engine_root_injection_emergency_only {
-                let emergency_acceptance =
-                    Self::classify_turn_engine_emergency_root_injection_candidate(
-                        &top,
-                        &candidate,
-                        top_opponent_can_win_immediately_after,
-                        opponent_can_win_immediately_after,
-                    );
-                if !matches!(
-                    emergency_acceptance,
-                    TurnEngineEmergencyRootInjectionAcceptance::Accepted
-                ) {
-                    let emergency_outcome = match emergency_acceptance {
-                        TurnEngineEmergencyRootInjectionAcceptance::Accepted => {
-                            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyGuard
-                        }
-                        TurnEngineEmergencyRootInjectionAcceptance::RejectedTopWins => {
-                            TurnEngineRootInjectionAttemptOutcome::RejectedTopWins
-                        }
-                        TurnEngineEmergencyRootInjectionAcceptance::RejectedIntroducedImmediateLoss => {
-                            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyIntroducedImmediateLoss
-                        }
-                        TurnEngineEmergencyRootInjectionAcceptance::RejectedNoCrisisSignal => {
-                            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyNoCrisisSignal
-                        }
-                        TurnEngineEmergencyRootInjectionAcceptance::RejectedManaHandoff => {
-                            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyManaHandoff
-                        }
-                        TurnEngineEmergencyRootInjectionAcceptance::RejectedDrainerUnsafe => {
-                            TurnEngineRootInjectionAttemptOutcome::RejectedEmergencyDrainerUnsafe
-                        }
-                    };
-                    record_turn_engine_root_injection_attempt(emergency_outcome);
-                    continue;
-                }
-            }
-            let emergency_resolves_immediate_loss = config
-                .turn_engine_root_injection_emergency_only
-                && top_opponent_can_win_immediately_after
-                && !opponent_can_win_immediately_after;
-            let acceptance = Self::classify_turn_engine_root_injection_candidate(
-                &top,
-                &candidate,
-                config.turn_engine_root_max_heuristic_gap,
-                emergency_resolves_immediate_loss,
-            );
-            let attempt_outcome = match acceptance {
-                TurnEngineRootInjectionAcceptance::Accepted => {
-                    TurnEngineRootInjectionAttemptOutcome::Accepted
-                }
-                TurnEngineRootInjectionAcceptance::RejectedTopWins => {
-                    TurnEngineRootInjectionAttemptOutcome::RejectedTopWins
-                }
-                TurnEngineRootInjectionAcceptance::RejectedCandidateUnsafe => {
-                    TurnEngineRootInjectionAttemptOutcome::RejectedCandidateUnsafe
-                }
-                TurnEngineRootInjectionAcceptance::RejectedNoTacticalSignal => {
-                    TurnEngineRootInjectionAttemptOutcome::RejectedNoTacticalSignal
-                }
-                TurnEngineRootInjectionAcceptance::RejectedHeuristicGap => {
-                    TurnEngineRootInjectionAttemptOutcome::RejectedHeuristicGap
-                }
-            };
-            record_turn_engine_root_injection_attempt(attempt_outcome);
-            if !matches!(acceptance, TurnEngineRootInjectionAcceptance::Accepted) {
-                continue;
-            }
-            root_moves.push(candidate);
-            injected_any = true;
-        }
-
-        if injected_any {
-            Self::sort_root_candidates_by_search_priority(root_moves.as_mut_slice());
-        }
     }
 
     #[cfg(any(target_arch = "wasm32", test))]
@@ -10488,7 +7619,6 @@ impl MonsGameModel {
         let _turn_engine_selector_runtime_depth = TurnEngineSelectorRuntimeDepthGuard::enter();
         clear_exact_state_analysis_cache();
         clear_turn_engine_selector_followup_floor_cache();
-        set_pro_v2_root_advisor_decision(None);
         let mut config = config;
         let perspective = game.active_color;
         let live_turn_engine_config = Self::turn_engine_config_for_game(game, config);
@@ -10509,9 +7639,10 @@ impl MonsGameModel {
             },
         );
         let mut prechecked_cached_inputs = None;
-        if Self::pro_v2_low_budget_guard_live(config) {
+        if Self::current_pro_low_budget_guard_live(config) {
             prechecked_cached_inputs = turn_engine_cached_step(game, live_turn_engine_config);
-            if prechecked_cached_inputs.is_none() && Self::should_skip_pro_v2_low_budget_state(game)
+            if prechecked_cached_inputs.is_none()
+                && Self::should_skip_current_pro_low_budget_state(game)
             {
                 config.enable_turn_engine_selector = false;
                 #[cfg(test)]
@@ -10522,20 +7653,8 @@ impl MonsGameModel {
                 update_top_level_turn_engine_selector_disable_reason("low_budget_guard");
             }
         }
-        if Self::pro_v2_mid_turn_progress_guard_live(config)
-            && Self::should_disable_pro_v2_mid_turn_progress_engine(game)
-        {
-            prechecked_cached_inputs = None;
-            config.enable_turn_engine_selector = false;
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.selector_disable_reason = "mid_turn_progress_guard";
-            });
-            #[cfg(test)]
-            update_top_level_turn_engine_selector_disable_reason("mid_turn_progress_guard");
-        }
-        if Self::pro_v2_mid_turn_tactical_guard_live(config)
-            && Self::should_disable_pro_v2_mid_turn_tactical_engine(game)
+        if Self::current_pro_mid_turn_tactical_guard_live(config)
+            && Self::should_disable_current_pro_mid_turn_tactical_engine(game)
         {
             prechecked_cached_inputs = None;
             config.enable_turn_engine_selector = false;
@@ -10546,32 +7665,13 @@ impl MonsGameModel {
             #[cfg(test)]
             update_top_level_turn_engine_selector_disable_reason("mid_turn_tactical_guard");
         }
-        if config.enable_turn_engine_selector
-            && config.enable_turn_engine_eligibility_guard
-            && matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-        {
-            if prechecked_cached_inputs.is_none() {
-                prechecked_cached_inputs = turn_engine_cached_step(game, live_turn_engine_config);
-            }
-            if prechecked_cached_inputs.is_none()
-                && !crate::models::automove_turn_engine::pro_v2_turn_engine_eligible(game)
-            {
-                config.enable_turn_engine_selector = false;
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.selector_disable_reason = "eligibility_guard";
-                });
-                #[cfg(test)]
-                update_top_level_turn_engine_selector_disable_reason("eligibility_guard");
-            }
-        }
-        if Self::pro_v2_low_budget_guard_live(config)
-            && Self::pro_v2_is_safe_early_black_opening_state(game)
+        if Self::current_pro_low_budget_guard_live(config)
+            && Self::current_pro_is_safe_early_black_opening_state(game)
         {
             config.enable_turn_engine_secondary_analysis = false;
             config.enable_turn_engine_selected_followup_projection = false;
         }
-        config = Self::apply_pro_v2_low_budget_search_clamp(game, config);
+        config = Self::apply_current_pro_low_budget_search_clamp(game, config);
         #[cfg(test)]
         update_turn_engine_selector_diagnostics(|diagnostics| {
             diagnostics.last_return_stage = if config.enable_turn_engine_selector {
@@ -10589,11 +7689,11 @@ impl MonsGameModel {
             },
         );
         if !config.enable_turn_engine_selector
-            && matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-            && Self::pro_v2_is_white_turn_one_mana_only_followup(game)
+            && matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
+            && Self::current_pro_is_white_turn_one_mana_only_followup(game)
         {
-            let mut legacy_fallback = config;
-            legacy_fallback.turn_engine_mode = TurnEngineMode::ProV1;
+            let mut baseline_fallback = config;
+            baseline_fallback.turn_engine_mode = TurnEngineMode::ProV1;
             #[cfg(test)]
             update_turn_engine_selector_diagnostics(|diagnostics| {
                 diagnostics.last_return_stage = "engine_disabled_prov1_fallback";
@@ -10604,7 +7704,7 @@ impl MonsGameModel {
             );
             return Self::smart_search_best_inputs_internal(
                 game,
-                legacy_fallback,
+                baseline_fallback,
                 use_transposition_table,
             );
         }
@@ -10627,7 +7727,7 @@ impl MonsGameModel {
                     )
                 });
             let engine_config = Self::turn_engine_config_for_game(game, config);
-            let skip_head_plan = Self::should_skip_pro_v2_head_plan_for_root_context(
+            let skip_head_plan = Self::should_skip_current_pro_head_plan_for_root_context(
                 game,
                 root_moves.as_slice(),
                 config,
@@ -10640,7 +7740,7 @@ impl MonsGameModel {
             }
             let engine_head_plan = if skip_head_plan {
                 None
-            } else if Self::pro_v2_use_fresh_live_head_plan(game, config) {
+            } else if Self::current_pro_use_fresh_live_head_plan(game, config) {
                 turn_engine_candidate_plan_live(game, perspective, engine_config)
             } else {
                 turn_engine_candidate_plan(game, perspective, engine_config)
@@ -10654,7 +7754,7 @@ impl MonsGameModel {
                     diagnostics.head_plan_hits += 1
                 });
             }
-            if matches!(engine_mode, TurnEngineMode::ProV2) {
+            if matches!(engine_mode, TurnEngineMode::CurrentPro) {
                 if let Some(cached_inputs) = cached_inputs.as_ref() {
                     if Self::should_resume_turn_engine_cached_step(
                         root_moves.as_slice(),
@@ -10695,14 +7795,6 @@ impl MonsGameModel {
                     }
                 }
             }
-            if config.enable_turn_engine_root_injection {
-                Self::inject_turn_engine_root_candidates(
-                    game,
-                    perspective,
-                    config,
-                    &mut root_moves,
-                );
-            }
             if root_moves.len() > 1
                 && config.enable_turn_head_rerank
                 && Self::should_invoke_turn_head_rerank(root_moves.as_slice())
@@ -10742,7 +7834,7 @@ impl MonsGameModel {
                                         inputs.as_slice(),
                                     );
                                 let advisor_conflict = override_candidate
-                                    && Self::pro_v2_root_advisor_conflicts_with_choice(
+                                    && Self::current_pro_root_advisor_conflicts_with_choice(
                                         game,
                                         perspective,
                                         config,
@@ -10750,17 +7842,7 @@ impl MonsGameModel {
                                         engine_head_plan.as_ref(),
                                         inputs.as_slice(),
                                     );
-                                if !override_candidate || advisor_conflict {
-                                    record_turn_engine_rerank_override_attempt(
-                                        TurnEngineRerankOverrideAttemptOutcome::RejectedAcceptance,
-                                    );
-                                    record_turn_engine_rerank_override_reject_reason(
-                                        TurnEngineRerankOverrideRejectReason::TacticalGate,
-                                    );
-                                } else {
-                                    record_turn_engine_rerank_override_attempt(
-                                        TurnEngineRerankOverrideAttemptOutcome::Accepted,
-                                    );
+                                if override_candidate && !advisor_conflict {
                                     #[cfg(test)]
                                     update_turn_engine_selector_diagnostics(|diagnostics| {
                                         diagnostics.last_return_stage = "engine_allowed_head";
@@ -10787,18 +7869,9 @@ impl MonsGameModel {
                                     return inputs;
                                 }
                             }
-                            TurnEngineRerankOverrideAcceptance::Rejected(reason) => {
-                                record_turn_engine_rerank_override_attempt(
-                                    TurnEngineRerankOverrideAttemptOutcome::RejectedAcceptance,
-                                );
-                                record_turn_engine_rerank_override_reject_reason(reason);
-                            }
+                            TurnEngineRerankOverrideAcceptance::Rejected(_) => {}
                         }
                     }
-                } else {
-                    record_turn_engine_rerank_override_attempt(
-                        TurnEngineRerankOverrideAttemptOutcome::NoPlan,
-                    );
                 }
             }
             if let Some(forced_inputs) = Self::forced_tactical_prepass_choice(
@@ -10861,21 +7934,19 @@ impl MonsGameModel {
                     return forced_inputs;
                 }
             }
-            let root_advisor_decision = Self::pro_v2_root_advisor_presearch(
+            let root_advisor_decision = Self::current_pro_root_advisor_presearch(
                 game,
                 perspective,
                 config,
                 &mut root_moves,
                 engine_head_plan.as_ref(),
             );
-            #[cfg(test)]
-            set_pro_v2_root_advisor_decision(root_advisor_decision.clone());
             let advisor_priority_inputs = root_advisor_decision
                 .as_ref()
-                .map(Self::pro_v2_root_advisor_priority_inputs)
+                .map(Self::current_pro_root_advisor_priority_inputs)
                 .unwrap_or_default();
 
-            let (mut root_moves, scout_visited_nodes) =
+            let (root_moves, scout_visited_nodes) =
                 Self::focused_root_candidates_with_priority_inputs(
                     game,
                     perspective,
@@ -10907,56 +7978,7 @@ impl MonsGameModel {
                 0
             };
             let mut extension_nodes_used = 0usize;
-            let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-            let mut history_table: HistoryTable = HistoryTable::default();
             let mut quiescence_nodes_used = 0usize;
-
-            if config.enable_iterative_deepening && config.depth >= 3 {
-                let preliminary_depth = config
-                    .depth
-                    .saturating_sub(config.iterative_deepening_depth_offset)
-                    .max(1);
-                let mut prelim_alpha = i32::MIN;
-                let mut prelim_scores: Vec<i32> = Vec::with_capacity(root_moves.len());
-                for candidate in root_moves.iter() {
-                    if crate::models::automove_deadline::checkpoint() {
-                        return Vec::new();
-                    }
-                    if visited_nodes >= config.max_visited_nodes {
-                        prelim_scores.push(i32::MIN);
-                        continue;
-                    }
-                    visited_nodes += 1;
-                    let prelim_score = Self::search_score(
-                        &candidate.game,
-                        perspective,
-                        preliminary_depth,
-                        prelim_alpha,
-                        i32::MAX,
-                        &mut visited_nodes,
-                        config,
-                        &mut transposition_table,
-                        0,
-                        &mut extension_nodes_used,
-                        0,
-                        use_transposition_table,
-                        &mut killer_table,
-                        &mut history_table,
-                        &mut quiescence_nodes_used,
-                    );
-                    prelim_scores.push(prelim_score);
-                    if prelim_score > prelim_alpha {
-                        prelim_alpha = prelim_score;
-                    }
-                }
-                let best_prelim_score = prelim_scores.iter().copied().max().unwrap_or(i32::MIN);
-                root_moves =
-                    Self::sort_root_moves_by_ranked_scores(root_moves, prelim_scores.as_slice());
-                if config.iterative_deepening_alpha_margin > 0 && best_prelim_score != i32::MIN {
-                    alpha =
-                        best_prelim_score.saturating_sub(config.iterative_deepening_alpha_margin);
-                }
-            }
 
             for candidate in root_moves.into_iter() {
                 if visited_nodes >= config.max_visited_nodes {
@@ -10974,8 +7996,6 @@ impl MonsGameModel {
                     &mut extension_nodes_used,
                     extension_node_budget,
                     use_transposition_table,
-                    &mut killer_table,
-                    &mut history_table,
                     &mut quiescence_nodes_used,
                 );
 
@@ -11035,12 +8055,6 @@ impl MonsGameModel {
                     }
                 }
             }
-            #[cfg(test)]
-            set_turn_engine_root_selection_snapshot(
-                config,
-                scored_roots.as_slice(),
-                selected_inputs.as_slice(),
-            );
             if cached_inputs.as_ref() == Some(&selected_inputs) {
                 #[cfg(test)]
                 update_turn_engine_selector_diagnostics(|diagnostics| {
@@ -11078,9 +8092,6 @@ impl MonsGameModel {
         if root_moves.is_empty() {
             return Vec::new();
         }
-        if config.enable_turn_engine_root_injection {
-            Self::inject_turn_engine_root_candidates(game, perspective, config, &mut root_moves);
-        }
         if root_moves.len() > 1
             && config.enable_turn_head_rerank
             && Self::should_invoke_turn_head_rerank(root_moves.as_slice())
@@ -11108,7 +8119,7 @@ impl MonsGameModel {
                                 inputs.as_slice(),
                             );
                         let advisor_conflict = override_candidate
-                            && Self::pro_v2_root_advisor_conflicts_with_choice(
+                            && Self::current_pro_root_advisor_conflicts_with_choice(
                                 game,
                                 perspective,
                                 config,
@@ -11116,17 +8127,7 @@ impl MonsGameModel {
                                 None,
                                 inputs.as_slice(),
                             );
-                        if !override_candidate || advisor_conflict {
-                            record_turn_engine_rerank_override_attempt(
-                                TurnEngineRerankOverrideAttemptOutcome::RejectedAcceptance,
-                            );
-                            record_turn_engine_rerank_override_reject_reason(
-                                TurnEngineRerankOverrideRejectReason::TacticalGate,
-                            );
-                        } else {
-                            record_turn_engine_rerank_override_attempt(
-                                TurnEngineRerankOverrideAttemptOutcome::Accepted,
-                            );
+                        if override_candidate && !advisor_conflict {
                             #[cfg(test)]
                             update_turn_engine_selector_diagnostics(|diagnostics| {
                                 diagnostics.last_return_stage = "search_only_engine_allowed_head";
@@ -11138,17 +8139,8 @@ impl MonsGameModel {
                             return inputs;
                         }
                     }
-                    TurnEngineRerankOverrideAcceptance::Rejected(reason) => {
-                        record_turn_engine_rerank_override_attempt(
-                            TurnEngineRerankOverrideAttemptOutcome::RejectedAcceptance,
-                        );
-                        record_turn_engine_rerank_override_reject_reason(reason);
-                    }
+                    TurnEngineRerankOverrideAcceptance::Rejected(_) => {}
                 }
-            } else {
-                record_turn_engine_rerank_override_attempt(
-                    TurnEngineRerankOverrideAttemptOutcome::NoPlan,
-                );
             }
         }
         if let Some(forced_inputs) =
@@ -11163,25 +8155,27 @@ impl MonsGameModel {
             return forced_inputs;
         }
 
-        let root_advisor_decision =
-            Self::pro_v2_root_advisor_presearch(game, perspective, config, &mut root_moves, None);
-        #[cfg(test)]
-        set_pro_v2_root_advisor_decision(root_advisor_decision.clone());
+        let root_advisor_decision = Self::current_pro_root_advisor_presearch(
+            game,
+            perspective,
+            config,
+            &mut root_moves,
+            None,
+        );
         let advisor_priority_inputs = root_advisor_decision
             .as_ref()
-            .map(Self::pro_v2_root_advisor_priority_inputs)
+            .map(Self::current_pro_root_advisor_priority_inputs)
             .unwrap_or_default();
 
-        let (mut root_moves, scout_visited_nodes) =
-            Self::focused_root_candidates_with_priority_inputs(
-                game,
-                perspective,
-                root_moves,
-                config,
-                use_transposition_table,
-                (!advisor_priority_inputs.is_empty()).then_some(advisor_priority_inputs.as_slice()),
-                None,
-            );
+        let (root_moves, scout_visited_nodes) = Self::focused_root_candidates_with_priority_inputs(
+            game,
+            perspective,
+            root_moves,
+            config,
+            use_transposition_table,
+            (!advisor_priority_inputs.is_empty()).then_some(advisor_priority_inputs.as_slice()),
+            None,
+        );
         if crate::models::automove_deadline::cancelled() {
             return Vec::new();
         }
@@ -11202,57 +8196,7 @@ impl MonsGameModel {
                 0
             };
         let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
         let mut quiescence_nodes_used = 0usize;
-
-        // Iterative deepening: run a shallow pass to pre-populate TT and reorder roots
-        if config.enable_iterative_deepening && config.depth >= 3 {
-            let preliminary_depth = config
-                .depth
-                .saturating_sub(config.iterative_deepening_depth_offset)
-                .max(1);
-            let mut prelim_alpha = i32::MIN;
-            let mut prelim_scores: Vec<i32> = Vec::with_capacity(root_moves.len());
-            for candidate in root_moves.iter() {
-                if crate::models::automove_deadline::checkpoint() {
-                    return Vec::new();
-                }
-                if visited_nodes >= config.max_visited_nodes {
-                    prelim_scores.push(i32::MIN);
-                    continue;
-                }
-                visited_nodes += 1;
-                let prelim_score = Self::search_score(
-                    &candidate.game,
-                    perspective,
-                    preliminary_depth,
-                    prelim_alpha,
-                    i32::MAX,
-                    &mut visited_nodes,
-                    config,
-                    &mut transposition_table,
-                    0,
-                    &mut extension_nodes_used,
-                    0,
-                    use_transposition_table,
-                    &mut killer_table,
-                    &mut history_table,
-                    &mut quiescence_nodes_used,
-                );
-                prelim_scores.push(prelim_score);
-                if prelim_score > prelim_alpha {
-                    prelim_alpha = prelim_score;
-                }
-            }
-            let best_prelim_score = prelim_scores.iter().copied().max().unwrap_or(i32::MIN);
-            root_moves =
-                Self::sort_root_moves_by_ranked_scores(root_moves, prelim_scores.as_slice());
-            // Optionally initialize alpha from preliminary best score
-            if config.iterative_deepening_alpha_margin > 0 && best_prelim_score != i32::MIN {
-                alpha = best_prelim_score.saturating_sub(config.iterative_deepening_alpha_margin);
-            }
-        }
 
         for candidate in root_moves.into_iter() {
             if visited_nodes >= config.max_visited_nodes {
@@ -11270,8 +8214,6 @@ impl MonsGameModel {
                 &mut extension_nodes_used,
                 extension_node_budget,
                 use_transposition_table,
-                &mut killer_table,
-                &mut history_table,
                 &mut quiescence_nodes_used,
             );
 
@@ -11314,15 +8256,7 @@ impl MonsGameModel {
         if scored_roots.is_empty() {
             Vec::new()
         } else {
-            let selected_inputs =
-                Self::pick_root_move_with_exploration(game, &scored_roots, perspective, config);
-            #[cfg(test)]
-            set_turn_engine_root_selection_snapshot(
-                config,
-                scored_roots.as_slice(),
-                selected_inputs.as_slice(),
-            );
-            selected_inputs
+            Self::pick_root_move_with_exploration(game, &scored_roots, perspective, config)
         }
     }
 
@@ -11337,28 +8271,18 @@ impl MonsGameModel {
         extension_nodes_used: &mut usize,
         extension_node_budget: usize,
         use_transposition_table: bool,
-        killer_table: &mut KillerTable,
-        history_table: &mut HistoryTable,
         quiescence_nodes_used: &mut usize,
     ) -> i32 {
         if config.depth <= 1 {
             return candidate.heuristic;
         }
 
-        let mut alpha_bound = alpha;
-        let mut beta_bound = i32::MAX;
-
-        if config.enable_root_aspiration && alpha != i32::MIN {
-            alpha_bound = alpha.saturating_sub(SMART_ROOT_ASPIRATION_WINDOW);
-            beta_bound = alpha.saturating_add(SMART_ROOT_ASPIRATION_WINDOW);
-        }
-
-        let mut score = Self::search_score(
+        Self::search_score(
             &candidate.game,
             perspective,
             config.depth - 1,
-            alpha_bound,
-            beta_bound,
+            alpha,
+            i32::MAX,
             visited_nodes,
             config,
             transposition_table,
@@ -11366,39 +8290,8 @@ impl MonsGameModel {
             extension_nodes_used,
             extension_node_budget,
             use_transposition_table,
-            killer_table,
-            history_table,
             quiescence_nodes_used,
-        );
-
-        if config.enable_root_aspiration
-            && alpha != i32::MIN
-            && visited_nodes.saturating_add(1) < config.max_visited_nodes
-            && (score <= alpha_bound || score >= beta_bound)
-        {
-            score = Self::search_score(
-                &candidate.game,
-                perspective,
-                config.depth - 1,
-                alpha,
-                i32::MAX,
-                visited_nodes,
-                config,
-                transposition_table,
-                config.max_extensions_per_path,
-                extension_nodes_used,
-                extension_node_budget,
-                use_transposition_table,
-                killer_table,
-                history_table,
-                quiescence_nodes_used,
-            );
-            if crate::models::automove_deadline::cancelled() {
-                return 0;
-            }
-        }
-
-        score
+        )
     }
 
     #[cfg(test)]
@@ -11417,26 +8310,6 @@ impl MonsGameModel {
             use_transposition_table,
             None,
             None,
-        )
-    }
-
-    #[cfg(test)]
-    fn focused_root_candidates_with_forced_inputs(
-        game: &MonsGame,
-        perspective: Color,
-        root_moves: Vec<ScoredRootMove>,
-        config: AutomoveSearchConfig,
-        use_transposition_table: bool,
-        forced_inputs: Option<&[Input]>,
-    ) -> (Vec<ScoredRootMove>, usize) {
-        Self::focused_root_candidates_with_priority_inputs(
-            game,
-            perspective,
-            root_moves,
-            config,
-            use_transposition_table,
-            None,
-            forced_inputs,
         )
     }
 
@@ -11506,7 +8379,6 @@ impl MonsGameModel {
         let mut scout_config = config;
         scout_config.depth = scout_depth;
         scout_config.max_visited_nodes = scout_budget;
-        scout_config.enable_root_aspiration = false;
         scout_config.enable_selective_extensions = false;
         scout_config.enable_quiet_reductions = false;
 
@@ -11514,8 +8386,6 @@ impl MonsGameModel {
         let mut scout_alpha = i32::MIN;
         let mut scout_transposition_table = U64HashMap::default();
         let mut scout_extension_nodes_used = 0usize;
-        let mut scout_killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut scout_history_table: HistoryTable = HistoryTable::default();
         let mut scout_quiescence_nodes_used = 0usize;
         let mut scout_scores = vec![i32::MIN; root_moves.len()];
         let mut best_scout_score = i32::MIN;
@@ -11544,8 +8414,6 @@ impl MonsGameModel {
                     &mut scout_extension_nodes_used,
                     0,
                     use_transposition_table,
-                    &mut scout_killer_table,
-                    &mut scout_history_table,
                     &mut scout_quiescence_nodes_used,
                 )
             } else {
@@ -11594,7 +8462,7 @@ impl MonsGameModel {
         for (index, _) in ranked_indices.iter().take(focus_k) {
             selected_mask[*index] = true;
         }
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && config.enable_turn_engine_selector
             && focus_k <= 3
         {
@@ -11661,7 +8529,7 @@ impl MonsGameModel {
             {
                 selected_mask[index] = true;
             }
-            if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && config.enable_turn_engine_selector
                 && candidate.own_drainer_vulnerable
                 && !candidate.own_drainer_walk_vulnerable
@@ -11786,8 +8654,6 @@ impl MonsGameModel {
         extension_nodes_used: &mut usize,
         extension_node_budget: usize,
         use_transposition_table: bool,
-        killer_table: &mut KillerTable,
-        history_table: &mut HistoryTable,
         quiescence_nodes_used: &mut usize,
     ) -> i32 {
         if let Some(terminal_score) = Self::terminal_score(game, perspective, depth, config.depth) {
@@ -11836,15 +8702,8 @@ impl MonsGameModel {
                             }
                         }
                     } else {
-                        let children = Self::ranked_child_states(
-                            game,
-                            perspective,
-                            maximizing,
-                            None,
-                            [0u64; 2],
-                            config,
-                            history_table,
-                        );
+                        let children =
+                            Self::ranked_child_states(game, perspective, maximizing, None, config);
                         for child in children.iter() {
                             if child.classes.quiet {
                                 continue;
@@ -11903,15 +8762,8 @@ impl MonsGameModel {
                             }
                         }
                     } else {
-                        let children = Self::ranked_child_states(
-                            game,
-                            perspective,
-                            maximizing,
-                            None,
-                            [0u64; 2],
-                            config,
-                            history_table,
-                        );
+                        let children =
+                            Self::ranked_child_states(game, perspective, maximizing, None, config);
                         for child in children.iter() {
                             if child.classes.quiet {
                                 continue;
@@ -11952,7 +8804,7 @@ impl MonsGameModel {
 
         if use_transposition_table {
             if let Some(entry) = transposition_table.get(&state_key).copied() {
-                if config.enable_tt_best_child_ordering && entry.best_child_hash != 0 {
+                if entry.best_child_hash != 0 {
                     preferred_child_hash = Some(entry.best_child_hash);
                 }
                 if entry.depth >= depth {
@@ -11978,11 +8830,7 @@ impl MonsGameModel {
         // is so far from the window that no child move could possibly improve it enough
         if config.enable_futility_pruning
             && depth == 1
-            && !Self::has_frontier_tactical_potential(
-                game,
-                config.enable_child_exact_tactics,
-                config.enable_static_exact_evaluation,
-            )
+            && !Self::has_frontier_tactical_potential(game)
         {
             let static_eval = Self::evaluate_search_preferability(game, perspective, config);
             if maximizing && static_eval + config.futility_margin < alpha {
@@ -11993,20 +8841,8 @@ impl MonsGameModel {
             }
         }
 
-        let current_killers = if config.enable_killer_move_ordering && depth < killer_table.len() {
-            killer_table[depth]
-        } else {
-            [0u64; 2]
-        };
-        let mut children = Self::ranked_child_states(
-            game,
-            perspective,
-            maximizing,
-            preferred_child_hash,
-            current_killers,
-            config,
-            history_table,
-        );
+        let mut children =
+            Self::ranked_child_states(game, perspective, maximizing, preferred_child_hash, config);
         if children.is_empty() {
             return Self::evaluate_search_preferability(game, perspective, config);
         }
@@ -12015,7 +8851,6 @@ impl MonsGameModel {
         let mut best_child_hash = 0u64;
         let value = if maximizing {
             let mut value = i32::MIN;
-            let mut first_child = true;
             for child in children.drain(..) {
                 if *visited_nodes >= config.max_visited_nodes {
                     stopped_by_budget = true;
@@ -12046,88 +8881,27 @@ impl MonsGameModel {
                 }
 
                 *visited_nodes += 1;
-                let score = if config.enable_pvs && !first_child && alpha + 1 < beta {
-                    // PVS: null-window probe
-                    let probe = Self::search_score(
-                        &child.game,
-                        perspective,
-                        child_depth,
-                        alpha,
-                        alpha + 1,
-                        visited_nodes,
-                        config,
-                        transposition_table,
-                        child_extensions_remaining,
-                        extension_nodes_used,
-                        extension_node_budget,
-                        use_transposition_table,
-                        killer_table,
-                        history_table,
-                        quiescence_nodes_used,
-                    );
-                    if probe > alpha && probe < beta {
-                        // Fail high: re-search with full window
-                        Self::search_score(
-                            &child.game,
-                            perspective,
-                            child_depth,
-                            alpha,
-                            beta,
-                            visited_nodes,
-                            config,
-                            transposition_table,
-                            child_extensions_remaining,
-                            extension_nodes_used,
-                            extension_node_budget,
-                            use_transposition_table,
-                            killer_table,
-                            history_table,
-                            quiescence_nodes_used,
-                        )
-                    } else {
-                        probe
-                    }
-                } else {
-                    Self::search_score(
-                        &child.game,
-                        perspective,
-                        child_depth,
-                        alpha,
-                        beta,
-                        visited_nodes,
-                        config,
-                        transposition_table,
-                        child_extensions_remaining,
-                        extension_nodes_used,
-                        extension_node_budget,
-                        use_transposition_table,
-                        killer_table,
-                        history_table,
-                        quiescence_nodes_used,
-                    )
-                };
-                first_child = false;
+                let score = Self::search_score(
+                    &child.game,
+                    perspective,
+                    child_depth,
+                    alpha,
+                    beta,
+                    visited_nodes,
+                    config,
+                    transposition_table,
+                    child_extensions_remaining,
+                    extension_nodes_used,
+                    extension_node_budget,
+                    use_transposition_table,
+                    quiescence_nodes_used,
+                );
                 if score > value {
                     value = score;
                     best_child_hash = child.hash;
                 }
                 alpha = alpha.max(value);
                 if alpha >= beta {
-                    // Store killer move on beta cutoff
-                    if config.enable_killer_move_ordering
-                        && child.hash != 0
-                        && depth < killer_table.len()
-                        && killer_table[depth][0] != child.hash
-                    {
-                        killer_table[depth][1] = killer_table[depth][0];
-                        killer_table[depth][0] = child.hash;
-                    }
-                    // Record history heuristic on beta cutoff
-                    if config.enable_history_heuristic && child.hash != 0 {
-                        let bonus = (depth * depth) as i32;
-                        let entry = history_table.entry(child.hash).or_insert(0);
-                        *entry = (*entry).saturating_add(bonus);
-                    }
                     break;
                 }
             }
@@ -12139,7 +8913,6 @@ impl MonsGameModel {
             }
         } else {
             let mut value = i32::MAX;
-            let mut first_child = true;
             for child in children.drain(..) {
                 if *visited_nodes >= config.max_visited_nodes {
                     stopped_by_budget = true;
@@ -12170,88 +8943,27 @@ impl MonsGameModel {
                 }
 
                 *visited_nodes += 1;
-                let score = if config.enable_pvs && !first_child && beta - 1 > alpha {
-                    // PVS: null-window probe (minimizing)
-                    let probe = Self::search_score(
-                        &child.game,
-                        perspective,
-                        child_depth,
-                        beta - 1,
-                        beta,
-                        visited_nodes,
-                        config,
-                        transposition_table,
-                        child_extensions_remaining,
-                        extension_nodes_used,
-                        extension_node_budget,
-                        use_transposition_table,
-                        killer_table,
-                        history_table,
-                        quiescence_nodes_used,
-                    );
-                    if probe < beta && probe > alpha {
-                        // Fail low: re-search with full window
-                        Self::search_score(
-                            &child.game,
-                            perspective,
-                            child_depth,
-                            alpha,
-                            beta,
-                            visited_nodes,
-                            config,
-                            transposition_table,
-                            child_extensions_remaining,
-                            extension_nodes_used,
-                            extension_node_budget,
-                            use_transposition_table,
-                            killer_table,
-                            history_table,
-                            quiescence_nodes_used,
-                        )
-                    } else {
-                        probe
-                    }
-                } else {
-                    Self::search_score(
-                        &child.game,
-                        perspective,
-                        child_depth,
-                        alpha,
-                        beta,
-                        visited_nodes,
-                        config,
-                        transposition_table,
-                        child_extensions_remaining,
-                        extension_nodes_used,
-                        extension_node_budget,
-                        use_transposition_table,
-                        killer_table,
-                        history_table,
-                        quiescence_nodes_used,
-                    )
-                };
-                first_child = false;
+                let score = Self::search_score(
+                    &child.game,
+                    perspective,
+                    child_depth,
+                    alpha,
+                    beta,
+                    visited_nodes,
+                    config,
+                    transposition_table,
+                    child_extensions_remaining,
+                    extension_nodes_used,
+                    extension_node_budget,
+                    use_transposition_table,
+                    quiescence_nodes_used,
+                );
                 if score < value {
                     value = score;
                     best_child_hash = child.hash;
                 }
                 beta = beta.min(value);
                 if beta <= alpha {
-                    // Store killer move on alpha cutoff (minimizing side)
-                    if config.enable_killer_move_ordering
-                        && child.hash != 0
-                        && depth < killer_table.len()
-                        && killer_table[depth][0] != child.hash
-                    {
-                        killer_table[depth][1] = killer_table[depth][0];
-                        killer_table[depth][0] = child.hash;
-                    }
-                    // Record history heuristic on alpha cutoff
-                    if config.enable_history_heuristic && child.hash != 0 {
-                        let bonus = (depth * depth) as i32;
-                        let entry = history_table.entry(child.hash).or_insert(0);
-                        *entry = (*entry).saturating_add(bonus);
-                    }
                     break;
                 }
             }
@@ -12275,41 +8987,20 @@ impl MonsGameModel {
                 TranspositionBound::Exact
             };
 
-            let mut skip_tt_write = false;
             if transposition_table.len() >= SMART_TRANSPOSITION_TABLE_MAX_ENTRIES
                 && !transposition_table.contains_key(&state_key)
             {
-                if config.enable_tt_depth_preferred_replacement {
-                    // Depth-preferred replacement: evict the shallowest entry
-                    let mut shallowest_key = 0u64;
-                    let mut shallowest_depth = usize::MAX;
-                    for (&k, v) in transposition_table.iter() {
-                        if v.depth < shallowest_depth {
-                            shallowest_depth = v.depth;
-                            shallowest_key = k;
-                        }
-                    }
-                    if shallowest_depth < depth {
-                        transposition_table.remove(&shallowest_key);
-                    } else {
-                        // No shallower entry exists; skip writing to respect capacity
-                        skip_tt_write = true;
-                    }
-                } else {
-                    transposition_table.clear();
-                }
+                transposition_table.clear();
             }
-            if !skip_tt_write {
-                transposition_table.insert(
-                    state_key,
-                    TranspositionEntry {
-                        depth,
-                        score: value,
-                        bound,
-                        best_child_hash,
-                    },
-                );
-            }
+            transposition_table.insert(
+                state_key,
+                TranspositionEntry {
+                    depth,
+                    score: value,
+                    bound,
+                    best_child_hash,
+                },
+            );
         }
 
         value
@@ -12319,28 +9010,17 @@ impl MonsGameModel {
         game: &MonsGame,
         perspective: Color,
         actor_color: Color,
-        config: AutomoveSearchConfig,
     ) -> ChildOrderingScratch {
         let before_state_hash = Self::search_state_hash(game);
-        let before_efficiency_snapshot = config.enable_root_efficiency.then(|| {
-            Self::move_efficiency_snapshot_with_hash_and_narrowing(
-                game,
-                perspective,
-                config.enable_child_exact_tactics && game.active_color == perspective,
-                config.enable_static_exact_evaluation,
-                before_state_hash,
-                config.enable_move_efficiency_tactical_score_window_narrowing,
-            )
-        });
-        let own_drainer_vulnerable_before = if config.enable_child_move_class_coverage {
-            Self::is_own_drainer_vulnerable_next_turn(
-                game,
-                actor_color,
-                config.enable_enhanced_drainer_vulnerability,
-            )
-        } else {
-            false
-        };
+        let before_efficiency_snapshot = Self::move_efficiency_snapshot_with_hash(
+            game,
+            perspective,
+            false,
+            false,
+            before_state_hash,
+        );
+        let own_drainer_vulnerable_before =
+            Self::is_own_drainer_vulnerable_next_turn(game, actor_color, true);
 
         ChildOrderingScratch {
             before_efficiency_snapshot,
@@ -12348,365 +9028,12 @@ impl MonsGameModel {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn build_child_eval_bundle(
-        game: &MonsGame,
-        simulated_game: &MonsGame,
-        perspective: Color,
-        actor_color: Color,
-        events: &[Event],
-        preferred_child_hash: Option<u64>,
-        killer_hashes: [u64; 2],
-        config: AutomoveSearchConfig,
-        history_table: &HistoryTable,
-        scratch: &ChildOrderingScratch,
-    ) -> ChildEvalBundle {
-        let child_hash = Self::search_state_hash(simulated_game);
-        let scoring_context = config.enable_local_scoring_eval_ctx.then(|| {
-            ScoringEvalContext::new_with_flags(
-                simulated_game,
-                config.enable_static_exact_evaluation,
-                config.enable_scoring_attack_reach_summary,
-                config.enable_scoring_attack_reach_target_narrowing,
-                config.enable_scoring_drainer_attack_reach_target_narrowing,
-            )
-        });
-        let mut heuristic = Self::score_state_with_context(
-            simulated_game,
-            perspective,
-            0,
-            config.depth,
-            config.scoring_weights,
-            config.enable_static_exact_evaluation,
-            scoring_context.as_ref(),
-        );
-
-        let after_efficiency_snapshot = config.enable_root_efficiency.then(|| {
-            Self::move_efficiency_snapshot_uncached_with_hash_and_narrowing(
-                simulated_game,
-                perspective,
-                config.enable_child_exact_tactics && simulated_game.active_color == perspective,
-                config.enable_static_exact_evaluation,
-                child_hash,
-                config.enable_move_efficiency_tactical_score_window_narrowing,
-            )
-        });
-        let ordering_efficiency = if let (Some(before), Some(after)) = (
-            scratch.before_efficiency_snapshot,
-            after_efficiency_snapshot,
-        ) {
-            Self::move_efficiency_delta_from_before_snapshot_with_after_snapshot(
-                game,
-                simulated_game,
-                perspective,
-                events,
-                before,
-                after,
-                false,
-                false,
-                false,
-                config.root_backtrack_penalty,
-                config.root_mana_handoff_penalty,
-            )
-        } else {
-            0
-        };
-
-        if config.enable_root_efficiency
-            && SMART_NO_EFFECT_CHILD_PENALTY != 0
-            && Self::is_no_effect_state_transition(game, simulated_game)
-        {
-            heuristic -= SMART_NO_EFFECT_CHILD_PENALTY;
-        }
-        if config.enable_event_ordering_bonus {
-            heuristic = heuristic.saturating_add(Self::ordering_event_bonus(
-                game.active_color,
-                perspective,
-                events,
-            ));
-        }
-        if config.enable_tt_best_child_ordering
-            && preferred_child_hash.is_some()
-            && preferred_child_hash == Some(child_hash)
-        {
-            heuristic = heuristic.saturating_add(SMART_TT_BEST_CHILD_BONUS);
-        }
-        if config.enable_killer_move_ordering
-            && (killer_hashes[0] == child_hash || killer_hashes[1] == child_hash)
-            && child_hash != 0
-            && preferred_child_hash != Some(child_hash)
-        {
-            heuristic = heuristic.saturating_add(SMART_KILLER_MOVE_BONUS);
-        }
-        if config.enable_history_heuristic && child_hash != 0 {
-            if let Some(&history_score) = history_table.get(&child_hash) {
-                heuristic = heuristic.saturating_add(history_score.min(SMART_HISTORY_BONUS_CAP));
-            }
-        }
-
-        let own_drainer_vulnerable_after = if config.enable_child_move_class_coverage {
-            if config.enable_child_vulnerability_attack_plausibility_screen
-                && !Self::is_own_drainer_vulnerability_plausible_next_turn(
-                    simulated_game,
-                    actor_color,
-                )
-            {
-                false
-            } else if config.enable_child_vulnerability_scoring_ctx_reuse {
-                scoring_context.as_ref().map_or_else(
-                    || {
-                        Self::is_own_drainer_vulnerable_next_turn(
-                            simulated_game,
-                            actor_color,
-                            config.enable_enhanced_drainer_vulnerability,
-                        )
-                    },
-                    |context| {
-                        Self::is_own_drainer_vulnerable_next_turn_with_context(
-                            simulated_game,
-                            actor_color,
-                            config.enable_enhanced_drainer_vulnerability,
-                            context,
-                        )
-                    },
-                )
-            } else {
-                Self::is_own_drainer_vulnerable_next_turn(
-                    simulated_game,
-                    actor_color,
-                    config.enable_enhanced_drainer_vulnerability,
-                )
-            }
-        } else {
-            false
-        };
-        let own_drainer_vulnerability_transition =
-            scratch.own_drainer_vulnerable_before != own_drainer_vulnerable_after;
-        let tactical_extension_trigger = Self::events_include_any_drainer_fainted(events)
-            || own_drainer_vulnerability_transition
-            || events
-                .iter()
-                .any(|event| matches!(event, Event::ManaScored { .. }));
-        let classes = if config.enable_child_move_class_coverage {
-            Self::classify_move_classes(
-                game,
-                simulated_game,
-                actor_color,
-                events,
-                scratch.own_drainer_vulnerable_before,
-                own_drainer_vulnerable_after,
-            )
-        } else {
-            MoveClassFlags::default()
-        };
-        let quiet_reduction_candidate = Self::is_quiet_reduction_candidate(
-            ordering_efficiency,
-            tactical_extension_trigger,
-            classes,
-        );
-
-        ChildEvalBundle {
-            child_hash,
-            heuristic,
-            #[cfg(test)]
-            after_efficiency_snapshot,
-            ordering_efficiency,
-            #[cfg(test)]
-            own_drainer_vulnerable_after,
-            tactical_extension_trigger,
-            quiet_reduction_candidate,
-            classes,
-        }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn cheap_child_ordering_heuristic(
-        game: &MonsGame,
-        simulated_game: &MonsGame,
-        perspective: Color,
-        child_hash: u64,
-        events: &[Event],
-        preferred_child_hash: Option<u64>,
-        killer_hashes: [u64; 2],
-        config: AutomoveSearchConfig,
-        history_table: &HistoryTable,
-    ) -> i32 {
-        let mut heuristic = Self::score_state(
-            simulated_game,
-            perspective,
-            0,
-            config.depth,
-            config.scoring_weights,
-            false,
-        );
-        if config.enable_event_ordering_bonus {
-            heuristic = heuristic.saturating_add(Self::ordering_event_bonus(
-                game.active_color,
-                perspective,
-                events,
-            ));
-        }
-        if config.enable_tt_best_child_ordering
-            && preferred_child_hash.is_some()
-            && preferred_child_hash == Some(child_hash)
-        {
-            heuristic = heuristic.saturating_add(SMART_TT_BEST_CHILD_BONUS);
-        }
-        if config.enable_killer_move_ordering
-            && (killer_hashes[0] == child_hash || killer_hashes[1] == child_hash)
-            && child_hash != 0
-            && preferred_child_hash != Some(child_hash)
-        {
-            heuristic = heuristic.saturating_add(SMART_KILLER_MOVE_BONUS);
-        }
-        if config.enable_history_heuristic && child_hash != 0 {
-            if let Some(&history_score) = history_table.get(&child_hash) {
-                heuristic = heuristic.saturating_add(history_score.min(SMART_HISTORY_BONUS_CAP));
-            }
-        }
-        heuristic
-    }
-
-    fn compare_cheap_child_ordering_entries(
-        a: &CheapChildOrderingEntry,
-        b: &CheapChildOrderingEntry,
-        maximizing: bool,
-    ) -> std::cmp::Ordering {
-        let heuristic_cmp = if maximizing {
-            b.heuristic.cmp(&a.heuristic)
-        } else {
-            a.heuristic.cmp(&b.heuristic)
-        };
-        heuristic_cmp.then_with(|| b.child_hash.cmp(&a.child_hash))
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn child_requires_full_ordering_pass(
-        transition: &LegalInputTransition,
-        perspective: Color,
-        actor_color: Color,
-        child_hash: u64,
-        preferred_child_hash: Option<u64>,
-        killer_hashes: [u64; 2],
-        config: AutomoveSearchConfig,
-        scratch: &ChildOrderingScratch,
-        retain_supermana_progress: bool,
-        retain_opponent_mana_progress: bool,
-    ) -> (bool, bool) {
-        let wins_immediately = transition.game.winner_color() == Some(perspective);
-        let scores_now = transition
-            .events
-            .iter()
-            .any(|event| matches!(event, Event::ManaScored { .. }));
-        let any_drainer_fainted = Self::events_include_any_drainer_fainted(&transition.events);
-        let faints_opponent_drainer =
-            Self::events_include_opponent_drainer_fainted(&transition.events, perspective);
-        let tt_or_killer = preferred_child_hash == Some(child_hash)
-            || killer_hashes[0] == child_hash
-            || killer_hashes[1] == child_hash;
-        let resolves_own_drainer_exposure = scratch.own_drainer_vulnerable_before
-            && config.enable_child_move_class_coverage
-            && if config.enable_child_vulnerability_attack_plausibility_screen
-                && !Self::is_own_drainer_vulnerability_plausible_next_turn(
-                    &transition.game,
-                    actor_color,
-                )
-            {
-                true
-            } else {
-                !Self::is_own_drainer_vulnerable_next_turn(
-                    &transition.game,
-                    actor_color,
-                    config.enable_enhanced_drainer_vulnerability,
-                )
-            };
-        let preserves_exact_progress = (retain_supermana_progress
-            && Self::transition_preserves_exact_progress(transition, perspective, Mana::Supermana))
-            || (retain_opponent_mana_progress
-                && Self::transition_preserves_exact_progress(
-                    transition,
-                    perspective,
-                    Mana::Regular(perspective.other()),
-                ));
-        let obvious_tactical_trigger = scores_now || any_drainer_fainted;
-        let force_full = wins_immediately
-            || faints_opponent_drainer
-            || tt_or_killer
-            || resolves_own_drainer_exposure
-            || preserves_exact_progress
-            || obvious_tactical_trigger;
-        let eventful_reserve = !force_full && !transition.events.is_empty();
-        (force_full, eventful_reserve)
-    }
-
-    fn child_ordering_shortlist_limit(
-        config: AutomoveSearchConfig,
-        total_children: usize,
-    ) -> usize {
-        if total_children == 0 {
-            return 0;
-        }
-        let multiplier = config.child_ordering_shortlist_multiplier.max(1);
-        let minimum = config.node_branch_limit.min(total_children).max(1);
-        (config.node_branch_limit.saturating_mul(multiplier)).clamp(minimum, total_children)
-    }
-
-    fn selected_two_stage_child_ordering_indices(
-        cheap_entries: &[CheapChildOrderingEntry],
-        maximizing: bool,
-        config: AutomoveSearchConfig,
-    ) -> Vec<usize> {
-        if cheap_entries.is_empty() {
-            return Vec::new();
-        }
-
-        let shortlist_limit = Self::child_ordering_shortlist_limit(config, cheap_entries.len());
-        let reserve_limit = config.child_ordering_tactical_reserve;
-        let mut ordered_indices: Vec<usize> = (0..cheap_entries.len()).collect();
-        ordered_indices.sort_by(|a, b| {
-            Self::compare_cheap_child_ordering_entries(
-                &cheap_entries[*a],
-                &cheap_entries[*b],
-                maximizing,
-            )
-        });
-
-        let mut selected = vec![false; cheap_entries.len()];
-        for index in ordered_indices.iter().copied().take(shortlist_limit) {
-            selected[index] = true;
-        }
-        for (index, entry) in cheap_entries.iter().enumerate() {
-            if entry.force_full {
-                selected[index] = true;
-            }
-        }
-
-        let mut reserve_used = 0usize;
-        for index in ordered_indices.iter().copied() {
-            if reserve_used >= reserve_limit {
-                break;
-            }
-            if selected[index] || !cheap_entries[index].eventful_reserve {
-                continue;
-            }
-            selected[index] = true;
-            reserve_used += 1;
-        }
-
-        ordered_indices
-            .into_iter()
-            .filter(|index| selected[*index])
-            .collect()
-    }
-
     fn ranked_child_states(
         game: &MonsGame,
         perspective: Color,
         maximizing: bool,
         preferred_child_hash: Option<u64>,
-        killer_hashes: [u64; 2],
         config: AutomoveSearchConfig,
-        history_table: &HistoryTable,
     ) -> Vec<RankedChildState> {
         #[cfg(test)]
         update_turn_engine_selector_diagnostics(|diagnostics| {
@@ -12714,360 +9041,100 @@ impl MonsGameModel {
         });
         let mut scored_states: Vec<(i32, RankedChildState)> = Vec::new();
         let actor_color = game.active_color;
-        let scratch = Self::build_child_ordering_scratch(game, perspective, actor_color, config);
-        let start_options = Self::automove_start_input_options(config);
-        let mut child_transitions =
+        let scratch = Self::build_child_ordering_scratch(game, perspective, actor_color);
+        let start_options = Self::automove_start_input_options();
+        let child_transitions =
             Self::enumerate_legal_transitions(game, config.node_enum_limit, start_options);
-        let mut exact_turn_before = None;
-        if config.enable_child_move_class_coverage
-            && config.enable_child_exact_tactics
-            && Self::should_probe_exact_child_progress(game, actor_color)
-        {
-            let exact_turn = exact_turn_summary(game, actor_color);
-            exact_turn_before = Some(exact_turn);
-            let fallback_limit = Self::child_exact_progress_fallback_candidates_limit(config);
-            let mut seen_inputs = child_transitions
-                .iter()
-                .map(|transition| transition.inputs.clone())
-                .collect::<std::collections::HashSet<_>>();
-            if (exact_turn.safe_supermana_progress || exact_turn.spirit_assisted_supermana_progress)
-                && !child_transitions.iter().any(|transition| {
-                    Self::transition_preserves_exact_progress(
-                        transition,
-                        actor_color,
-                        Mana::Supermana,
-                    )
-                })
-            {
-                let fallback_inputs = Self::collect_targeted_exact_progress_inputs(
-                    game,
-                    actor_color,
-                    config,
-                    fallback_limit,
-                    Mana::Supermana,
-                );
-                if crate::models::automove_deadline::cancelled() {
-                    return Vec::new();
-                }
-                for transition in fallback_inputs {
-                    if seen_inputs.insert(transition.inputs.clone()) {
-                        child_transitions.push(transition);
-                    }
-                }
-            }
-            if (exact_turn.safe_opponent_mana_progress
-                || exact_turn.spirit_assisted_opponent_mana_progress
-                || exact_turn.spirit_assisted_denial)
-                && !child_transitions.iter().any(|transition| {
-                    Self::transition_preserves_exact_progress(
-                        transition,
-                        actor_color,
-                        Mana::Regular(actor_color.other()),
-                    )
-                })
-            {
-                let fallback_inputs = Self::collect_targeted_exact_progress_inputs(
-                    game,
-                    actor_color,
-                    config,
-                    fallback_limit,
-                    Mana::Regular(actor_color.other()),
-                );
-                if crate::models::automove_deadline::cancelled() {
-                    return Vec::new();
-                }
-                for transition in fallback_inputs {
-                    if seen_inputs.insert(transition.inputs.clone()) {
-                        child_transitions.push(transition);
-                    }
-                }
-            }
-        }
         #[cfg(test)]
         update_turn_engine_selector_diagnostics(|diagnostics| {
             diagnostics.ranked_child_states_children_enumerated += child_transitions.len();
         });
-        let retain_supermana_progress = exact_turn_before.is_some_and(|turn| {
-            turn.safe_supermana_progress || turn.spirit_assisted_supermana_progress
-        });
-        let retain_opponent_mana_progress = exact_turn_before.is_some_and(|turn| {
-            turn.safe_opponent_mana_progress
-                || turn.spirit_assisted_opponent_mana_progress
-                || turn.spirit_assisted_denial
-        });
+        for transition in child_transitions {
+            if crate::models::automove_deadline::checkpoint() {
+                return Vec::new();
+            }
+            let simulated_game = transition.game;
+            let events = transition.events;
+            let child_hash = Self::search_state_hash(&simulated_game);
+            let mut heuristic = Self::score_state(
+                &simulated_game,
+                perspective,
+                0,
+                config.depth,
+                config.scoring_weights,
+            );
 
-        if config.enable_child_eval_bundle && config.enable_two_stage_child_ordering {
-            let cheap_entries = child_transitions
-                .into_iter()
-                .map_while(|transition| {
-                    if crate::models::automove_deadline::checkpoint() {
-                        return None;
-                    }
-                    let child_hash = Self::search_state_hash(&transition.game);
-                    let heuristic = Self::cheap_child_ordering_heuristic(
-                        game,
-                        &transition.game,
-                        perspective,
-                        child_hash,
-                        transition.events.as_slice(),
-                        preferred_child_hash,
-                        killer_hashes,
-                        config,
-                        history_table,
-                    );
-                    let (force_full, eventful_reserve) = Self::child_requires_full_ordering_pass(
-                        &transition,
-                        perspective,
-                        actor_color,
-                        child_hash,
-                        preferred_child_hash,
-                        killer_hashes,
-                        config,
-                        &scratch,
-                        retain_supermana_progress,
-                        retain_opponent_mana_progress,
-                    );
+            let ordering_efficiency = Self::move_efficiency_delta_from_before_snapshot(
+                game,
+                &simulated_game,
+                actor_color,
+                &events,
+                scratch.before_efficiency_snapshot,
+                child_hash,
+                false,
+                false,
+                false,
+                false,
+                false,
+                config.root_backtrack_penalty,
+                config.root_mana_handoff_penalty,
+            );
+            heuristic = heuristic.saturating_add(Self::ordering_event_bonus(
+                game.active_color,
+                perspective,
+                &events,
+            ));
+            if preferred_child_hash.is_some() && preferred_child_hash == Some(child_hash) {
+                heuristic = heuristic.saturating_add(SMART_TT_BEST_CHILD_BONUS);
+            }
 
-                    Some(CheapChildOrderingEntry {
-                        transition,
-                        child_hash,
-                        heuristic,
-                        force_full,
-                        eventful_reserve,
-                    })
-                })
-                .collect::<Vec<_>>();
+            let own_drainer_vulnerable_before = scratch.own_drainer_vulnerable_before;
+            let own_drainer_vulnerable_after =
+                Self::is_own_drainer_vulnerable_next_turn(&simulated_game, actor_color, true);
+            let own_drainer_vulnerability_transition =
+                own_drainer_vulnerable_before != own_drainer_vulnerable_after;
+            let tactical_extension_trigger = Self::events_include_any_drainer_fainted(&events)
+                || own_drainer_vulnerability_transition
+                || events
+                    .iter()
+                    .any(|event| matches!(event, Event::ManaScored { .. }));
+            let classes = Self::classify_move_classes(
+                game,
+                &simulated_game,
+                actor_color,
+                &events,
+                own_drainer_vulnerable_before,
+                own_drainer_vulnerable_after,
+            );
+            let quiet_reduction_candidate = Self::is_quiet_reduction_candidate(
+                ordering_efficiency,
+                tactical_extension_trigger,
+                classes,
+            );
             if crate::models::automove_deadline::cancelled() {
                 return Vec::new();
             }
-            let shortlisted_indices =
-                Self::selected_two_stage_child_ordering_indices(&cheap_entries, maximizing, config);
-            let shortlisted_set = shortlisted_indices
-                .into_iter()
-                .collect::<std::collections::HashSet<_>>();
             #[cfg(test)]
             update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.child_ordering_shortlist_children += shortlisted_set.len();
+                diagnostics.ranked_child_states_children_fully_scored += 1;
             });
 
-            for (index, entry) in cheap_entries.into_iter().enumerate() {
-                if crate::models::automove_deadline::checkpoint() {
-                    return Vec::new();
-                }
-                if !shortlisted_set.contains(&index) {
-                    continue;
-                }
-
-                let transition = entry.transition;
-                let bundle = Self::build_child_eval_bundle(
-                    game,
-                    &transition.game,
-                    perspective,
-                    actor_color,
-                    transition.events.as_slice(),
-                    preferred_child_hash,
-                    killer_hashes,
-                    config,
-                    history_table,
-                    &scratch,
-                );
-                if crate::models::automove_deadline::cancelled() {
-                    return Vec::new();
-                }
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.ranked_child_states_children_fully_scored += 1;
-                    diagnostics.child_ordering_full_pass_children += 1;
-                });
-
-                scored_states.push((
-                    bundle.heuristic,
-                    RankedChildState {
-                        game: transition.game,
-                        hash: bundle.child_hash,
-                        ordering_efficiency: bundle.ordering_efficiency,
-                        tactical_extension_trigger: bundle.tactical_extension_trigger,
-                        quiet_reduction_candidate: bundle.quiet_reduction_candidate,
-                        classes: bundle.classes,
-                    },
-                ));
-            }
-        } else {
-            for transition in child_transitions {
-                if crate::models::automove_deadline::checkpoint() {
-                    return Vec::new();
-                }
-                let simulated_game = transition.game;
-                let events = transition.events;
-                let bundle = if config.enable_child_eval_bundle {
-                    Self::build_child_eval_bundle(
-                        game,
-                        &simulated_game,
-                        perspective,
-                        actor_color,
-                        &events,
-                        preferred_child_hash,
-                        killer_hashes,
-                        config,
-                        history_table,
-                        &scratch,
-                    )
-                } else {
-                    let child_hash = Self::search_state_hash(&simulated_game);
-                    let mut heuristic = Self::score_state(
-                        &simulated_game,
-                        perspective,
-                        0,
-                        config.depth,
-                        config.scoring_weights,
-                        config.enable_static_exact_evaluation,
-                    );
-
-                    let ordering_efficiency = if config.enable_root_efficiency {
-                        Self::move_efficiency_delta_from_before_snapshot_with_narrowing(
-                            game,
-                            &simulated_game,
-                            actor_color,
-                            &events,
-                            scratch
-                                .before_efficiency_snapshot
-                                .expect("snapshot should exist when root efficiency is enabled"),
-                            child_hash,
-                            false,
-                            false,
-                            false,
-                            config.enable_child_exact_tactics,
-                            config.enable_static_exact_evaluation,
-                            config.root_backtrack_penalty,
-                            config.root_mana_handoff_penalty,
-                            config.enable_move_efficiency_tactical_score_window_narrowing,
-                        )
-                    } else {
-                        0
-                    };
-                    if config.enable_root_efficiency
-                        && SMART_NO_EFFECT_CHILD_PENALTY != 0
-                        && Self::is_no_effect_state_transition(game, &simulated_game)
-                    {
-                        heuristic -= SMART_NO_EFFECT_CHILD_PENALTY;
-                    }
-                    if config.enable_event_ordering_bonus {
-                        heuristic = heuristic.saturating_add(Self::ordering_event_bonus(
-                            game.active_color,
-                            perspective,
-                            &events,
-                        ));
-                    }
-                    if config.enable_tt_best_child_ordering
-                        && preferred_child_hash.is_some()
-                        && preferred_child_hash == Some(child_hash)
-                    {
-                        heuristic = heuristic.saturating_add(SMART_TT_BEST_CHILD_BONUS);
-                    }
-                    if config.enable_killer_move_ordering
-                        && (killer_hashes[0] == child_hash || killer_hashes[1] == child_hash)
-                        && child_hash != 0
-                        && preferred_child_hash != Some(child_hash)
-                    {
-                        heuristic = heuristic.saturating_add(SMART_KILLER_MOVE_BONUS);
-                    }
-                    if config.enable_history_heuristic && child_hash != 0 {
-                        if let Some(&history_score) = history_table.get(&child_hash) {
-                            heuristic = heuristic
-                                .saturating_add(history_score.min(SMART_HISTORY_BONUS_CAP));
-                        }
-                    }
-
-                    let own_drainer_vulnerable_before = scratch.own_drainer_vulnerable_before;
-                    let own_drainer_vulnerable_after = if config.enable_child_move_class_coverage {
-                        if config.enable_child_vulnerability_attack_plausibility_screen
-                            && !Self::is_own_drainer_vulnerability_plausible_next_turn(
-                                &simulated_game,
-                                actor_color,
-                            )
-                        {
-                            false
-                        } else {
-                            Self::is_own_drainer_vulnerable_next_turn(
-                                &simulated_game,
-                                actor_color,
-                                config.enable_enhanced_drainer_vulnerability,
-                            )
-                        }
-                    } else {
-                        false
-                    };
-                    let own_drainer_vulnerability_transition =
-                        own_drainer_vulnerable_before != own_drainer_vulnerable_after;
-                    let tactical_extension_trigger =
-                        Self::events_include_any_drainer_fainted(&events)
-                            || own_drainer_vulnerability_transition
-                            || events
-                                .iter()
-                                .any(|event| matches!(event, Event::ManaScored { .. }));
-                    let classes = if config.enable_child_move_class_coverage {
-                        Self::classify_move_classes(
-                            game,
-                            &simulated_game,
-                            actor_color,
-                            &events,
-                            own_drainer_vulnerable_before,
-                            own_drainer_vulnerable_after,
-                        )
-                    } else {
-                        MoveClassFlags::default()
-                    };
-                    let quiet_reduction_candidate = Self::is_quiet_reduction_candidate(
-                        ordering_efficiency,
-                        tactical_extension_trigger,
-                        classes,
-                    );
-
-                    ChildEvalBundle {
-                        child_hash,
-                        heuristic,
-                        #[cfg(test)]
-                        after_efficiency_snapshot: None,
-                        ordering_efficiency,
-                        #[cfg(test)]
-                        own_drainer_vulnerable_after,
-                        tactical_extension_trigger,
-                        quiet_reduction_candidate,
-                        classes,
-                    }
-                };
-                if crate::models::automove_deadline::cancelled() {
-                    return Vec::new();
-                }
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.ranked_child_states_children_fully_scored += 1;
-                    diagnostics.child_ordering_full_pass_children += 1;
-                    diagnostics.child_ordering_shortlist_children += 1;
-                });
-
-                scored_states.push((
-                    bundle.heuristic,
-                    RankedChildState {
-                        game: simulated_game,
-                        hash: bundle.child_hash,
-                        ordering_efficiency: bundle.ordering_efficiency,
-                        tactical_extension_trigger: bundle.tactical_extension_trigger,
-                        quiet_reduction_candidate: bundle.quiet_reduction_candidate,
-                        classes: bundle.classes,
-                    },
-                ));
-            }
+            scored_states.push((
+                heuristic,
+                RankedChildState {
+                    game: simulated_game,
+                    hash: child_hash,
+                    ordering_efficiency,
+                    tactical_extension_trigger,
+                    quiet_reduction_candidate,
+                    classes,
+                },
+            ));
         }
-
         scored_states.sort_by(|a, b| Self::compare_ranked_child_entries(a, b, maximizing));
 
-        if config.enable_child_move_class_coverage && scored_states.len() >= 3 {
-            Self::enforce_tactical_child_top2(
-                &mut scored_states,
-                maximizing,
-                config.enable_strict_tactical_class_coverage,
-            );
+        if scored_states.len() >= 3 {
+            Self::enforce_tactical_child_top2(&mut scored_states, maximizing, true);
         }
 
         if scored_states.len() > config.node_branch_limit {
@@ -13075,83 +9142,11 @@ impl MonsGameModel {
                 scored_states,
                 config.node_branch_limit,
                 maximizing,
-                config.enable_strict_tactical_class_coverage,
+                true,
             );
         }
 
         scored_states.into_iter().map(|(_, state)| state).collect()
-    }
-
-    fn should_probe_exact_child_progress(game: &MonsGame, color: Color) -> bool {
-        let remaining_moves = (Config::MONS_MOVES_PER_TURN - game.mons_moves_count).max(0);
-        if remaining_moves <= 0 {
-            return false;
-        }
-
-        let approximate = Self::approximate_active_turn_summary(game, color, false);
-        if approximate.safe_supermana_progress
-            || approximate.safe_opponent_mana_progress
-            || approximate.same_turn_score_window_value > 0
-        {
-            return true;
-        }
-
-        let mut drainer_locations = Vec::new();
-        let mut relevant_mana_locations = Vec::new();
-        let mut drainer_carries_relevant_mana = false;
-        let mut has_live_spirit = false;
-
-        for (location, item) in game.board.occupied() {
-            match item {
-                Item::Mon { mon } | Item::MonWithConsumable { mon, .. }
-                    if mon.color == color && !mon.is_fainted() =>
-                {
-                    match mon.kind {
-                        MonKind::Drainer => drainer_locations.push(location),
-                        MonKind::Spirit => has_live_spirit = true,
-                        _ => {}
-                    }
-                }
-                Item::MonWithMana { mon, mana } if mon.color == color && !mon.is_fainted() => {
-                    match mon.kind {
-                        MonKind::Drainer => {
-                            drainer_locations.push(location);
-                            if *mana == Mana::Supermana || *mana == Mana::Regular(color.other()) {
-                                drainer_carries_relevant_mana = true;
-                            }
-                        }
-                        MonKind::Spirit => has_live_spirit = true,
-                        _ => {}
-                    }
-                }
-                Item::Mana { mana }
-                    if *mana == Mana::Supermana || *mana == Mana::Regular(color.other()) =>
-                {
-                    relevant_mana_locations.push(location);
-                }
-                Item::Mon { .. }
-                | Item::MonWithMana { .. }
-                | Item::MonWithConsumable { .. }
-                | Item::Mana { .. }
-                | Item::Consumable { .. } => {}
-            }
-        }
-
-        if drainer_carries_relevant_mana {
-            return true;
-        }
-
-        let geometry_reach = remaining_moves + 2;
-        if drainer_locations.iter().copied().any(|drainer_location| {
-            relevant_mana_locations
-                .iter()
-                .copied()
-                .any(|mana_location| drainer_location.distance(&mana_location) <= geometry_reach)
-        }) {
-            return true;
-        }
-
-        has_live_spirit && !relevant_mana_locations.is_empty()
     }
 
     pub(crate) fn enumerate_legal_transitions(
@@ -13393,7 +9388,7 @@ impl MonsGameModel {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     fn enumerate_legal_inputs(
         game: &MonsGame,
         max_moves: usize,
@@ -13405,44 +9400,6 @@ impl MonsGameModel {
             .collect()
     }
 
-    #[allow(dead_code)]
-    fn enumerate_legal_inputs_with_priority(
-        game: &MonsGame,
-        max_moves: usize,
-        start_options: SuggestedStartInputOptions,
-        priority_locations: &[Location],
-    ) -> Vec<Vec<Input>> {
-        Self::enumerate_legal_transitions_with_priority(
-            game,
-            max_moves,
-            start_options,
-            priority_locations,
-        )
-        .into_iter()
-        .map(|transition| transition.inputs)
-        .collect()
-    }
-
-    #[allow(dead_code)]
-    fn collect_legal_inputs(
-        game: &mut MonsGame,
-        partial_inputs: &mut Vec<Input>,
-        all_inputs: &mut Vec<Vec<Input>>,
-        max_moves: usize,
-        start_options: SuggestedStartInputOptions,
-    ) {
-        let mut transitions = Vec::new();
-        Self::collect_legal_transitions(
-            game,
-            partial_inputs,
-            &mut transitions,
-            max_moves,
-            start_options,
-        );
-        all_inputs.extend(transitions.into_iter().map(|transition| transition.inputs));
-    }
-
-    #[allow(dead_code)]
     pub(crate) fn apply_inputs_for_search(game: &MonsGame, inputs: &[Input]) -> Option<MonsGame> {
         Self::apply_inputs_for_search_with_events(game, inputs)
             .map(|(simulated_game, _)| simulated_game)
@@ -13524,7 +9481,7 @@ impl MonsGameModel {
         let transitions = Self::enumerate_legal_transitions(
             game,
             enum_limit,
-            Self::automove_start_input_options(config),
+            Self::automove_start_input_options(),
         );
         let mut games = Vec::with_capacity(transitions.len());
         for transition in transitions {
@@ -13600,39 +9557,6 @@ impl MonsGameModel {
         false
     }
 
-    fn root_transition_requires_active_turn_exact(
-        events: &[Event],
-        config: AutomoveSearchConfig,
-    ) -> bool {
-        let fast_mode = config.depth <= 2;
-        events.iter().any(|event| match event {
-            Event::MonMove { item, .. } => {
-                matches!(item.mon().map(|mon| mon.kind), Some(MonKind::Spirit))
-                    || (!fast_mode
-                        && matches!(item.mon().map(|mon| mon.kind), Some(MonKind::Drainer)))
-            }
-            Event::ManaMove { .. }
-            | Event::ManaScored { .. }
-            | Event::PickupMana { .. }
-            | Event::SpiritTargetMove { .. }
-            | Event::MonFainted { .. }
-            | Event::MysticAction { .. }
-            | Event::DemonAction { .. }
-            | Event::DemonAdditionalStep { .. }
-            | Event::BombAttack { .. }
-            | Event::BombExplosion { .. }
-            | Event::ManaDropped { .. }
-            | Event::SupermanaBackToBase { .. } => true,
-            Event::UsePotion { .. }
-            | Event::PickupBomb { .. }
-            | Event::PickupPotion { .. }
-            | Event::MonAwake { .. }
-            | Event::NextTurn { .. }
-            | Event::GameOver { .. }
-            | Event::Takeback => false,
-        })
-    }
-
     fn root_transition_requires_exact_lite_progress(events: &[Event]) -> bool {
         events.iter().any(|event| {
             matches!(
@@ -13670,11 +9594,6 @@ impl MonsGameModel {
         events: &[Event],
         config: AutomoveSearchConfig,
     ) -> bool {
-        if config.enable_root_exact_tactics
-            && Self::root_transition_requires_active_turn_exact(events, config)
-        {
-            return true;
-        }
         if !Self::allow_exact_lite_root_analysis(config) {
             return false;
         }
@@ -13692,9 +9611,7 @@ impl MonsGameModel {
         remaining_root_calls: &mut usize,
         remaining_static_calls: &mut usize,
     ) -> AutomoveSearchConfig {
-        if !config.enable_root_exact_tactics
-            && Self::should_use_root_exact_summary_for_transition(transition_events, config)
-        {
+        if Self::should_use_root_exact_summary_for_transition(transition_events, config) {
             if *remaining_root_calls > 0 {
                 *remaining_root_calls = remaining_root_calls.saturating_sub(1);
             } else {
@@ -13702,8 +9619,7 @@ impl MonsGameModel {
             }
         }
 
-        if !config.enable_static_exact_evaluation
-            && Self::allow_exact_lite_static_analysis(config)
+        if Self::allow_exact_lite_static_analysis(config)
             && transition_game.active_color == perspective
         {
             if *remaining_static_calls > 0 {
@@ -13798,47 +9714,6 @@ impl MonsGameModel {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn move_efficiency_delta_from_before_snapshot_with_narrowing(
-        game: &MonsGame,
-        simulated_game: &MonsGame,
-        perspective: Color,
-        events: &[Event],
-        before: MoveEfficiencySnapshot,
-        simulated_state_hash: u64,
-        is_root: bool,
-        apply_backtrack_penalty: bool,
-        apply_root_mana_handoff_guard: bool,
-        include_tactical_exact: bool,
-        include_strategic_exact: bool,
-        root_backtrack_penalty: i32,
-        root_mana_handoff_penalty: i32,
-        enable_tactical_score_window_narrowing: bool,
-    ) -> i32 {
-        let after = Self::move_efficiency_snapshot_uncached_with_hash_and_narrowing(
-            simulated_game,
-            perspective,
-            include_tactical_exact && simulated_game.active_color == perspective,
-            include_strategic_exact,
-            simulated_state_hash,
-            enable_tactical_score_window_narrowing,
-        );
-        Self::move_efficiency_delta_from_before_snapshot_with_after_snapshot(
-            game,
-            simulated_game,
-            perspective,
-            events,
-            before,
-            after,
-            is_root,
-            apply_backtrack_penalty,
-            apply_root_mana_handoff_guard,
-            root_backtrack_penalty,
-            root_mana_handoff_penalty,
-        )
-    }
-
-    #[cfg(test)]
-    #[allow(clippy::too_many_arguments)]
     fn move_efficiency_delta_from_before_snapshot(
         game: &MonsGame,
         simulated_game: &MonsGame,
@@ -13854,21 +9729,25 @@ impl MonsGameModel {
         root_backtrack_penalty: i32,
         root_mana_handoff_penalty: i32,
     ) -> i32 {
-        Self::move_efficiency_delta_from_before_snapshot_with_narrowing(
+        let after = Self::move_efficiency_snapshot_uncached_with_hash(
+            simulated_game,
+            perspective,
+            include_tactical_exact && simulated_game.active_color == perspective,
+            include_strategic_exact,
+            simulated_state_hash,
+        );
+        Self::move_efficiency_delta_from_before_snapshot_with_after_snapshot(
             game,
             simulated_game,
             perspective,
             events,
             before,
-            simulated_state_hash,
+            after,
             is_root,
             apply_backtrack_penalty,
             apply_root_mana_handoff_guard,
-            include_tactical_exact,
-            include_strategic_exact,
             root_backtrack_penalty,
             root_mana_handoff_penalty,
-            false,
         )
     }
 
@@ -14006,15 +9885,6 @@ impl MonsGameModel {
             {
                 delta -= root_backtrack_penalty;
             }
-        } else if SMART_NO_EFFECT_CHILD_PENALTY != 0
-            && Self::is_no_effect_state_transition(game, simulated_game)
-        {
-            delta -= SMART_NO_EFFECT_CHILD_PENALTY;
-        } else if SMART_LOW_IMPACT_CHILD_PENALTY != 0
-            && !Self::has_material_event(events)
-            && delta < 0
-        {
-            delta -= SMART_LOW_IMPACT_CHILD_PENALTY;
         }
 
         delta
@@ -14066,31 +9936,12 @@ impl MonsGameModel {
         )
     }
 
-    #[cfg(test)]
     fn move_efficiency_snapshot_with_hash(
         game: &MonsGame,
         perspective: Color,
         include_tactical_exact: bool,
         include_strategic_exact: bool,
         state_hash: u64,
-    ) -> MoveEfficiencySnapshot {
-        Self::move_efficiency_snapshot_with_hash_and_narrowing(
-            game,
-            perspective,
-            include_tactical_exact,
-            include_strategic_exact,
-            state_hash,
-            false,
-        )
-    }
-
-    fn move_efficiency_snapshot_with_hash_and_narrowing(
-        game: &MonsGame,
-        perspective: Color,
-        include_tactical_exact: bool,
-        include_strategic_exact: bool,
-        state_hash: u64,
-        enable_tactical_score_window_narrowing: bool,
     ) -> MoveEfficiencySnapshot {
         let cache_key = MoveEfficiencySnapshotCacheKey {
             state_hash,
@@ -14114,7 +9965,6 @@ impl MonsGameModel {
             include_tactical_exact,
             include_strategic_exact,
             state_hash,
-            enable_tactical_score_window_narrowing,
         );
 
         if crate::models::automove_deadline::cache_write_allowed() {
@@ -14132,7 +9982,6 @@ impl MonsGameModel {
         snapshot
     }
 
-    #[cfg(test)]
     fn move_efficiency_snapshot_uncached_with_hash(
         game: &MonsGame,
         perspective: Color,
@@ -14140,45 +9989,21 @@ impl MonsGameModel {
         include_strategic_exact: bool,
         state_hash: u64,
     ) -> MoveEfficiencySnapshot {
-        Self::move_efficiency_snapshot_uncached_with_hash_and_narrowing(
-            game,
-            perspective,
-            include_tactical_exact,
-            include_strategic_exact,
-            state_hash,
-            false,
-        )
-    }
-
-    fn move_efficiency_snapshot_uncached_with_hash_and_narrowing(
-        game: &MonsGame,
-        perspective: Color,
-        include_tactical_exact: bool,
-        include_strategic_exact: bool,
-        state_hash: u64,
-        enable_tactical_score_window_narrowing: bool,
-    ) -> MoveEfficiencySnapshot {
         Self::build_move_efficiency_snapshot(
             game,
             perspective,
             include_tactical_exact,
             include_strategic_exact,
             state_hash,
-            enable_tactical_score_window_narrowing,
         )
     }
 
-    fn move_efficiency_tactical_projection_flags(
-        enable_tactical_score_window_narrowing: bool,
-    ) -> u8 {
-        let mut flags = crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS
+    fn move_efficiency_tactical_projection_flags() -> u8 {
+        crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS
             | crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS
             | crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_SPIRIT_SCORE
-            | crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL;
-        if !enable_tactical_score_window_narrowing {
-            flags |= crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW;
-        }
-        flags
+            | crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL
+            | crate::models::automove_exact::EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW
     }
 
     fn build_move_efficiency_snapshot(
@@ -14187,7 +10012,6 @@ impl MonsGameModel {
         include_tactical_exact: bool,
         include_strategic_exact: bool,
         state_hash: u64,
-        enable_tactical_score_window_narrowing: bool,
     ) -> MoveEfficiencySnapshot {
         #[cfg(test)]
         update_turn_engine_selector_diagnostics(|diagnostics| {
@@ -14198,8 +10022,7 @@ impl MonsGameModel {
         let my_summary = strategic.map(|analysis| analysis.color_summary(perspective));
         let opponent_summary =
             strategic.map(|analysis| analysis.color_summary(perspective.other()));
-        let tactical_flags =
-            Self::move_efficiency_tactical_projection_flags(enable_tactical_score_window_narrowing);
+        let tactical_flags = Self::move_efficiency_tactical_projection_flags();
         let my_turn_summary = if include_tactical_exact && game.active_color == perspective {
             crate::models::automove_exact::exact_turn_tactical_projection_with_search_hash(
                 game,
@@ -14501,48 +10324,15 @@ impl MonsGameModel {
         depth: usize,
         search_depth: usize,
         scoring_weights: &'static ScoringWeights,
-        allow_exact_static_evaluation: bool,
-    ) -> i32 {
-        Self::score_state_with_context(
-            game,
-            perspective,
-            depth,
-            search_depth,
-            scoring_weights,
-            allow_exact_static_evaluation,
-            None,
-        )
-    }
-
-    fn score_state_with_context(
-        game: &MonsGame,
-        perspective: Color,
-        depth: usize,
-        search_depth: usize,
-        scoring_weights: &'static ScoringWeights,
-        allow_exact_static_evaluation: bool,
-        scoring_context: Option<&ScoringEvalContext>,
     ) -> i32 {
         if let Some(terminal_score) = Self::terminal_score(game, perspective, depth, search_depth) {
             terminal_score
-        } else if let Some(context) = scoring_context {
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.search_preferability_builds += 1;
-            });
-            evaluate_preferability_with_context(
-                game,
-                perspective,
-                scoring_weights,
-                allow_exact_static_evaluation,
-                context,
-            )
         } else {
             evaluate_preferability_with_weights_and_exact_policy(
                 game,
                 perspective,
                 scoring_weights,
-                allow_exact_static_evaluation,
+                false,
             )
         }
     }
@@ -14722,8 +10512,6 @@ impl MonsGameModel {
                     &mut state.extension_nodes_used,
                     state.extension_node_budget,
                     true,
-                    &mut state.killer_table,
-                    &mut state.history_table,
                     &mut state.quiescence_nodes_used,
                 );
 
@@ -14890,38 +10678,7 @@ impl MonsGameModel {
         )
     }
 
-    fn is_own_drainer_immediately_vulnerable_on_board_with_context(
-        board: &Board,
-        perspective: Color,
-        opponent_to_move: bool,
-        opponent_remaining_moves: i32,
-        opponent_can_use_action: bool,
-        _enhanced: bool,
-        context: &ScoringEvalContext,
-    ) -> bool {
-        let (own_drainer_location, own_drainer_fainted) =
-            Self::own_awake_drainer_location_and_fainted(board, perspective);
-        if own_drainer_fainted {
-            return true;
-        }
-        let Some(own_drainer_location) = own_drainer_location else {
-            return false;
-        };
-
-        if !opponent_to_move || !opponent_can_use_action {
-            return false;
-        }
-        context.can_attack_target_on_board(
-            board,
-            perspective.other(),
-            perspective,
-            own_drainer_location,
-            opponent_remaining_moves.max(0),
-            opponent_can_use_action,
-        )
-    }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     fn is_own_drainer_immediately_vulnerable(
         game: &MonsGame,
         perspective: Color,
@@ -14956,29 +10713,11 @@ impl MonsGameModel {
         )
     }
 
-    fn is_own_drainer_vulnerable_next_turn_with_context(
-        game: &MonsGame,
-        perspective: Color,
-        enhanced: bool,
-        context: &ScoringEvalContext,
-    ) -> bool {
-        Self::is_own_drainer_immediately_vulnerable_on_board_with_context(
-            &game.board,
-            perspective,
-            true,
-            Config::MONS_MOVES_PER_TURN,
-            !game.is_first_turn(),
-            enhanced,
-            context,
-        )
-    }
-
-    fn is_own_drainer_walk_vulnerable_next_turn(
+    pub(crate) fn is_own_drainer_walk_vulnerable_next_turn(
         game: &MonsGame,
         perspective: Color,
         enhanced: bool,
     ) -> bool {
-        let opponent = perspective.other();
         let opponent_can_use_action = !game.is_first_turn();
         if Self::is_own_drainer_immediately_vulnerable_on_board(
             &game.board,
@@ -15000,8 +10739,6 @@ impl MonsGameModel {
         };
         let drainer_angel_protected =
             Self::is_location_guarded_by_angel(&game.board, perspective, drainer_location);
-        let _ = opponent;
-        let _ = enhanced;
         is_drainer_under_walk_threat(
             &game.board,
             perspective,
@@ -15054,7 +10791,6 @@ impl MonsGameModel {
         game_before: &MonsGame,
         root: &RootEvaluation,
         perspective: Color,
-        config: AutomoveSearchConfig,
     ) -> bool {
         root.wins_immediately
             || root.attacks_opponent_drainer
@@ -15062,8 +10798,7 @@ impl MonsGameModel {
                 >= Self::score_for_color(game_before, perspective).saturating_add(2)
             || root.scores_supermana_this_turn
             || root.scores_opponent_mana_this_turn
-            || (config.enable_potion_progress_compensation
-                && !root.own_drainer_vulnerable
+            || (!root.own_drainer_vulnerable
                 && (root.supermana_progress || root.opponent_mana_progress))
     }
 
@@ -15099,24 +10834,9 @@ impl MonsGameModel {
             return candidate_indices;
         }
 
-        let should_filter_post_search = if config.enable_drainer_attack_full_pool {
-            false
-        } else if config.enable_conditional_forced_drainer_attack {
-            let (my_score, opponent_score) = if perspective == Color::White {
-                (game.white_score, game.black_score)
-            } else {
-                (game.black_score, game.white_score)
-            };
-            my_score <= opponent_score + config.conditional_forced_attack_score_margin
-        } else {
-            true
-        };
-
-        if config.enable_forced_drainer_attack
-            && should_filter_post_search
-            && candidate_indices
-                .iter()
-                .any(|index| scored_roots[*index].attacks_opponent_drainer)
+        if candidate_indices
+            .iter()
+            .any(|index| scored_roots[*index].attacks_opponent_drainer)
         {
             candidate_indices.retain(|index| scored_roots[*index].attacks_opponent_drainer);
             forced_attack_applied = true;
@@ -15286,7 +11006,7 @@ impl MonsGameModel {
                             .copied()
                             .filter(|index| !scored_roots[*index].spirit_development)
                             .all(|index| {
-                                Self::pro_v2_spirit_setup_competes_with_non_spirit_root(
+                                Self::current_pro_spirit_setup_competes_with_non_spirit_root(
                                     game,
                                     &scored_roots[spirit_index],
                                     &scored_roots[index],
@@ -15509,7 +11229,7 @@ impl MonsGameModel {
             }
         }
 
-        if config.enable_root_drainer_safety_prefilter && !forced_attack_applied {
+        if !forced_attack_applied {
             let pre_safety_candidate_indices = candidate_indices.clone();
             let best_score = candidate_indices
                 .iter()
@@ -15520,7 +11240,7 @@ impl MonsGameModel {
             let mut recovery_utility_cache =
                 std::collections::HashMap::<usize, Option<TurnEngineUtility>>::new();
             let recovery_setup_indices = if config.enable_turn_engine_selector
-                && matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+                && matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             {
                 candidate_indices
                     .iter()
@@ -15552,7 +11272,7 @@ impl MonsGameModel {
                     !root.own_drainer_vulnerable && root.score + margin >= best_score
                 })
                 .collect::<Vec<_>>();
-            let best_safe_utility = if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            let best_safe_utility = if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && !safer_indices.is_empty()
                 && !recovery_setup_indices.is_empty()
             {
@@ -15581,30 +11301,7 @@ impl MonsGameModel {
                 .max()
                 .unwrap_or(i32::MIN);
             if !safer_indices.is_empty() {
-                if config.enable_walk_threat_prefilter {
-                    let walk_margin = config.root_walk_threat_score_margin.max(0);
-                    let walk_best = safer_indices
-                        .iter()
-                        .map(|index| scored_roots[*index].score)
-                        .max()
-                        .unwrap_or(i32::MIN);
-                    let fully_safe_indices = safer_indices
-                        .iter()
-                        .copied()
-                        .filter(|index| {
-                            let root = &scored_roots[*index];
-                            !root.own_drainer_walk_vulnerable
-                                && root.score + walk_margin >= walk_best
-                        })
-                        .collect::<Vec<_>>();
-                    if !fully_safe_indices.is_empty() {
-                        candidate_indices = fully_safe_indices;
-                    } else {
-                        candidate_indices = safer_indices;
-                    }
-                } else {
-                    candidate_indices = safer_indices;
-                }
+                candidate_indices = safer_indices;
                 for index in recovery_setup_indices {
                     let root = &scored_roots[index];
                     let recovery_head_signal = root.attacks_opponent_drainer
@@ -15647,7 +11344,7 @@ impl MonsGameModel {
                         candidate_indices.push(index);
                     }
                 }
-                if let Some(index) = Self::pro_v2_safe_progress_reentry_after_safety_prefilter(
+                if let Some(index) = Self::current_pro_safe_progress_reentry_after_safety_prefilter(
                     game,
                     scored_roots,
                     pre_safety_candidate_indices.as_slice(),
@@ -15762,8 +11459,7 @@ impl MonsGameModel {
             }
         }
 
-        if config.enable_mana_start_mix_with_potion_actions
-            && !forced_attack_applied
+        if !forced_attack_applied
             && candidate_indices.len() > 1
             && Self::should_prefer_potion_takeback_lines(game, perspective)
         {
@@ -15811,12 +11507,7 @@ impl MonsGameModel {
                                 return true;
                             }
                             !Self::root_spends_potion(game, root, perspective)
-                                || Self::root_potion_spend_compensated(
-                                    game,
-                                    root,
-                                    perspective,
-                                    config,
-                                )
+                                || Self::root_potion_spend_compensated(game, root, perspective)
                         })
                         .collect::<Vec<_>>();
                     if !strict_indices.is_empty() {
@@ -15826,7 +11517,7 @@ impl MonsGameModel {
             }
         }
 
-        if config.enable_strict_anti_help_filter && candidate_indices.len() > 1 {
+        if candidate_indices.len() > 1 {
             let best_score = candidate_indices
                 .iter()
                 .map(|index| scored_roots[*index].score)
@@ -15878,7 +11569,7 @@ impl MonsGameModel {
             }
         }
 
-        if let Some(index) = Self::pro_v2_plain_spirit_cluster_progress_reentry(
+        if let Some(index) = Self::current_pro_plain_spirit_cluster_progress_reentry(
             game,
             scored_roots,
             candidate_indices.as_slice(),
@@ -15891,7 +11582,7 @@ impl MonsGameModel {
                     .sort_by(|a, b| Self::compare_ranked_scored_root_indices(scored_roots, *a, *b));
             }
         }
-        if let Some(index) = Self::pro_v2_plain_spirit_cluster_risky_recovery_reentry(
+        if let Some(index) = Self::current_pro_plain_spirit_cluster_risky_recovery_reentry(
             game,
             scored_roots,
             candidate_indices.as_slice(),
@@ -15923,11 +11614,11 @@ impl MonsGameModel {
         best_index
     }
 
-    fn pro_v2_root_advisor_entry_from_root_move(
+    fn current_pro_root_advisor_entry_from_root_move(
         root: &ScoredRootMove,
-        reason: ProV2RootAdvisorReasonCode,
-    ) -> ProV2RootAdvisorEntry {
-        ProV2RootAdvisorEntry {
+        reason: CurrentProRootAdvisorReasonCode,
+    ) -> CurrentProRootAdvisorEntry {
+        CurrentProRootAdvisorEntry {
             inputs: root.inputs.clone(),
             family: Self::turn_engine_root_move_family(root),
             root_rank: root.root_rank,
@@ -15935,11 +11626,11 @@ impl MonsGameModel {
         }
     }
 
-    fn pro_v2_root_advisor_entry_from_root_evaluation(
+    fn current_pro_root_advisor_entry_from_root_evaluation(
         root: &RootEvaluation,
-        reason: ProV2RootAdvisorReasonCode,
-    ) -> ProV2RootAdvisorEntry {
-        ProV2RootAdvisorEntry {
+        reason: CurrentProRootAdvisorReasonCode,
+    ) -> CurrentProRootAdvisorEntry {
+        CurrentProRootAdvisorEntry {
             inputs: root.inputs.clone(),
             family: Self::turn_engine_root_evaluation_family(root),
             root_rank: root.root_rank,
@@ -15947,9 +11638,9 @@ impl MonsGameModel {
         }
     }
 
-    fn pro_v2_root_advisor_push_unique(
-        entries: &mut Vec<ProV2RootAdvisorEntry>,
-        entry: ProV2RootAdvisorEntry,
+    fn current_pro_root_advisor_push_unique(
+        entries: &mut Vec<CurrentProRootAdvisorEntry>,
+        entry: CurrentProRootAdvisorEntry,
     ) {
         if !entries
             .iter()
@@ -15959,13 +11650,13 @@ impl MonsGameModel {
         }
     }
 
-    fn is_pro_v2_black_plain_spirit_followup_setup_pair(
+    fn is_current_pro_black_plain_spirit_followup_setup_pair(
         game: &MonsGame,
         plain: &RootEvaluation,
         setup: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && game.active_color == Color::Black
             && game.turn_number <= 4
             && Self::is_plain_spirit_development_root(plain)
@@ -15998,7 +11689,7 @@ impl MonsGameModel {
             && !setup.opponent_mana_progress
     }
 
-    fn is_pro_v2_non_concrete_mana_window_root(root: &RootEvaluation) -> bool {
+    fn is_current_pro_non_concrete_mana_window_root(root: &RootEvaluation) -> bool {
         Self::turn_engine_root_evaluation_family(root) == TurnPlanFamily::ManaTempo
             && root.same_turn_score_window_value > 0
             && root.same_turn_score_window_value <= 1
@@ -16012,13 +11703,13 @@ impl MonsGameModel {
             && !root.has_roundtrip
     }
 
-    fn is_pro_v2_black_spirit_progress_window_pair(
+    fn is_current_pro_black_spirit_progress_window_pair(
         game: &MonsGame,
         spirit: &RootEvaluation,
         mana: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && game.active_color == Color::Black
             && game.turn_number <= 4
             && Self::turn_engine_root_evaluation_family(spirit) == TurnPlanFamily::SpiritImpact
@@ -16033,18 +11724,18 @@ impl MonsGameModel {
             && !spirit.safe_opponent_mana_pickup_now
             && !spirit.mana_handoff_to_opponent
             && !spirit.has_roundtrip
-            && Self::is_pro_v2_non_concrete_mana_window_root(mana)
+            && Self::is_current_pro_non_concrete_mana_window_root(mana)
             && spirit.own_drainer_vulnerable == mana.own_drainer_vulnerable
             && spirit.own_drainer_walk_vulnerable == mana.own_drainer_walk_vulnerable
     }
 
-    fn is_pro_v2_white_spirit_progress_window_pair(
+    fn is_current_pro_white_spirit_progress_window_pair(
         game: &MonsGame,
         spirit: &RootEvaluation,
         mana: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && game.active_color == Color::White
             && game.turn_number >= 5
             && game.mons_moves_count == 0
@@ -16062,12 +11753,12 @@ impl MonsGameModel {
             && !spirit.safe_opponent_mana_pickup_now
             && !spirit.mana_handoff_to_opponent
             && !spirit.has_roundtrip
-            && Self::is_pro_v2_non_concrete_mana_window_root(mana)
+            && Self::is_current_pro_non_concrete_mana_window_root(mana)
             && spirit.own_drainer_vulnerable == mana.own_drainer_vulnerable
             && spirit.own_drainer_walk_vulnerable == mana.own_drainer_walk_vulnerable
     }
 
-    fn pro_v2_black_plain_spirit_followup_representative_competes(
+    fn current_pro_black_plain_spirit_followup_representative_competes(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         shortlist: &[usize],
@@ -16088,15 +11779,17 @@ impl MonsGameModel {
         let mut plain_competes = false;
         for index in shortlist.iter().copied() {
             let setup = &scored_roots[index];
-            if !Self::is_pro_v2_black_plain_spirit_followup_setup_pair(game, plain, setup, config) {
+            if !Self::is_current_pro_black_plain_spirit_followup_setup_pair(
+                game, plain, setup, config,
+            ) {
                 continue;
             }
 
             let plain_followup = *followup_scores.entry(plain_index).or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&plain.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&plain.game, perspective, config)
             });
             let setup_followup = *followup_scores.entry(index).or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&setup.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&setup.game, perspective, config)
             });
 
             let setup_has_close_top_seed = setup.root_rank <= plain.root_rank
@@ -16115,22 +11808,22 @@ impl MonsGameModel {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn pro_v2_root_advisor_should_compete_in_approval_shortlist(
+    fn current_pro_root_advisor_should_compete_in_approval_shortlist(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         ordered_shortlist: &[usize],
         index: usize,
         root: &RootEvaluation,
-        reason: ProV2RootAdvisorReasonCode,
+        reason: CurrentProRootAdvisorReasonCode,
         perspective: Color,
         config: AutomoveSearchConfig,
         followup_scores: &mut std::collections::HashMap<usize, i32>,
     ) -> bool {
         match reason {
-            ProV2RootAdvisorReasonCode::PreserveSpiritRepresentative => {
+            CurrentProRootAdvisorReasonCode::PreserveSpiritRepresentative => {
                 root.spirit_same_turn_score_setup_now
                     || root.spirit_own_mana_setup_now
-                    || Self::pro_v2_black_plain_spirit_followup_representative_competes(
+                    || Self::current_pro_black_plain_spirit_followup_representative_competes(
                         game,
                         scored_roots,
                         ordered_shortlist,
@@ -16144,7 +11837,7 @@ impl MonsGameModel {
         }
     }
 
-    fn pro_v2_root_advisor_black_family_competition_override(
+    fn current_pro_root_advisor_black_family_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         reply_risk_shortlist: &[usize],
@@ -16153,7 +11846,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || scored_roots.is_empty()
         {
@@ -16175,7 +11868,8 @@ impl MonsGameModel {
         {
             return None;
         }
-        let approved_non_concrete_window = Self::is_pro_v2_non_concrete_mana_window_root(approved);
+        let approved_non_concrete_window =
+            Self::is_current_pro_non_concrete_mana_window_root(approved);
         if approved.wins_immediately
             || approved.attacks_opponent_drainer
             || (approved.same_turn_score_window_value > 0 && !approved_non_concrete_window)
@@ -16277,7 +11971,7 @@ impl MonsGameModel {
                 && progress_better;
             let black_spirit_progress_window_reply_override = spirit_progress_family
                 && approved_non_concrete_window
-                && Self::is_pro_v2_black_spirit_progress_window_pair(
+                && Self::is_current_pro_black_spirit_progress_window_pair(
                     game, challenger, approved, config,
                 )
                 && challenger.root_rank <= approved.root_rank.saturating_add(8)
@@ -16301,7 +11995,7 @@ impl MonsGameModel {
                         });
                     let challenger_followup =
                         *spirit_followup_scores.entry(index).or_insert_with(|| {
-                            Self::pro_v2_spirit_followup_floor_score(
+                            Self::current_pro_spirit_followup_floor_score(
                                 &challenger.game,
                                 perspective,
                                 config,
@@ -16310,7 +12004,7 @@ impl MonsGameModel {
                     let approved_followup = *spirit_followup_scores
                         .entry(approved_index)
                         .or_insert_with(|| {
-                            Self::pro_v2_spirit_followup_floor_score(
+                            Self::current_pro_spirit_followup_floor_score(
                                 &approved.game,
                                 perspective,
                                 config,
@@ -16326,8 +12020,10 @@ impl MonsGameModel {
                             >= approved_snapshot.worst_reply_score
                         && challenger_followup.saturating_add(32) >= approved_followup
                 };
-            if !Self::pro_v2_root_advisor_utility_competes(challenger_utility, approved_utility)
-                && !early_black_progress_score_override
+            if !Self::current_pro_root_advisor_utility_competes(
+                challenger_utility,
+                approved_utility,
+            ) && !early_black_progress_score_override
                 && !black_spirit_progress_window_reply_override
             {
                 continue;
@@ -16343,7 +12039,7 @@ impl MonsGameModel {
                 continue;
             }
             let spirit_setup_competes = concrete_spirit_setup_allowed
-                && Self::pro_v2_spirit_setup_competes_with_non_spirit_root(
+                && Self::current_pro_spirit_setup_competes_with_non_spirit_root(
                     game,
                     challenger,
                     approved,
@@ -16379,7 +12075,7 @@ impl MonsGameModel {
                 let mut qualifying_plain_indices = Vec::new();
                 for plain_index in reply_risk_shortlist.iter().copied() {
                     if plain_index == index
-                        || !Self::is_pro_v2_black_plain_spirit_followup_setup_pair(
+                        || !Self::is_current_pro_black_plain_spirit_followup_setup_pair(
                             game,
                             &scored_roots[plain_index],
                             challenger,
@@ -16398,7 +12094,7 @@ impl MonsGameModel {
                         )
                     });
                     if matches!(
-                        Self::pro_v2_black_plain_spirit_followup_reply_order(
+                        Self::current_pro_black_plain_spirit_followup_reply_order(
                             game,
                             scored_roots,
                             plain_index,
@@ -16436,7 +12132,7 @@ impl MonsGameModel {
                         });
                         let left_followup =
                             *spirit_followup_scores.entry(*left).or_insert_with(|| {
-                                Self::pro_v2_spirit_followup_floor_score(
+                                Self::current_pro_spirit_followup_floor_score(
                                     &scored_roots[*left].game,
                                     perspective,
                                     config,
@@ -16444,7 +12140,7 @@ impl MonsGameModel {
                             });
                         let right_followup =
                             *spirit_followup_scores.entry(*right).or_insert_with(|| {
-                                Self::pro_v2_spirit_followup_floor_score(
+                                Self::current_pro_spirit_followup_floor_score(
                                     &scored_roots[*right].game,
                                     perspective,
                                     config,
@@ -16473,14 +12169,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_opening_setup_sibling_override(
+    fn current_pro_root_advisor_black_opening_setup_sibling_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number > 2
             || !game.player_can_use_action()
@@ -16546,14 +12242,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_early_safe_mana_followup_override(
+    fn current_pro_root_advisor_black_early_safe_mana_followup_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 2
             || game.mons_moves_count < 2
@@ -16636,14 +12332,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_early_plain_spirit_followup_override(
+    fn current_pro_root_advisor_black_early_plain_spirit_followup_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 2
             || game.mons_moves_count > 1
@@ -16733,14 +12429,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_turn_four_vulnerable_progress_mana_override(
+    fn current_pro_root_advisor_black_turn_four_vulnerable_progress_mana_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 4
             || game.mons_moves_count == 0
@@ -16813,14 +12509,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_turn_six_attack_vulnerable_progress_mana_override(
+    fn current_pro_root_advisor_black_turn_six_attack_vulnerable_progress_mana_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 6
             || game.mons_moves_count != 0
@@ -16901,14 +12597,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_turn_four_setup_cluster_override(
+    fn current_pro_root_advisor_black_turn_four_setup_cluster_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 4
             || game.mons_moves_count == 0
@@ -16981,14 +12677,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_early_same_lane_higher_score_override(
+    fn current_pro_root_advisor_early_same_lane_higher_score_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !game.player_can_move_mana()
             || scored_roots.is_empty()
         {
@@ -17080,14 +12776,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_turn_five_weak_window_setup_override(
+    fn current_pro_root_advisor_white_turn_five_weak_window_setup_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 5
             || game.mons_moves_count != 0
@@ -17171,7 +12867,7 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_setup_progress_competition_override(
+    fn current_pro_root_advisor_black_setup_progress_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -17179,7 +12875,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 6
             || game.mons_moves_count != 0
@@ -17235,7 +12931,7 @@ impl MonsGameModel {
             TurnPlanFamily::SpiritImpact,
         );
         let approved_followup =
-            Self::pro_v2_spirit_followup_floor_score(&approved.game, perspective, config);
+            Self::current_pro_spirit_followup_floor_score(&approved.game, perspective, config);
         let exact_context =
             crate::models::automove_exact::exact_opportunity_context(game, game.active_color);
         let weak_window_context = exact_context.delta.same_turn_score_window_value <= 1
@@ -17295,11 +12991,12 @@ impl MonsGameModel {
                 )
             });
             let challenger_followup = *followup_scores.entry(index).or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&challenger.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&challenger.game, perspective, config)
             });
-            let utility_competes =
-                Self::pro_v2_root_advisor_utility_competes(challenger_utility, approved_utility)
-                    || Self::root_progress_or_setup_better(challenger, approved);
+            let utility_competes = Self::current_pro_root_advisor_utility_competes(
+                challenger_utility,
+                approved_utility,
+            ) || Self::root_progress_or_setup_better(challenger, approved);
             let weak_context_competes = weak_window_context
                 && challenger.spirit_setup_gain > approved.spirit_setup_gain
                 && challenger.score >= approved.score.saturating_sub(512);
@@ -17339,7 +13036,7 @@ impl MonsGameModel {
                         });
                     let current_followup =
                         *followup_scores.entry(current_best).or_insert_with(|| {
-                            Self::pro_v2_spirit_followup_floor_score(
+                            Self::current_pro_spirit_followup_floor_score(
                                 &current_root.game,
                                 perspective,
                                 config,
@@ -17389,14 +13086,14 @@ impl MonsGameModel {
         best_index
     }
 
-    fn pro_v2_root_advisor_black_plain_spirit_setup_competition_override(
+    fn current_pro_root_advisor_black_plain_spirit_setup_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 6
             || game.mons_moves_count != 0
@@ -17482,14 +13179,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_no_action_progress_override(
+    fn current_pro_root_advisor_black_no_action_progress_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 6
             || game.mons_moves_count != 0
@@ -17565,14 +13262,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_no_action_mana_sibling_override(
+    fn current_pro_root_advisor_black_no_action_mana_sibling_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 6
             || game.mons_moves_count != 0
@@ -17649,14 +13346,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_turn_four_window_mana_sibling_override(
+    fn current_pro_root_advisor_black_turn_four_window_mana_sibling_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 4
             || game.mons_moves_count != 0
@@ -17727,26 +13424,26 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_legacy_alignment_override(
+    fn current_pro_root_advisor_black_baseline_alignment_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
-        legacy_index: usize,
+        baseline_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
-            || approved_index == legacy_index
-            || !selection_indices.contains(&legacy_index)
+            || approved_index == baseline_index
+            || !selection_indices.contains(&baseline_index)
         {
             return None;
         }
 
         let approved = scored_roots.get(approved_index)?;
-        let legacy = scored_roots.get(legacy_index)?;
+        let baseline = scored_roots.get(baseline_index)?;
         let approved_family = Self::turn_engine_root_evaluation_family(approved);
-        let legacy_family = Self::turn_engine_root_evaluation_family(legacy);
+        let baseline_family = Self::turn_engine_root_evaluation_family(baseline);
         let exact_context =
             crate::models::automove_exact::exact_opportunity_context(game, game.active_color);
         let approved_non_tactical = !approved.wins_immediately
@@ -17757,15 +13454,15 @@ impl MonsGameModel {
             && !approved.safe_opponent_mana_pickup_now
             && !approved.mana_handoff_to_opponent
             && !approved.has_roundtrip;
-        let legacy_non_tactical = !legacy.wins_immediately
-            && !legacy.attacks_opponent_drainer
-            && !legacy.scores_supermana_this_turn
-            && !legacy.scores_opponent_mana_this_turn
-            && !legacy.safe_supermana_pickup_now
-            && !legacy.safe_opponent_mana_pickup_now
-            && !legacy.mana_handoff_to_opponent
-            && !legacy.has_roundtrip;
-        let weak_black_plain_spirit_legacy_mana = game.turn_number >= 6
+        let baseline_non_tactical = !baseline.wins_immediately
+            && !baseline.attacks_opponent_drainer
+            && !baseline.scores_supermana_this_turn
+            && !baseline.scores_opponent_mana_this_turn
+            && !baseline.safe_supermana_pickup_now
+            && !baseline.safe_opponent_mana_pickup_now
+            && !baseline.mana_handoff_to_opponent
+            && !baseline.has_roundtrip;
+        let weak_black_plain_spirit_baseline_mana = game.turn_number >= 6
             && game.mons_moves_count >= 2
             && game.player_can_use_action()
             && game.player_can_move_mana()
@@ -17773,19 +13470,19 @@ impl MonsGameModel {
             && exact_context.delta.opponent_window_deny_gain == 0
             && !exact_context.delta.drainer_attack_available
             && approved_family == TurnPlanFamily::SpiritImpact
-            && legacy_family == TurnPlanFamily::ManaTempo
+            && baseline_family == TurnPlanFamily::ManaTempo
             && Self::is_plain_spirit_development_root(approved)
             && !Self::turn_engine_root_evaluation_has_progress_surface(approved)
             && approved_non_tactical
-            && legacy_non_tactical
+            && baseline_non_tactical
             && approved.own_drainer_vulnerable
-            && legacy.own_drainer_vulnerable
-            && legacy.score >= approved.score;
-        if weak_black_plain_spirit_legacy_mana {
-            return Some(legacy_index);
+            && baseline.own_drainer_vulnerable
+            && baseline.score >= approved.score;
+        if weak_black_plain_spirit_baseline_mana {
+            return Some(baseline_index);
         }
 
-        let early_black_setup_branch_legacy_spirit = game.turn_number == 2
+        let early_black_setup_branch_baseline_spirit = game.turn_number == 2
             && game.mons_moves_count >= 2
             && game.player_can_use_action()
             && game.player_can_move_mana()
@@ -17793,28 +13490,28 @@ impl MonsGameModel {
             && exact_context.delta.opponent_window_deny_gain == 0
             && !exact_context.delta.drainer_attack_available
             && approved_family == TurnPlanFamily::SpiritImpact
-            && legacy_family == TurnPlanFamily::SpiritImpact
+            && baseline_family == TurnPlanFamily::SpiritImpact
             && approved_non_tactical
-            && legacy_non_tactical
+            && baseline_non_tactical
             && approved.spirit_own_mana_setup_now
-            && legacy.spirit_own_mana_setup_now
+            && baseline.spirit_own_mana_setup_now
             && !approved.spirit_same_turn_score_setup_now
-            && !legacy.spirit_same_turn_score_setup_now
+            && !baseline.spirit_same_turn_score_setup_now
             && !Self::turn_engine_root_evaluation_is_unsafe(approved)
-            && !Self::turn_engine_root_evaluation_is_unsafe(legacy)
-            && approved.inputs.first() == legacy.inputs.first()
-            && approved.spirit_setup_gain == legacy.spirit_setup_gain
-            && approved.safe_supermana_progress_steps == legacy.safe_supermana_progress_steps
+            && !Self::turn_engine_root_evaluation_is_unsafe(baseline)
+            && approved.inputs.first() == baseline.inputs.first()
+            && approved.spirit_setup_gain == baseline.spirit_setup_gain
+            && approved.safe_supermana_progress_steps == baseline.safe_supermana_progress_steps
             && approved.safe_opponent_mana_progress_steps
-                == legacy.safe_opponent_mana_progress_steps
-            && approved.score == legacy.score
-            && legacy.root_rank < approved.root_rank
-            && approved.root_rank.abs_diff(legacy.root_rank) <= 2;
-        if early_black_setup_branch_legacy_spirit {
-            return Some(legacy_index);
+                == baseline.safe_opponent_mana_progress_steps
+            && approved.score == baseline.score
+            && baseline.root_rank < approved.root_rank
+            && approved.root_rank.abs_diff(baseline.root_rank) <= 2;
+        if early_black_setup_branch_baseline_spirit {
+            return Some(baseline_index);
         }
 
-        let weak_black_no_action_window_legacy_mana = game.turn_number >= 4
+        let weak_black_no_action_window_baseline_mana = game.turn_number >= 4
             && game.mons_moves_count == 0
             && !game.player_can_use_action()
             && game.player_can_move_mana()
@@ -17823,25 +13520,25 @@ impl MonsGameModel {
             && (exact_context.delta.same_turn_score_window_value > 0
                 || exact_context.delta.opponent_window_deny_gain > 0)
             && approved_family == TurnPlanFamily::ManaTempo
-            && legacy_family == TurnPlanFamily::ManaTempo
+            && baseline_family == TurnPlanFamily::ManaTempo
             && approved_non_tactical
-            && legacy_non_tactical
-            && approved.same_turn_score_window_value == legacy.same_turn_score_window_value
-            && approved.own_drainer_vulnerable == legacy.own_drainer_vulnerable
-            && approved.root_rank < legacy.root_rank
-            && approved.score >= legacy.score
-            && legacy.score_path_best_steps > approved.score_path_best_steps;
-        weak_black_no_action_window_legacy_mana.then_some(legacy_index)
+            && baseline_non_tactical
+            && approved.same_turn_score_window_value == baseline.same_turn_score_window_value
+            && approved.own_drainer_vulnerable == baseline.own_drainer_vulnerable
+            && approved.root_rank < baseline.root_rank
+            && approved.score >= baseline.score
+            && baseline.score_path_best_steps > approved.score_path_best_steps;
+        weak_black_no_action_window_baseline_mana.then_some(baseline_index)
     }
 
-    fn pro_v2_root_advisor_black_turn_start_guarded_legacy_mana_override(
+    fn current_pro_root_advisor_black_turn_start_guarded_baseline_mana_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 6
             || game.mons_moves_count != 0
@@ -17876,41 +13573,41 @@ impl MonsGameModel {
             return None;
         }
 
-        let mut guarded_legacy_config = config;
-        guarded_legacy_config.turn_engine_mode = TurnEngineMode::ProV1;
-        let legacy_inputs = Self::pick_root_move_with_exploration_from_candidate_indices(
+        let mut guarded_baseline_config = config;
+        guarded_baseline_config.turn_engine_mode = TurnEngineMode::ProV1;
+        let baseline_inputs = Self::pick_root_move_with_exploration_from_candidate_indices(
             game,
             scored_roots,
             candidate_indices,
             game.active_color,
-            guarded_legacy_config,
+            guarded_baseline_config,
         );
-        let legacy_index = scored_roots
+        let baseline_index = scored_roots
             .iter()
-            .position(|root| root.inputs == legacy_inputs)?;
-        if legacy_index == approved_index || !candidate_indices.contains(&legacy_index) {
+            .position(|root| root.inputs == baseline_inputs)?;
+        if baseline_index == approved_index || !candidate_indices.contains(&baseline_index) {
             return None;
         }
 
-        let legacy = scored_roots.get(legacy_index)?;
-        let legacy_family = Self::turn_engine_root_evaluation_family(legacy);
-        let legacy_non_tactical = !legacy.wins_immediately
-            && !legacy.attacks_opponent_drainer
-            && !legacy.scores_supermana_this_turn
-            && !legacy.scores_opponent_mana_this_turn
-            && !legacy.safe_supermana_pickup_now
-            && !legacy.safe_opponent_mana_pickup_now
-            && !legacy.mana_handoff_to_opponent
-            && !legacy.has_roundtrip;
-        if legacy_family != TurnPlanFamily::ManaTempo
-            || !legacy_non_tactical
-            || !legacy.own_drainer_vulnerable
-            || approved.own_drainer_walk_vulnerable != legacy.own_drainer_walk_vulnerable
-            || approved.safe_supermana_progress_steps != legacy.safe_supermana_progress_steps
+        let baseline = scored_roots.get(baseline_index)?;
+        let baseline_family = Self::turn_engine_root_evaluation_family(baseline);
+        let baseline_non_tactical = !baseline.wins_immediately
+            && !baseline.attacks_opponent_drainer
+            && !baseline.scores_supermana_this_turn
+            && !baseline.scores_opponent_mana_this_turn
+            && !baseline.safe_supermana_pickup_now
+            && !baseline.safe_opponent_mana_pickup_now
+            && !baseline.mana_handoff_to_opponent
+            && !baseline.has_roundtrip;
+        if baseline_family != TurnPlanFamily::ManaTempo
+            || !baseline_non_tactical
+            || !baseline.own_drainer_vulnerable
+            || approved.own_drainer_walk_vulnerable != baseline.own_drainer_walk_vulnerable
+            || approved.safe_supermana_progress_steps != baseline.safe_supermana_progress_steps
             || approved.safe_opponent_mana_progress_steps
-                != legacy.safe_opponent_mana_progress_steps
-            || approved.score_path_best_steps != legacy.score_path_best_steps
-            || legacy.score < approved.score.saturating_add(256)
+                != baseline.safe_opponent_mana_progress_steps
+            || approved.score_path_best_steps != baseline.score_path_best_steps
+            || baseline.score < approved.score.saturating_add(256)
         {
             return None;
         }
@@ -17918,41 +13615,41 @@ impl MonsGameModel {
         let reply_limit = config.root_reply_risk_reply_limit.clamp(1, 24);
         let approved_snapshot =
             Self::root_reply_risk_snapshot(&approved.game, game.active_color, config, reply_limit);
-        let legacy_snapshot =
-            Self::root_reply_risk_snapshot(&legacy.game, game.active_color, config, reply_limit);
+        let baseline_snapshot =
+            Self::root_reply_risk_snapshot(&baseline.game, game.active_color, config, reply_limit);
         if approved_snapshot.allows_immediate_opponent_win
-            || legacy_snapshot.allows_immediate_opponent_win
+            || baseline_snapshot.allows_immediate_opponent_win
             || approved_snapshot.opponent_reaches_match_point
-            || legacy_snapshot.opponent_reaches_match_point
-            || legacy_snapshot.worst_reply_score
+            || baseline_snapshot.opponent_reaches_match_point
+            || baseline_snapshot.worst_reply_score
                 < approved_snapshot.worst_reply_score.saturating_add(32)
         {
             return None;
         }
 
-        Some(legacy_index)
+        Some(baseline_index)
     }
 
-    fn pro_v2_root_advisor_white_turn_three_legacy_alignment_override(
+    fn current_pro_root_advisor_white_turn_three_baseline_alignment_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
-        legacy_index: usize,
+        baseline_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
-            || approved_index == legacy_index
+            || approved_index == baseline_index
         {
             return None;
         }
 
         let approved = scored_roots.get(approved_index)?;
-        let legacy = scored_roots.get(legacy_index)?;
+        let baseline = scored_roots.get(baseline_index)?;
         let approved_family = Self::turn_engine_root_evaluation_family(approved);
-        let legacy_family = Self::turn_engine_root_evaluation_family(legacy);
+        let baseline_family = Self::turn_engine_root_evaluation_family(baseline);
         let exact_context =
             crate::models::automove_exact::exact_opportunity_context(game, game.active_color);
         let approved_non_tactical = !approved.wins_immediately
@@ -17963,59 +13660,59 @@ impl MonsGameModel {
             && !approved.safe_opponent_mana_pickup_now
             && !approved.mana_handoff_to_opponent
             && !approved.has_roundtrip;
-        let legacy_non_tactical = !legacy.wins_immediately
-            && !legacy.attacks_opponent_drainer
-            && !legacy.scores_supermana_this_turn
-            && !legacy.scores_opponent_mana_this_turn
-            && !legacy.safe_supermana_pickup_now
-            && !legacy.safe_opponent_mana_pickup_now
-            && !legacy.mana_handoff_to_opponent
-            && !legacy.has_roundtrip;
+        let baseline_non_tactical = !baseline.wins_immediately
+            && !baseline.attacks_opponent_drainer
+            && !baseline.scores_supermana_this_turn
+            && !baseline.scores_opponent_mana_this_turn
+            && !baseline.safe_supermana_pickup_now
+            && !baseline.safe_opponent_mana_pickup_now
+            && !baseline.mana_handoff_to_opponent
+            && !baseline.has_roundtrip;
 
-        let white_no_action_split_legacy_mana = game.mons_moves_count >= 3
+        let white_no_action_split_baseline_mana = game.mons_moves_count >= 3
             && !game.player_can_use_action()
             && game.player_can_move_mana()
-            && selection_indices.contains(&legacy_index)
+            && selection_indices.contains(&baseline_index)
             && exact_context.delta.same_turn_score_window_value == 0
             && exact_context.delta.opponent_window_deny_gain == 0
             && !exact_context.delta.drainer_attack_available
             && approved_family == TurnPlanFamily::ManaTempo
-            && legacy_family == TurnPlanFamily::ManaTempo
+            && baseline_family == TurnPlanFamily::ManaTempo
             && approved_non_tactical
-            && legacy_non_tactical
+            && baseline_non_tactical
             && !approved.spirit_development
-            && !legacy.spirit_development
+            && !baseline.spirit_development
             && !approved.spirit_same_turn_score_setup_now
-            && !legacy.spirit_same_turn_score_setup_now
+            && !baseline.spirit_same_turn_score_setup_now
             && !approved.spirit_own_mana_setup_now
-            && !legacy.spirit_own_mana_setup_now
+            && !baseline.spirit_own_mana_setup_now
             && !approved.own_drainer_vulnerable
-            && !legacy.own_drainer_vulnerable
+            && !baseline.own_drainer_vulnerable
             && !approved.own_drainer_walk_vulnerable
-            && !legacy.own_drainer_walk_vulnerable
-            && approved.safe_supermana_progress_steps == legacy.safe_supermana_progress_steps
+            && !baseline.own_drainer_walk_vulnerable
+            && approved.safe_supermana_progress_steps == baseline.safe_supermana_progress_steps
             && approved.safe_opponent_mana_progress_steps
-                == legacy.safe_opponent_mana_progress_steps
-            && approved.score_path_best_steps == legacy.score_path_best_steps
-            && approved.spirit_setup_gain == legacy.spirit_setup_gain
-            && legacy.score >= approved.score.saturating_add(16)
-            && legacy.root_rank >= approved.root_rank.saturating_add(2)
-            && legacy.root_rank <= approved.root_rank.saturating_add(4);
-        if white_no_action_split_legacy_mana {
-            return Some(legacy_index);
+                == baseline.safe_opponent_mana_progress_steps
+            && approved.score_path_best_steps == baseline.score_path_best_steps
+            && approved.spirit_setup_gain == baseline.spirit_setup_gain
+            && baseline.score >= approved.score.saturating_add(16)
+            && baseline.root_rank >= approved.root_rank.saturating_add(2)
+            && baseline.root_rank <= approved.root_rank.saturating_add(4);
+        if white_no_action_split_baseline_mana {
+            return Some(baseline_index);
         }
 
         None
     }
 
-    fn pro_v2_root_advisor_white_turn_three_attack_bridge_escape(
+    fn current_pro_root_advisor_white_turn_three_attack_bridge_escape(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || selection_indices.len() != 1
@@ -18092,7 +13789,7 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_white_mana_competition_override(
+    fn current_pro_root_advisor_white_mana_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -18100,7 +13797,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count < 3
@@ -18148,7 +13845,7 @@ impl MonsGameModel {
             }
             let challenger = &scored_roots[index];
             let same_lane_near_best =
-                Self::is_pro_v2_white_mana_sibling_pair(challenger, approved, config)
+                Self::is_current_pro_white_mana_sibling_pair(challenger, approved, config)
                     && approved.score.saturating_sub(challenger.score)
                         <= WHITE_MANA_SIBLING_SCORE_GAP_MAX
                     && approved.root_rank.abs_diff(challenger.root_rank)
@@ -18196,7 +13893,7 @@ impl MonsGameModel {
                 (Some(current_index), Some(current_utility)) => {
                     let current = &scored_roots[current_index];
                     let current_same_lane_near_best =
-                        Self::is_pro_v2_white_mana_sibling_pair(current, approved, config)
+                        Self::is_current_pro_white_mana_sibling_pair(current, approved, config)
                             && approved.score.saturating_sub(current.score)
                                 <= WHITE_MANA_SIBLING_SCORE_GAP_MAX
                             && approved.root_rank.abs_diff(current.root_rank)
@@ -18242,14 +13939,14 @@ impl MonsGameModel {
         best_index
     }
 
-    fn pro_v2_root_advisor_white_no_action_safe_progress_mana_override(
+    fn current_pro_root_advisor_white_no_action_safe_progress_mana_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number < 5
             || game.mons_moves_count != 0
@@ -18321,7 +14018,7 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_window_progress_competition_override(
+    fn current_pro_root_advisor_white_window_progress_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -18329,7 +14026,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number < 5
             || game.mons_moves_count != 0
@@ -18341,7 +14038,7 @@ impl MonsGameModel {
         }
 
         let approved = scored_roots.get(approved_index)?;
-        if !Self::is_pro_v2_non_concrete_mana_window_root(approved) {
+        if !Self::is_current_pro_non_concrete_mana_window_root(approved) {
             return None;
         }
         let exact_context =
@@ -18377,7 +14074,7 @@ impl MonsGameModel {
             TurnPlanFamily::ManaTempo,
         );
         let approved_followup =
-            Self::pro_v2_spirit_followup_floor_score(&approved.game, perspective, config);
+            Self::current_pro_spirit_followup_floor_score(&approved.game, perspective, config);
         let mut utility_cache = std::collections::HashMap::<usize, TurnEngineUtility>::new();
         let mut reply_snapshots = std::collections::HashMap::<usize, RootReplyRiskSnapshot>::new();
         let mut followup_scores = std::collections::HashMap::<usize, i32>::new();
@@ -18392,7 +14089,7 @@ impl MonsGameModel {
             }
 
             let challenger = &scored_roots[index];
-            if !Self::is_pro_v2_white_spirit_progress_window_pair(
+            if !Self::is_current_pro_white_spirit_progress_window_pair(
                 game, challenger, approved, config,
             ) || challenger.root_rank > approved.root_rank.saturating_add(8)
             {
@@ -18417,14 +14114,16 @@ impl MonsGameModel {
                 )
             });
             let challenger_followup = *followup_scores.entry(index).or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&challenger.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&challenger.game, perspective, config)
             });
             let weak_window_progress_competes = weak_window_context
                 && Self::root_progress_or_setup_better(challenger, approved)
                 && challenger.score >= approved.score.saturating_sub(32);
             let utility_or_progress_competes =
-                Self::pro_v2_root_advisor_utility_competes(challenger_utility, approved_utility)
-                    || Self::root_progress_or_setup_better(challenger, approved);
+                Self::current_pro_root_advisor_utility_competes(
+                    challenger_utility,
+                    approved_utility,
+                ) || Self::root_progress_or_setup_better(challenger, approved);
             if challenger_snapshot.allows_immediate_opponent_win
                 || challenger_snapshot.opponent_reaches_match_point
                 || (!weak_window_progress_competes && !utility_or_progress_competes)
@@ -18451,7 +14150,7 @@ impl MonsGameModel {
                         });
                     let current_followup =
                         *followup_scores.entry(current_best).or_insert_with(|| {
-                            Self::pro_v2_spirit_followup_floor_score(
+                            Self::current_pro_spirit_followup_floor_score(
                                 &scored_roots[current_best].game,
                                 perspective,
                                 config,
@@ -18480,7 +14179,7 @@ impl MonsGameModel {
         best_index
     }
 
-    fn pro_v2_root_advisor_white_action_mana_cluster_override(
+    fn current_pro_root_advisor_white_action_mana_cluster_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -18488,7 +14187,7 @@ impl MonsGameModel {
         _perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number < 5
             || game.mons_moves_count != 0
@@ -18569,13 +14268,13 @@ impl MonsGameModel {
         best_index
     }
 
-    fn pro_v2_black_turn_six_spirit_reentry(
+    fn current_pro_black_turn_six_spirit_reentry(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 6
             || !game.player_can_move_mana()
@@ -18645,13 +14344,13 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_black_no_action_safe_progress_reentry(
+    fn current_pro_black_no_action_safe_progress_reentry(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 6
             || game.mons_moves_count != 0
@@ -18678,7 +14377,7 @@ impl MonsGameModel {
             matches!(
                 Self::turn_engine_root_evaluation_family(&scored_roots[*index]),
                 TurnPlanFamily::SafeSupermanaProgress | TurnPlanFamily::SafeOpponentManaProgress
-            ) && Self::pro_v2_root_advisor_root_evaluation_is_safe(&scored_roots[*index])
+            ) && Self::current_pro_root_advisor_root_evaluation_is_safe(&scored_roots[*index])
         }) {
             return None;
         }
@@ -18712,13 +14411,13 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_black_no_action_mana_sibling_reentry(
+    fn current_pro_black_no_action_mana_sibling_reentry(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 6
             || game.mons_moves_count != 0
@@ -18734,7 +14433,7 @@ impl MonsGameModel {
             .filter(|index| {
                 let root = &scored_roots[*index];
                 Self::turn_engine_root_evaluation_family(root) == TurnPlanFamily::ManaTempo
-                    && Self::pro_v2_root_advisor_root_evaluation_is_safe(root)
+                    && Self::current_pro_root_advisor_root_evaluation_is_safe(root)
                     && !root.wins_immediately
                     && !root.attacks_opponent_drainer
                     && !root.scores_supermana_this_turn
@@ -18799,7 +14498,7 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_white_followup_mana_override(
+    fn current_pro_root_advisor_white_followup_mana_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -18807,7 +14506,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count < 2
@@ -18894,14 +14593,14 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_black_late_window_mana_safety_override(
+    fn current_pro_root_advisor_black_late_window_mana_safety_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 8
             || game.mons_moves_count == 0
@@ -18914,7 +14613,7 @@ impl MonsGameModel {
 
         let approved = scored_roots.get(approved_index)?;
         if Self::turn_engine_root_evaluation_family(approved) != TurnPlanFamily::ManaTempo
-            || !Self::is_pro_v2_non_concrete_mana_window_root(approved)
+            || !Self::is_current_pro_non_concrete_mana_window_root(approved)
             || !approved.own_drainer_vulnerable
             || approved.own_drainer_walk_vulnerable
         {
@@ -18962,13 +14661,13 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_late_window_competition_override(
+    fn current_pro_root_advisor_black_late_window_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 8
             || game.mons_moves_count < 3
@@ -19009,7 +14708,7 @@ impl MonsGameModel {
             .filter(|(index, root)| {
                 *index != approved_index
                     && Self::turn_engine_root_evaluation_family(root) == TurnPlanFamily::ManaTempo
-                    && Self::is_pro_v2_non_concrete_mana_window_root(root)
+                    && Self::is_current_pro_non_concrete_mana_window_root(root)
                     && root.root_rank == 0
                     && root.own_drainer_vulnerable
                     && !root.own_drainer_walk_vulnerable
@@ -19021,14 +14720,14 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_black_late_recovery_progress_competition_override(
+    fn current_pro_root_advisor_black_late_recovery_progress_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number < 12
             || game.mons_moves_count != 0
@@ -19093,7 +14792,7 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_setup_progress_competition_override(
+    fn current_pro_root_advisor_white_setup_progress_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -19101,7 +14800,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number < 5
             || game.mons_moves_count != 0
@@ -19158,7 +14857,7 @@ impl MonsGameModel {
             TurnPlanFamily::SpiritImpact,
         );
         let approved_followup =
-            Self::pro_v2_spirit_followup_floor_score(&approved.game, perspective, config);
+            Self::current_pro_spirit_followup_floor_score(&approved.game, perspective, config);
         let mut utility_cache = std::collections::HashMap::<usize, TurnEngineUtility>::new();
         let mut reply_snapshots = std::collections::HashMap::<usize, RootReplyRiskSnapshot>::new();
         let mut followup_scores = std::collections::HashMap::<usize, i32>::new();
@@ -19176,7 +14875,7 @@ impl MonsGameModel {
                 || !challenger.spirit_own_mana_setup_now
                 || challenger.spirit_same_turn_score_setup_now
                 || !Self::turn_engine_root_evaluation_has_progress_surface(challenger)
-                || !Self::pro_v2_root_advisor_root_evaluation_is_safe(challenger)
+                || !Self::current_pro_root_advisor_root_evaluation_is_safe(challenger)
                 || challenger.wins_immediately
                 || challenger.attacks_opponent_drainer
                 || challenger.same_turn_score_window_value > 0
@@ -19219,7 +14918,7 @@ impl MonsGameModel {
                 )
             });
             let challenger_followup = *followup_scores.entry(index).or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&challenger.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&challenger.game, perspective, config)
             });
             let followup_competes = !challenger_snapshot.allows_immediate_opponent_win
                 && !challenger_snapshot.opponent_reaches_match_point
@@ -19228,7 +14927,7 @@ impl MonsGameModel {
                     >= approved_snapshot.worst_reply_score
                 && challenger_followup.saturating_add(32) >= approved_followup
                 && challenger.root_rank <= approved.root_rank.saturating_add(4)
-                && (Self::pro_v2_root_advisor_utility_competes(
+                && (Self::current_pro_root_advisor_utility_competes(
                     challenger_utility,
                     approved_utility,
                 ) || Self::root_progress_or_setup_better(challenger, approved));
@@ -19260,7 +14959,7 @@ impl MonsGameModel {
                         });
                     let current_followup =
                         *followup_scores.entry(current_best).or_insert_with(|| {
-                            Self::pro_v2_spirit_followup_floor_score(
+                            Self::current_pro_spirit_followup_floor_score(
                                 &current_root.game,
                                 perspective,
                                 config,
@@ -19306,14 +15005,14 @@ impl MonsGameModel {
         best_index
     }
 
-    fn pro_v2_root_advisor_white_early_followup_setup_competition_override(
+    fn current_pro_root_advisor_white_early_followup_setup_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count != 1
@@ -19391,14 +15090,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_early_setup_sibling_progress_override(
+    fn current_pro_root_advisor_white_early_setup_sibling_progress_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         _selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count != 1
@@ -19507,14 +15206,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_early_no_action_progress_competition_override(
+    fn current_pro_root_advisor_white_early_no_action_progress_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count != 1
@@ -19589,7 +15288,7 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_mana_only_competition_override(
+    fn current_pro_root_advisor_white_mana_only_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -19597,7 +15296,7 @@ impl MonsGameModel {
         _perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number < 5
             || game.mons_moves_count != 0
@@ -19668,14 +15367,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_turn_three_safe_progress_surface_override(
+    fn current_pro_root_advisor_white_turn_three_safe_progress_surface_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count != 0
@@ -19747,13 +15446,13 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_turn_three_no_action_recovery_override(
+    fn current_pro_root_advisor_white_turn_three_no_action_recovery_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count != 0
@@ -19776,7 +15475,7 @@ impl MonsGameModel {
         }
 
         let approved = scored_roots.get(approved_index)?;
-        if !Self::is_pro_v2_non_concrete_mana_window_root(approved)
+        if !Self::is_current_pro_non_concrete_mana_window_root(approved)
             || !approved.own_drainer_vulnerable
             || approved.own_drainer_walk_vulnerable
             || approved.spirit_development
@@ -19824,13 +15523,13 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_black_turn_four_weak_window_recovery_override(
+    fn current_pro_root_advisor_black_turn_four_weak_window_recovery_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number != 4
             || game.mons_moves_count < 1
@@ -19854,7 +15553,7 @@ impl MonsGameModel {
         }
 
         let approved = scored_roots.get(approved_index)?;
-        if !Self::is_pro_v2_non_concrete_mana_window_root(approved)
+        if !Self::is_current_pro_non_concrete_mana_window_root(approved)
             || !approved.own_drainer_vulnerable
             || approved.own_drainer_walk_vulnerable
             || approved.spirit_development
@@ -19905,14 +15604,14 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_white_early_safe_progress_setup_competition_override(
+    fn current_pro_root_advisor_white_early_safe_progress_setup_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count != 1
@@ -20005,7 +15704,7 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_white_early_setup_competition_override(
+    fn current_pro_root_advisor_white_early_setup_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -20013,7 +15712,7 @@ impl MonsGameModel {
         _perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count != 1
@@ -20077,13 +15776,13 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn is_pro_v2_late_white_spirit_followup_safe_progress_pair(
+    fn is_current_pro_late_white_spirit_followup_safe_progress_pair(
         game: &MonsGame,
         candidate: &RootEvaluation,
         incumbent: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && game.active_color == Color::White
             && game.turn_number >= 8
             && game.mons_moves_count == 0
@@ -20120,7 +15819,7 @@ impl MonsGameModel {
             && candidate.inputs.first() == incumbent.inputs.first()
     }
 
-    fn pro_v2_root_advisor_white_late_followup_competition_override(
+    fn current_pro_root_advisor_white_late_followup_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         _selection_indices: &[usize],
@@ -20128,7 +15827,7 @@ impl MonsGameModel {
         _perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number < 8
             || game.mons_moves_count != 0
@@ -20156,7 +15855,7 @@ impl MonsGameModel {
             .filter(|index| *index != approved_index)
             .filter(|index| {
                 let challenger = &scored_roots[*index];
-                Self::is_pro_v2_late_white_spirit_followup_safe_progress_pair(
+                Self::is_current_pro_late_white_spirit_followup_safe_progress_pair(
                     game, challenger, approved, config,
                 ) && approved.score.saturating_sub(challenger.score) <= SCORE_GAP_MAX
                     && approved.root_rank.abs_diff(challenger.root_rank) <= ROOT_RANK_GAP_MAX
@@ -20191,12 +15890,12 @@ impl MonsGameModel {
         })
     }
 
-    fn is_pro_v2_white_mana_sibling_pair(
+    fn is_current_pro_white_mana_sibling_pair(
         candidate: &RootEvaluation,
         incumbent: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && Self::turn_engine_root_evaluation_family(candidate) == TurnPlanFamily::ManaTempo
             && Self::turn_engine_root_evaluation_family(incumbent) == TurnPlanFamily::ManaTempo
             && candidate.efficiency == incumbent.efficiency
@@ -20209,14 +15908,14 @@ impl MonsGameModel {
             && Self::is_same_non_tactical_progress_lane_root_pair(candidate, incumbent)
     }
 
-    fn is_pro_v2_late_black_spirit_followup_mana_pair(
+    fn is_current_pro_late_black_spirit_followup_mana_pair(
         game: &MonsGame,
         candidate: &RootEvaluation,
         incumbent: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-            && Self::pro_v2_is_late_black_action_mana_turn_start(game)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
+            && Self::current_pro_is_late_black_action_mana_turn_start(game)
             && Self::turn_engine_root_evaluation_family(candidate) == TurnPlanFamily::SpiritImpact
             && candidate.spirit_development
             && !candidate.spirit_same_turn_score_setup_now
@@ -20245,7 +15944,7 @@ impl MonsGameModel {
             && candidate.inputs.first() == incumbent.inputs.first()
     }
 
-    fn pro_v2_root_advisor_black_late_followup_competition_override(
+    fn current_pro_root_advisor_black_late_followup_competition_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         selection_indices: &[usize],
@@ -20253,8 +15952,8 @@ impl MonsGameModel {
         _perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-            || !Self::pro_v2_is_late_black_action_mana_turn_start(game)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
+            || !Self::current_pro_is_late_black_action_mana_turn_start(game)
             || scored_roots.is_empty()
         {
             return None;
@@ -20273,7 +15972,7 @@ impl MonsGameModel {
             .filter(|index| *index != approved_index)
             .filter(|index| {
                 let challenger = &scored_roots[*index];
-                Self::is_pro_v2_late_black_spirit_followup_mana_pair(
+                Self::is_current_pro_late_black_spirit_followup_mana_pair(
                     game, challenger, approved, config,
                 ) && approved.score.saturating_sub(challenger.score) <= SCORE_GAP_MAX
                     && challenger.root_rank < approved.root_rank
@@ -20289,15 +15988,15 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_late_reply_risk_setup_override(
+    fn current_pro_root_advisor_black_late_reply_risk_setup_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         reply_risk_shortlist: &[usize],
         approved_index: usize,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-            || !Self::pro_v2_is_late_black_action_mana_turn_start(game)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
+            || !Self::current_pro_is_late_black_action_mana_turn_start(game)
             || reply_risk_shortlist.is_empty()
             || scored_roots.is_empty()
         {
@@ -20382,7 +16081,7 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_black_late_weak_window_safe_progress_setup_override(
+    fn current_pro_root_advisor_black_late_weak_window_safe_progress_setup_override(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         reply_risk_shortlist: &[usize],
@@ -20390,8 +16089,8 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-            || !Self::pro_v2_is_late_black_action_mana_turn_start(game)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
+            || !Self::current_pro_is_late_black_action_mana_turn_start(game)
             || reply_risk_shortlist.is_empty()
             || scored_roots.is_empty()
         {
@@ -20475,7 +16174,7 @@ impl MonsGameModel {
                         == approved.own_drainer_walk_vulnerable
                     && challenger.supermana_progress == approved.supermana_progress
                     && challenger.opponent_mana_progress == approved.opponent_mana_progress
-                    && Self::pro_v2_root_advisor_utility_competes(
+                    && Self::current_pro_root_advisor_utility_competes(
                         challenger_utility,
                         approved_utility,
                     )
@@ -20503,7 +16202,9 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_root_advisor_priority_inputs(decision: &ProV2RootAdvisorDecision) -> Vec<Vec<Input>> {
+    fn current_pro_root_advisor_priority_inputs(
+        decision: &CurrentProRootAdvisorDecision,
+    ) -> Vec<Vec<Input>> {
         let mut inputs = Vec::new();
         if let Some(injected_root) = decision.injected_root.as_ref().filter(|root| root.admitted) {
             inputs.push(injected_root.inputs.clone());
@@ -20516,19 +16217,19 @@ impl MonsGameModel {
         inputs
     }
 
-    fn pro_v2_root_advisor_root_move_is_safe(root: &ScoredRootMove) -> bool {
+    fn current_pro_root_advisor_root_move_is_safe(root: &ScoredRootMove) -> bool {
         !Self::turn_engine_root_move_is_unsafe(root)
             && !root.mana_handoff_to_opponent
             && !root.has_roundtrip
     }
 
-    fn pro_v2_root_advisor_root_evaluation_is_safe(root: &RootEvaluation) -> bool {
+    fn current_pro_root_advisor_root_evaluation_is_safe(root: &RootEvaluation) -> bool {
         !Self::turn_engine_root_evaluation_is_unsafe(root)
             && !root.mana_handoff_to_opponent
             && !root.has_roundtrip
     }
 
-    fn pro_v2_root_advisor_utility_competes(
+    fn current_pro_root_advisor_utility_competes(
         candidate: TurnEngineUtility,
         incumbent: TurnEngineUtility,
     ) -> bool {
@@ -20537,7 +16238,7 @@ impl MonsGameModel {
             || candidate.supports_family_fallback(incumbent)
     }
 
-    fn pro_v2_root_advisor_find_root_move_representative<F>(
+    fn current_pro_root_advisor_find_root_move_representative<F>(
         game: &MonsGame,
         root_moves: &[ScoredRootMove],
         perspective: Color,
@@ -20548,7 +16249,7 @@ impl MonsGameModel {
         F: Fn(&ScoredRootMove) -> bool,
     {
         let anchor = root_moves.first()?;
-        if predicate(anchor) && Self::pro_v2_root_advisor_root_move_is_safe(anchor) {
+        if predicate(anchor) && Self::current_pro_root_advisor_root_move_is_safe(anchor) {
             return None;
         }
         let anchor_utility = Self::turn_engine_scored_root_utility(
@@ -20563,7 +16264,7 @@ impl MonsGameModel {
             .iter()
             .enumerate()
             .filter(|(_, root)| {
-                predicate(root) && Self::pro_v2_root_advisor_root_move_is_safe(root)
+                predicate(root) && Self::current_pro_root_advisor_root_move_is_safe(root)
             })
             .filter(|(_, root)| {
                 let candidate_utility = Self::turn_engine_scored_root_utility(
@@ -20573,7 +16274,7 @@ impl MonsGameModel {
                     config,
                     Self::turn_engine_root_move_family(root),
                 );
-                Self::pro_v2_root_advisor_utility_competes(candidate_utility, anchor_utility)
+                Self::current_pro_root_advisor_utility_competes(candidate_utility, anchor_utility)
             })
             .min_by(|(left, _), (right, _)| {
                 Self::compare_ranked_root_indices(root_moves, (*left, 0), (*right, 0))
@@ -20581,16 +16282,16 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_same_opening_setup_representative(
+    fn current_pro_root_advisor_same_opening_setup_representative(
         root_moves: &[ScoredRootMove],
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
         let anchor = root_moves.first()?;
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !anchor.spirit_development
             || anchor.spirit_same_turn_score_setup_now
             || anchor.spirit_own_mana_setup_now
-            || !Self::pro_v2_root_advisor_root_move_is_safe(anchor)
+            || !Self::current_pro_root_advisor_root_move_is_safe(anchor)
         {
             return None;
         }
@@ -20605,7 +16306,7 @@ impl MonsGameModel {
                         && !root.spirit_own_mana_setup_now)
                     && root.inputs.first() == anchor.inputs.first()
                     && root.efficiency == anchor.efficiency
-                    && Self::pro_v2_root_advisor_root_move_is_safe(root)
+                    && Self::current_pro_root_advisor_root_move_is_safe(root)
                     && !root.wins_immediately
                     && !root.attacks_opponent_drainer
                     && !root.scores_supermana_this_turn
@@ -20620,7 +16321,7 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_selected_utility(
+    fn current_pro_root_advisor_selected_utility(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         perspective: Color,
@@ -20635,7 +16336,7 @@ impl MonsGameModel {
         })
     }
 
-    fn pro_v2_root_advisor_find_scored_root_representative<F>(
+    fn current_pro_root_advisor_find_scored_root_representative<F>(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         ordered_shortlist: &[usize],
@@ -20650,11 +16351,11 @@ impl MonsGameModel {
         let anchor_index = *ordered_shortlist.first()?;
         if ordered_shortlist.iter().any(|index| {
             let root = &scored_roots[*index];
-            predicate(root) && Self::pro_v2_root_advisor_root_evaluation_is_safe(root)
+            predicate(root) && Self::current_pro_root_advisor_root_evaluation_is_safe(root)
         }) {
             return None;
         }
-        let anchor_utility = Self::pro_v2_root_advisor_selected_utility(
+        let anchor_utility = Self::current_pro_root_advisor_selected_utility(
             game,
             scored_roots,
             perspective,
@@ -20667,10 +16368,10 @@ impl MonsGameModel {
             .iter()
             .enumerate()
             .filter(|(_, root)| {
-                predicate(root) && Self::pro_v2_root_advisor_root_evaluation_is_safe(root)
+                predicate(root) && Self::current_pro_root_advisor_root_evaluation_is_safe(root)
             })
             .filter(|(index, _)| {
-                let candidate_utility = Self::pro_v2_root_advisor_selected_utility(
+                let candidate_utility = Self::current_pro_root_advisor_selected_utility(
                     game,
                     scored_roots,
                     perspective,
@@ -20678,7 +16379,7 @@ impl MonsGameModel {
                     utility_cache,
                     *index,
                 );
-                Self::pro_v2_root_advisor_utility_competes(candidate_utility, anchor_utility)
+                Self::current_pro_root_advisor_utility_competes(candidate_utility, anchor_utility)
             })
             .min_by(|(left, _), (right, _)| {
                 Self::compare_ranked_scored_root_indices(scored_roots, *left, *right)
@@ -20686,7 +16387,7 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_white_followup_representative(
+    fn current_pro_root_advisor_white_followup_representative(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         ordered_shortlist: &[usize],
@@ -20705,10 +16406,10 @@ impl MonsGameModel {
                     && root.opponent_mana_progress
                     && !Self::is_plain_spirit_development_root(root)
             })
-            .filter(|(_, root)| Self::pro_v2_root_advisor_root_evaluation_is_safe(root))
+            .filter(|(_, root)| Self::current_pro_root_advisor_root_evaluation_is_safe(root))
             .filter(|(_, root)| {
                 ordered_shortlist.iter().any(|shortlist_index| {
-                    Self::is_pro_v2_white_spirit_followup_setup_pair(
+                    Self::is_current_pro_white_spirit_followup_setup_pair(
                         game,
                         root,
                         &scored_roots[*shortlist_index],
@@ -20722,13 +16423,13 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_root_advisor_evaluate_injected_root(
+    fn current_pro_root_advisor_evaluate_injected_root(
         game: &MonsGame,
         perspective: Color,
         config: AutomoveSearchConfig,
         root_moves: &mut Vec<ScoredRootMove>,
         plan: &TurnPlan,
-    ) -> Option<ProV2InjectedRootAdvisorDecision> {
+    ) -> Option<CurrentProInjectedRootAdvisorDecision> {
         let candidate_inputs = plan.compiled_chunks.first()?.clone();
         let mut simulated_root_moves = root_moves.clone();
         if Self::inject_turn_engine_root_candidate(
@@ -20740,11 +16441,11 @@ impl MonsGameModel {
         )
         .is_none()
         {
-            return Some(ProV2InjectedRootAdvisorDecision {
+            return Some(CurrentProInjectedRootAdvisorDecision {
                 inputs: candidate_inputs,
                 family: plan.head_family,
                 admitted: false,
-                reason: ProV2RootAdvisorReasonCode::RejectInjectedMacroRoot,
+                reason: CurrentProRootAdvisorReasonCode::RejectInjectedMacroRoot,
             });
         }
 
@@ -20756,11 +16457,11 @@ impl MonsGameModel {
         let candidate_family = Self::turn_engine_root_move_family(candidate);
         if candidate.inputs == top.inputs {
             *root_moves = simulated_root_moves;
-            return Some(ProV2InjectedRootAdvisorDecision {
+            return Some(CurrentProInjectedRootAdvisorDecision {
                 inputs: candidate_inputs,
                 family: candidate_family,
                 admitted: true,
-                reason: ProV2RootAdvisorReasonCode::AdmitInjectedMacroRoot,
+                reason: CurrentProRootAdvisorReasonCode::AdmitInjectedMacroRoot,
             });
         }
 
@@ -20815,7 +16516,7 @@ impl MonsGameModel {
                     .iter()
                     .take(4)
                     .filter(|root| {
-                        Self::is_pro_v2_black_turn_six_plain_spirit_followup_setup_pair_move(
+                        Self::is_current_pro_black_turn_six_plain_spirit_followup_setup_pair_move(
                             game, candidate, root, config,
                         )
                     })
@@ -20832,26 +16533,26 @@ impl MonsGameModel {
         if admitted {
             *root_moves = simulated_root_moves;
         }
-        Some(ProV2InjectedRootAdvisorDecision {
+        Some(CurrentProInjectedRootAdvisorDecision {
             inputs: candidate_inputs,
             family: candidate_family,
             admitted,
             reason: if admitted {
-                ProV2RootAdvisorReasonCode::AdmitInjectedMacroRoot
+                CurrentProRootAdvisorReasonCode::AdmitInjectedMacroRoot
             } else {
-                ProV2RootAdvisorReasonCode::RejectInjectedMacroRoot
+                CurrentProRootAdvisorReasonCode::RejectInjectedMacroRoot
             },
         })
     }
 
-    fn pro_v2_root_advisor_presearch(
+    fn current_pro_root_advisor_presearch(
         game: &MonsGame,
         perspective: Color,
         config: AutomoveSearchConfig,
         root_moves: &mut Vec<ScoredRootMove>,
         engine_head_plan: Option<&TurnPlan>,
-    ) -> Option<ProV2RootAdvisorDecision> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) || root_moves.is_empty() {
+    ) -> Option<CurrentProRootAdvisorDecision> {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) || root_moves.is_empty() {
             return None;
         }
         if game.active_color == Color::Black
@@ -20863,22 +16564,22 @@ impl MonsGameModel {
             return None;
         }
 
-        let mut decision = ProV2RootAdvisorDecision::default();
-        Self::pro_v2_root_advisor_push_unique(
+        let mut decision = CurrentProRootAdvisorDecision::default();
+        Self::current_pro_root_advisor_push_unique(
             &mut decision.ordered_shortlist,
-            Self::pro_v2_root_advisor_entry_from_root_move(
+            Self::current_pro_root_advisor_entry_from_root_move(
                 &root_moves[0],
-                ProV2RootAdvisorReasonCode::RankedRoot,
+                CurrentProRootAdvisorReasonCode::RankedRoot,
             ),
         );
 
         let representative_specs: [RootMoveRepresentativeSpec; 5] = [
             (
-                ProV2RootAdvisorReasonCode::PreserveSpiritRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSpiritRepresentative,
                 |root| root.spirit_same_turn_score_setup_now || root.spirit_own_mana_setup_now,
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveSpiritRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSpiritRepresentative,
                 |root| {
                     root.spirit_development
                         && !root.spirit_same_turn_score_setup_now
@@ -20886,7 +16587,7 @@ impl MonsGameModel {
                 },
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveSafeProgressRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSafeProgressRepresentative,
                 |root| {
                     matches!(
                         MonsGameModel::turn_engine_root_move_family(root),
@@ -20895,7 +16596,7 @@ impl MonsGameModel {
                 },
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveSafeProgressRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSafeProgressRepresentative,
                 |root| {
                     matches!(
                         MonsGameModel::turn_engine_root_move_family(root),
@@ -20904,7 +16605,7 @@ impl MonsGameModel {
                 },
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveManaTempoRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveManaTempoRepresentative,
                 |root| {
                     matches!(
                         MonsGameModel::turn_engine_root_move_family(root),
@@ -20914,7 +16615,7 @@ impl MonsGameModel {
             ),
         ];
         for (reason, predicate) in representative_specs {
-            if let Some(index) = Self::pro_v2_root_advisor_find_root_move_representative(
+            if let Some(index) = Self::current_pro_root_advisor_find_root_move_representative(
                 game,
                 root_moves.as_slice(),
                 perspective,
@@ -20922,31 +16623,31 @@ impl MonsGameModel {
                 predicate,
             ) {
                 let entry =
-                    Self::pro_v2_root_advisor_entry_from_root_move(&root_moves[index], reason);
-                Self::pro_v2_root_advisor_push_unique(
+                    Self::current_pro_root_advisor_entry_from_root_move(&root_moves[index], reason);
+                Self::current_pro_root_advisor_push_unique(
                     &mut decision.preserved_family_representatives,
                     entry.clone(),
                 );
-                Self::pro_v2_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
+                Self::current_pro_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
             }
         }
-        if let Some(index) = Self::pro_v2_root_advisor_same_opening_setup_representative(
+        if let Some(index) = Self::current_pro_root_advisor_same_opening_setup_representative(
             root_moves.as_slice(),
             config,
         ) {
-            let entry = Self::pro_v2_root_advisor_entry_from_root_move(
+            let entry = Self::current_pro_root_advisor_entry_from_root_move(
                 &root_moves[index],
-                ProV2RootAdvisorReasonCode::PreserveSpiritRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSpiritRepresentative,
             );
-            Self::pro_v2_root_advisor_push_unique(
+            Self::current_pro_root_advisor_push_unique(
                 &mut decision.preserved_family_representatives,
                 entry.clone(),
             );
-            Self::pro_v2_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
+            Self::current_pro_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
         }
 
         if let Some(plan) = engine_head_plan {
-            let injected_root = Self::pro_v2_root_advisor_evaluate_injected_root(
+            let injected_root = Self::current_pro_root_advisor_evaluate_injected_root(
                 game,
                 perspective,
                 config,
@@ -20959,11 +16660,11 @@ impl MonsGameModel {
                         .iter()
                         .position(|root| root.inputs == injected_root.inputs)
                     {
-                        Self::pro_v2_root_advisor_push_unique(
+                        Self::current_pro_root_advisor_push_unique(
                             &mut decision.ordered_shortlist,
-                            Self::pro_v2_root_advisor_entry_from_root_move(
+                            Self::current_pro_root_advisor_entry_from_root_move(
                                 &root_moves[index],
-                                ProV2RootAdvisorReasonCode::AdmitInjectedMacroRoot,
+                                CurrentProRootAdvisorReasonCode::AdmitInjectedMacroRoot,
                             ),
                         );
                     }
@@ -20975,7 +16676,7 @@ impl MonsGameModel {
         Some(decision)
     }
 
-    fn pro_v2_root_advisor_select_root(
+    fn current_pro_root_advisor_select_root(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         perspective: Color,
@@ -20987,7 +16688,7 @@ impl MonsGameModel {
             candidate_indices = (0..scored_roots.len()).collect();
         }
 
-        let mut decision = ProV2RootAdvisorDecision::default();
+        let mut decision = CurrentProRootAdvisorDecision::default();
         let mut ordered_shortlist = if config.enable_root_reply_risk_guard {
             Self::reply_risk_guard_shortlist_indices(
                 scored_roots,
@@ -21003,11 +16704,11 @@ impl MonsGameModel {
         let reply_risk_shortlist = ordered_shortlist.clone();
         let mut approval_shortlist = ordered_shortlist.clone();
         for index in ordered_shortlist.iter().copied() {
-            Self::pro_v2_root_advisor_push_unique(
+            Self::current_pro_root_advisor_push_unique(
                 &mut decision.ordered_shortlist,
-                Self::pro_v2_root_advisor_entry_from_root_evaluation(
+                Self::current_pro_root_advisor_entry_from_root_evaluation(
                     &scored_roots[index],
-                    ProV2RootAdvisorReasonCode::ReplyRiskShortlist,
+                    CurrentProRootAdvisorReasonCode::ReplyRiskShortlist,
                 ),
             );
         }
@@ -21017,15 +16718,15 @@ impl MonsGameModel {
         let mut selection_indices = candidate_indices.clone();
         let representative_specs: [RootEvaluationRepresentativeSpec; 5] = [
             (
-                ProV2RootAdvisorReasonCode::PreserveSpiritRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSpiritRepresentative,
                 |root| root.spirit_same_turn_score_setup_now || root.spirit_own_mana_setup_now,
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveSpiritRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSpiritRepresentative,
                 |root| MonsGameModel::is_plain_spirit_development_root(root),
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveSafeProgressRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSafeProgressRepresentative,
                 |root| {
                     matches!(
                         MonsGameModel::turn_engine_root_evaluation_family(root),
@@ -21034,7 +16735,7 @@ impl MonsGameModel {
                 },
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveSafeProgressRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSafeProgressRepresentative,
                 |root| {
                     matches!(
                         MonsGameModel::turn_engine_root_evaluation_family(root),
@@ -21043,7 +16744,7 @@ impl MonsGameModel {
                 },
             ),
             (
-                ProV2RootAdvisorReasonCode::PreserveManaTempoRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveManaTempoRepresentative,
                 |root| {
                     matches!(
                         MonsGameModel::turn_engine_root_evaluation_family(root),
@@ -21053,7 +16754,7 @@ impl MonsGameModel {
             ),
         ];
         for (reason, predicate) in representative_specs {
-            if let Some(index) = Self::pro_v2_root_advisor_find_scored_root_representative(
+            if let Some(index) = Self::current_pro_root_advisor_find_scored_root_representative(
                 game,
                 scored_roots,
                 ordered_shortlist.as_slice(),
@@ -21062,11 +16763,11 @@ impl MonsGameModel {
                 &mut utility_cache,
                 predicate,
             ) {
-                let entry = Self::pro_v2_root_advisor_entry_from_root_evaluation(
+                let entry = Self::current_pro_root_advisor_entry_from_root_evaluation(
                     &scored_roots[index],
                     reason,
                 );
-                Self::pro_v2_root_advisor_push_unique(
+                Self::current_pro_root_advisor_push_unique(
                     &mut decision.preserved_family_representatives,
                     entry.clone(),
                 );
@@ -21076,8 +16777,8 @@ impl MonsGameModel {
                 if !selection_indices.contains(&index) {
                     selection_indices.push(index);
                 }
-                Self::pro_v2_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
-                if Self::pro_v2_root_advisor_should_compete_in_approval_shortlist(
+                Self::current_pro_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
+                if Self::current_pro_root_advisor_should_compete_in_approval_shortlist(
                     game,
                     scored_roots,
                     ordered_shortlist.as_slice(),
@@ -21093,17 +16794,17 @@ impl MonsGameModel {
                 }
             }
         }
-        if let Some(index) = Self::pro_v2_root_advisor_white_followup_representative(
+        if let Some(index) = Self::current_pro_root_advisor_white_followup_representative(
             game,
             scored_roots,
             ordered_shortlist.as_slice(),
             config,
         ) {
-            let entry = Self::pro_v2_root_advisor_entry_from_root_evaluation(
+            let entry = Self::current_pro_root_advisor_entry_from_root_evaluation(
                 &scored_roots[index],
-                ProV2RootAdvisorReasonCode::PreserveSpiritRepresentative,
+                CurrentProRootAdvisorReasonCode::PreserveSpiritRepresentative,
             );
-            Self::pro_v2_root_advisor_push_unique(
+            Self::current_pro_root_advisor_push_unique(
                 &mut decision.preserved_family_representatives,
                 entry.clone(),
             );
@@ -21113,45 +16814,45 @@ impl MonsGameModel {
             if !selection_indices.contains(&index) {
                 selection_indices.push(index);
             }
-            Self::pro_v2_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
+            Self::current_pro_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
             if !approval_shortlist.contains(&index) {
                 approval_shortlist.push(index);
             }
         }
         for reentry_index in [
-            Self::pro_v2_plain_spirit_cluster_progress_reentry(
+            Self::current_pro_plain_spirit_cluster_progress_reentry(
                 game,
                 scored_roots,
                 candidate_indices.as_slice(),
                 perspective,
                 config,
             ),
-            Self::pro_v2_plain_spirit_cluster_risky_recovery_reentry(
+            Self::current_pro_plain_spirit_cluster_risky_recovery_reentry(
                 game,
                 scored_roots,
                 candidate_indices.as_slice(),
                 perspective,
                 config,
             ),
-            Self::pro_v2_black_turn_six_spirit_reentry(
+            Self::current_pro_black_turn_six_spirit_reentry(
                 game,
                 scored_roots,
                 ordered_shortlist.as_slice(),
                 config,
             ),
-            Self::pro_v2_safe_progress_sibling_shortlist_extension(
+            Self::current_pro_safe_progress_sibling_shortlist_extension(
                 scored_roots,
                 candidate_indices.as_slice(),
                 ordered_shortlist.as_slice(),
                 config,
             ),
-            Self::pro_v2_black_no_action_safe_progress_reentry(
+            Self::current_pro_black_no_action_safe_progress_reentry(
                 game,
                 scored_roots,
                 ordered_shortlist.as_slice(),
                 config,
             ),
-            Self::pro_v2_black_no_action_mana_sibling_reentry(
+            Self::current_pro_black_no_action_mana_sibling_reentry(
                 game,
                 scored_roots,
                 ordered_shortlist.as_slice(),
@@ -21161,11 +16862,11 @@ impl MonsGameModel {
         .into_iter()
         .flatten()
         {
-            let entry = Self::pro_v2_root_advisor_entry_from_root_evaluation(
+            let entry = Self::current_pro_root_advisor_entry_from_root_evaluation(
                 &scored_roots[reentry_index],
-                ProV2RootAdvisorReasonCode::OmittedRootReentry,
+                CurrentProRootAdvisorReasonCode::OmittedRootReentry,
             );
-            Self::pro_v2_root_advisor_push_unique(
+            Self::current_pro_root_advisor_push_unique(
                 &mut decision.preserved_family_representatives,
                 entry.clone(),
             );
@@ -21175,23 +16876,23 @@ impl MonsGameModel {
             if !selection_indices.contains(&reentry_index) {
                 selection_indices.push(reentry_index);
             }
-            Self::pro_v2_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
+            Self::current_pro_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
             if !approval_shortlist.contains(&reentry_index) {
                 approval_shortlist.push(reentry_index);
             }
         }
-        if let Some(reentry_index) = Self::pro_v2_white_turn_four_mana_sibling_reentry(
+        if let Some(reentry_index) = Self::current_pro_white_turn_four_mana_sibling_reentry(
             game,
             scored_roots,
             ordered_shortlist.as_slice(),
             perspective,
             config,
         ) {
-            let entry = Self::pro_v2_root_advisor_entry_from_root_evaluation(
+            let entry = Self::current_pro_root_advisor_entry_from_root_evaluation(
                 &scored_roots[reentry_index],
-                ProV2RootAdvisorReasonCode::OmittedRootReentry,
+                CurrentProRootAdvisorReasonCode::OmittedRootReentry,
             );
-            Self::pro_v2_root_advisor_push_unique(
+            Self::current_pro_root_advisor_push_unique(
                 &mut decision.preserved_family_representatives,
                 entry.clone(),
             );
@@ -21201,7 +16902,7 @@ impl MonsGameModel {
             if !selection_indices.contains(&reentry_index) {
                 selection_indices.push(reentry_index);
             }
-            Self::pro_v2_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
+            Self::current_pro_root_advisor_push_unique(&mut decision.ordered_shortlist, entry);
             if !approval_shortlist.contains(&reentry_index) {
                 approval_shortlist.push(reentry_index);
             }
@@ -21214,18 +16915,18 @@ impl MonsGameModel {
 
         let mut shortlist_config = config;
         shortlist_config.enable_root_reply_risk_guard = false;
-        let mut legacy_selector_config = shortlist_config;
-        legacy_selector_config.turn_engine_mode = TurnEngineMode::ProV1;
-        let legacy_approved_inputs = Self::pick_root_move_with_exploration_from_candidate_indices(
+        let mut baseline_selector_config = shortlist_config;
+        baseline_selector_config.turn_engine_mode = TurnEngineMode::ProV1;
+        let baseline_approved_inputs = Self::pick_root_move_with_exploration_from_candidate_indices(
             game,
             scored_roots,
             candidate_indices.as_slice(),
             perspective,
-            legacy_selector_config,
+            baseline_selector_config,
         );
-        let legacy_approved_index = scored_roots
+        let baseline_approved_index = scored_roots
             .iter()
-            .position(|root| root.inputs == legacy_approved_inputs);
+            .position(|root| root.inputs == baseline_approved_inputs);
         let mut approved_index = if config.enable_root_reply_risk_guard {
             Self::pick_root_move_with_reply_risk_guard_from_shortlist(
                 game,
@@ -21235,43 +16936,33 @@ impl MonsGameModel {
                 perspective,
                 config,
             )
-            .map(|index| (index, ProV2RootAdvisorReasonCode::ApprovedReplyRiskGuard))
+            .map(|index| {
+                (
+                    index,
+                    CurrentProRootAdvisorReasonCode::ApprovedReplyRiskGuard,
+                )
+            })
         } else {
             None
         }
         .unwrap_or_else(|| {
-            if !shortlist_config.enable_root_efficiency
-                && shortlist_config.enable_normal_root_safety_rerank
-                && Self::should_apply_normal_root_safety(game, perspective)
-            {
-                let inputs = Self::pick_root_move_with_normal_safety(
-                    game,
-                    scored_roots,
-                    selection_indices.as_slice(),
-                    perspective,
-                    shortlist_config,
-                );
-                let index = scored_roots
-                    .iter()
-                    .position(|root| root.inputs == inputs)
-                    .unwrap_or(ordered_shortlist[0]);
-                (index, ProV2RootAdvisorReasonCode::ApprovedNormalSafety)
-            } else {
-                let inputs = Self::pick_root_move_with_exploration_from_candidate_indices(
-                    game,
-                    scored_roots,
-                    selection_indices.as_slice(),
-                    perspective,
-                    shortlist_config,
-                );
-                let index = scored_roots
-                    .iter()
-                    .position(|root| root.inputs == inputs)
-                    .unwrap_or(ordered_shortlist[0]);
-                (index, ProV2RootAdvisorReasonCode::ApprovedLegacySelector)
-            }
+            let inputs = Self::pick_root_move_with_exploration_from_candidate_indices(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                perspective,
+                shortlist_config,
+            );
+            let index = scored_roots
+                .iter()
+                .position(|root| root.inputs == inputs)
+                .unwrap_or(ordered_shortlist[0]);
+            (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedBaselineSelector,
+            )
         });
-        if let Some(index) = Self::pro_v2_root_advisor_black_family_competition_override(
+        if let Some(index) = Self::current_pro_root_advisor_black_family_competition_override(
             game,
             scored_roots,
             reply_risk_shortlist.as_slice(),
@@ -21280,37 +16971,37 @@ impl MonsGameModel {
             perspective,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_opening_setup_sibling_override(
+        if let Some(index) = Self::current_pro_root_advisor_black_opening_setup_sibling_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
             approved_index.0,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_early_safe_mana_followup_override(
+        if let Some(index) = Self::current_pro_root_advisor_black_early_safe_mana_followup_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
             approved_index.0,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_black_early_plain_spirit_followup_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_black_turn_four_vulnerable_progress_mana_override(
+            Self::current_pro_root_advisor_black_early_plain_spirit_followup_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
@@ -21318,10 +17009,13 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_black_turn_six_attack_vulnerable_progress_mana_override(
+            Self::current_pro_root_advisor_black_turn_four_vulnerable_progress_mana_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
@@ -21329,120 +17023,183 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_turn_four_setup_cluster_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_early_same_lane_higher_score_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_black_setup_progress_competition_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            perspective,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_black_plain_spirit_setup_competition_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_black_no_action_progress_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_black_no_action_mana_sibling_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_black_turn_four_window_mana_sibling_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_black_turn_four_weak_window_recovery_override(
-            game,
-            scored_roots,
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = legacy_approved_index.and_then(|legacy_index| {
-            Self::pro_v2_root_advisor_black_legacy_alignment_override(
+        if let Some(index) =
+            Self::current_pro_root_advisor_black_turn_six_attack_vulnerable_progress_mana_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
                 approved_index.0,
-                legacy_index,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_black_turn_four_setup_cluster_override(
+            game,
+            scored_roots,
+            selection_indices.as_slice(),
+            approved_index.0,
+            config,
+        ) {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_early_same_lane_higher_score_override(
+            game,
+            scored_roots,
+            selection_indices.as_slice(),
+            approved_index.0,
+            config,
+        ) {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) =
+            Self::current_pro_root_advisor_black_setup_progress_competition_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                perspective,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) =
+            Self::current_pro_root_advisor_black_plain_spirit_setup_competition_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_black_no_action_progress_override(
+            game,
+            scored_roots,
+            selection_indices.as_slice(),
+            approved_index.0,
+            config,
+        ) {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_black_no_action_mana_sibling_override(
+            game,
+            scored_roots,
+            selection_indices.as_slice(),
+            approved_index.0,
+            config,
+        ) {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) =
+            Self::current_pro_root_advisor_black_turn_four_window_mana_sibling_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) =
+            Self::current_pro_root_advisor_black_turn_four_weak_window_recovery_override(
+                game,
+                scored_roots,
+                approved_index.0,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = baseline_approved_index.and_then(|baseline_index| {
+            Self::current_pro_root_advisor_black_baseline_alignment_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                baseline_index,
                 config,
             )
         }) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedLegacySelector);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedBaselineSelector,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_turn_start_guarded_legacy_mana_override(
-            game,
-            scored_roots,
-            candidate_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedLegacySelector);
+        if let Some(index) =
+            Self::current_pro_root_advisor_black_turn_start_guarded_baseline_mana_override(
+                game,
+                scored_roots,
+                candidate_indices.as_slice(),
+                approved_index.0,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedBaselineSelector,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_late_window_mana_safety_override(
+        if let Some(index) = Self::current_pro_root_advisor_black_late_window_mana_safety_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
             approved_index.0,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_late_window_competition_override(
+        if let Some(index) = Self::current_pro_root_advisor_black_late_window_competition_override(
             game,
             scored_roots,
             approved_index.0,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_black_late_recovery_progress_competition_override(
+            Self::current_pro_root_advisor_black_late_recovery_progress_competition_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
@@ -21450,9 +17207,12 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_white_followup_mana_override(
+        if let Some(index) = Self::current_pro_root_advisor_white_followup_mana_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
@@ -21460,9 +17220,12 @@ impl MonsGameModel {
             perspective,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_white_mana_competition_override(
+        if let Some(index) = Self::current_pro_root_advisor_white_mana_competition_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
@@ -21470,49 +17233,13 @@ impl MonsGameModel {
             perspective,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_white_no_action_safe_progress_mana_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_white_window_progress_competition_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            perspective,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_white_action_mana_cluster_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            perspective,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_white_setup_progress_competition_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            perspective,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_white_early_followup_setup_competition_override(
+            Self::current_pro_root_advisor_white_no_action_safe_progress_mana_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
@@ -21520,28 +17247,82 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_early_same_lane_higher_score_override(
+        if let Some(index) =
+            Self::current_pro_root_advisor_white_window_progress_competition_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                perspective,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_white_action_mana_cluster_override(
+            game,
+            scored_roots,
+            selection_indices.as_slice(),
+            approved_index.0,
+            perspective,
+            config,
+        ) {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) =
+            Self::current_pro_root_advisor_white_setup_progress_competition_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                perspective,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) =
+            Self::current_pro_root_advisor_white_early_followup_setup_competition_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_early_same_lane_higher_score_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
             approved_index.0,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_white_early_setup_sibling_progress_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_white_early_safe_progress_setup_competition_override(
+            Self::current_pro_root_advisor_white_early_setup_sibling_progress_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
@@ -21549,10 +17330,13 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_white_early_no_action_progress_competition_override(
+            Self::current_pro_root_advisor_white_early_safe_progress_setup_competition_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
@@ -21560,10 +17344,13 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_white_turn_three_safe_progress_surface_override(
+            Self::current_pro_root_advisor_white_early_no_action_progress_competition_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
@@ -21571,57 +17358,66 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = legacy_approved_index.and_then(|legacy_index| {
-            Self::pro_v2_root_advisor_white_turn_three_legacy_alignment_override(
+        if let Some(index) =
+            Self::current_pro_root_advisor_white_turn_three_safe_progress_surface_override(
                 game,
                 scored_roots,
                 selection_indices.as_slice(),
                 approved_index.0,
-                legacy_index,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = baseline_approved_index.and_then(|baseline_index| {
+            Self::current_pro_root_advisor_white_turn_three_baseline_alignment_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                baseline_index,
                 config,
             )
         }) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedLegacySelector);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedBaselineSelector,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_white_turn_three_attack_bridge_escape(
+        if let Some(index) = Self::current_pro_root_advisor_white_turn_three_attack_bridge_escape(
             game,
             scored_roots,
             selection_indices.as_slice(),
             approved_index.0,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_white_turn_three_no_action_recovery_override(
-            game,
-            scored_roots,
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+        if let Some(index) =
+            Self::current_pro_root_advisor_white_turn_three_no_action_recovery_override(
+                game,
+                scored_roots,
+                approved_index.0,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_white_mana_only_competition_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            perspective,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_white_turn_five_weak_window_setup_override(
-            game,
-            scored_roots,
-            selection_indices.as_slice(),
-            approved_index.0,
-            config,
-        ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
-        }
-        if let Some(index) = Self::pro_v2_root_advisor_white_early_setup_competition_override(
+        if let Some(index) = Self::current_pro_root_advisor_white_mana_only_competition_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
@@ -21629,9 +17425,26 @@ impl MonsGameModel {
             perspective,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_white_late_followup_competition_override(
+        if let Some(index) =
+            Self::current_pro_root_advisor_white_turn_five_weak_window_setup_override(
+                game,
+                scored_roots,
+                selection_indices.as_slice(),
+                approved_index.0,
+                config,
+            )
+        {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_white_early_setup_competition_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
@@ -21639,9 +17452,12 @@ impl MonsGameModel {
             perspective,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_late_followup_competition_override(
+        if let Some(index) = Self::current_pro_root_advisor_white_late_followup_competition_override(
             game,
             scored_roots,
             selection_indices.as_slice(),
@@ -21649,19 +17465,38 @@ impl MonsGameModel {
             perspective,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
-        if let Some(index) = Self::pro_v2_root_advisor_black_late_reply_risk_setup_override(
+        if let Some(index) = Self::current_pro_root_advisor_black_late_followup_competition_override(
+            game,
+            scored_roots,
+            selection_indices.as_slice(),
+            approved_index.0,
+            perspective,
+            config,
+        ) {
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
+        }
+        if let Some(index) = Self::current_pro_root_advisor_black_late_reply_risk_setup_override(
             game,
             scored_roots,
             reply_risk_shortlist.as_slice(),
             approved_index.0,
             config,
         ) {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
         if let Some(index) =
-            Self::pro_v2_root_advisor_black_late_weak_window_safe_progress_setup_override(
+            Self::current_pro_root_advisor_black_late_weak_window_safe_progress_setup_override(
                 game,
                 scored_roots,
                 reply_risk_shortlist.as_slice(),
@@ -21670,22 +17505,16 @@ impl MonsGameModel {
                 config,
             )
         {
-            approved_index = (index, ProV2RootAdvisorReasonCode::ApprovedFamilyCompetition);
+            approved_index = (
+                index,
+                CurrentProRootAdvisorReasonCode::ApprovedFamilyCompetition,
+            );
         }
 
-        decision.approved_root = Some(Self::pro_v2_root_advisor_entry_from_root_evaluation(
+        decision.approved_root = Some(Self::current_pro_root_advisor_entry_from_root_evaluation(
             &scored_roots[approved_index.0],
             approved_index.1,
         ));
-        #[cfg(test)]
-        {
-            let mut merged = pro_v2_root_advisor_decision_snapshot().unwrap_or_default();
-            merged.ordered_shortlist = decision.ordered_shortlist.clone();
-            merged.preserved_family_representatives =
-                decision.preserved_family_representatives.clone();
-            merged.approved_root = decision.approved_root.clone();
-            set_pro_v2_root_advisor_decision(Some(merged));
-        }
         scored_roots[approved_index.0].inputs.clone()
     }
 
@@ -21702,9 +17531,9 @@ impl MonsGameModel {
             return Vec::new();
         }
 
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
             let selected =
-                Self::pro_v2_root_advisor_select_root(game, scored_roots, perspective, config);
+                Self::current_pro_root_advisor_select_root(game, scored_roots, perspective, config);
             return if crate::models::automove_deadline::cancelled() {
                 Vec::new()
             } else {
@@ -21762,22 +17591,6 @@ impl MonsGameModel {
             }
         }
 
-        if !config.enable_root_efficiency {
-            if config.enable_normal_root_safety_rerank
-                && Self::should_apply_normal_root_safety(game, perspective)
-            {
-                return Self::pick_root_move_with_normal_safety(
-                    game,
-                    scored_roots,
-                    candidate_indices,
-                    perspective,
-                    config,
-                );
-            }
-            let best_index = Self::best_scored_root_index(scored_roots, candidate_indices);
-            return scored_roots[best_index].inputs.clone();
-        }
-
         let best_score = candidate_indices
             .iter()
             .map(|index| scored_roots[*index].score)
@@ -21790,8 +17603,8 @@ impl MonsGameModel {
         let mut best_shortlisted_score = i32::MIN;
         let prefer_spirit_development = config.enable_root_spirit_development_pref
             && Self::should_prefer_spirit_development(game, perspective);
-        let pro_v2_plain_spirit_projection_tiebreak =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        let current_pro_plain_spirit_projection_tiebreak =
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && candidate_indices
                     .iter()
                     .filter(|index| Self::is_plain_spirit_development_root(&scored_roots[**index]))
@@ -21799,7 +17612,7 @@ impl MonsGameModel {
                     .count()
                     >= 2;
         let spirit_turn_engine_projections =
-            if prefer_spirit_development || pro_v2_plain_spirit_projection_tiebreak {
+            if prefer_spirit_development || current_pro_plain_spirit_projection_tiebreak {
                 Self::turn_engine_spirit_root_projections(
                     scored_roots,
                     candidate_indices,
@@ -21837,13 +17650,13 @@ impl MonsGameModel {
             }
             let evaluation = &scored_roots[index];
             let allow_close_plain_spirit_score_slack =
-                matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+                matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                     && game.turn_number <= 3
                     && Self::is_plain_spirit_development_root(evaluation)
                     && Self::is_plain_spirit_development_root(&scored_roots[best_index])
                     && best_score.saturating_sub(evaluation.score) <= 16;
             let spirit_setup_competes_with_best =
-                Self::pro_v2_spirit_setup_competes_with_non_spirit_root(
+                Self::current_pro_spirit_setup_competes_with_non_spirit_root(
                     game,
                     evaluation,
                     &scored_roots[best_index],
@@ -21857,19 +17670,22 @@ impl MonsGameModel {
             let spirit_preference_challenge_order = if prefer_spirit_development
                 && evaluation.spirit_development != best_spirit_development
             {
-                Self::pro_v2_spirit_score_challenge_order(evaluation, &scored_roots[best_index])
-                    .or_else(|| {
-                        if (evaluation.score - scored_roots[best_index].score).abs() <= 320 {
-                            Self::pro_v2_spirit_projection_challenge_order(
-                                evaluation,
-                                spirit_turn_engine_projections.get(&index),
-                                &scored_roots[best_index],
-                                spirit_turn_engine_projections.get(&best_index),
-                            )
-                        } else {
-                            None
-                        }
-                    })
+                Self::current_pro_spirit_score_challenge_order(
+                    evaluation,
+                    &scored_roots[best_index],
+                )
+                .or_else(|| {
+                    if (evaluation.score - scored_roots[best_index].score).abs() <= 320 {
+                        Self::current_pro_spirit_projection_challenge_order(
+                            evaluation,
+                            spirit_turn_engine_projections.get(&index),
+                            &scored_roots[best_index],
+                            spirit_turn_engine_projections.get(&best_index),
+                        )
+                    } else {
+                        None
+                    }
+                })
             } else {
                 None
             };
@@ -21887,7 +17703,7 @@ impl MonsGameModel {
             let equal_spirit_preference = !prefer_spirit_development
                 || evaluation.spirit_development == best_spirit_development
                 || spirit_preference_challenge_order.is_some()
-                || (matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+                || (matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                     && spirit_setup_competes_with_best
                     && (evaluation.spirit_own_mana_setup_now
                         || evaluation.spirit_same_turn_score_setup_now));
@@ -21909,7 +17725,7 @@ impl MonsGameModel {
                 || !evaluation.spirit_development
                 || !best_spirit_development
                 || evaluation.spirit_setup_gain == best_spirit_setup_gain;
-            let compare_plain_spirit_projection = pro_v2_plain_spirit_projection_tiebreak
+            let compare_plain_spirit_projection = current_pro_plain_spirit_projection_tiebreak
                 && Self::is_plain_spirit_development_root(evaluation)
                 && Self::is_plain_spirit_development_root(&scored_roots[best_index]);
             let spirit_projection_order = if (prefer_spirit_development
@@ -21941,7 +17757,7 @@ impl MonsGameModel {
                 matches!(spirit_projection_order, Some(std::cmp::Ordering::Greater));
             let equal_spirit_projection = spirit_projection_order.is_none()
                 || matches!(spirit_projection_order, Some(std::cmp::Ordering::Equal));
-            let spirit_followup_floor_order = Self::pro_v2_spirit_followup_floor_order(
+            let spirit_followup_floor_order = Self::current_pro_spirit_followup_floor_order(
                 game,
                 scored_roots,
                 index,
@@ -22014,14 +17830,12 @@ impl MonsGameModel {
             let equal_handoff = evaluation.mana_handoff_to_opponent == best_mana_handoff;
             let roundtrip_better = !evaluation.has_roundtrip && best_has_roundtrip;
             let equal_roundtrip = evaluation.has_roundtrip == best_has_roundtrip;
-            let soft_better = config.enable_interview_soft_root_priors
-                && evaluation.interview_soft_priority
-                    > best_soft_priority.saturating_add(config.interview_soft_score_margin.max(0));
-            let soft_equal_or_disabled = !config.enable_interview_soft_root_priors
-                || evaluation
-                    .interview_soft_priority
-                    .saturating_add(config.interview_soft_score_margin.max(0))
-                    >= best_soft_priority;
+            let soft_better = evaluation.interview_soft_priority
+                > best_soft_priority.saturating_add(config.interview_soft_score_margin.max(0));
+            let soft_equal_or_disabled = evaluation
+                .interview_soft_priority
+                .saturating_add(config.interview_soft_score_margin.max(0))
+                >= best_soft_priority;
             let efficiency_or_score_better = evaluation.efficiency > best_efficiency
                 || (evaluation.efficiency == best_efficiency
                     && evaluation.score > best_shortlisted_score);
@@ -22162,14 +17976,14 @@ impl MonsGameModel {
         turn_engine_compare_plans(&candidate.plan, &incumbent.plan)
     }
 
-    fn pro_v2_spirit_setup_competes_with_non_spirit_root(
+    fn current_pro_spirit_setup_competes_with_non_spirit_root(
         game: &MonsGame,
         candidate: &RootEvaluation,
         incumbent: &RootEvaluation,
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || incumbent.spirit_development
             || !(candidate.spirit_own_mana_setup_now || candidate.spirit_same_turn_score_setup_now)
         {
@@ -22272,29 +18086,26 @@ impl MonsGameModel {
         root.game.active_color == perspective && root.game.winner_color().is_none()
     }
 
-    fn pro_v2_turn_engine_live(config: AutomoveSearchConfig) -> bool {
+    fn current_pro_turn_engine_live(config: AutomoveSearchConfig) -> bool {
         config.enable_turn_engine_selector
-            && matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            && matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
     }
 
-    fn pro_v2_low_budget_guard_live(config: AutomoveSearchConfig) -> bool {
-        Self::pro_v2_turn_engine_live(config) && config.enable_turn_engine_low_budget_guard
+    fn current_pro_low_budget_guard_live(config: AutomoveSearchConfig) -> bool {
+        Self::current_pro_turn_engine_live(config) && config.enable_turn_engine_low_budget_guard
     }
 
-    fn pro_v2_mid_turn_progress_guard_live(config: AutomoveSearchConfig) -> bool {
-        Self::pro_v2_turn_engine_live(config) && config.enable_turn_engine_mid_turn_progress_guard
+    fn current_pro_mid_turn_tactical_guard_live(config: AutomoveSearchConfig) -> bool {
+        Self::current_pro_turn_engine_live(config)
+            && config.enable_turn_engine_mid_turn_tactical_guard
     }
 
-    fn pro_v2_mid_turn_tactical_guard_live(config: AutomoveSearchConfig) -> bool {
-        Self::pro_v2_turn_engine_live(config) && config.enable_turn_engine_mid_turn_tactical_guard
+    fn current_pro_secondary_analysis_live(config: AutomoveSearchConfig) -> bool {
+        Self::current_pro_turn_engine_live(config) && config.enable_turn_engine_secondary_analysis
     }
 
-    fn pro_v2_secondary_analysis_live(config: AutomoveSearchConfig) -> bool {
-        Self::pro_v2_turn_engine_live(config) && config.enable_turn_engine_secondary_analysis
-    }
-
-    fn pro_v2_selected_followup_projection_live(config: AutomoveSearchConfig) -> bool {
-        Self::pro_v2_secondary_analysis_live(config)
+    fn current_pro_selected_followup_projection_live(config: AutomoveSearchConfig) -> bool {
+        Self::current_pro_secondary_analysis_live(config)
             && config.enable_turn_engine_selected_followup_projection
     }
 
@@ -22319,8 +18130,8 @@ impl MonsGameModel {
             && !root.has_roundtrip
     }
 
-    fn should_skip_pro_v2_low_budget_state(game: &MonsGame) -> bool {
-        if Self::pro_v2_is_early_white_turn_start(game) {
+    fn should_skip_current_pro_low_budget_state(game: &MonsGame) -> bool {
+        if Self::current_pro_is_early_white_turn_start(game) {
             return false;
         }
         if game.player_can_use_action() || game.player_can_move_mana() {
@@ -22338,34 +18149,14 @@ impl MonsGameModel {
             && context.delta.drainer_safety >= 0
     }
 
-    fn should_disable_pro_v2_mid_turn_progress_engine(game: &MonsGame) -> bool {
-        if game.active_color != Color::White
-            || game.turn_number < 3
-            || game.mons_moves_count == 0
-            || Self::pro_v2_is_early_white_turn_start(game)
-        {
-            return false;
-        }
-
-        let perspective = game.active_color;
-        let context = crate::models::automove_exact::exact_opportunity_context(game, perspective);
-        !context.opponent_can_win_immediately
-            && context.delta.same_turn_score_window_value <= 0
-            && context.delta.opponent_window_deny_gain <= 0
-            && !context.delta.drainer_attack_available
-            && context.delta.drainer_safety >= 0
-            && (context.delta.safe_supermana_progress_steps.is_some()
-                || context.delta.safe_opponent_mana_progress_steps.is_some())
-    }
-
-    pub(crate) fn should_disable_pro_v2_mid_turn_tactical_engine(game: &MonsGame) -> bool {
+    pub(crate) fn should_disable_current_pro_mid_turn_tactical_engine(game: &MonsGame) -> bool {
         if game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count == 0
             || game.mons_moves_count > 2
             || !game.player_can_use_action()
             || !game.player_can_move_mana()
-            || Self::pro_v2_is_early_white_turn_start(game)
+            || Self::current_pro_is_early_white_turn_start(game)
         {
             return false;
         }
@@ -22379,11 +18170,11 @@ impl MonsGameModel {
             && context.delta.safe_opponent_mana_progress_steps.is_none()
     }
 
-    fn apply_pro_v2_low_budget_search_clamp(
+    fn apply_current_pro_low_budget_search_clamp(
         game: &MonsGame,
         mut config: AutomoveSearchConfig,
     ) -> AutomoveSearchConfig {
-        if !Self::pro_v2_low_budget_guard_live(config) {
+        if !Self::current_pro_low_budget_guard_live(config) {
             return config;
         }
 
@@ -22401,7 +18192,7 @@ impl MonsGameModel {
         config
     }
 
-    fn pro_v2_is_safe_early_black_opening_state(game: &MonsGame) -> bool {
+    fn current_pro_is_safe_early_black_opening_state(game: &MonsGame) -> bool {
         if game.active_color != Color::Black
             || game.turn_number != 2
             || game.mons_moves_count != 0
@@ -22420,8 +18211,8 @@ impl MonsGameModel {
             && context.delta.drainer_safety >= 2
     }
 
-    fn pro_v2_use_fresh_live_head_plan(game: &MonsGame, config: AutomoveSearchConfig) -> bool {
-        Self::pro_v2_turn_engine_live(config)
+    fn current_pro_use_fresh_live_head_plan(game: &MonsGame, config: AutomoveSearchConfig) -> bool {
+        Self::current_pro_turn_engine_live(config)
             && game.active_color == Color::White
             && game.turn_number >= 3
             && game.mons_moves_count == 0
@@ -22429,7 +18220,7 @@ impl MonsGameModel {
             && game.player_can_move_mana()
     }
 
-    fn pro_v2_is_early_white_turn_start(game: &MonsGame) -> bool {
+    fn current_pro_is_early_white_turn_start(game: &MonsGame) -> bool {
         game.active_color == Color::White
             && game.turn_number <= 3
             && !game.player_can_use_action()
@@ -22437,7 +18228,7 @@ impl MonsGameModel {
             && matches!(game.mons_moves_count, 0 | 3)
     }
 
-    fn pro_v2_is_white_turn_one_mana_only_followup(game: &MonsGame) -> bool {
+    fn current_pro_is_white_turn_one_mana_only_followup(game: &MonsGame) -> bool {
         game.active_color == Color::White
             && game.turn_number == 1
             && game.is_first_turn()
@@ -22446,7 +18237,7 @@ impl MonsGameModel {
             && !game.player_can_move_mana()
     }
 
-    fn pro_v2_is_late_white_mana_only_turn_start(game: &MonsGame) -> bool {
+    fn current_pro_is_late_white_mana_only_turn_start(game: &MonsGame) -> bool {
         game.active_color == Color::White
             && game.turn_number >= 6
             && game.mons_moves_count == 0
@@ -22454,7 +18245,7 @@ impl MonsGameModel {
             && game.player_can_move_mana()
     }
 
-    fn pro_v2_is_late_black_action_mana_turn_start(game: &MonsGame) -> bool {
+    fn current_pro_is_late_black_action_mana_turn_start(game: &MonsGame) -> bool {
         game.active_color == Color::Black
             && game.turn_number >= 8
             && game.mons_moves_count == 0
@@ -22469,7 +18260,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
     ) -> Option<TurnEngineUtility> {
         if !config.enable_turn_engine_selector
-            || !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            || !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
         {
             return None;
         }
@@ -22501,7 +18292,7 @@ impl MonsGameModel {
             && candidate.supports_family_fallback(incumbent)
     }
 
-    fn pro_v2_spirit_projection_challenge_order(
+    fn current_pro_spirit_projection_challenge_order(
         candidate: &RootEvaluation,
         candidate_projection: Option<&TurnEngineRootProjection>,
         incumbent: &RootEvaluation,
@@ -22586,7 +18377,7 @@ impl MonsGameModel {
         })
     }
 
-    fn pro_v2_spirit_score_challenge_order(
+    fn current_pro_spirit_score_challenge_order(
         candidate: &RootEvaluation,
         incumbent: &RootEvaluation,
     ) -> Option<std::cmp::Ordering> {
@@ -22626,7 +18417,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
     ) -> bool {
         if !config.enable_turn_engine_selector
-            || !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            || !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
         {
             return false;
         }
@@ -22680,7 +18471,7 @@ impl MonsGameModel {
                 return false;
             }
             matches!(
-                Self::pro_v2_spirit_projection_challenge_order(
+                Self::current_pro_spirit_projection_challenge_order(
                     candidate,
                     Some(candidate_projection),
                     best_spirit,
@@ -22696,7 +18487,7 @@ impl MonsGameModel {
         candidate_indices: &[usize],
         mode: TurnEngineMode,
     ) -> bool {
-        if !matches!(mode, TurnEngineMode::ProV2) {
+        if !matches!(mode, TurnEngineMode::CurrentPro) {
             return false;
         }
 
@@ -22722,7 +18513,10 @@ impl MonsGameModel {
             }
             spirit_indices.iter().all(|spirit_index| {
                 matches!(
-                    Self::pro_v2_spirit_score_challenge_order(root, &scored_roots[*spirit_index],),
+                    Self::current_pro_spirit_score_challenge_order(
+                        root,
+                        &scored_roots[*spirit_index],
+                    ),
                     Some(std::cmp::Ordering::Greater)
                 )
             })
@@ -22736,7 +18530,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
     ) -> bool {
         if !config.enable_turn_engine_selector
-            || !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            || !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
         {
             return false;
         }
@@ -22796,7 +18590,7 @@ impl MonsGameModel {
         candidate_indices: &[usize],
         mode: TurnEngineMode,
     ) -> bool {
-        if !matches!(mode, TurnEngineMode::ProV2) {
+        if !matches!(mode, TurnEngineMode::CurrentPro) {
             return false;
         }
 
@@ -22831,7 +18625,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !Self::pro_v2_secondary_analysis_live(config) || candidate_indices.len() < 2 {
+        if !Self::current_pro_secondary_analysis_live(config) || candidate_indices.len() < 2 {
             return false;
         }
 
@@ -22869,7 +18663,7 @@ impl MonsGameModel {
             .copied()
             .map(|index| {
                 *followup_scores.entry(index).or_insert_with(|| {
-                    Self::pro_v2_spirit_followup_floor_score(
+                    Self::current_pro_spirit_followup_floor_score(
                         &scored_roots[index].game,
                         perspective,
                         config,
@@ -22903,13 +18697,13 @@ impl MonsGameModel {
             }
 
             let followup = *followup_scores.entry(index).or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&root.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&root.game, perspective, config)
             });
             followup >= best_spirit_followup.saturating_add(FOLLOWUP_MARGIN)
         })
     }
 
-    fn pro_v2_safe_progress_reentry_after_safety_prefilter(
+    fn current_pro_safe_progress_reentry_after_safety_prefilter(
         _game: &MonsGame,
         scored_roots: &[RootEvaluation],
         pre_safety_candidate_indices: &[usize],
@@ -22917,7 +18711,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !Self::pro_v2_secondary_analysis_live(config)
+        if !Self::current_pro_secondary_analysis_live(config)
             || kept_indices.is_empty()
             || !kept_indices.iter().all(|index| {
                 let root = &scored_roots[*index];
@@ -22946,7 +18740,7 @@ impl MonsGameModel {
             .copied()
             .map(|index| {
                 *followup_scores.entry(index).or_insert_with(|| {
-                    Self::pro_v2_spirit_followup_floor_score(
+                    Self::current_pro_spirit_followup_floor_score(
                         &scored_roots[index].game,
                         perspective,
                         config,
@@ -22981,7 +18775,7 @@ impl MonsGameModel {
             .filter_map(|index| {
                 let root = &scored_roots[index];
                 let followup = *followup_scores.entry(index).or_insert_with(|| {
-                    Self::pro_v2_spirit_followup_floor_score(&root.game, perspective, config)
+                    Self::current_pro_spirit_followup_floor_score(&root.game, perspective, config)
                 });
                 (followup >= best_kept_followup.saturating_add(FOLLOWUP_MARGIN))
                     .then_some((index, followup))
@@ -23000,14 +18794,14 @@ impl MonsGameModel {
             .map(|(index, _)| index)
     }
 
-    fn pro_v2_plain_spirit_cluster_progress_reentry(
+    fn current_pro_plain_spirit_cluster_progress_reentry(
         _game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_indices: &[usize],
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !Self::pro_v2_secondary_analysis_live(config)
+        if !Self::current_pro_secondary_analysis_live(config)
             || candidate_indices.len() < 2
             || !candidate_indices.iter().all(|index| {
                 let root = &scored_roots[*index];
@@ -23036,7 +18830,7 @@ impl MonsGameModel {
             .copied()
             .map(|index| {
                 *followup_scores.entry(index).or_insert_with(|| {
-                    Self::pro_v2_spirit_followup_floor_score(
+                    Self::current_pro_spirit_followup_floor_score(
                         &scored_roots[index].game,
                         perspective,
                         config,
@@ -23070,7 +18864,7 @@ impl MonsGameModel {
             .filter_map(|index| {
                 let root = &scored_roots[index];
                 let followup = *followup_scores.entry(index).or_insert_with(|| {
-                    Self::pro_v2_spirit_followup_floor_score(&root.game, perspective, config)
+                    Self::current_pro_spirit_followup_floor_score(&root.game, perspective, config)
                 });
                 (followup >= best_candidate_followup.saturating_add(FOLLOWUP_MARGIN))
                     .then_some((index, followup))
@@ -23116,14 +18910,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_plain_spirit_cluster_risky_recovery_reentry(
+    fn current_pro_plain_spirit_cluster_risky_recovery_reentry(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_indices: &[usize],
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !Self::pro_v2_turn_engine_live(config) {
+        if !Self::current_pro_turn_engine_live(config) {
             return None;
         }
 
@@ -23192,7 +18986,7 @@ impl MonsGameModel {
         candidate_indices: &[usize],
         mode: TurnEngineMode,
     ) -> bool {
-        if !matches!(mode, TurnEngineMode::ProV2) {
+        if !matches!(mode, TurnEngineMode::CurrentPro) {
             return false;
         }
 
@@ -23233,7 +19027,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
     ) -> bool {
         if !config.enable_turn_engine_selector
-            || !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            || !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
         {
             return false;
         }
@@ -23301,7 +19095,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> std::collections::HashMap<usize, TurnEngineRootProjection> {
-        if !Self::pro_v2_secondary_analysis_live(config) {
+        if !Self::current_pro_secondary_analysis_live(config) {
             return std::collections::HashMap::new();
         }
 
@@ -23427,7 +19221,7 @@ impl MonsGameModel {
             .collect::<Vec<_>>();
         let mut spirit_followup_scores = std::collections::HashMap::new();
 
-        let best_plain_spirit_index = Self::pro_v2_plain_spirit_reply_risk_pick(
+        let best_plain_spirit_index = Self::current_pro_plain_spirit_reply_risk_pick(
             game,
             scored_roots,
             shortlist,
@@ -23444,7 +19238,7 @@ impl MonsGameModel {
             return best_plain_spirit_index;
         }
 
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && shortlist_snapshots.iter().all(|(_, snapshot)| {
                 !snapshot.allows_immediate_opponent_win && !snapshot.opponent_reaches_match_point
             })
@@ -23528,7 +19322,7 @@ impl MonsGameModel {
             }
         }
 
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
             if let Some(plain_spirit_index) = best_plain_spirit_index {
                 if plain_spirit_index != best_index {
                     if let Some((_, plain_spirit_snapshot)) = shortlist_snapshots
@@ -23540,13 +19334,15 @@ impl MonsGameModel {
                             turn_engine_projections.get(&plain_spirit_index),
                             turn_engine_projections.get(&best_index),
                         ) {
-                            if let Some(order) = Self::pro_v2_mixed_plain_spirit_reply_floor_order(
-                                plain_spirit_snapshot,
-                                plain_spirit_projection,
-                                best_snapshot,
-                                best_projection,
-                                config,
-                            ) {
+                            if let Some(order) =
+                                Self::current_pro_mixed_plain_spirit_reply_floor_order(
+                                    plain_spirit_snapshot,
+                                    plain_spirit_projection,
+                                    best_snapshot,
+                                    best_projection,
+                                    config,
+                                )
+                            {
                                 if order == std::cmp::Ordering::Greater {
                                     best_index = plain_spirit_index;
                                     best_snapshot = plain_spirit_snapshot;
@@ -23559,43 +19355,23 @@ impl MonsGameModel {
         }
 
         let best_root = &scored_roots[best_index];
-        let allow_late_black_setup_progress_rescue =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-                && config.enable_turn_engine_late_black_setup_progress_rescue
-                && Self::pro_v2_is_late_black_action_mana_turn_start(game)
-                && Self::is_plain_spirit_development_root(best_root)
-                && Self::turn_engine_root_evaluation_has_progress_surface(best_root);
         if let Some(candidate_indices) = candidate_indices {
-            if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-                && ((!best_root.spirit_development
-                    && !best_root.spirit_same_turn_score_setup_now
-                    && !best_root.spirit_own_mana_setup_now
-                    && best_index >= 4)
-                    || allow_late_black_setup_progress_rescue)
+            if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
+                && !best_root.spirit_development
+                && !best_root.spirit_same_turn_score_setup_now
+                && !best_root.spirit_own_mana_setup_now
+                && best_index >= 4
             {
-                let omitted_setup_search_space = if allow_late_black_setup_progress_rescue {
-                    (0..scored_roots.len()).collect::<Vec<_>>()
-                } else {
-                    candidate_indices.to_vec()
-                };
-                let omitted_setup_index = omitted_setup_search_space
+                let omitted_setup_index = candidate_indices
                     .iter()
                     .copied()
                     .filter(|index| !shortlist.contains(index))
                     .filter(|index| scored_roots[*index].spirit_own_mana_setup_now)
                     .filter(|index| {
-                        let omitted = &scored_roots[*index];
-                        Self::is_same_opening_safe_setup_progress_pair(
-                            game, omitted, best_root, config,
-                        ) || omitted.root_rank.saturating_add(3) <= best_root.root_rank
+                        scored_roots[*index].root_rank.saturating_add(3) <= best_root.root_rank
                     })
                     .filter(|index| {
                         Self::is_same_opening_safe_setup_pair(
-                            &scored_roots[*index],
-                            best_root,
-                            config,
-                        ) || Self::is_same_opening_safe_setup_progress_pair(
-                            game,
                             &scored_roots[*index],
                             best_root,
                             config,
@@ -23612,16 +19388,8 @@ impl MonsGameModel {
                         config,
                         per_root_reply_limit,
                     );
-                    let force_same_opening_setup = Self::pro_v2_omitted_same_opening_setup_competes(
-                        &scored_roots[index],
-                        snapshot,
-                        best_root,
-                        best_snapshot,
-                        config,
-                    );
-                    let force_same_opening_setup_progress =
-                        Self::pro_v2_omitted_same_opening_setup_progress_competes(
-                            game,
+                    let force_same_opening_setup =
+                        Self::current_pro_omitted_same_opening_setup_competes(
                             &scored_roots[index],
                             snapshot,
                             best_root,
@@ -23629,7 +19397,6 @@ impl MonsGameModel {
                             config,
                         );
                     if force_same_opening_setup
-                        || force_same_opening_setup_progress
                         || Self::is_better_reply_risk_candidate(
                             game,
                             index,
@@ -23712,7 +19479,7 @@ impl MonsGameModel {
 
         let shortlist_limit = config.root_reply_risk_shortlist_max.max(1);
         if shortlist.len() > shortlist_limit {
-            if matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+            if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
                 let truncated_has_spirit_contender =
                     shortlist.iter().take(shortlist_limit).any(|index| {
                         let root = &scored_roots[*index];
@@ -23767,7 +19534,7 @@ impl MonsGameModel {
                 shortlist.truncate(shortlist_limit);
             }
         }
-        if let Some(extra_index) = Self::pro_v2_safe_progress_sibling_shortlist_extension(
+        if let Some(extra_index) = Self::current_pro_safe_progress_sibling_shortlist_extension(
             scored_roots,
             candidate_indices,
             shortlist.as_slice(),
@@ -23786,13 +19553,14 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> std::collections::HashMap<usize, TurnEngineRootProjection> {
-        let allow_safe_plain_spirit_projection = Self::pro_v2_secondary_analysis_live(config)
+        let allow_safe_plain_spirit_projection = Self::current_pro_secondary_analysis_live(config)
             && Self::reply_risk_shortlist_has_safe_plain_spirit_competition(
                 scored_roots,
                 shortlist,
                 config,
             );
-        if (!Self::pro_v2_secondary_analysis_live(config) && !allow_safe_plain_spirit_projection)
+        if (!Self::current_pro_secondary_analysis_live(config)
+            && !allow_safe_plain_spirit_projection)
             || shortlist.len() < 2
         {
             return std::collections::HashMap::new();
@@ -23805,7 +19573,7 @@ impl MonsGameModel {
                 || root.scores_opponent_mana_this_turn
         });
         let has_spirit_development_window =
-            matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 && shortlist.iter().copied().any(|index| {
                     let root = &scored_roots[index];
                     root.spirit_development
@@ -23860,8 +19628,8 @@ impl MonsGameModel {
                 diagnostics.reply_projection_root_count += 1;
                 diagnostics.reply_projection_plan_calls += 1;
             });
-            let pro_v2 = matches!(config.turn_engine_mode, TurnEngineMode::ProV2);
-            let vulnerable_recovery_projection = pro_v2
+            let current_pro = matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro);
+            let vulnerable_recovery_projection = current_pro
                 && root.own_drainer_vulnerable
                 && !root.mana_handoff_to_opponent
                 && !root.has_roundtrip;
@@ -23884,7 +19652,7 @@ impl MonsGameModel {
                 shortlist,
                 config,
             );
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && has_spirit_development_window
             && !has_tactical_window
             && !allow_safe_plain_spirit_projection_keep
@@ -23898,7 +19666,7 @@ impl MonsGameModel {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn pro_v2_plain_spirit_reply_risk_pick(
+    fn current_pro_plain_spirit_reply_risk_pick(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         shortlist: &[usize],
@@ -23908,7 +19676,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         spirit_followup_scores: &mut std::collections::HashMap<usize, i32>,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) || shortlist.len() < 2 {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) || shortlist.len() < 2 {
             return None;
         }
 
@@ -23949,7 +19717,7 @@ impl MonsGameModel {
                 .expect("spirit shortlist incumbent snapshot");
 
             let candidate_is_better = if let Some(order) =
-                Self::pro_v2_early_black_plain_spirit_sibling_reply_order(
+                Self::current_pro_early_black_plain_spirit_sibling_reply_order(
                     game,
                     scored_roots,
                     index,
@@ -23961,7 +19729,7 @@ impl MonsGameModel {
                     spirit_followup_scores,
                 ) {
                 order == std::cmp::Ordering::Greater
-            } else if let Some(order) = Self::pro_v2_mixed_plain_spirit_reply_floor_order(
+            } else if let Some(order) = Self::current_pro_mixed_plain_spirit_reply_floor_order(
                 candidate_snapshot,
                 candidate_projection,
                 incumbent_snapshot,
@@ -23969,7 +19737,7 @@ impl MonsGameModel {
                 config,
             ) {
                 order == std::cmp::Ordering::Greater
-            } else if let Some(order) = Self::pro_v2_mixed_plain_spirit_projection_order(
+            } else if let Some(order) = Self::current_pro_mixed_plain_spirit_projection_order(
                 game,
                 scored_roots,
                 index,
@@ -23997,7 +19765,7 @@ impl MonsGameModel {
                         incumbent_projection,
                         close_spirit_roots,
                     ) == std::cmp::Ordering::Greater
-                } else if let Some(order) = Self::pro_v2_spirit_followup_floor_order(
+                } else if let Some(order) = Self::current_pro_spirit_followup_floor_order(
                     game,
                     scored_roots,
                     index,
@@ -24022,7 +19790,7 @@ impl MonsGameModel {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn pro_v2_mixed_plain_spirit_projection_order(
+    fn current_pro_mixed_plain_spirit_projection_order(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_index: usize,
@@ -24033,7 +19801,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         spirit_followup_scores: &mut std::collections::HashMap<usize, i32>,
     ) -> Option<std::cmp::Ordering> {
-        if !Self::pro_v2_secondary_analysis_live(config) {
+        if !Self::current_pro_secondary_analysis_live(config) {
             return None;
         }
 
@@ -24075,7 +19843,7 @@ impl MonsGameModel {
             )
         };
 
-        let followup_order = Self::pro_v2_spirit_followup_floor_order(
+        let followup_order = Self::current_pro_spirit_followup_floor_order(
             game,
             scored_roots,
             candidate_index,
@@ -24216,7 +19984,7 @@ impl MonsGameModel {
         let replies = Self::enumerate_legal_transitions(
             state_after_move,
             reply_limit.max(1),
-            Self::automove_start_input_options(config),
+            Self::automove_start_input_options(),
         );
         if replies.is_empty() {
             return RootReplyRiskSnapshot {
@@ -24279,7 +20047,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
     ) -> bool {
         if !config.enable_turn_engine_selector
-            || !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            || !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || root.game.active_color != perspective
             || root.game.winner_color().is_some()
             || Self::is_plain_spirit_development_root(root)
@@ -24333,7 +20101,7 @@ impl MonsGameModel {
         incumbent_snapshot: RootReplyRiskSnapshot,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && Self::is_plain_spirit_development_root(candidate)
             && Self::is_plain_spirit_development_root(incumbent)
             && !Self::turn_engine_root_evaluation_is_unsafe(candidate)
@@ -24371,7 +20139,7 @@ impl MonsGameModel {
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) || shortlist.len() < 2 {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) || shortlist.len() < 2 {
             return false;
         }
 
@@ -24402,7 +20170,7 @@ impl MonsGameModel {
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) || shortlist.len() < 2 {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) || shortlist.len() < 2 {
             return false;
         }
 
@@ -24436,7 +20204,7 @@ impl MonsGameModel {
 
         for (position, candidate_index) in shortlist.iter().copied().enumerate() {
             for incumbent_index in shortlist.iter().copied().skip(position + 1) {
-                if Self::is_pro_v2_white_spirit_followup_setup_pair(
+                if Self::is_current_pro_white_spirit_followup_setup_pair(
                     game,
                     &scored_roots[candidate_index],
                     &scored_roots[incumbent_index],
@@ -24456,7 +20224,7 @@ impl MonsGameModel {
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || shortlist.len() < 2
             || game.active_color != Color::Black
             || game.turn_number > 4
@@ -24529,7 +20297,7 @@ impl MonsGameModel {
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) || shortlist.len() < 2 {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) || shortlist.len() < 2 {
             return false;
         }
 
@@ -24580,13 +20348,13 @@ impl MonsGameModel {
             && !incumbent.has_roundtrip
     }
 
-    fn pro_v2_safe_progress_sibling_shortlist_extension(
+    fn current_pro_safe_progress_sibling_shortlist_extension(
         scored_roots: &[RootEvaluation],
         candidate_indices: &[usize],
         shortlist: &[usize],
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
             return None;
         }
 
@@ -24616,14 +20384,14 @@ impl MonsGameModel {
             })
     }
 
-    fn pro_v2_white_turn_four_mana_sibling_reentry(
+    fn current_pro_white_turn_four_mana_sibling_reentry(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         shortlist: &[usize],
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<usize> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number != 3
             || game.mons_moves_count < 4
@@ -24642,7 +20410,7 @@ impl MonsGameModel {
                 Self::turn_engine_root_evaluation_family(root) == TurnPlanFamily::ManaTempo
                     && !root.own_drainer_vulnerable
                     && !root.own_drainer_walk_vulnerable
-                    && Self::pro_v2_root_advisor_root_evaluation_is_safe(root)
+                    && Self::current_pro_root_advisor_root_evaluation_is_safe(root)
                     && !root.wins_immediately
                     && !root.attacks_opponent_drainer
                     && root.same_turn_score_window_value == 0
@@ -24669,7 +20437,7 @@ impl MonsGameModel {
 
         for (index, candidate) in scored_roots.iter().enumerate() {
             let same_lane_near_best =
-                Self::is_pro_v2_white_mana_sibling_pair(candidate, anchor, config)
+                Self::is_current_pro_white_mana_sibling_pair(candidate, anchor, config)
                     && anchor.score.saturating_sub(candidate.score)
                         <= WHITE_MANA_SIBLING_SCORE_GAP_MAX
                     && anchor.root_rank.abs_diff(candidate.root_rank)
@@ -24679,7 +20447,7 @@ impl MonsGameModel {
                 || Self::turn_engine_root_evaluation_family(candidate) != TurnPlanFamily::ManaTempo
                 || candidate.own_drainer_vulnerable
                 || candidate.own_drainer_walk_vulnerable
-                || !Self::pro_v2_root_advisor_root_evaluation_is_safe(candidate)
+                || !Self::current_pro_root_advisor_root_evaluation_is_safe(candidate)
                 || candidate.wins_immediately
                 || candidate.attacks_opponent_drainer
                 || candidate.same_turn_score_window_value > 0
@@ -24716,7 +20484,7 @@ impl MonsGameModel {
                 (Some(current_index), Some(current_utility)) => {
                     let current = &scored_roots[current_index];
                     let current_same_lane_near_best =
-                        Self::is_pro_v2_white_mana_sibling_pair(current, anchor, config)
+                        Self::is_current_pro_white_mana_sibling_pair(current, anchor, config)
                             && anchor.score.saturating_sub(current.score)
                                 <= WHITE_MANA_SIBLING_SCORE_GAP_MAX
                             && anchor.root_rank.abs_diff(current.root_rank)
@@ -24762,14 +20530,14 @@ impl MonsGameModel {
         best_index
     }
 
-    fn pro_v2_safe_progress_sibling_order(
+    fn current_pro_safe_progress_sibling_order(
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
         incumbent: &RootEvaluation,
         incumbent_snapshot: RootReplyRiskSnapshot,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
             return None;
         }
 
@@ -24806,7 +20574,7 @@ impl MonsGameModel {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn pro_v2_black_plain_spirit_followup_reply_order(
+    fn current_pro_black_plain_spirit_followup_reply_order(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_index: usize,
@@ -24820,7 +20588,7 @@ impl MonsGameModel {
         let candidate = &scored_roots[candidate_index];
         let incumbent = &scored_roots[incumbent_index];
         let (plain, plain_snapshot, setup, setup_snapshot, candidate_is_plain) =
-            if Self::is_pro_v2_black_plain_spirit_followup_setup_pair(
+            if Self::is_current_pro_black_plain_spirit_followup_setup_pair(
                 game, candidate, incumbent, config,
             ) {
                 (
@@ -24830,7 +20598,7 @@ impl MonsGameModel {
                     incumbent_snapshot,
                     true,
                 )
-            } else if Self::is_pro_v2_black_plain_spirit_followup_setup_pair(
+            } else if Self::is_current_pro_black_plain_spirit_followup_setup_pair(
                 game, incumbent, candidate, config,
             ) {
                 (
@@ -24864,7 +20632,7 @@ impl MonsGameModel {
                 incumbent_index
             })
             .or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&plain.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&plain.game, perspective, config)
             });
         let setup_followup = *spirit_followup_scores
             .entry(if candidate_is_plain {
@@ -24873,7 +20641,7 @@ impl MonsGameModel {
                 candidate_index
             })
             .or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&setup.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&setup.game, perspective, config)
             });
 
         let setup_has_close_top_seed = setup.root_rank <= plain.root_rank
@@ -24913,7 +20681,7 @@ impl MonsGameModel {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn pro_v2_early_black_plain_spirit_sibling_reply_order(
+    fn current_pro_early_black_plain_spirit_sibling_reply_order(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_index: usize,
@@ -24924,7 +20692,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         cached_scores: &mut std::collections::HashMap<usize, i32>,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number > 2
         {
@@ -24960,10 +20728,10 @@ impl MonsGameModel {
         const FOLLOWUP_MARGIN: i32 = 32;
 
         let candidate_followup = *cached_scores.entry(candidate_index).or_insert_with(|| {
-            Self::pro_v2_spirit_followup_floor_score(&candidate.game, perspective, config)
+            Self::current_pro_spirit_followup_floor_score(&candidate.game, perspective, config)
         });
         let incumbent_followup = *cached_scores.entry(incumbent_index).or_insert_with(|| {
-            Self::pro_v2_spirit_followup_floor_score(&incumbent.game, perspective, config)
+            Self::current_pro_spirit_followup_floor_score(&incumbent.game, perspective, config)
         });
 
         let candidate_better = candidate_snapshot.worst_reply_score
@@ -25008,7 +20776,7 @@ impl MonsGameModel {
         })
     }
 
-    fn pro_v2_early_black_mana_progress_reply_order(
+    fn current_pro_early_black_mana_progress_reply_order(
         game: &MonsGame,
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
@@ -25016,7 +20784,7 @@ impl MonsGameModel {
         incumbent_snapshot: RootReplyRiskSnapshot,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number > 4
             || candidate_snapshot.allows_immediate_opponent_win
@@ -25152,7 +20920,7 @@ impl MonsGameModel {
         None
     }
 
-    fn pro_v2_risky_recovery_progress_sibling_order(
+    fn current_pro_risky_recovery_progress_sibling_order(
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
         incumbent: &RootEvaluation,
@@ -25161,7 +20929,7 @@ impl MonsGameModel {
         incumbent_projection: Option<&TurnEngineRootProjection>,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !Self::is_same_non_tactical_progress_lane_root_pair(candidate, incumbent)
         {
             return None;
@@ -25230,7 +20998,7 @@ impl MonsGameModel {
         incumbent: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && candidate.inputs.first() == incumbent.inputs.first()
             && candidate.efficiency == incumbent.efficiency
             && (candidate.score - incumbent.score).abs() <= 128
@@ -25256,51 +21024,14 @@ impl MonsGameModel {
             && !incumbent.opponent_mana_progress
     }
 
-    fn is_same_opening_safe_setup_progress_pair(
-        game: &MonsGame,
-        candidate: &RootEvaluation,
-        incumbent: &RootEvaluation,
-        config: AutomoveSearchConfig,
-    ) -> bool {
-        matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-            && config.enable_turn_engine_late_black_setup_progress_rescue
-            && Self::pro_v2_is_late_black_action_mana_turn_start(game)
-            && candidate.inputs.first() == incumbent.inputs.first()
-            && candidate.spirit_own_mana_setup_now
-            && Self::is_plain_spirit_development_root(incumbent)
-            && !Self::turn_engine_root_evaluation_is_unsafe(candidate)
-            && !Self::turn_engine_root_evaluation_is_unsafe(incumbent)
-            && !candidate.own_drainer_vulnerable
-            && !incumbent.own_drainer_vulnerable
-            && !candidate.own_drainer_walk_vulnerable
-            && !incumbent.own_drainer_walk_vulnerable
-            && !candidate.mana_handoff_to_opponent
-            && !incumbent.mana_handoff_to_opponent
-            && !candidate.has_roundtrip
-            && !incumbent.has_roundtrip
-            && !candidate.wins_immediately
-            && !incumbent.wins_immediately
-            && !candidate.attacks_opponent_drainer
-            && !incumbent.attacks_opponent_drainer
-            && !candidate.scores_supermana_this_turn
-            && !incumbent.scores_supermana_this_turn
-            && !candidate.scores_opponent_mana_this_turn
-            && !incumbent.scores_opponent_mana_this_turn
-            && candidate.same_turn_score_window_value == 0
-            && incumbent.same_turn_score_window_value == 0
-            && candidate.supermana_progress == incumbent.supermana_progress
-            && candidate.opponent_mana_progress == incumbent.opponent_mana_progress
-            && (candidate.supermana_progress || candidate.opponent_mana_progress)
-    }
-
-    fn pro_v2_omitted_same_opening_setup_competes(
+    fn current_pro_omitted_same_opening_setup_competes(
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
         incumbent: &RootEvaluation,
         incumbent_snapshot: RootReplyRiskSnapshot,
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !candidate.spirit_own_mana_setup_now
             || incumbent.spirit_development
             || incumbent.spirit_same_turn_score_setup_now
@@ -25322,35 +21053,8 @@ impl MonsGameModel {
                 >= incumbent_snapshot.worst_reply_score
     }
 
-    fn pro_v2_omitted_same_opening_setup_progress_competes(
-        game: &MonsGame,
-        candidate: &RootEvaluation,
-        candidate_snapshot: RootReplyRiskSnapshot,
-        incumbent: &RootEvaluation,
-        incumbent_snapshot: RootReplyRiskSnapshot,
-        config: AutomoveSearchConfig,
-    ) -> bool {
-        if !Self::is_same_opening_safe_setup_progress_pair(game, candidate, incumbent, config)
-            || candidate_snapshot.allows_immediate_opponent_win
-            || incumbent_snapshot.allows_immediate_opponent_win
-            || candidate_snapshot.opponent_reaches_match_point
-            || incumbent_snapshot.opponent_reaches_match_point
-        {
-            return false;
-        }
-
-        const ROOT_RANK_MARGIN: usize = 4;
-        const REPLY_FLOOR_MARGIN: i32 = 320;
-
-        candidate.root_rank <= incumbent.root_rank.saturating_add(ROOT_RANK_MARGIN)
-            && candidate_snapshot
-                .worst_reply_score
-                .saturating_add(REPLY_FLOOR_MARGIN)
-                >= incumbent_snapshot.worst_reply_score
-    }
-
     #[allow(clippy::too_many_arguments)]
-    fn pro_v2_early_black_plain_spirit_mana_reply_order(
+    fn current_pro_early_black_plain_spirit_mana_reply_order(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_index: usize,
@@ -25361,7 +21065,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         cached_scores: &mut std::collections::HashMap<usize, i32>,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::Black
             || game.turn_number > 4
         {
@@ -25456,7 +21160,7 @@ impl MonsGameModel {
                 incumbent_index
             })
             .or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&plain.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&plain.game, perspective, config)
             });
         let mana_followup = *cached_scores
             .entry(if candidate_is_plain {
@@ -25465,7 +21169,7 @@ impl MonsGameModel {
                 candidate_index
             })
             .or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&mana.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&mana.game, perspective, config)
             });
         if plain_followup.saturating_add(FOLLOWUP_MARGIN) < mana_followup {
             return None;
@@ -25479,7 +21183,7 @@ impl MonsGameModel {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn pro_v2_safe_non_spirit_followup_order(
+    fn current_pro_safe_non_spirit_followup_order(
         _game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_index: usize,
@@ -25490,7 +21194,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         cached_scores: &mut std::collections::HashMap<usize, i32>,
     ) -> Option<std::cmp::Ordering> {
-        if !Self::pro_v2_secondary_analysis_live(config) {
+        if !Self::current_pro_secondary_analysis_live(config) {
             return None;
         }
 
@@ -25559,7 +21263,7 @@ impl MonsGameModel {
                 incumbent_index
             })
             .or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&challenger.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&challenger.game, perspective, config)
             });
         let spirit_score = *cached_scores
             .entry(if candidate_is_challenger {
@@ -25568,7 +21272,7 @@ impl MonsGameModel {
                 candidate_index
             })
             .or_insert_with(|| {
-                Self::pro_v2_spirit_followup_floor_score(&spirit.game, perspective, config)
+                Self::current_pro_spirit_followup_floor_score(&spirit.game, perspective, config)
             });
 
         let standard_reply_floor_competes = challenger_snapshot
@@ -25600,13 +21304,13 @@ impl MonsGameModel {
         }
     }
 
-    fn is_pro_v2_white_spirit_followup_setup_pair(
+    fn is_current_pro_white_spirit_followup_setup_pair(
         game: &MonsGame,
         candidate: &RootEvaluation,
         incumbent: &RootEvaluation,
         config: AutomoveSearchConfig,
     ) -> bool {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || game.active_color != Color::White
             || game.turn_number > 3
             || game.mons_moves_count < 1
@@ -25664,7 +21368,7 @@ impl MonsGameModel {
             && setup.safe_opponent_mana_progress_steps == plain.safe_opponent_mana_progress_steps
     }
 
-    fn pro_v2_white_spirit_followup_setup_reply_order(
+    fn current_pro_white_spirit_followup_setup_reply_order(
         game: &MonsGame,
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
@@ -25672,7 +21376,9 @@ impl MonsGameModel {
         incumbent_snapshot: RootReplyRiskSnapshot,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !Self::is_pro_v2_white_spirit_followup_setup_pair(game, candidate, incumbent, config) {
+        if !Self::is_current_pro_white_spirit_followup_setup_pair(
+            game, candidate, incumbent, config,
+        ) {
             return None;
         }
 
@@ -25776,14 +21482,14 @@ impl MonsGameModel {
             && root.same_turn_score_window_value == 0
     }
 
-    fn pro_v2_safe_pickup_reply_order(
+    fn current_pro_safe_pickup_reply_order(
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
         incumbent: &RootEvaluation,
         incumbent_snapshot: RootReplyRiskSnapshot,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
             return None;
         }
 
@@ -25854,7 +21560,7 @@ impl MonsGameModel {
         })
     }
 
-    fn pro_v2_normal_safety_reply_order(
+    fn current_pro_normal_safety_reply_order(
         game: &MonsGame,
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
@@ -25863,7 +21569,7 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !config.enable_normal_root_safety_rerank
             || !Self::is_quiet_non_tactical_reply_risk_root(candidate)
             || !Self::is_quiet_non_tactical_reply_risk_root(incumbent)
@@ -25883,10 +21589,7 @@ impl MonsGameModel {
                 || candidate.spirit_same_turn_score_setup_now
                 || incumbent.spirit_same_turn_score_setup_now
                 || Self::is_same_non_tactical_progress_lane_root_pair(candidate, incumbent)
-                || Self::is_same_opening_safe_setup_pair(candidate, incumbent, config)
-                || Self::is_same_opening_safe_setup_progress_pair(
-                    game, candidate, incumbent, config,
-                );
+                || Self::is_same_opening_safe_setup_pair(candidate, incumbent, config);
         if !progress_or_setup_pair {
             return None;
         }
@@ -25896,7 +21599,7 @@ impl MonsGameModel {
             SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MAX,
         );
         let my_score_before = Self::score_for_color(game, perspective);
-        let start_options = Self::automove_start_input_options(config);
+        let start_options = Self::automove_start_input_options();
         let candidate_normal_snapshot = Self::normal_root_safety_snapshot(
             &candidate.game,
             perspective,
@@ -25965,14 +21668,14 @@ impl MonsGameModel {
         None
     }
 
-    fn pro_v2_mixed_plain_spirit_reply_floor_order(
+    fn current_pro_mixed_plain_spirit_reply_floor_order(
         candidate_snapshot: RootReplyRiskSnapshot,
         candidate_projection: &TurnEngineRootProjection,
         incumbent_snapshot: RootReplyRiskSnapshot,
         incumbent_projection: &TurnEngineRootProjection,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2) {
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro) {
             return None;
         }
 
@@ -26085,7 +21788,7 @@ impl MonsGameModel {
         {
             return !candidate_snapshot.opponent_reaches_match_point;
         }
-        if let Some(order) = Self::pro_v2_late_safe_mana_root_order(
+        if let Some(order) = Self::current_pro_late_safe_mana_root_order(
             game,
             candidate,
             candidate_snapshot,
@@ -26095,7 +21798,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_risky_recovery_progress_sibling_order(
+        if let Some(order) = Self::current_pro_risky_recovery_progress_sibling_order(
             candidate,
             candidate_snapshot,
             incumbent,
@@ -26106,7 +21809,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_safe_progress_sibling_order(
+        if let Some(order) = Self::current_pro_safe_progress_sibling_order(
             candidate,
             candidate_snapshot,
             incumbent,
@@ -26115,7 +21818,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_early_black_mana_progress_reply_order(
+        if let Some(order) = Self::current_pro_early_black_mana_progress_reply_order(
             game,
             candidate,
             candidate_snapshot,
@@ -26125,7 +21828,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_early_black_plain_spirit_mana_reply_order(
+        if let Some(order) = Self::current_pro_early_black_plain_spirit_mana_reply_order(
             game,
             scored_roots,
             candidate_index,
@@ -26138,7 +21841,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_safe_non_spirit_followup_order(
+        if let Some(order) = Self::current_pro_safe_non_spirit_followup_order(
             game,
             scored_roots,
             candidate_index,
@@ -26151,7 +21854,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_black_plain_spirit_followup_reply_order(
+        if let Some(order) = Self::current_pro_black_plain_spirit_followup_reply_order(
             game,
             scored_roots,
             candidate_index,
@@ -26164,7 +21867,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_early_black_plain_spirit_sibling_reply_order(
+        if let Some(order) = Self::current_pro_early_black_plain_spirit_sibling_reply_order(
             game,
             scored_roots,
             candidate_index,
@@ -26177,7 +21880,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_white_spirit_followup_setup_reply_order(
+        if let Some(order) = Self::current_pro_white_spirit_followup_setup_reply_order(
             game,
             candidate,
             candidate_snapshot,
@@ -26187,7 +21890,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_safe_pickup_reply_order(
+        if let Some(order) = Self::current_pro_safe_pickup_reply_order(
             candidate,
             candidate_snapshot,
             incumbent,
@@ -26196,7 +21899,7 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if let Some(order) = Self::pro_v2_normal_safety_reply_order(
+        if let Some(order) = Self::current_pro_normal_safety_reply_order(
             game,
             candidate,
             candidate_snapshot,
@@ -26207,21 +21910,18 @@ impl MonsGameModel {
         ) {
             return order == std::cmp::Ordering::Greater;
         }
-        if config.enable_mana_start_mix_with_potion_actions && config.enable_move_class_coverage {
-            let candidate_progress_adv =
-                candidate.classes.carrier_progress && !incumbent.classes.carrier_progress;
-            let incumbent_progress_adv =
-                incumbent.classes.carrier_progress && !candidate.classes.carrier_progress;
-            if candidate_progress_adv || incumbent_progress_adv {
-                let no_tactical_priority = !candidate.classes.is_tactical_priority()
-                    && !incumbent.classes.is_tactical_priority();
-                let tight_reply_floor = (candidate_snapshot.worst_reply_score
-                    - incumbent_snapshot.worst_reply_score)
-                    .abs()
+        let candidate_progress_adv =
+            candidate.classes.carrier_progress && !incumbent.classes.carrier_progress;
+        let incumbent_progress_adv =
+            incumbent.classes.carrier_progress && !candidate.classes.carrier_progress;
+        if candidate_progress_adv || incumbent_progress_adv {
+            let no_tactical_priority = !candidate.classes.is_tactical_priority()
+                && !incumbent.classes.is_tactical_priority();
+            let tight_reply_floor =
+                (candidate_snapshot.worst_reply_score - incumbent_snapshot.worst_reply_score).abs()
                     <= 80;
-                if no_tactical_priority && tight_reply_floor {
-                    return candidate_progress_adv;
-                }
+            if no_tactical_priority && tight_reply_floor {
+                return candidate_progress_adv;
             }
         }
         if config.prefer_clean_reply_risk_roots {
@@ -26245,7 +21945,7 @@ impl MonsGameModel {
                 if let (Some(candidate_projection), Some(incumbent_projection)) =
                     (candidate_projection, incumbent_projection)
                 {
-                    if let Some(order) = Self::pro_v2_mixed_plain_spirit_reply_floor_order(
+                    if let Some(order) = Self::current_pro_mixed_plain_spirit_reply_floor_order(
                         candidate_snapshot,
                         candidate_projection,
                         incumbent_snapshot,
@@ -26254,7 +21954,7 @@ impl MonsGameModel {
                     ) {
                         return order == std::cmp::Ordering::Greater;
                     }
-                    if let Some(order) = Self::pro_v2_mixed_plain_spirit_projection_order(
+                    if let Some(order) = Self::current_pro_mixed_plain_spirit_projection_order(
                         game,
                         scored_roots,
                         candidate_index,
@@ -26287,7 +21987,7 @@ impl MonsGameModel {
                     }
                 }
             }
-            if let Some(order) = Self::pro_v2_spirit_followup_floor_order(
+            if let Some(order) = Self::current_pro_spirit_followup_floor_order(
                 game,
                 scored_roots,
                 candidate_index,
@@ -26306,7 +22006,7 @@ impl MonsGameModel {
                 incumbent_index,
             ) == std::cmp::Ordering::Less;
         }
-        if let Some(order) = Self::pro_v2_spirit_followup_floor_order(
+        if let Some(order) = Self::current_pro_spirit_followup_floor_order(
             game,
             scored_roots,
             candidate_index,
@@ -26319,14 +22019,13 @@ impl MonsGameModel {
                 return order == std::cmp::Ordering::Greater;
             }
         }
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && (candidate_snapshot.worst_reply_score - incumbent_snapshot.worst_reply_score).abs()
                 > 240
         {
             return candidate_snapshot.worst_reply_score > incumbent_snapshot.worst_reply_score;
         }
-        if matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
-            && config.enable_interview_soft_root_priors
+        if matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && candidate.interview_soft_priority != incumbent.interview_soft_priority
             && candidate.efficiency >= incumbent.efficiency
         {
@@ -26337,7 +22036,7 @@ impl MonsGameModel {
         {
             let same_opening_safe_setup_pair =
                 Self::is_same_opening_safe_setup_pair(candidate, incumbent, config);
-            if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 || same_opening_safe_setup_pair
                 || (candidate_snapshot.worst_reply_score - incumbent_snapshot.worst_reply_score)
                     .abs()
@@ -26384,7 +22083,7 @@ impl MonsGameModel {
         if config.enable_interview_deterministic_tiebreak
             && candidate.spirit_development != incumbent.spirit_development
         {
-            if let Some(order) = Self::pro_v2_spirit_projection_challenge_order(
+            if let Some(order) = Self::current_pro_spirit_projection_challenge_order(
                 candidate,
                 candidate_projection,
                 incumbent,
@@ -26392,8 +22091,10 @@ impl MonsGameModel {
             ) {
                 return order == std::cmp::Ordering::Greater;
             }
-            if let Some(order) = Self::pro_v2_spirit_score_challenge_order(candidate, incumbent) {
-                if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            if let Some(order) =
+                Self::current_pro_spirit_score_challenge_order(candidate, incumbent)
+            {
+                if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                     || (candidate_snapshot.worst_reply_score - incumbent_snapshot.worst_reply_score)
                         .abs()
                         <= 120
@@ -26401,7 +22102,7 @@ impl MonsGameModel {
                     return order == std::cmp::Ordering::Greater;
                 }
             }
-            if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+            if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                 || (candidate_snapshot.worst_reply_score - incumbent_snapshot.worst_reply_score)
                     .abs()
                     <= 120
@@ -26430,7 +22131,7 @@ impl MonsGameModel {
                 || candidate.spirit_development
                 || incumbent.spirit_development;
             let plain_spirit_development_projection =
-                matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+                matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                     && Self::is_plain_spirit_development_root(candidate)
                     && Self::is_plain_spirit_development_root(incumbent)
                     && spirit_reply_floor_close
@@ -26455,7 +22156,7 @@ impl MonsGameModel {
                 }
             }
             let spirit_development_projection =
-                matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+                matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
                     && candidate.spirit_development
                     && incumbent.spirit_development
                     && !candidate.spirit_same_turn_score_setup_now
@@ -26485,9 +22186,7 @@ impl MonsGameModel {
                 }
             }
         }
-        if config.enable_interview_soft_root_priors
-            && candidate.interview_soft_priority != incumbent.interview_soft_priority
-        {
+        if candidate.interview_soft_priority != incumbent.interview_soft_priority {
             return candidate.interview_soft_priority > incumbent.interview_soft_priority;
         }
         if candidate_snapshot.worst_reply_score != incumbent_snapshot.worst_reply_score {
@@ -26520,7 +22219,7 @@ impl MonsGameModel {
             && !root.has_roundtrip
     }
 
-    fn pro_v2_late_safe_mana_root_order(
+    fn current_pro_late_safe_mana_root_order(
         game: &MonsGame,
         candidate: &RootEvaluation,
         candidate_snapshot: RootReplyRiskSnapshot,
@@ -26528,9 +22227,9 @@ impl MonsGameModel {
         incumbent_snapshot: RootReplyRiskSnapshot,
         config: AutomoveSearchConfig,
     ) -> Option<std::cmp::Ordering> {
-        if !matches!(config.turn_engine_mode, TurnEngineMode::ProV2)
+        if !matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             || !config.enable_turn_engine_late_safe_mana_root_preference
-            || !Self::pro_v2_is_late_white_mana_only_turn_start(game)
+            || !Self::current_pro_is_late_white_mana_only_turn_start(game)
         {
             return None;
         }
@@ -26571,18 +22270,7 @@ impl MonsGameModel {
         })
     }
 
-    fn should_apply_normal_root_safety(game: &MonsGame, perspective: Color) -> bool {
-        let (my_score, opponent_score) = if perspective == Color::White {
-            (game.white_score, game.black_score)
-        } else {
-            (game.black_score, game.white_score)
-        };
-        let my_distance_to_win = Config::TARGET_SCORE - my_score;
-        let opponent_distance_to_win = Config::TARGET_SCORE - opponent_score;
-        my_distance_to_win <= SMART_NORMAL_ROOT_SAFETY_SCORE_RACE_TRIGGER
-            || opponent_distance_to_win <= SMART_NORMAL_ROOT_SAFETY_SCORE_RACE_TRIGGER
-    }
-
+    #[cfg(test)]
     fn pick_root_move_with_normal_safety(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
@@ -26638,7 +22326,7 @@ impl MonsGameModel {
         }
 
         let shortlist_indices = shortlist;
-        let start_options = Self::automove_start_input_options(config);
+        let start_options = Self::automove_start_input_options();
 
         let mut best_index = best_scored_index;
         let mut best_snapshot = Self::normal_root_safety_snapshot(
@@ -26817,6 +22505,7 @@ impl MonsGameModel {
             || opponent_distance_to_win <= SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_RACE_TRIGGER
     }
 
+    #[cfg(test)]
     fn pick_normal_root_with_deep_floor(
         scored_roots: &[RootEvaluation],
         shortlist_indices: &[usize],
@@ -26908,7 +22597,7 @@ impl MonsGameModel {
         let replies = Self::enumerate_legal_transitions(
             state_after_move,
             reply_limit.max(1),
-            Self::automove_start_input_options(config),
+            Self::automove_start_input_options(),
         );
         if crate::models::automove_deadline::cancelled() {
             return 0;
@@ -26930,9 +22619,6 @@ impl MonsGameModel {
                     let mut visited_nodes = 0usize;
                     let mut transposition_table = U64HashMap::<TranspositionEntry>::default();
                     let mut probe_extension_nodes_used = 0usize;
-                    let mut probe_killer_table: KillerTable =
-                        [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-                    let mut probe_history_table: HistoryTable = HistoryTable::default();
                     let mut probe_quiescence_nodes_used = 0usize;
                     Self::search_score(
                         &after_reply,
@@ -26947,8 +22633,6 @@ impl MonsGameModel {
                         &mut probe_extension_nodes_used,
                         0,
                         true,
-                        &mut probe_killer_table,
-                        &mut probe_history_table,
                         &mut probe_quiescence_nodes_used,
                     )
                 }
@@ -26966,17 +22650,15 @@ impl MonsGameModel {
         }
     }
 
-    fn pro_v2_spirit_followup_probe_config(
+    fn current_pro_spirit_followup_probe_config(
         mut config: AutomoveSearchConfig,
     ) -> AutomoveSearchConfig {
         config.enable_turn_engine_selector = false;
         config.turn_engine_mode = TurnEngineMode::ProV1;
         config.enable_turn_head_rerank = false;
-        config.enable_turn_engine_root_injection = false;
         config.enable_root_reply_risk_guard = false;
         config.enable_root_spirit_development_pref = false;
         config.enable_normal_root_safety_deep_floor = false;
-        config.enable_iterative_deepening = false;
         config.depth = config.depth.clamp(1, 3);
         config.max_visited_nodes = (config.max_visited_nodes / 8).clamp(300, 1400);
         config.root_branch_limit = config.node_branch_limit.clamp(5, 10);
@@ -26986,7 +22668,7 @@ impl MonsGameModel {
         config
     }
 
-    fn pro_v2_spirit_followup_floor_score(
+    fn current_pro_spirit_followup_floor_score(
         state_after_move: &MonsGame,
         perspective: Color,
         config: AutomoveSearchConfig,
@@ -27023,7 +22705,7 @@ impl MonsGameModel {
         }
 
         if config.enable_turn_engine_low_budget_guard {
-            let probe = Self::pro_v2_spirit_followup_probe_config(config);
+            let probe = Self::current_pro_spirit_followup_probe_config(config);
             let result = Self::evaluate_search_preferability(state_after_move, perspective, probe);
             if crate::models::automove_deadline::cache_write_allowed() {
                 TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| {
@@ -27033,7 +22715,7 @@ impl MonsGameModel {
             return result;
         }
 
-        let probe = Self::pro_v2_spirit_followup_probe_config(config);
+        let probe = Self::current_pro_spirit_followup_probe_config(config);
         let mut continuation = state_after_move.clone_for_simulation();
         let max_rollout_plies = if state_after_move.turn_number <= 1 {
             10
@@ -27074,7 +22756,7 @@ impl MonsGameModel {
         result
     }
 
-    fn pro_v2_spirit_followup_floor_order(
+    fn current_pro_spirit_followup_floor_order(
         game: &MonsGame,
         scored_roots: &[RootEvaluation],
         candidate_index: usize,
@@ -27083,7 +22765,7 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
         cached_scores: &mut std::collections::HashMap<usize, i32>,
     ) -> Option<std::cmp::Ordering> {
-        if !Self::pro_v2_secondary_analysis_live(config)
+        if !Self::current_pro_secondary_analysis_live(config)
             || game.turn_number > 3
             || !Self::is_plain_spirit_development_root(&scored_roots[candidate_index])
             || !Self::is_plain_spirit_development_root(&scored_roots[incumbent_index])
@@ -27115,10 +22797,10 @@ impl MonsGameModel {
         }
 
         let candidate_score = *cached_scores.entry(candidate_index).or_insert_with(|| {
-            Self::pro_v2_spirit_followup_floor_score(&candidate.game, perspective, config)
+            Self::current_pro_spirit_followup_floor_score(&candidate.game, perspective, config)
         });
         let incumbent_score = *cached_scores.entry(incumbent_index).or_insert_with(|| {
-            Self::pro_v2_spirit_followup_floor_score(&incumbent.game, perspective, config)
+            Self::current_pro_spirit_followup_floor_score(&incumbent.game, perspective, config)
         });
 
         const FLOOR_MARGIN: i32 = 32;
@@ -27136,63 +22818,32 @@ impl MonsGameModel {
         perspective: Color,
         config: AutomoveSearchConfig,
     ) -> i32 {
-        Self::cached_search_preferability_score(
-            game,
-            perspective,
-            config.scoring_weights,
-            config.enable_static_exact_evaluation,
-            config.enable_local_scoring_eval_ctx,
-            config.enable_scoring_attack_reach_summary,
-            config.enable_scoring_attack_reach_target_narrowing,
-            config.enable_scoring_drainer_attack_reach_target_narrowing,
-        )
+        Self::cached_search_preferability_score(game, perspective, config.scoring_weights)
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn cached_search_preferability_score(
         game: &MonsGame,
         perspective: Color,
         scoring_weights: &'static ScoringWeights,
-        allow_exact_static_evaluation: bool,
-        enable_local_scoring_eval_ctx: bool,
-        enable_scoring_attack_reach_summary: bool,
-        enable_scoring_attack_reach_target_narrowing: bool,
-        enable_scoring_drainer_attack_reach_target_narrowing: bool,
     ) -> i32 {
         Self::cached_search_preferability_score_with_hash(
             game,
             perspective,
             scoring_weights,
-            allow_exact_static_evaluation,
-            enable_local_scoring_eval_ctx,
-            enable_scoring_attack_reach_summary,
-            enable_scoring_attack_reach_target_narrowing,
-            enable_scoring_drainer_attack_reach_target_narrowing,
             Self::search_state_hash(game),
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn cached_search_preferability_score_with_hash(
         game: &MonsGame,
         perspective: Color,
         scoring_weights: &'static ScoringWeights,
-        allow_exact_static_evaluation: bool,
-        enable_local_scoring_eval_ctx: bool,
-        enable_scoring_attack_reach_summary: bool,
-        enable_scoring_attack_reach_target_narrowing: bool,
-        enable_scoring_drainer_attack_reach_target_narrowing: bool,
         state_hash: u64,
     ) -> i32 {
         let cache_key = SearchPreferabilityCacheKey {
             state_hash,
             perspective,
             scoring_weights_key: scoring_weights as *const ScoringWeights as usize as u64,
-            allow_exact_static_evaluation,
-            enable_local_scoring_eval_ctx,
-            enable_scoring_attack_reach_summary,
-            enable_scoring_attack_reach_target_narrowing,
-            enable_scoring_drainer_attack_reach_target_narrowing,
         };
         if let Some(cached) =
             SEARCH_PREFERABILITY_CACHE.with(|cache| cache.borrow().get(&cache_key).copied())
@@ -27208,29 +22859,12 @@ impl MonsGameModel {
         update_turn_engine_selector_diagnostics(|diagnostics| {
             diagnostics.search_preferability_builds += 1;
         });
-        let score = if enable_local_scoring_eval_ctx {
-            let context = ScoringEvalContext::new_with_flags(
-                game,
-                allow_exact_static_evaluation,
-                enable_scoring_attack_reach_summary,
-                enable_scoring_attack_reach_target_narrowing,
-                enable_scoring_drainer_attack_reach_target_narrowing,
-            );
-            evaluate_preferability_with_context(
-                game,
-                perspective,
-                scoring_weights,
-                allow_exact_static_evaluation,
-                &context,
-            )
-        } else {
-            evaluate_preferability_with_weights_and_exact_policy(
-                game,
-                perspective,
-                scoring_weights,
-                allow_exact_static_evaluation,
-            )
-        };
+        let score = evaluate_preferability_with_weights_and_exact_policy(
+            game,
+            perspective,
+            scoring_weights,
+            false,
+        );
         if crate::models::automove_deadline::cache_write_allowed() {
             SEARCH_PREFERABILITY_CACHE.with(|cache| {
                 let mut cache = cache.borrow_mut();
@@ -27275,10 +22909,6 @@ impl MonsGameModel {
         candidate_score > incumbent_score
     }
 }
-
-#[cfg(test)]
-#[path = "automove_experiments/mod.rs"]
-mod smart_automove_pool_tests;
 
 #[cfg(test)]
 mod evaluation_cache_tests {
@@ -27335,11 +22965,6 @@ mod evaluation_cache_tests {
                     &game,
                     game.active_color,
                     config.scoring_weights,
-                    false,
-                    false,
-                    false,
-                    false,
-                    false,
                 );
             });
         });
@@ -27426,99 +23051,7 @@ mod evaluation_cache_tests {
     }
 
     #[test]
-    fn search_preferability_scoring_ctx_preserves_result() {
-        clear_turn_engine_selector_followup_floor_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let mut config =
-            MonsGameModel::shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-        config.enable_local_scoring_eval_ctx = false;
-        let without_context =
-            MonsGameModel::evaluate_search_preferability(&game, Color::White, config);
-
-        clear_turn_engine_selector_followup_floor_cache();
-        config.enable_local_scoring_eval_ctx = true;
-        config.enable_scoring_attack_reach_summary = true;
-        config.enable_scoring_attack_reach_target_narrowing = true;
-        config.enable_scoring_drainer_attack_reach_target_narrowing = true;
-        let with_context =
-            MonsGameModel::evaluate_search_preferability(&game, Color::White, config);
-
-        assert_eq!(without_context, with_context);
-    }
-
-    #[test]
-    fn search_preferability_cache_keys_scoring_context_flags() {
-        clear_turn_engine_selector_followup_floor_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let mut config =
-            MonsGameModel::shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-        config.enable_local_scoring_eval_ctx = false;
-        let _ = MonsGameModel::evaluate_search_preferability(&game, Color::White, config);
-
-        config.enable_local_scoring_eval_ctx = true;
-        config.enable_scoring_attack_reach_summary = true;
-        config.enable_scoring_attack_reach_target_narrowing = true;
-        config.enable_scoring_drainer_attack_reach_target_narrowing = true;
-        let _ = MonsGameModel::evaluate_search_preferability(&game, Color::White, config);
-
-        assert_eq!(search_preferability_cache_len(), 2);
-    }
-
-    #[test]
-    fn move_efficiency_snapshot_uses_tactical_projection_for_active_exact_fields() {
+    fn move_efficiency_snapshot_tactical_projection_matches_exact_summary() {
         clear_turn_engine_selector_followup_floor_cache();
         clear_exact_state_analysis_cache();
         clear_exact_query_diagnostics();
@@ -27543,6 +23076,11 @@ mod evaluation_cache_tests {
         let snapshot = MonsGameModel::move_efficiency_snapshot(&game, Color::White, true, true);
         let diagnostics = exact_query_diagnostics_snapshot();
         let turn = exact_turn_summary(&game, Color::White);
+        let projection = crate::models::automove_exact::exact_turn_tactical_projection(
+            &game,
+            Color::White,
+            MonsGameModel::move_efficiency_tactical_projection_flags(),
+        );
 
         assert_eq!(diagnostics.exact_turn_summary_builds, 0);
         assert_eq!(
@@ -27551,7 +23089,7 @@ mod evaluation_cache_tests {
         );
         assert_eq!(
             snapshot.my_same_turn_opponent_mana_score_value,
-            turn.spirit_assisted_denial_value
+            projection.spirit_assisted_denial_value
         );
         assert_eq!(
             snapshot.my_safe_supermana_progress,
@@ -27571,54 +23109,6 @@ mod evaluation_cache_tests {
             turn.safe_opponent_mana_progress_steps
                 .unwrap_or(Config::BOARD_SIZE + 4)
         );
-    }
-
-    #[test]
-    fn move_efficiency_score_window_narrowing_preserves_active_exact_snapshot() {
-        clear_turn_engine_selector_followup_floor_cache();
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let state_hash = MonsGameModel::search_state_hash(&game);
-
-        let legacy = MonsGameModel::move_efficiency_snapshot_uncached_with_hash_and_narrowing(
-            &game,
-            Color::White,
-            true,
-            true,
-            state_hash,
-            false,
-        );
-        let narrowed = MonsGameModel::move_efficiency_snapshot_uncached_with_hash_and_narrowing(
-            &game,
-            Color::White,
-            true,
-            true,
-            state_hash,
-            true,
-        );
-        let exact_turn = exact_turn_summary(&game, Color::White);
-
-        assert!(exact_turn.same_turn_score_window_value > 0);
-        assert_eq!(exact_turn.spirit_assisted_score_value, 0);
-        assert_eq!(legacy, narrowed);
-        assert_eq!(legacy.my_same_turn_score_value, 0);
     }
 
     #[test]
@@ -27647,13 +23137,11 @@ mod evaluation_cache_tests {
             ],
             Color::White,
         );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_child_eval_bundle = true;
-        config.enable_local_scoring_eval_ctx = true;
+        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
         let transition = MonsGameModel::enumerate_legal_transitions(
             &game,
             config.node_enum_limit,
-            MonsGameModel::automove_start_input_options(config),
+            MonsGameModel::automove_start_input_options(),
         )
         .into_iter()
         .find(|transition| !transition.events.is_empty())
@@ -27663,19 +23151,19 @@ mod evaluation_cache_tests {
         let before = MonsGameModel::move_efficiency_snapshot_with_hash(
             &game,
             Color::White,
-            config.enable_child_exact_tactics && game.active_color == Color::White,
-            config.enable_static_exact_evaluation,
+            false,
+            false,
             before_hash,
         );
         let after = MonsGameModel::move_efficiency_snapshot_uncached_with_hash(
             &transition.game,
             Color::White,
-            config.enable_child_exact_tactics && transition.game.active_color == Color::White,
-            config.enable_static_exact_evaluation,
+            false,
+            false,
             child_hash,
         );
 
-        let legacy = MonsGameModel::move_efficiency_delta_from_before_snapshot(
+        let baseline = MonsGameModel::move_efficiency_delta_from_before_snapshot(
             &game,
             &transition.game,
             Color::White,
@@ -27685,8 +23173,8 @@ mod evaluation_cache_tests {
             false,
             false,
             false,
-            config.enable_child_exact_tactics,
-            config.enable_static_exact_evaluation,
+            false,
+            false,
             config.root_backtrack_penalty,
             config.root_mana_handoff_penalty,
         );
@@ -27704,950 +23192,7 @@ mod evaluation_cache_tests {
             config.root_mana_handoff_penalty,
         );
 
-        assert_eq!(legacy, reused);
-    }
-
-    #[test]
-    fn child_eval_bundle_matches_legacy_child_analysis() {
-        clear_turn_engine_selector_followup_floor_cache();
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(8, 6),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_child_eval_bundle = true;
-        config.enable_local_scoring_eval_ctx = true;
-        config.enable_scoring_attack_reach_summary = true;
-        config.enable_scoring_attack_reach_target_narrowing = true;
-        config.enable_child_vulnerability_scoring_ctx_reuse = true;
-        config.enable_child_vulnerability_attack_plausibility_screen = true;
-        config.enable_move_efficiency_tactical_score_window_narrowing = true;
-        config.enable_child_move_class_coverage = true;
-        let history_table: HistoryTable = HistoryTable::default();
-        let transition = MonsGameModel::enumerate_legal_transitions(
-            &game,
-            config.node_enum_limit,
-            MonsGameModel::automove_start_input_options(config),
-        )
-        .into_iter()
-        .find(|transition| !transition.events.is_empty())
-        .expect("expected at least one legal transition");
-        let scratch = MonsGameModel::build_child_ordering_scratch(
-            &game,
-            Color::White,
-            game.active_color,
-            config,
-        );
-        let bundle = MonsGameModel::build_child_eval_bundle(
-            &game,
-            &transition.game,
-            Color::White,
-            game.active_color,
-            transition.events.as_slice(),
-            None,
-            [0, 0],
-            config,
-            &history_table,
-            &scratch,
-        );
-        let expected_hash = MonsGameModel::search_state_hash(&transition.game);
-        let expected_score = MonsGameModel::score_state(
-            &transition.game,
-            Color::White,
-            0,
-            config.depth,
-            config.scoring_weights,
-            config.enable_static_exact_evaluation,
-        );
-        let expected_after_snapshot =
-            Some(MonsGameModel::move_efficiency_snapshot_uncached_with_hash(
-                &transition.game,
-                Color::White,
-                config.enable_child_exact_tactics && transition.game.active_color == Color::White,
-                config.enable_static_exact_evaluation,
-                expected_hash,
-            ));
-        let expected_ordering = MonsGameModel::move_efficiency_delta_from_before_snapshot(
-            &game,
-            &transition.game,
-            Color::White,
-            transition.events.as_slice(),
-            scratch
-                .before_efficiency_snapshot
-                .expect("expected before snapshot when root efficiency is enabled"),
-            expected_hash,
-            false,
-            false,
-            false,
-            config.enable_child_exact_tactics,
-            config.enable_static_exact_evaluation,
-            config.root_backtrack_penalty,
-            config.root_mana_handoff_penalty,
-        );
-        let expected_own_drainer_vulnerable_after =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(
-                &transition.game,
-                game.active_color,
-                config.enable_enhanced_drainer_vulnerability,
-            );
-        let expected_tactical_trigger =
-            MonsGameModel::events_include_any_drainer_fainted(transition.events.as_slice())
-                || (scratch.own_drainer_vulnerable_before != expected_own_drainer_vulnerable_after)
-                || transition
-                    .events
-                    .iter()
-                    .any(|event| matches!(event, Event::ManaScored { .. }));
-        let expected_classes = MonsGameModel::classify_move_classes(
-            &game,
-            &transition.game,
-            game.active_color,
-            transition.events.as_slice(),
-            scratch.own_drainer_vulnerable_before,
-            expected_own_drainer_vulnerable_after,
-        );
-        let expected_quiet = MonsGameModel::is_quiet_reduction_candidate(
-            expected_ordering,
-            expected_tactical_trigger,
-            expected_classes,
-        );
-
-        assert_eq!(bundle.child_hash, expected_hash);
-        assert_eq!(bundle.heuristic, expected_score);
-        assert_eq!(bundle.after_efficiency_snapshot, expected_after_snapshot);
-        assert_eq!(bundle.ordering_efficiency, expected_ordering);
-        assert_eq!(
-            bundle.own_drainer_vulnerable_after,
-            expected_own_drainer_vulnerable_after
-        );
-        assert_eq!(bundle.tactical_extension_trigger, expected_tactical_trigger);
-        assert_eq!(bundle.quiet_reduction_candidate, expected_quiet);
-        assert_eq!(
-            bundle.classes.immediate_score,
-            expected_classes.immediate_score
-        );
-        assert_eq!(
-            bundle.classes.drainer_attack,
-            expected_classes.drainer_attack
-        );
-        assert_eq!(
-            bundle.classes.drainer_safety_recover,
-            expected_classes.drainer_safety_recover
-        );
-        assert_eq!(
-            bundle.classes.carrier_progress,
-            expected_classes.carrier_progress
-        );
-        assert_eq!(bundle.classes.material, expected_classes.material);
-        assert_eq!(bundle.classes.quiet, expected_classes.quiet);
-    }
-
-    #[test]
-    fn child_vulnerability_attack_plausibility_matches_curated_edges() {
-        let mystic_setup = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        assert!(MonsGameModel::target_attack_plausible_on_board(
-            &mystic_setup.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        ));
-        assert!(crate::models::automove_exact::can_attack_target_on_board(
-            &mystic_setup.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        ));
-
-        let bomb_setup = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(1, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        assert!(MonsGameModel::target_attack_plausible_on_board(
-            &bomb_setup.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        ));
-        assert!(crate::models::automove_exact::can_attack_target_on_board(
-            &bomb_setup.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        ));
-
-        let guarded_mystic = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        assert!(!MonsGameModel::target_attack_plausible_on_board(
-            &guarded_mystic.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            Config::MONS_MOVES_PER_TURN,
-            true,
-        ));
-        assert!(!crate::models::automove_exact::can_attack_target_on_board(
-            &guarded_mystic.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            Config::MONS_MOVES_PER_TURN,
-            true,
-        ));
-
-        let mana_carrier_cannot_pick_bomb = game_with_items(
-            vec![
-                (
-                    Location::new(6, 6),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 0),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(3, 0),
-                    Item::Consumable {
-                        consumable: Consumable::BombOrPotion,
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        assert!(!MonsGameModel::target_attack_plausible_on_board(
-            &mana_carrier_cannot_pick_bomb.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 6),
-            Config::MONS_MOVES_PER_TURN,
-            true,
-        ));
-        assert!(!crate::models::automove_exact::can_attack_target_on_board(
-            &mana_carrier_cannot_pick_bomb.board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 6),
-            Config::MONS_MOVES_PER_TURN,
-            true,
-        ));
-    }
-
-    #[test]
-    fn child_vulnerability_plausibility_screen_skips_exact_probe_for_impossible_child() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let parent = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let child = game_with_items(
-            vec![
-                (
-                    Location::new(10, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 9),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let mut config = child_ordering_shortlist_config();
-        config.enable_child_vulnerability_attack_plausibility_screen = true;
-        let scratch = MonsGameModel::build_child_ordering_scratch(
-            &parent,
-            Color::White,
-            parent.active_color,
-            config,
-        );
-        assert!(scratch.own_drainer_vulnerable_before);
-        clear_exact_query_diagnostics();
-
-        let transition = LegalInputTransition {
-            inputs: Vec::new(),
-            game: child,
-            events: Vec::new(),
-        };
-        let (force_full, eventful_reserve) = MonsGameModel::child_requires_full_ordering_pass(
-            &transition,
-            Color::White,
-            parent.active_color,
-            MonsGameModel::search_state_hash(&transition.game),
-            None,
-            [0; 2],
-            config,
-            &scratch,
-            false,
-            false,
-        );
-        let diagnostics = exact_query_diagnostics_snapshot();
-
-        assert!(force_full);
-        assert!(!eventful_reserve);
-        assert_eq!(diagnostics.attack_reach_calls, 0);
-    }
-
-    fn child_ordering_shortlist_config() -> AutomoveSearchConfig {
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_child_eval_bundle = true;
-        config.enable_local_scoring_eval_ctx = true;
-        config.enable_two_stage_child_ordering = true;
-        config.node_enum_limit = 128;
-        config.node_branch_limit = 1;
-        config.child_ordering_shortlist_multiplier = 1;
-        config.child_ordering_tactical_reserve = 0;
-        config
-    }
-
-    fn cheap_child_entries_for_test(
-        game: &MonsGame,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-        preferred_child_hash: Option<u64>,
-        killer_hashes: [u64; 2],
-        retain_supermana_progress: bool,
-        retain_opponent_mana_progress: bool,
-    ) -> Vec<CheapChildOrderingEntry> {
-        let actor_color = game.active_color;
-        let scratch =
-            MonsGameModel::build_child_ordering_scratch(game, perspective, actor_color, config);
-        let history_table: HistoryTable = HistoryTable::default();
-        MonsGameModel::enumerate_legal_transitions(
-            game,
-            config.node_enum_limit,
-            MonsGameModel::automove_start_input_options(config),
-        )
-        .into_iter()
-        .map(|transition| {
-            let child_hash = MonsGameModel::search_state_hash(&transition.game);
-            let heuristic = MonsGameModel::cheap_child_ordering_heuristic(
-                game,
-                &transition.game,
-                perspective,
-                child_hash,
-                transition.events.as_slice(),
-                preferred_child_hash,
-                killer_hashes,
-                config,
-                &history_table,
-            );
-            let (force_full, eventful_reserve) = MonsGameModel::child_requires_full_ordering_pass(
-                &transition,
-                perspective,
-                actor_color,
-                child_hash,
-                preferred_child_hash,
-                killer_hashes,
-                config,
-                &scratch,
-                retain_supermana_progress,
-                retain_opponent_mana_progress,
-            );
-
-            CheapChildOrderingEntry {
-                transition,
-                child_hash,
-                heuristic,
-                force_full,
-                eventful_reserve,
-            }
-        })
-        .collect()
-    }
-
-    fn cheap_child_entry_for_selection_test(
-        child_hash: u64,
-        heuristic: i32,
-        force_full: bool,
-        eventful_reserve: bool,
-    ) -> CheapChildOrderingEntry {
-        CheapChildOrderingEntry {
-            transition: LegalInputTransition {
-                inputs: Vec::new(),
-                game: game_with_items(vec![], Color::White),
-                events: Vec::new(),
-            },
-            child_hash,
-            heuristic,
-            force_full,
-            eventful_reserve,
-        }
-    }
-
-    #[test]
-    fn two_stage_child_ordering_selection_keeps_exact_supermana_progress_child() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(0, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-        let config = child_ordering_shortlist_config();
-        let exact_turn_before = exact_turn_summary(&game, Color::White);
-        let entries = cheap_child_entries_for_test(
-            &game,
-            Color::White,
-            config,
-            None,
-            [0; 2],
-            exact_turn_before.safe_supermana_progress
-                || exact_turn_before.spirit_assisted_supermana_progress,
-            false,
-        );
-        let target_index = entries
-            .iter()
-            .position(|entry| {
-                MonsGameModel::transition_preserves_exact_progress(
-                    &entry.transition,
-                    Color::White,
-                    Mana::Supermana,
-                )
-            })
-            .expect("expected an exact safe supermana progress child");
-        let selected =
-            MonsGameModel::selected_two_stage_child_ordering_indices(&entries, true, config);
-
-        assert!(
-            entries[target_index].force_full,
-            "exact safe supermana progress child should be forced through the shortlist"
-        );
-        assert!(
-            selected.contains(&target_index),
-            "exact safe supermana progress child should survive shortlist selection"
-        );
-    }
-
-    #[test]
-    fn two_stage_child_ordering_selection_keeps_exact_opponent_mana_progress_child() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(0, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-        let config = child_ordering_shortlist_config();
-        let exact_turn_before = exact_turn_summary(&game, Color::White);
-        let entries = cheap_child_entries_for_test(
-            &game,
-            Color::White,
-            config,
-            None,
-            [0; 2],
-            false,
-            exact_turn_before.safe_opponent_mana_progress
-                || exact_turn_before.spirit_assisted_opponent_mana_progress
-                || exact_turn_before.spirit_assisted_denial,
-        );
-        let target_index = entries
-            .iter()
-            .position(|entry| {
-                MonsGameModel::transition_preserves_exact_progress(
-                    &entry.transition,
-                    Color::White,
-                    Mana::Regular(Color::Black),
-                )
-            })
-            .expect("expected an exact safe opponent-mana progress child");
-        let selected =
-            MonsGameModel::selected_two_stage_child_ordering_indices(&entries, true, config);
-
-        assert!(
-            entries[target_index].force_full,
-            "exact safe opponent-mana progress child should be forced through the shortlist"
-        );
-        assert!(
-            selected.contains(&target_index),
-            "exact safe opponent-mana progress child should survive shortlist selection"
-        );
-    }
-
-    #[test]
-    fn two_stage_child_ordering_selection_keeps_drainer_faint_child() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let config = child_ordering_shortlist_config();
-        let entries =
-            cheap_child_entries_for_test(&game, Color::White, config, None, [0; 2], false, false);
-        let target_index = entries
-            .iter()
-            .position(|entry| {
-                MonsGameModel::events_include_opponent_drainer_fainted(
-                    entry.transition.events.as_slice(),
-                    Color::White,
-                )
-            })
-            .expect("expected an opponent drainer-faint child");
-        let selected =
-            MonsGameModel::selected_two_stage_child_ordering_indices(&entries, true, config);
-
-        assert!(
-            entries[target_index].force_full,
-            "drainer-faint child should be forced through the shortlist"
-        );
-        assert!(
-            selected.contains(&target_index),
-            "drainer-faint child should survive shortlist selection"
-        );
-    }
-
-    #[test]
-    fn two_stage_child_ordering_selection_keeps_tt_and_killer_children() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(8, 6),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let config = child_ordering_shortlist_config();
-        let plain_entries =
-            cheap_child_entries_for_test(&game, Color::White, config, None, [0; 2], false, false);
-        let target_index = plain_entries
-            .iter()
-            .enumerate()
-            .min_by_key(|(_, entry)| entry.heuristic)
-            .map(|(index, _)| index)
-            .expect("expected at least one child");
-        let target_hash = plain_entries[target_index].child_hash;
-        let plain_selected =
-            MonsGameModel::selected_two_stage_child_ordering_indices(&plain_entries, true, config);
-        assert!(
-            !plain_selected.contains(&target_index),
-            "test target should start outside the narrow shortlist without TT/killer protection"
-        );
-
-        let tt_entries = cheap_child_entries_for_test(
-            &game,
-            Color::White,
-            config,
-            Some(target_hash),
-            [0; 2],
-            false,
-            false,
-        );
-        let tt_selected =
-            MonsGameModel::selected_two_stage_child_ordering_indices(&tt_entries, true, config);
-        assert!(tt_entries[target_index].force_full);
-        assert!(
-            tt_selected.contains(&target_index),
-            "TT-best child should survive shortlist selection"
-        );
-
-        let killer_entries = cheap_child_entries_for_test(
-            &game,
-            Color::White,
-            config,
-            None,
-            [target_hash, 0],
-            false,
-            false,
-        );
-        let killer_selected =
-            MonsGameModel::selected_two_stage_child_ordering_indices(&killer_entries, true, config);
-        assert!(killer_entries[target_index].force_full);
-        assert!(
-            killer_selected.contains(&target_index),
-            "killer child should survive shortlist selection"
-        );
-    }
-
-    #[test]
-    fn two_stage_child_ordering_selection_adds_eventful_reserve_for_tactical_top2_coverage() {
-        let mut config = child_ordering_shortlist_config();
-        config.child_ordering_tactical_reserve = 1;
-        let entries = vec![
-            cheap_child_entry_for_selection_test(5, 100, false, false),
-            cheap_child_entry_for_selection_test(4, 90, false, false),
-            cheap_child_entry_for_selection_test(3, 80, false, true),
-            cheap_child_entry_for_selection_test(2, 70, false, false),
-        ];
-
-        let selected =
-            MonsGameModel::selected_two_stage_child_ordering_indices(&entries, true, config);
-
-        assert_eq!(selected, vec![0, 2]);
-    }
-
-    fn targeted_search_config(game: &MonsGame, enable_narrowing: bool) -> AutomoveSearchConfig {
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_runtime_scoring_weights(game, config);
-        config.enable_turn_head_rerank = false;
-        config.root_enum_limit = config.root_enum_limit.min(72);
-        config.node_enum_limit = config.node_enum_limit.min(54);
-        config.root_branch_limit = config.root_branch_limit.clamp(6, 12);
-        config.node_branch_limit = config.node_branch_limit.clamp(4, 10);
-        config.enable_targeted_exact_turn_summary_memo = enable_narrowing;
-        config.enable_targeted_score_window_narrowing = enable_narrowing;
-        config
-    }
-
-    #[test]
-    fn targeted_exact_turn_summary_memo_reuses_one_search_hash_entry() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let mut memo = Some(TargetedExactTurnSummaryMemo::default());
-
-        let first = MonsGameModel::targeted_exact_turn_summary(&game, Color::White, &mut memo);
-        let second = MonsGameModel::targeted_exact_turn_summary(
-            &game.clone_for_simulation(),
-            Color::White,
-            &mut memo,
-        );
-
-        assert_eq!(
-            first.same_turn_score_window_value,
-            second.same_turn_score_window_value
-        );
-        assert_eq!(
-            first.safe_opponent_mana_progress,
-            second.safe_opponent_mana_progress
-        );
-        assert_eq!(
-            first.spirit_assisted_denial_value,
-            second.spirit_assisted_denial_value
-        );
-        assert_eq!(
-            memo.as_ref()
-                .expect("memo should stay allocated")
-                .entries
-                .len(),
-            1
-        );
-    }
-
-    #[test]
-    fn targeted_same_turn_score_window_narrowing_keeps_drainer_pickup_candidate() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let legacy_config = targeted_search_config(&game, false);
-        let narrowed_config = targeted_search_config(&game, true);
-        let per_surface = 8;
-
-        let mut legacy_memo = None;
-        let legacy_inputs = MonsGameModel::collect_targeted_same_turn_score_window_inputs(
-            &game,
-            Color::White,
-            legacy_config,
-            per_surface,
-            &mut legacy_memo,
-        );
-        let mut narrowed_memo = Some(TargetedExactTurnSummaryMemo::default());
-        let narrowed_inputs = MonsGameModel::collect_targeted_same_turn_score_window_inputs(
-            &game,
-            Color::White,
-            narrowed_config,
-            per_surface,
-            &mut narrowed_memo,
-        );
-
-        let legacy_target = legacy_inputs
-            .iter()
-            .find(|transition| {
-                transition.events.iter().any(|event| {
-                    matches!(
-                        event,
-                        Event::PickupMana {
-                            mana: Mana::Regular(Color::White),
-                            ..
-                        }
-                    )
-                })
-            })
-            .expect("expected a drainer pickup transition in legacy score-window targeting");
-        let narrowed_target = narrowed_inputs
-            .iter()
-            .find(|transition| transition.inputs == legacy_target.inputs)
-            .expect("narrowed targeting should retain the drainer pickup score-window transition");
-
-        assert!(narrowed_inputs.len() <= legacy_inputs.len());
-        assert_eq!(
-            exact_turn_summary(&legacy_target.game, Color::White).same_turn_score_window_value,
-            exact_turn_summary(&narrowed_target.game, Color::White).same_turn_score_window_value
-        );
-    }
-
-    #[test]
-    fn targeted_spirit_score_inputs_match_with_local_summary_memo() {
-        clear_exact_state_analysis_cache();
-        let game = MonsGame::from_fen(
-            "0 0 w 0 0 0 0 0 2 n05d0xn05/n11/n11/n11/n11/n11/n11/n08xxmn02/n11/n05D0xn01S0xn03/n11",
-            false,
-        )
-        .expect("valid primary spirit setup fixture");
-        let max_candidates = 8;
-        let mut legacy_memo = None;
-        let legacy_inputs = MonsGameModel::collect_targeted_spirit_score_inputs(
-            &game,
-            Color::White,
-            max_candidates,
-            false,
-            &mut legacy_memo,
-        );
-        let mut narrowed_memo = Some(TargetedExactTurnSummaryMemo::default());
-        let narrowed_inputs = MonsGameModel::collect_targeted_spirit_score_inputs(
-            &game,
-            Color::White,
-            max_candidates,
-            false,
-            &mut narrowed_memo,
-        );
-
-        assert!(
-            !legacy_inputs.is_empty(),
-            "expected a spirit score candidate"
-        );
-        assert_eq!(
-            legacy_inputs
-                .iter()
-                .map(|transition| transition.inputs.clone())
-                .collect::<Vec<_>>(),
-            narrowed_inputs
-                .iter()
-                .map(|transition| transition.inputs.clone())
-                .collect::<Vec<_>>()
-        );
+        assert_eq!(baseline, reused);
     }
 }
 
@@ -28675,11 +23220,6 @@ mod smart_automove_tests {
         game.white_potions_count = 0;
         game.black_potions_count = 0;
         game
-    }
-
-    #[derive(Clone)]
-    struct RuntimeSpeedFixture {
-        game: MonsGame,
     }
 
     fn apply_seeded_runtime_move(game: &mut MonsGame, rng: &mut StdRng) -> bool {
@@ -28771,72 +23311,59 @@ mod smart_automove_tests {
         panic!("expected an immediate-score runtime fixture");
     }
 
-    fn mixed_runtime_speed_gate_fixtures() -> Vec<RuntimeSpeedFixture> {
-        let mut fixtures = seeded_runtime_speed_positions(0x5eed_0ee1, 3, 2, 6)
-            .into_iter()
-            .map(|game| RuntimeSpeedFixture { game })
-            .collect::<Vec<_>>();
-        fixtures.extend(
-            seeded_runtime_speed_positions(0x5eed_1d00, 3, 10, 16)
-                .into_iter()
-                .map(|game| RuntimeSpeedFixture { game }),
-        );
+    fn cold_public_runtime_gate_fixtures() -> Vec<MonsGame> {
+        let mut fixtures = seeded_runtime_speed_positions(0x5eed_0ee1, 3, 2, 6);
+        fixtures.extend(seeded_runtime_speed_positions(0x5eed_1d00, 3, 10, 16));
         fixtures.extend([
-            RuntimeSpeedFixture {
-                game: immediate_score_runtime_fixture(),
-            },
-            RuntimeSpeedFixture {
-                game: game_with_items(
-                    vec![
-                        (
-                            Location::new(5, 5),
-                            Item::Mon {
-                                mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                            },
-                        ),
-                        (
-                            Location::new(10, 5),
-                            Item::Mon {
-                                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                            },
-                        ),
-                        (
-                            Location::new(7, 7),
-                            Item::Mon {
-                                mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                            },
-                        ),
-                    ],
-                    Color::White,
-                    2,
-                ),
-            },
-            RuntimeSpeedFixture {
-                game: game_with_items(
-                    vec![
-                        (
-                            Location::new(6, 5),
-                            Item::Mon {
-                                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                            },
-                        ),
-                        (
-                            Location::new(5, 5),
-                            Item::Mana {
-                                mana: Mana::Supermana,
-                            },
-                        ),
-                        (
-                            Location::new(0, 10),
-                            Item::Mon {
-                                mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                            },
-                        ),
-                    ],
-                    Color::White,
-                    2,
-                ),
-            },
+            immediate_score_runtime_fixture(),
+            game_with_items(
+                vec![
+                    (
+                        Location::new(5, 5),
+                        Item::Mon {
+                            mon: Mon::new(MonKind::Mystic, Color::White, 0),
+                        },
+                    ),
+                    (
+                        Location::new(10, 5),
+                        Item::Mon {
+                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
+                        },
+                    ),
+                    (
+                        Location::new(7, 7),
+                        Item::Mon {
+                            mon: Mon::new(MonKind::Drainer, Color::Black, 0),
+                        },
+                    ),
+                ],
+                Color::White,
+                2,
+            ),
+            game_with_items(
+                vec![
+                    (
+                        Location::new(6, 5),
+                        Item::Mon {
+                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
+                        },
+                    ),
+                    (
+                        Location::new(5, 5),
+                        Item::Mana {
+                            mana: Mana::Supermana,
+                        },
+                    ),
+                    (
+                        Location::new(0, 10),
+                        Item::Mon {
+                            mon: Mon::new(MonKind::Drainer, Color::Black, 0),
+                        },
+                    ),
+                ],
+                Color::White,
+                2,
+            ),
         ]);
 
         fixtures
@@ -28844,58 +23371,6 @@ mod smart_automove_tests {
 
     fn clone_model_for_smart_automove_tests(model: &MonsGameModel) -> MonsGameModel {
         MonsGameModel::with_game(model.game.clone_for_simulation())
-    }
-
-    fn apply_smart_preference_step(
-        model: &mut MonsGameModel,
-        preference: SmartAutomovePreference,
-    ) -> OutputModel {
-        let output = model.smart_automove_output(preference);
-        assert_eq!(
-            output.kind,
-            OutputModelKind::Events,
-            "smart automove should produce events for {}",
-            preference.as_api_value()
-        );
-        let input_fen = output.input_fen();
-        let applied = model.process_input_fen(input_fen.as_str());
-        assert_eq!(
-            applied.kind,
-            OutputModelKind::Events,
-            "smart automove input fen should apply cleanly for {}",
-            preference.as_api_value()
-        );
-        applied
-    }
-
-    fn play_smart_preference_until_end(
-        preference: SmartAutomovePreference,
-        max_plies: usize,
-    ) -> Color {
-        let mut model = MonsGameModel::new_for_simulation(GameVariant::Classic);
-        let mut previous_fen = model.fen();
-
-        for ply in 0..max_plies {
-            let _ = apply_smart_preference_step(&mut model, preference);
-            let next_fen = model.fen();
-            assert_ne!(
-                next_fen,
-                previous_fen,
-                "smart automove should advance the board for {} at ply {}",
-                preference.as_api_value(),
-                ply + 1
-            );
-            if let Some(winner) = model.winner_color() {
-                return winner;
-            }
-            previous_fen = next_fen;
-        }
-
-        panic!(
-            "smart automove for {} did not finish within {} plies",
-            preference.as_api_value(),
-            max_plies
-        );
     }
 
     fn exhaustive_same_turn_reachable<F>(game: &MonsGame, color: Color, predicate: F) -> bool
@@ -29044,19 +23519,54 @@ mod smart_automove_tests {
     }
 
     #[test]
-    #[ignore = "full pro opening search can take over a minute in debug"]
-    fn pro_mode_full_runtime_search_produces_legal_inputs() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        assert!(
-            !inputs.is_empty(),
-            "pro mode should produce at least one input from initial position"
-        );
-        assert!(
-            MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs).is_some(),
-            "pro mode selected inputs should be legal"
-        );
+    #[ignore = "release gate: all variants and public modes must be deterministic and replayable"]
+    fn smart_automove_public_variant_legality_and_replay_gate() {
+        for variant_id in 0..=11 {
+            let variant = GameVariant::from_id(variant_id).expect("known public game variant");
+            let game = MonsGame::new(false, variant);
+
+            for preference in [
+                SmartAutomovePreference::Fast,
+                SmartAutomovePreference::Normal,
+                SmartAutomovePreference::Pro,
+            ] {
+                let mut observed = None;
+                for repeat in 0..2 {
+                    clear_exact_state_analysis_cache();
+                    clear_turn_engine_plan_cache();
+                    clear_turn_engine_selector_followup_floor_cache();
+                    let model = MonsGameModel::with_game(game.clone_for_simulation());
+                    let output = model.smart_automove_output(preference);
+                    assert_eq!(output.kind, OutputModelKind::Events);
+
+                    let input_fen = output.input_fen();
+                    assert!(!input_fen.is_empty());
+                    let mut replay = game.clone_for_simulation();
+                    assert!(matches!(
+                        replay.process_input(Input::array_from_fen(&input_fen), false, false),
+                        Output::Events(_)
+                    ));
+                    let replay_fen = replay.fen();
+
+                    if let Some((expected_inputs, expected_replay)) = observed.as_ref() {
+                        assert_eq!(
+                            input_fen,
+                            *expected_inputs,
+                            "variant={variant_id} mode={} repeat={repeat}",
+                            preference.as_api_value(),
+                        );
+                        assert_eq!(
+                            replay_fen,
+                            *expected_replay,
+                            "variant={variant_id} mode={} repeat={repeat}",
+                            preference.as_api_value(),
+                        );
+                    } else {
+                        observed = Some((input_fen, replay_fen));
+                    }
+                }
+            }
+        }
     }
 
     #[test]
@@ -29372,16 +23882,10 @@ mod smart_automove_tests {
             clear_turn_engine_plan_cache();
             clear_turn_engine_selector_followup_floor_cache();
             let expected_inputs =
-                automove_runtime_variants::select_frontier_pro_v10_bounded_tactical_inputs(
+                automove_runtime_variants::select_current_pro_bounded_tactical_inputs(
                     &game, config,
                 );
             let expected_input_fen = Input::fen_from_array(&expected_inputs);
-            clear_exact_state_analysis_cache();
-            clear_turn_engine_plan_cache();
-            clear_turn_engine_selector_followup_floor_cache();
-            let previous_inputs =
-                automove_runtime_variants::select_frontier_pro_v2_guarded_inputs(&game, config);
-            let previous_input_fen = Input::fen_from_array(&previous_inputs);
             clear_exact_state_analysis_cache();
             clear_turn_engine_plan_cache();
             clear_turn_engine_selector_followup_floor_cache();
@@ -29390,9 +23894,7 @@ mod smart_automove_tests {
             let shipping_input_fen = Input::fen_from_array(&shipping_inputs);
 
             assert_eq!(expected_input_fen, "l10,5;l9,4");
-            assert_eq!(previous_input_fen, "l10,6;l9,6");
             assert_eq!(shipping_input_fen, "l10,6;l9,6");
-            assert_ne!(expected_input_fen, previous_input_fen);
             assert_ne!(expected_input_fen, shipping_input_fen);
 
             clear_exact_state_analysis_cache();
@@ -29407,123 +23909,46 @@ mod smart_automove_tests {
     }
 
     #[test]
-    #[ignore = "release-only mixed-position latency and cpu-ordering guard for publish flow"]
-    fn smart_automove_release_mixed_runtime_speed_gate() {
+    #[ignore = "release gate: independently cold public calls must remain legal and under 700ms"]
+    fn smart_automove_public_runtime_budget_gate() {
         use std::time::Instant;
 
-        // This gate is test-only and the fast/normal ratio has shown small
-        // machine-local timing drift around 14x; keep the cap tight but avoid
-        // rejecting stable release builds on benchmark noise alone.
-        const NORMAL_FAST_RATIO_MAX: f64 = 14.75;
-        let fixtures = mixed_runtime_speed_gate_fixtures();
-        let passes = 3usize;
-        let limits_ms = [
-            (SmartAutomovePreference::Fast, 450.0),
-            (SmartAutomovePreference::Normal, 1_800.0),
-            (SmartAutomovePreference::Pro, 4_800.0),
-        ];
+        for (fixture_index, game) in cold_public_runtime_gate_fixtures().into_iter().enumerate() {
+            for preference in [
+                SmartAutomovePreference::Fast,
+                SmartAutomovePreference::Normal,
+                SmartAutomovePreference::Pro,
+            ] {
+                clear_exact_state_analysis_cache();
+                clear_turn_engine_plan_cache();
+                clear_turn_engine_selector_followup_floor_cache();
+                let model = MonsGameModel::with_game(game.clone_for_simulation());
+                let start = Instant::now();
+                let output = model.smart_automove_output(preference);
+                let elapsed_ms = start.elapsed().as_secs_f64() * 1_000.0;
+                assert_eq!(output.kind, OutputModelKind::Events);
 
-        let mut measured_ms = Vec::with_capacity(limits_ms.len());
-        for (preference, limit_ms) in limits_ms {
-            let warm_fixture = &fixtures[0];
-            let warm_model = MonsGameModel::with_game(warm_fixture.game.clone_for_simulation());
-            let warm_output = warm_model.smart_automove_output(preference);
-            assert_eq!(warm_output.kind, OutputModelKind::Events);
-
-            let mut pass_averages = Vec::with_capacity(passes);
-            for _ in 0..passes {
-                let mut total_ms = 0.0;
-                for fixture in &fixtures {
-                    crate::models::automove_exact::clear_exact_state_analysis_cache();
-                    let model = MonsGameModel::with_game(fixture.game.clone_for_simulation());
-                    let start = Instant::now();
-                    let output = model.smart_automove_output(preference);
-                    total_ms += start.elapsed().as_secs_f64() * 1000.0;
-                    assert_eq!(output.kind, OutputModelKind::Events);
-                }
-                pass_averages.push(total_ms / fixtures.len() as f64);
+                let mut replay = game.clone_for_simulation();
+                let inputs = Input::array_from_fen(output.input_fen().as_str());
+                assert!(matches!(
+                    replay.process_input(inputs, false, false),
+                    Output::Events(_)
+                ));
+                println!(
+                    "AUTOMOVE_PUBLIC_RUNTIME fixture={} mode={} elapsed_ms={:.3}",
+                    fixture_index,
+                    preference.as_api_value(),
+                    elapsed_ms,
+                );
+                assert!(
+                    elapsed_ms <= 700.0,
+                    "public {} call exceeded 700ms on fixture {}: {:.3}ms",
+                    preference.as_api_value(),
+                    fixture_index,
+                    elapsed_ms,
+                );
             }
-
-            pass_averages.sort_by(|a, b| a.partial_cmp(b).expect("finite timings"));
-            let median_avg_ms = pass_averages[passes / 2];
-            println!(
-                "release mixed speed gate {}: median_avg_ms={:.2} limit_ms={:.2}",
-                preference.as_api_value(),
-                median_avg_ms,
-                limit_ms
-            );
-            assert!(
-                median_avg_ms <= limit_ms,
-                "{} mixed-position median {:.2}ms exceeded limit {:.2}ms",
-                preference.as_api_value(),
-                median_avg_ms,
-                limit_ms
-            );
-            measured_ms.push((preference, median_avg_ms));
         }
-
-        let fast_ms = measured_ms
-            .iter()
-            .find(|(preference, _)| *preference == SmartAutomovePreference::Fast)
-            .map(|(_, ms)| *ms)
-            .unwrap_or(1.0)
-            .max(0.001);
-        let normal_ms = measured_ms
-            .iter()
-            .find(|(preference, _)| *preference == SmartAutomovePreference::Normal)
-            .map(|(_, ms)| *ms)
-            .unwrap_or(1.0)
-            .max(0.001);
-        let pro_ms = measured_ms
-            .iter()
-            .find(|(preference, _)| *preference == SmartAutomovePreference::Pro)
-            .map(|(_, ms)| *ms)
-            .unwrap_or(1.0)
-            .max(0.001);
-
-        let normal_fast_ratio = normal_ms / fast_ms;
-        let pro_normal_ratio = pro_ms / normal_ms;
-
-        println!(
-            "release mixed speed ratios: normal/fast={:.3} pro/normal={:.3}",
-            normal_fast_ratio, pro_normal_ratio
-        );
-        assert!(
-            normal_fast_ratio <= NORMAL_FAST_RATIO_MAX,
-            "normal/fast cpu ratio {:.3} exceeded hard cap {:.3}",
-            normal_fast_ratio,
-            NORMAL_FAST_RATIO_MAX
-        );
-        assert!(
-            pro_normal_ratio >= super::smart_automove_pool_tests::SMART_PRO_CPU_RATIO_TARGET_MIN,
-            "pro/normal cpu ratio {:.3} below target {:.3}",
-            pro_normal_ratio,
-            super::smart_automove_pool_tests::SMART_PRO_CPU_RATIO_TARGET_MIN
-        );
-        assert!(
-            pro_normal_ratio <= super::smart_automove_pool_tests::SMART_PRO_CPU_RATIO_TARGET_MAX,
-            "pro/normal cpu ratio {:.3} exceeded cap {:.3}",
-            pro_normal_ratio,
-            super::smart_automove_pool_tests::SMART_PRO_CPU_RATIO_TARGET_MAX
-        );
-    }
-
-    #[test]
-    #[ignore = "long-running end-to-end smart automove test for fast mode"]
-    fn smart_automove_fast_till_end() {
-        let _ = play_smart_preference_until_end(SmartAutomovePreference::Fast, 512);
-    }
-
-    #[test]
-    #[ignore = "long-running end-to-end smart automove test for normal mode"]
-    fn smart_automove_normal_till_end() {
-        let _ = play_smart_preference_until_end(SmartAutomovePreference::Normal, 512);
-    }
-
-    #[test]
-    #[ignore = "long-running end-to-end smart automove test for pro mode"]
-    fn smart_automove_pro_till_end() {
-        let _ = play_smart_preference_until_end(SmartAutomovePreference::Pro, 512);
     }
 
     #[test]
@@ -29560,313 +23985,6 @@ mod smart_automove_tests {
         assert_eq!(independent_config.quiescence_node_budget, 120);
         assert!(independent_config.enable_quiescence_tactical_children_only);
         assert_eq!(independent_config.quiescence_tactical_enum_limit, 12);
-        assert!(!independent_config.enable_turn_engine_root_injection);
-        assert_eq!(independent_config.turn_engine_root_injection_limit, 0);
-        assert_eq!(independent_config.turn_engine_root_max_heuristic_gap, 0);
-        assert!(!independent_config.turn_engine_root_injection_emergency_only);
-    }
-
-    #[test]
-    fn turn_engine_root_injection_guard_rejects_unsafe_non_tactical_candidate() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_runtime_scoring_weights(&game, config);
-        let root_moves = MonsGameModel::ranked_root_moves(&game, Color::White, config);
-        let top = root_moves
-            .first()
-            .expect("expected at least one root move")
-            .clone();
-
-        let mut candidate = top.clone();
-        candidate.inputs = vec![Input::Takeback];
-        candidate.wins_immediately = false;
-        candidate.attacks_opponent_drainer = false;
-        candidate.scores_supermana_this_turn = false;
-        candidate.scores_opponent_mana_this_turn = false;
-        candidate.safe_supermana_pickup_now = false;
-        candidate.safe_opponent_mana_pickup_now = false;
-        candidate.supermana_progress = false;
-        candidate.opponent_mana_progress = false;
-        candidate.same_turn_score_window_value = 0;
-        candidate.classes = MoveClassFlags::default();
-        candidate.own_drainer_vulnerable = true;
-        candidate.mana_handoff_to_opponent = true;
-        candidate.heuristic = top.heuristic.saturating_sub(20);
-
-        assert!(!MonsGameModel::accept_turn_engine_root_injection_candidate(
-            &top, &candidate, 640, false
-        ));
-    }
-
-    #[test]
-    fn turn_engine_root_injection_widens_gap_when_emergency_resolves_immediate_loss() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_runtime_scoring_weights(&game, config);
-        let top = MonsGameModel::ranked_root_moves(&game, Color::White, config)
-            .first()
-            .expect("expected at least one root move")
-            .clone();
-
-        let mut candidate = top.clone();
-        candidate.wins_immediately = false;
-        candidate.attacks_opponent_drainer = true;
-        candidate.classes.drainer_attack = true;
-        candidate.mana_handoff_to_opponent = false;
-        candidate.own_drainer_vulnerable = false;
-        candidate.heuristic = top.heuristic.saturating_sub(300);
-
-        assert!(!MonsGameModel::accept_turn_engine_root_injection_candidate(
-            &top, &candidate, 200, false
-        ));
-        assert!(MonsGameModel::accept_turn_engine_root_injection_candidate(
-            &top, &candidate, 200, true
-        ));
-    }
-
-    #[test]
-    fn turn_engine_emergency_root_injection_rejects_introduced_immediate_loss() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_runtime_scoring_weights(&game, config);
-        let mut top = MonsGameModel::ranked_root_moves(&game, Color::White, config)
-            .first()
-            .expect("expected at least one root move")
-            .clone();
-        top.wins_immediately = false;
-
-        let mut candidate = top.clone();
-        candidate.wins_immediately = false;
-        candidate.attacks_opponent_drainer = true;
-        candidate.classes.drainer_attack = true;
-        candidate.mana_handoff_to_opponent = false;
-        candidate.own_drainer_vulnerable = false;
-
-        assert!(
-            !MonsGameModel::accept_turn_engine_emergency_root_injection_candidate(
-                &top, &candidate, false, true
-            )
-        );
-        assert!(
-            MonsGameModel::accept_turn_engine_emergency_root_injection_candidate(
-                &top, &candidate, true, true
-            )
-        );
-        assert!(
-            MonsGameModel::accept_turn_engine_emergency_root_injection_candidate(
-                &top, &candidate, false, false
-            )
-        );
-    }
-
-    #[test]
-    fn turn_engine_root_injection_limit_respects_emergency_gate() {
-        let calm_game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_runtime_scoring_weights(&calm_game, config);
-        config.enable_turn_engine_root_injection = true;
-        config.turn_engine_root_injection_limit = 2;
-        config.turn_engine_root_max_heuristic_gap = 260;
-        config.turn_engine_root_injection_emergency_only = true;
-
-        let calm_roots = MonsGameModel::ranked_root_moves(&calm_game, Color::White, config);
-        assert_eq!(
-            MonsGameModel::turn_engine_root_injection_limit_for_game(
-                &calm_game,
-                Color::White,
-                config,
-                calm_roots.as_slice(),
-            ),
-            0
-        );
-
-        config.turn_engine_root_injection_emergency_only = false;
-        assert_eq!(
-            MonsGameModel::turn_engine_root_injection_limit_for_game(
-                &calm_game,
-                Color::White,
-                config,
-                calm_roots.as_slice(),
-            ),
-            config.turn_engine_root_injection_limit
-        );
-    }
-
-    #[test]
-    fn turn_engine_root_injection_remains_deterministic() {
-        clear_turn_engine_root_selection_diagnostics();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_runtime_scoring_weights(&game, config);
-        config.enable_turn_head_rerank = false;
-        config.enable_turn_engine_root_injection = true;
-        config.turn_engine_root_injection_limit = 4;
-        config.turn_engine_root_max_heuristic_gap = 640;
-
-        let mut roots_a = MonsGameModel::ranked_root_moves(&game, Color::White, config);
-        MonsGameModel::inject_turn_engine_root_candidates(
-            &game,
-            Color::White,
-            config,
-            &mut roots_a,
-        );
-        let outputs_a = roots_a
-            .iter()
-            .map(|candidate| candidate.inputs.clone())
-            .collect::<Vec<_>>();
-
-        let mut roots_b = MonsGameModel::ranked_root_moves(&game, Color::White, config);
-        MonsGameModel::inject_turn_engine_root_candidates(
-            &game,
-            Color::White,
-            config,
-            &mut roots_b,
-        );
-        let outputs_b = roots_b
-            .iter()
-            .map(|candidate| candidate.inputs.clone())
-            .collect::<Vec<_>>();
-
-        assert_eq!(outputs_a, outputs_b);
-        let diagnostics = turn_engine_root_selection_diagnostics_snapshot();
-        assert!(diagnostics.injected_root_attempts >= diagnostics.injected_root_accepts);
-        let total_rejects = diagnostics.injected_root_reject_build
-            + diagnostics.injected_root_reject_emergency_guard
-            + diagnostics.injected_root_reject_top_wins
-            + diagnostics.injected_root_reject_candidate_unsafe
-            + diagnostics.injected_root_reject_no_tactical_signal
-            + diagnostics.injected_root_reject_heuristic_gap;
-        assert_eq!(
-            diagnostics.injected_root_attempts,
-            diagnostics.injected_root_accepts + total_rejects
-        );
     }
 
     #[test]
@@ -29903,13 +24021,9 @@ mod smart_automove_tests {
         );
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.enable_static_exact_evaluation = false;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let candidate = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -29930,7 +24044,7 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn pro_v2_safe_pickup_reply_order_prefers_close_safe_pickup_over_progress_root() {
+    fn current_pro_preserves_safe_pickup_and_non_concrete_progress_precedence() {
         let game = MonsGame::new(false, GameVariant::Classic);
         let mut pickup = root_evaluation_for_projection_test(
             &game,
@@ -29954,10 +24068,10 @@ mod smart_automove_tests {
 
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
         config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_safe_pickup_reply_order(
+            MonsGameModel::current_pro_safe_pickup_reply_order(
                 &pickup,
                 RootReplyRiskSnapshot {
                     allows_immediate_opponent_win: false,
@@ -29974,11 +24088,12 @@ mod smart_automove_tests {
             ),
             Some(std::cmp::Ordering::Greater),
         );
+
+        assert_current_pro_non_concrete_progress_does_not_replace_unsafe_root();
     }
 
-    #[test]
-    fn pro_v2_completed_progress_plan_does_not_override_safe_pickup_root() {
-        fn pro_v2_candidate_config(game: &MonsGame) -> AutomoveSearchConfig {
+    fn assert_current_pro_non_concrete_progress_does_not_replace_unsafe_root() {
+        fn current_pro_candidate_config(game: &MonsGame) -> AutomoveSearchConfig {
             let mut config = MonsGameModel::with_game(game.clone())
                 .shipping_search_config_for_preference(SmartAutomovePreference::Pro);
             if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
@@ -29986,198 +24101,7 @@ mod smart_automove_tests {
             {
                 config.enable_turn_head_rerank = false;
                 config.enable_turn_engine_selector = true;
-                config.turn_engine_mode = TurnEngineMode::ProV2;
-                config.turn_engine_seed_cap = 14;
-                config.turn_engine_beam_width = 5;
-                config.turn_engine_per_node_family_cap = 4;
-                config.turn_engine_step_cap = 6;
-                config.turn_engine_opponent_seed_cap = 6;
-                config.turn_engine_opponent_beam_width = 2;
-                config.turn_engine_reply_seed_cap = 3;
-                config.turn_engine_reply_beam_width = 1;
-                config.turn_engine_expansion_cap = 176;
-                config.turn_engine_enable_spirit_family = true;
-                config.root_reply_risk_reply_limit = config.root_reply_risk_reply_limit.min(24);
-                config.root_reply_risk_node_share_bp =
-                    config.root_reply_risk_node_share_bp.min(2_000);
-                config.enable_turn_engine_low_budget_guard = true;
-                config.enable_turn_engine_mid_turn_tactical_guard = true;
-                config.enable_turn_engine_late_safe_mana_root_preference = true;
-            }
-            config
-        }
-
-        fn assert_case(
-            game: MonsGame,
-            expected_selected: &str,
-            expected_head: &str,
-            expected_head_family: TurnPlanFamily,
-        ) {
-            let perspective = game.active_color;
-            let config = pro_v2_candidate_config(&game);
-            let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-            let mut visited_nodes = 0usize;
-            let mut alpha = i32::MIN;
-            let mut scored_roots = Vec::with_capacity(root_moves.len());
-            let mut transposition_table = U64HashMap::default();
-            let extension_node_budget = if config.enable_selective_extensions
-                && config.selective_extension_node_share_bp > 0
-            {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-            let mut extension_nodes_used = 0usize;
-            let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-            let mut history_table: HistoryTable = HistoryTable::default();
-            let mut quiescence_nodes_used = 0usize;
-
-            for candidate in root_moves {
-                if visited_nodes >= config.max_visited_nodes {
-                    break;
-                }
-                visited_nodes += 1;
-                let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                    &candidate,
-                    perspective,
-                    alpha,
-                    &mut visited_nodes,
-                    config,
-                    &mut transposition_table,
-                    &mut extension_nodes_used,
-                    extension_node_budget,
-                    true,
-                    &mut killer_table,
-                    &mut history_table,
-                    &mut quiescence_nodes_used,
-                );
-                alpha = alpha.max(candidate_score);
-                scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-            }
-
-            let selected_inputs = MonsGameModel::pick_root_move_with_exploration(
-                &game,
-                &scored_roots,
-                perspective,
-                config,
-            );
-            assert_eq!(Input::fen_from_array(&selected_inputs), expected_selected);
-
-            let plan = turn_engine_candidate_plan(
-                &game,
-                perspective,
-                MonsGameModel::turn_engine_config_from_search_config(config),
-            )
-            .expect("fixture should materialize a turn-engine plan");
-            assert_eq!(plan.head_family, expected_head_family);
-            assert_eq!(
-                Input::fen_from_array(
-                    plan.compiled_chunks
-                        .first()
-                        .expect("turn-engine plan should have a first chunk"),
-                ),
-                expected_head,
-            );
-            assert!(plan.compiled_chunks.len() > 1);
-
-            assert!(
-                !MonsGameModel::accept_turn_engine_head_after_search(
-                    &game,
-                    perspective,
-                    config,
-                    &scored_roots,
-                    selected_inputs.as_slice(),
-                    &plan,
-                ),
-                "a deferred progress head should not override a safe immediate pickup root",
-            );
-        }
-
-        assert_case(
-            game_with_items(
-                vec![
-                    (
-                        Location::new(6, 5),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(10, 0),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Angel, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(5, 5),
-                        Item::Mana {
-                            mana: Mana::Supermana,
-                        },
-                    ),
-                    (
-                        Location::new(0, 10),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                        },
-                    ),
-                ],
-                Color::White,
-                2,
-            ),
-            "l6,5;l5,5",
-            "l6,5;l5,6",
-            TurnPlanFamily::SafeSupermanaProgress,
-        );
-        assert_case(
-            game_with_items(
-                vec![
-                    (
-                        Location::new(8, 5),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(10, 0),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Angel, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(7, 5),
-                        Item::Mana {
-                            mana: Mana::Regular(Color::Black),
-                        },
-                    ),
-                    (
-                        Location::new(0, 10),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                        },
-                    ),
-                ],
-                Color::White,
-                2,
-            ),
-            "l8,5;l7,5",
-            "l8,5;l8,4",
-            TurnPlanFamily::SafeOpponentManaProgress,
-        );
-    }
-
-    #[test]
-    fn pro_v2_non_concrete_progress_head_does_not_override_unsafe_non_progress_root() {
-        fn pro_v2_candidate_config(game: &MonsGame) -> AutomoveSearchConfig {
-            let mut config = MonsGameModel::with_game(game.clone())
-                .shipping_search_config_for_preference(SmartAutomovePreference::Pro);
-            if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-                && config.enable_normal_root_safety_deep_floor
-            {
-                config.enable_turn_head_rerank = false;
-                config.enable_turn_engine_selector = true;
-                config.turn_engine_mode = TurnEngineMode::ProV2;
+                config.turn_engine_mode = TurnEngineMode::CurrentPro;
                 config.turn_engine_seed_cap = 14;
                 config.turn_engine_beam_width = 5;
                 config.turn_engine_per_node_family_cap = 4;
@@ -30204,7 +24128,7 @@ mod smart_automove_tests {
         )
         .expect("primary_ext_sensitive_no_ext_a fen should be valid");
         let perspective = game.active_color;
-        let config = pro_v2_candidate_config(&game);
+        let config = current_pro_candidate_config(&game);
         let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
         let mut visited_nodes = 0usize;
         let mut alpha = i32::MIN;
@@ -30219,8 +24143,6 @@ mod smart_automove_tests {
                 0
             };
         let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
         let mut quiescence_nodes_used = 0usize;
 
         for candidate in root_moves {
@@ -30238,8 +24160,6 @@ mod smart_automove_tests {
                 &mut extension_nodes_used,
                 extension_node_budget,
                 true,
-                &mut killer_table,
-                &mut history_table,
                 &mut quiescence_nodes_used,
             );
             alpha = alpha.max(candidate_score);
@@ -30289,7 +24209,7 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn runtime_preferences_disable_exact_features_by_default() {
+    fn runtime_preferences_configure_exact_lite_features() {
         let preferences = [
             SmartAutomovePreference::Fast,
             SmartAutomovePreference::Normal,
@@ -30301,21 +24221,6 @@ mod smart_automove_tests {
                 MonsGameModel::with_game(MonsGame::new(false, GameVariant::Classic));
             let independent_config =
                 independent_model.shipping_search_config_for_preference(preference);
-            assert!(
-                !independent_config.enable_root_exact_tactics,
-                "{} should disable root exact tactics in runtime defaults",
-                preference.as_api_value()
-            );
-            assert!(
-                !independent_config.enable_child_exact_tactics,
-                "{} should disable child exact tactics in runtime defaults",
-                preference.as_api_value()
-            );
-            assert!(
-                !independent_config.enable_static_exact_evaluation,
-                "{} should disable static exact evaluation in runtime defaults",
-                preference.as_api_value()
-            );
             if preference == SmartAutomovePreference::Normal {
                 assert!(
                     independent_config.enable_exact_lite_progress_checks,
@@ -30492,8 +24397,7 @@ mod smart_automove_tests {
             2,
         );
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let start_options = MonsGameModel::automove_start_input_options(config);
+        let start_options = MonsGameModel::automove_start_input_options();
         let full = MonsGameModel::enumerate_legal_transitions(&game, usize::MAX, start_options);
         let full_signatures = signatures(full.as_slice());
         assert!(
@@ -30777,7 +24681,7 @@ mod smart_automove_tests {
             !MonsGameModel::is_own_drainer_vulnerable_next_turn(
                 &after,
                 Color::White,
-                config.enable_enhanced_drainer_vulnerability,
+                true,
             ),
             "selected line should keep drainer safe when a safe root exists, inputs={:?}, events={:?}",
             inputs,
@@ -30827,7 +24731,7 @@ mod smart_automove_tests {
             !MonsGameModel::is_own_drainer_vulnerable_next_turn(
                 &after,
                 Color::White,
-                config.enable_enhanced_drainer_vulnerability,
+                true,
             ),
             "selected line should keep drainer safe under capped root enumeration when a safe root exists, inputs={:?}, events={:?}",
             inputs,
@@ -30972,62 +24876,6 @@ mod smart_automove_tests {
         assert!(
             after.white_score > game.white_score,
             "selected line should score own mana immediately, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_scores_own_mana_with_root_cutoff_when_immediately_available() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        assert!(
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-                .spirit_assisted_score
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-score inputs should be legal");
-        assert!(
-            after.white_score > game.white_score,
-            "selected line should still score own mana immediately under capped root enumeration, inputs={:?}, events={:?}",
             inputs,
             events
         );
@@ -31183,11 +25031,7 @@ mod smart_automove_tests {
             &game,
             Color::White,
             config,
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(
-                &game,
-                Color::White,
-                config.enable_enhanced_drainer_vulnerability,
-            ),
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true),
             &[
                 Input::Location(Location::new(9, 5)),
                 Input::Location(Location::new(8, 5)),
@@ -31243,11 +25087,7 @@ mod smart_automove_tests {
             &game,
             Color::White,
             config,
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(
-                &game,
-                Color::White,
-                config.enable_enhanced_drainer_vulnerability,
-            ),
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true),
             &[
                 Input::Location(Location::new(9, 5)),
                 Input::Location(Location::new(8, 5)),
@@ -31360,7 +25200,7 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn white_turn_three_legacy_alignment_override_prefers_split_trace_legacy_root() {
+    fn white_turn_three_baseline_alignment_override_prefers_split_trace_baseline_root() {
         let game = MonsGame::from_fen(
             "0 0 w 1 0 4 0 0 3 n03y0xn03e0xn03/n05a0xn05/n02xxmn01s0xn01d0xn04/n06xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n05xxMn01xxMn03/n03xxMxxMn01xxMn04/E0xn04S0xn05/n05D0xn05/n04A0xn03Y0xn02",
             false,
@@ -31379,7 +25219,7 @@ mod smart_automove_tests {
         approved.safe_opponent_mana_progress_steps = 5;
         approved.spirit_setup_gain = 60;
 
-        let mut legacy = root_evaluation_for_projection_test(
+        let mut baseline = root_evaluation_for_projection_test(
             &game,
             Location::new(10, 8),
             393,
@@ -31387,17 +25227,17 @@ mod smart_automove_tests {
             false,
             false,
         );
-        legacy.root_rank = 2;
-        legacy.safe_supermana_progress_steps = 4;
-        legacy.safe_opponent_mana_progress_steps = 5;
-        legacy.spirit_setup_gain = 60;
+        baseline.root_rank = 2;
+        baseline.safe_supermana_progress_steps = 4;
+        baseline.safe_opponent_mana_progress_steps = 5;
+        baseline.spirit_setup_gain = 60;
 
-        let scored_roots = [approved, legacy];
+        let scored_roots = [approved, baseline];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_white_turn_three_legacy_alignment_override(
+            MonsGameModel::current_pro_root_advisor_white_turn_three_baseline_alignment_override(
                 &game,
                 &scored_roots,
                 &[0, 1],
@@ -31430,7 +25270,7 @@ mod smart_automove_tests {
         approved.safe_supermana_progress_steps = 4;
         approved.safe_opponent_mana_progress_steps = 5;
 
-        let mut legacy = root_evaluation_for_projection_test(
+        let mut baseline = root_evaluation_for_projection_test(
             &game,
             Location::new(6, 1),
             1_510,
@@ -31438,22 +25278,22 @@ mod smart_automove_tests {
             false,
             false,
         );
-        legacy.root_rank = 0;
-        legacy.inputs = vec![
+        baseline.root_rank = 0;
+        baseline.inputs = vec![
             Input::Location(Location::new(6, 1)),
             Input::Location(Location::new(5, 0)),
             Input::Modifier(Modifier::SelectBomb),
         ];
-        legacy.spirit_setup_gain = 60;
-        legacy.safe_supermana_progress_steps = 4;
-        legacy.safe_opponent_mana_progress_steps = 5;
+        baseline.spirit_setup_gain = 60;
+        baseline.safe_supermana_progress_steps = 4;
+        baseline.safe_opponent_mana_progress_steps = 5;
 
-        let scored_roots = [approved, legacy];
+        let scored_roots = [approved, baseline];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_white_turn_three_attack_bridge_escape(
+            MonsGameModel::current_pro_root_advisor_white_turn_three_attack_bridge_escape(
                 &game,
                 &scored_roots,
                 &[0],
@@ -31506,10 +25346,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, challenger];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_black_late_window_mana_safety_override(
+            MonsGameModel::current_pro_root_advisor_black_late_window_mana_safety_override(
                 &game,
                 &scored_roots,
                 &[0, 1],
@@ -31562,10 +25402,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, challenger];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_black_late_window_mana_safety_override(
+            MonsGameModel::current_pro_root_advisor_black_late_window_mana_safety_override(
                 &game,
                 &scored_roots,
                 &[0, 1],
@@ -31623,10 +25463,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, challenger];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_black_late_reply_risk_setup_override(
+            MonsGameModel::current_pro_root_advisor_black_late_reply_risk_setup_override(
                 &game,
                 &scored_roots,
                 &[1],
@@ -31684,10 +25524,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, challenger];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_black_late_reply_risk_setup_override(
+            MonsGameModel::current_pro_root_advisor_black_late_reply_risk_setup_override(
                 &game,
                 &scored_roots,
                 &[1],
@@ -31768,10 +25608,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, shortlisted_plain, shipping];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_black_late_weak_window_safe_progress_setup_override(
+            MonsGameModel::current_pro_root_advisor_black_late_weak_window_safe_progress_setup_override(
                 &game,
                 &scored_roots,
                 &[2, 1, 0],
@@ -31832,10 +25672,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, challenger];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_black_late_weak_window_safe_progress_setup_override(
+            MonsGameModel::current_pro_root_advisor_black_late_weak_window_safe_progress_setup_override(
                 &game,
                 &scored_roots,
                 &[1],
@@ -31895,10 +25735,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, challenger];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_white_early_safe_progress_setup_competition_override(
+            MonsGameModel::current_pro_root_advisor_white_early_safe_progress_setup_competition_override(
                 &game,
                 &scored_roots,
                 &[0, 1],
@@ -31957,10 +25797,10 @@ mod smart_automove_tests {
 
         let scored_roots = [approved, challenger];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_root_advisor_white_early_safe_progress_setup_competition_override(
+            MonsGameModel::current_pro_root_advisor_white_early_safe_progress_setup_competition_override(
                 &game,
                 &scored_roots,
                 &[0, 1],
@@ -31969,1146 +25809,6 @@ mod smart_automove_tests {
             ),
             None,
         );
-    }
-
-    #[test]
-    #[ignore = "diagnostic: inspect search scores and acceptance on the pvs-sensitive turn-engine fixture"]
-    fn turn_engine_pvs_sensitive_search_acceptance_probe() {
-        let game = MonsGame::from_fen(
-            "0 0 b 1 0 0 0 0 4 n05d0xa0xn04/n02xxmn01s0xn03e0xn02/n02y0xn08/n06xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMxxMxxMn01xxMn03/n11/n01E0xn03D0xxxMS0xn03/n04A0xn01Y0xn04/n11",
-            false,
-        )
-        .expect("valid pvs-sensitive fixture fen");
-        let perspective = game.active_color;
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-            && config.enable_normal_root_safety_deep_floor
-        {
-            config.enable_turn_engine_selector = true;
-            config.turn_engine_seed_cap = 16;
-            config.turn_engine_beam_width = 6;
-            config.turn_engine_per_node_family_cap = 4;
-            config.turn_engine_step_cap = 7;
-            config.turn_engine_opponent_seed_cap = 8;
-            config.turn_engine_opponent_beam_width = 3;
-            config.turn_engine_reply_seed_cap = 4;
-            config.turn_engine_reply_beam_width = 2;
-            config.turn_engine_expansion_cap = 192;
-            config.turn_engine_enable_spirit_family = true;
-        }
-
-        let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-        let engine_config = MonsGameModel::turn_engine_config_from_search_config(config);
-        let plan = turn_engine_candidate_plan(&game, perspective, engine_config)
-            .expect("pvs-sensitive fixture should materialize an engine plan");
-        let (root_moves, scout_visited_nodes) =
-            MonsGameModel::focused_root_candidates(&game, perspective, root_moves, config, true);
-        let mut visited_nodes = scout_visited_nodes;
-        let mut alpha = i32::MIN;
-        let mut scored_roots = Vec::with_capacity(root_moves.len());
-        let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-        let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
-        let mut quiescence_nodes_used = 0usize;
-
-        for candidate in root_moves {
-            if visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                alpha,
-                &mut visited_nodes,
-                config,
-                &mut transposition_table,
-                &mut extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut killer_table,
-                &mut history_table,
-                &mut quiescence_nodes_used,
-            );
-            alpha = alpha.max(candidate_score);
-            scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-
-        let selected_inputs = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let selected_index = scored_roots
-            .iter()
-            .position(|candidate| candidate.inputs == selected_inputs)
-            .expect("selected root should be in scored roots");
-        let candidate_inputs = plan
-            .compiled_chunks
-            .first()
-            .cloned()
-            .expect("engine plan should have a first chunk");
-        let candidate_index = scored_roots
-            .iter()
-            .position(|candidate| candidate.inputs == candidate_inputs)
-            .expect("engine chunk should be in scored roots");
-        let selected_family =
-            MonsGameModel::turn_engine_root_evaluation_family(&scored_roots[selected_index]);
-        let selected_utility = MonsGameModel::turn_engine_root_plan_utility(
-            &game,
-            &scored_roots[selected_index],
-            perspective,
-            config,
-            selected_family,
-        );
-        let accepted = MonsGameModel::accept_turn_engine_head_after_search(
-            &game,
-            perspective,
-            config,
-            &scored_roots,
-            selected_inputs.as_slice(),
-            &plan,
-        );
-
-        eprintln!(
-            "pvs probe: selected_index={} selected_score={} selected_inputs={} candidate_index={} candidate_score={} candidate_inputs={} chunk_count={} accepted={} selected_utility={:?} candidate_utility={:?}",
-            selected_index,
-            scored_roots[selected_index].score,
-            Input::fen_from_array(&selected_inputs),
-            candidate_index,
-            scored_roots[candidate_index].score,
-            Input::fen_from_array(&candidate_inputs),
-            plan.compiled_chunks.len(),
-            accepted,
-            selected_utility,
-            plan.utility,
-        );
-    }
-
-    #[test]
-    #[ignore = "diagnostic: inspect filtered candidates and projections on black gate loss b ply3"]
-    fn pro_v2_black_gate_loss_b_ply3_candidate_probe() {
-        let game = MonsGame::from_fen(
-            "0 0 b 0 0 0 0 0 2 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n04D0xn06/n05A0xS0xn01Y0xn02/n03E0xn07",
-            false,
-        )
-        .expect("valid black gate loss b ply3 fixture fen");
-        let perspective = game.active_color;
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_pre_exact_runtime_policy(config);
-        if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-            && config.enable_normal_root_safety_deep_floor
-        {
-            config.enable_turn_engine_selector = true;
-            config.enable_turn_head_rerank = false;
-            config.turn_engine_mode = TurnEngineMode::ProV2;
-            config.turn_engine_seed_cap = 14;
-            config.turn_engine_beam_width = 5;
-            config.turn_engine_per_node_family_cap = 4;
-            config.turn_engine_step_cap = 6;
-            config.turn_engine_opponent_seed_cap = 6;
-            config.turn_engine_opponent_beam_width = 2;
-            config.turn_engine_reply_seed_cap = 3;
-            config.turn_engine_reply_beam_width = 1;
-            config.turn_engine_expansion_cap = 176;
-            config.turn_engine_enable_spirit_family = true;
-        }
-
-        let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-        let mut visited_nodes = 0usize;
-        let mut alpha = i32::MIN;
-        let mut scored_roots = Vec::with_capacity(root_moves.len());
-        let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-        let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
-        let mut quiescence_nodes_used = 0usize;
-
-        for candidate in root_moves {
-            if visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                alpha,
-                &mut visited_nodes,
-                config,
-                &mut transposition_table,
-                &mut extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut killer_table,
-                &mut history_table,
-                &mut quiescence_nodes_used,
-            );
-            if candidate_score > alpha {
-                alpha = candidate_score;
-            }
-            scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-
-        let filtered = MonsGameModel::filtered_root_candidate_indices(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let projections = MonsGameModel::turn_engine_spirit_root_projections(
-            &scored_roots,
-            filtered.as_slice(),
-            perspective,
-            config,
-        );
-        let selected = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let target = "l0,3;l1,2";
-        let selected_fen = Input::fen_from_array(&selected);
-        let target_rank = scored_roots
-            .iter()
-            .position(|root| Input::fen_from_array(&root.inputs) == target);
-
-        println!("selected={} filtered_len={}", selected_fen, filtered.len());
-        println!("target_rank={:?}", target_rank);
-        if let Some(target_index) = target_rank {
-            let target_root = &scored_roots[target_index];
-            println!(
-                "target_root score={} vuln={} walk_vuln={} handoff={} roundtrip={} window={}",
-                target_root.score,
-                target_root.own_drainer_vulnerable,
-                target_root.own_drainer_walk_vulnerable,
-                target_root.mana_handoff_to_opponent,
-                target_root.has_roundtrip,
-                target_root.same_turn_score_window_value,
-            );
-            for spirit_index in filtered.iter().copied() {
-                let spirit_root = &scored_roots[spirit_index];
-                println!(
-                    "target_vs_filtered rank={} fen={} score_order={:?} projection_order={:?}",
-                    spirit_index,
-                    Input::fen_from_array(&spirit_root.inputs),
-                    MonsGameModel::pro_v2_spirit_score_challenge_order(target_root, spirit_root),
-                    MonsGameModel::pro_v2_spirit_projection_challenge_order(
-                        target_root,
-                        projections.get(&target_index),
-                        spirit_root,
-                        projections.get(&spirit_index),
-                    ),
-                );
-            }
-        }
-        for (rank, root) in scored_roots.iter().enumerate().take(12) {
-            let fen = Input::fen_from_array(&root.inputs);
-            let projection = projections.get(&rank).map(|plan| {
-                (
-                    plan.plan.head_family,
-                    plan.plan.goal_family,
-                    plan.plan.utility,
-                    plan.plan.head_utility,
-                )
-            });
-            println!(
-                "rank={} fen={} score={} spirit={} vuln={} roundtrip={} window={} filtered={} projected={} projection={:?}",
-                rank,
-                fen,
-                root.score,
-                root.spirit_development,
-                root.own_drainer_vulnerable,
-                root.has_roundtrip,
-                root.same_turn_score_window_value,
-                filtered.contains(&rank),
-                projections.contains_key(&rank),
-                projection,
-            );
-        }
-    }
-
-    #[test]
-    #[ignore = "diagnostic: inspect filtered candidates and projections on black loss opening a ply6"]
-    fn pro_v2_black_loss_opening_a_ply6_candidate_probe() {
-        clear_exact_state_analysis_cache();
-        let game = MonsGame::from_fen(
-            "0 0 b 0 0 2 0 0 2 n05d0xa0xe0xn03/n02y0xn01s0xn06/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n04D0xA0xS0xn01Y0xn02/n02E0xn08",
-            false,
-        )
-        .expect("valid black loss opening a ply6 fixture fen");
-        let perspective = game.active_color;
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config = MonsGameModel::with_pre_exact_runtime_policy(config);
-        if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-            && config.enable_normal_root_safety_deep_floor
-        {
-            config.enable_turn_engine_selector = true;
-            config.enable_turn_head_rerank = false;
-            config.turn_engine_mode = TurnEngineMode::ProV2;
-            config.turn_engine_seed_cap = 14;
-            config.turn_engine_beam_width = 5;
-            config.turn_engine_per_node_family_cap = 4;
-            config.turn_engine_step_cap = 6;
-            config.turn_engine_opponent_seed_cap = 6;
-            config.turn_engine_opponent_beam_width = 2;
-            config.turn_engine_reply_seed_cap = 3;
-            config.turn_engine_reply_beam_width = 1;
-            config.turn_engine_expansion_cap = 176;
-            config.turn_engine_enable_spirit_family = true;
-        }
-
-        let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-        let forced_prepass = MonsGameModel::forced_tactical_prepass_choice(
-            &game,
-            perspective,
-            root_moves.as_slice(),
-            config,
-        );
-        let engine_plan = turn_engine_candidate_plan(
-            &game,
-            perspective,
-            MonsGameModel::turn_engine_config_from_search_config(config),
-        )
-        .expect("fixture should materialize a turn-engine head plan");
-        let forced_engine_inputs = engine_plan.compiled_chunks.first().cloned();
-        let focused_root_moves = {
-            let mut injected_root_moves = root_moves.clone();
-            MonsGameModel::inject_turn_engine_root_candidate(
-                &game,
-                perspective,
-                config,
-                &mut injected_root_moves,
-                &engine_plan,
-            );
-            let (focused, _) = MonsGameModel::focused_root_candidates_with_forced_inputs(
-                &game,
-                perspective,
-                injected_root_moves,
-                config,
-                true,
-                forced_engine_inputs.as_deref(),
-            );
-            focused
-        };
-        let mut visited_nodes = 0usize;
-        let mut alpha = i32::MIN;
-        let mut scored_roots = Vec::with_capacity(root_moves.len());
-        let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-        let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
-        let mut quiescence_nodes_used = 0usize;
-
-        for candidate in root_moves {
-            if visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                alpha,
-                &mut visited_nodes,
-                config,
-                &mut transposition_table,
-                &mut extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut killer_table,
-                &mut history_table,
-                &mut quiescence_nodes_used,
-            );
-            if candidate_score > alpha {
-                alpha = candidate_score;
-            }
-            scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-
-        let filtered = MonsGameModel::filtered_root_candidate_indices(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let projections = MonsGameModel::turn_engine_spirit_root_projections(
-            &scored_roots,
-            filtered.as_slice(),
-            perspective,
-            config,
-        );
-        let selected = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let runtime_selected = MonsGameModel::smart_search_best_inputs(&game, config);
-        let target = "l0,5;l1,6";
-        let selected_fen = Input::fen_from_array(&selected);
-        let runtime_selected_fen = Input::fen_from_array(&runtime_selected);
-        let target_rank = scored_roots
-            .iter()
-            .position(|root| Input::fen_from_array(&root.inputs) == target);
-
-        let mut focused_visited_nodes = 0usize;
-        let mut focused_alpha = i32::MIN;
-        let mut focused_scored_roots = Vec::with_capacity(focused_root_moves.len());
-        let mut focused_transposition_table = U64HashMap::default();
-        let mut focused_extension_nodes_used = 0usize;
-        let mut focused_killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut focused_history_table: HistoryTable = HistoryTable::default();
-        let mut focused_quiescence_nodes_used = 0usize;
-        for candidate in focused_root_moves {
-            if focused_visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            focused_visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                focused_alpha,
-                &mut focused_visited_nodes,
-                config,
-                &mut focused_transposition_table,
-                &mut focused_extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut focused_killer_table,
-                &mut focused_history_table,
-                &mut focused_quiescence_nodes_used,
-            );
-            if candidate_score > focused_alpha {
-                focused_alpha = candidate_score;
-            }
-            focused_scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-        let focused_selected = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &focused_scored_roots,
-            perspective,
-            config,
-        );
-        let focused_selected_fen = Input::fen_from_array(&focused_selected);
-        let focused_target_rank = focused_scored_roots
-            .iter()
-            .position(|root| Input::fen_from_array(&root.inputs) == target);
-
-        println!(
-            "selected={} runtime_selected={} forced_prepass={:?} root_inject={} filtered_len={}",
-            selected_fen,
-            runtime_selected_fen,
-            forced_prepass
-                .as_ref()
-                .map(|inputs| Input::fen_from_array(inputs)),
-            config.enable_turn_engine_root_injection,
-            filtered.len()
-        );
-        println!(
-            "focused_selected={} focused_len={} focused_target_rank={:?} forced_inputs={:?}",
-            focused_selected_fen,
-            focused_scored_roots.len(),
-            focused_target_rank,
-            forced_engine_inputs
-                .as_ref()
-                .map(|inputs| Input::fen_from_array(inputs))
-        );
-        println!("target_rank={:?}", target_rank);
-        if let Some(target_index) = target_rank {
-            let target_root = &scored_roots[target_index];
-            println!(
-                "target_root score={} vuln={} walk_vuln={} handoff={} roundtrip={} spirit={} window={}",
-                target_root.score,
-                target_root.own_drainer_vulnerable,
-                target_root.own_drainer_walk_vulnerable,
-                target_root.mana_handoff_to_opponent,
-                target_root.has_roundtrip,
-                target_root.spirit_development,
-                target_root.same_turn_score_window_value,
-            );
-            for filtered_index in filtered.iter().copied() {
-                let filtered_root = &scored_roots[filtered_index];
-                println!(
-                    "target_vs_filtered rank={} fen={} score_order={:?} projection_order={:?}",
-                    filtered_index,
-                    Input::fen_from_array(&filtered_root.inputs),
-                    MonsGameModel::pro_v2_spirit_score_challenge_order(target_root, filtered_root),
-                    MonsGameModel::pro_v2_spirit_projection_challenge_order(
-                        target_root,
-                        projections.get(&target_index),
-                        filtered_root,
-                        projections.get(&filtered_index),
-                    ),
-                );
-            }
-        }
-        for (rank, root) in scored_roots.iter().enumerate().take(16) {
-            let fen = Input::fen_from_array(&root.inputs);
-            let projection = projections.get(&rank).map(|plan| {
-                (
-                    plan.plan.head_family,
-                    plan.plan.goal_family,
-                    plan.plan.utility,
-                    plan.plan.head_utility,
-                )
-            });
-            println!(
-                "rank={} fen={} score={} spirit={} vuln={} roundtrip={} filtered={} projected={} projection={:?}",
-                rank,
-                fen,
-                root.score,
-                root.spirit_development,
-                root.own_drainer_vulnerable,
-                root.has_roundtrip,
-                filtered.contains(&rank),
-                projections.contains_key(&rank),
-                projection,
-            );
-        }
-    }
-
-    #[test]
-    #[ignore = "diagnostic: inspect plain spirit rerank on black loss opening a black turn"]
-    fn pro_v2_black_loss_opening_a_black_turn_probe() {
-        clear_exact_state_analysis_cache();
-        clear_turn_engine_plan_cache();
-        let game = MonsGame::from_fen(
-            "0 0 b 0 0 0 0 0 2 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n02E0xn01D0xA0xS0xn01Y0xn02/n11",
-            false,
-        )
-        .expect("valid black loss opening a black-turn fixture fen");
-        let perspective = game.active_color;
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-            && config.enable_normal_root_safety_deep_floor
-        {
-            config.enable_turn_engine_selector = true;
-            config.enable_turn_head_rerank = false;
-            config.turn_engine_mode = TurnEngineMode::ProV2;
-            config.turn_engine_seed_cap = 14;
-            config.turn_engine_beam_width = 5;
-            config.turn_engine_per_node_family_cap = 4;
-            config.turn_engine_step_cap = 6;
-            config.turn_engine_opponent_seed_cap = 6;
-            config.turn_engine_opponent_beam_width = 2;
-            config.turn_engine_reply_seed_cap = 3;
-            config.turn_engine_reply_beam_width = 1;
-            config.turn_engine_expansion_cap = 176;
-            config.turn_engine_enable_spirit_family = true;
-        }
-
-        let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-        let mut visited_nodes = 0usize;
-        let mut alpha = i32::MIN;
-        let mut scored_roots = Vec::with_capacity(root_moves.len());
-        let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-        let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
-        let mut quiescence_nodes_used = 0usize;
-
-        for candidate in root_moves {
-            if visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                alpha,
-                &mut visited_nodes,
-                config,
-                &mut transposition_table,
-                &mut extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut killer_table,
-                &mut history_table,
-                &mut quiescence_nodes_used,
-            );
-            if candidate_score > alpha {
-                alpha = candidate_score;
-            }
-            scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-
-        let filtered = MonsGameModel::filtered_root_candidate_indices(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let projections = MonsGameModel::turn_engine_spirit_root_projections(
-            &scored_roots,
-            filtered.as_slice(),
-            perspective,
-            config,
-        );
-        let followup_progress_competes = MonsGameModel::followup_progress_competes_with_spirit_pref(
-            &game,
-            &scored_roots,
-            filtered.as_slice(),
-            perspective,
-            config,
-        );
-        let final_progress_reentry = MonsGameModel::pro_v2_plain_spirit_cluster_progress_reentry(
-            &game,
-            &scored_roots,
-            filtered.as_slice(),
-            perspective,
-            config,
-        )
-        .map(|index| Input::fen_from_array(&scored_roots[index].inputs));
-        let selected = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let runtime_selected = MonsGameModel::smart_search_best_inputs(&game, config);
-        let interesting = [
-            "l0,4;l1,3",
-            "l0,4;l1,5",
-            "l0,5;l1,5",
-            "l0,3;l1,2",
-            "l0,7;l1,7",
-            "l0,6;l1,5",
-        ];
-        let mut followup_scores = std::collections::HashMap::new();
-
-        println!(
-            "selected={} runtime_selected={} filtered_len={} followup_progress_competes={} final_progress_reentry={:?}",
-            Input::fen_from_array(&selected),
-            Input::fen_from_array(&runtime_selected),
-            filtered.len(),
-            followup_progress_competes,
-            final_progress_reentry,
-        );
-        for target in interesting {
-            let rank = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == target);
-            println!("target={} rank={:?}", target, rank);
-            if let Some(index) = rank {
-                let root = &scored_roots[index];
-                let projection = projections.get(&index).map(|plan| {
-                    (
-                        plan.plan.head_family,
-                        plan.plan.goal_family,
-                        plan.plan.utility,
-                        plan.plan.head_utility,
-                    )
-                });
-                let followup_score = MonsGameModel::pro_v2_spirit_followup_floor_score(
-                    &root.game,
-                    perspective,
-                    config,
-                );
-                followup_scores.insert(index, followup_score);
-                println!(
-                    "  fen={} score={} eff={} root_rank={} soft={} spirit={} plain_spirit={} vuln={} walk_vuln={} handoff={} roundtrip={} window={} setup_now={} own_setup={} supermana_progress={} opponent_progress={} carrier_progress={} drainer_recover={} drainer_attack={} filtered={} projected={} projection={:?} followup_floor={}",
-                    target,
-                    root.score,
-                    root.efficiency,
-                    root.root_rank,
-                    root.interview_soft_priority,
-                    root.spirit_development,
-                    MonsGameModel::is_plain_spirit_development_root(root),
-                    root.own_drainer_vulnerable,
-                    root.own_drainer_walk_vulnerable,
-                    root.mana_handoff_to_opponent,
-                    root.has_roundtrip,
-                    root.same_turn_score_window_value,
-                    root.spirit_same_turn_score_setup_now,
-                    root.spirit_own_mana_setup_now,
-                    root.supermana_progress,
-                    root.opponent_mana_progress,
-                    root.classes.carrier_progress,
-                    root.classes.drainer_safety_recover,
-                    root.classes.drainer_attack,
-                    filtered.contains(&index),
-                    projections.contains_key(&index),
-                    projection,
-                    followup_score,
-                );
-            }
-        }
-        for window in interesting.windows(2) {
-            let left = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == window[0]);
-            let right = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == window[1]);
-            if let (Some(left_index), Some(right_index)) = (left, right) {
-                println!(
-                    "compare {} vs {} => score_order={:?} projection_order={:?} followup_order={:?}",
-                    window[0],
-                    window[1],
-                    MonsGameModel::pro_v2_spirit_score_challenge_order(
-                        &scored_roots[left_index],
-                        &scored_roots[right_index],
-                    ),
-                    MonsGameModel::pro_v2_spirit_projection_challenge_order(
-                        &scored_roots[left_index],
-                        projections.get(&left_index),
-                        &scored_roots[right_index],
-                        projections.get(&right_index),
-                    ),
-                    MonsGameModel::pro_v2_spirit_followup_floor_order(
-                        &game,
-                        &scored_roots,
-                        left_index,
-                        right_index,
-                        perspective,
-                        config,
-                        &mut followup_scores,
-                    ),
-                );
-            }
-        }
-        for (rank, root) in scored_roots.iter().enumerate().take(16) {
-            let fen = Input::fen_from_array(&root.inputs);
-            let projection = projections.get(&rank).map(|plan| {
-                (
-                    plan.plan.head_family,
-                    plan.plan.goal_family,
-                    plan.plan.utility,
-                    plan.plan.head_utility,
-                )
-            });
-            println!(
-                "rank={} fen={} score={} eff={} spirit={} plain_spirit={} vuln={} handoff={} roundtrip={} filtered={} projected={} projection={:?}",
-                rank,
-                fen,
-                root.score,
-                root.efficiency,
-                root.spirit_development,
-                MonsGameModel::is_plain_spirit_development_root(root),
-                root.own_drainer_vulnerable,
-                root.mana_handoff_to_opponent,
-                root.has_roundtrip,
-                filtered.contains(&rank),
-                projections.contains_key(&rank),
-                projection,
-            );
-        }
-    }
-
-    #[test]
-    #[ignore = "diagnostic: inspect plain spirit rerank on black loss opening b black turn"]
-    fn pro_v2_black_loss_opening_b_black_turn_probe() {
-        clear_exact_state_analysis_cache();
-        clear_turn_engine_plan_cache();
-        let game = MonsGame::from_fen(
-            "0 0 b 0 0 0 0 0 2 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMD0xxxMn04/n05A0xn05/n11/n03E0xn02S0xY0xn03",
-            false,
-        )
-        .expect("valid black loss opening b black-turn fixture fen");
-        let perspective = game.active_color;
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-            && config.enable_normal_root_safety_deep_floor
-        {
-            config.enable_turn_engine_selector = true;
-            config.turn_engine_mode = TurnEngineMode::ProV2;
-            config.turn_engine_seed_cap = 14;
-            config.turn_engine_beam_width = 5;
-            config.turn_engine_per_node_family_cap = 4;
-            config.turn_engine_step_cap = 6;
-            config.turn_engine_opponent_seed_cap = 6;
-            config.turn_engine_opponent_beam_width = 2;
-            config.turn_engine_reply_seed_cap = 3;
-            config.turn_engine_reply_beam_width = 1;
-            config.turn_engine_expansion_cap = 176;
-            config.turn_engine_enable_spirit_family = true;
-        } else {
-            config.turn_engine_mode = TurnEngineMode::ProV2;
-            config.enable_turn_head_rerank = false;
-        }
-
-        let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-        let mut visited_nodes = 0usize;
-        let mut alpha = i32::MIN;
-        let mut scored_roots = Vec::with_capacity(root_moves.len());
-        let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-        let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
-        let mut quiescence_nodes_used = 0usize;
-
-        for candidate in root_moves {
-            if visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                alpha,
-                &mut visited_nodes,
-                config,
-                &mut transposition_table,
-                &mut extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut killer_table,
-                &mut history_table,
-                &mut quiescence_nodes_used,
-            );
-            if candidate_score > alpha {
-                alpha = candidate_score;
-            }
-            scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-
-        let filtered = MonsGameModel::filtered_root_candidate_indices(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let projections = MonsGameModel::turn_engine_spirit_root_projections(
-            &scored_roots,
-            filtered.as_slice(),
-            perspective,
-            config,
-        );
-        let selected = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let runtime_selected = MonsGameModel::smart_search_best_inputs(&game, config);
-        let interesting = ["l0,4;l1,5", "l0,4;l1,4", "l0,5;l1,6", "l0,5;l1,4"];
-        let mut followup_scores = std::collections::HashMap::new();
-
-        println!(
-            "selected={} runtime_selected={} filtered_len={} turn_engine_enabled={} turn_engine_mode={:?}",
-            Input::fen_from_array(&selected),
-            Input::fen_from_array(&runtime_selected),
-            filtered.len(),
-            config.enable_turn_engine_selector,
-            config.turn_engine_mode,
-        );
-        for target in interesting {
-            let rank = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == target);
-            println!("target={} rank={:?}", target, rank);
-            if let Some(index) = rank {
-                let root = &scored_roots[index];
-                let projection = projections.get(&index).map(|plan| {
-                    (
-                        plan.plan.head_family,
-                        plan.plan.goal_family,
-                        plan.plan.utility,
-                        plan.plan.head_utility,
-                    )
-                });
-                let followup_score = MonsGameModel::pro_v2_spirit_followup_floor_score(
-                    &root.game,
-                    perspective,
-                    config,
-                );
-                followup_scores.insert(index, followup_score);
-                println!(
-                    "  fen={} score={} eff={} spirit={} plain_spirit={} vuln={} walk_vuln={} handoff={} roundtrip={} window={} setup_now={} own_setup={} filtered={} projected={} projection={:?} followup_floor={}",
-                    target,
-                    root.score,
-                    root.efficiency,
-                    root.spirit_development,
-                    MonsGameModel::is_plain_spirit_development_root(root),
-                    root.own_drainer_vulnerable,
-                    root.own_drainer_walk_vulnerable,
-                    root.mana_handoff_to_opponent,
-                    root.has_roundtrip,
-                    root.same_turn_score_window_value,
-                    root.spirit_same_turn_score_setup_now,
-                    root.spirit_own_mana_setup_now,
-                    filtered.contains(&index),
-                    projections.contains_key(&index),
-                    projection,
-                    followup_score,
-                );
-            }
-        }
-        for window in interesting.windows(2) {
-            let left = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == window[0]);
-            let right = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == window[1]);
-            if let (Some(left_index), Some(right_index)) = (left, right) {
-                let projection_order =
-                    match (projections.get(&left_index), projections.get(&right_index)) {
-                        (Some(left_projection), Some(right_projection)) => {
-                            Some(MonsGameModel::compare_spirit_root_projection_plans(
-                                left_projection,
-                                right_projection,
-                                (scored_roots[left_index].score - scored_roots[right_index].score)
-                                    .abs()
-                                    <= 192,
-                            ))
-                        }
-                        _ => None,
-                    };
-                println!(
-                    "compare {} vs {} => projection_order={:?} followup_order={:?}",
-                    window[0],
-                    window[1],
-                    projection_order,
-                    MonsGameModel::pro_v2_spirit_followup_floor_order(
-                        &game,
-                        &scored_roots,
-                        left_index,
-                        right_index,
-                        perspective,
-                        config,
-                        &mut followup_scores,
-                    ),
-                );
-            }
-        }
-    }
-
-    #[test]
-    #[ignore = "diagnostic: inspect plain spirit rerank on black reliability opening-3 ply-3"]
-    fn pro_v2_black_reliability_opening_3_ply3_probe() {
-        clear_exact_state_analysis_cache();
-        clear_turn_engine_plan_cache();
-        let game = MonsGame::from_fen(
-            "0 0 b 0 0 0 0 0 2 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n03E0xA0xD0xS0xn01Y0xn02/n11",
-            false,
-        )
-        .expect("valid black reliability opening-3 ply-3 fixture fen");
-        let perspective = game.active_color;
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-            && config.enable_normal_root_safety_deep_floor
-        {
-            config.enable_turn_engine_selector = true;
-            config.turn_engine_mode = TurnEngineMode::ProV2;
-            config.turn_engine_seed_cap = 14;
-            config.turn_engine_beam_width = 5;
-            config.turn_engine_per_node_family_cap = 4;
-            config.turn_engine_step_cap = 6;
-            config.turn_engine_opponent_seed_cap = 6;
-            config.turn_engine_opponent_beam_width = 2;
-            config.turn_engine_reply_seed_cap = 3;
-            config.turn_engine_reply_beam_width = 1;
-            config.turn_engine_expansion_cap = 176;
-            config.turn_engine_enable_spirit_family = true;
-            config.root_reply_risk_reply_limit = 24;
-            config.root_reply_risk_node_share_bp = 2_000;
-        } else {
-            config.turn_engine_mode = TurnEngineMode::ProV2;
-            config.enable_turn_head_rerank = false;
-        }
-
-        let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-        let mut visited_nodes = 0usize;
-        let mut alpha = i32::MIN;
-        let mut scored_roots = Vec::with_capacity(root_moves.len());
-        let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-        let mut extension_nodes_used = 0usize;
-        let mut killer_table: KillerTable = [[0u64; 2]; MAX_SMART_SEARCH_DEPTH + 2];
-        let mut history_table: HistoryTable = HistoryTable::default();
-        let mut quiescence_nodes_used = 0usize;
-
-        for candidate in root_moves {
-            if visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                alpha,
-                &mut visited_nodes,
-                config,
-                &mut transposition_table,
-                &mut extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut killer_table,
-                &mut history_table,
-                &mut quiescence_nodes_used,
-            );
-            if candidate_score > alpha {
-                alpha = candidate_score;
-            }
-            scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-
-        let filtered = MonsGameModel::filtered_root_candidate_indices(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let projections = MonsGameModel::turn_engine_spirit_root_projections(
-            &scored_roots,
-            filtered.as_slice(),
-            perspective,
-            config,
-        );
-        let selected = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        let runtime_selected = MonsGameModel::smart_search_best_inputs(&game, config);
-        let interesting = [
-            "l0,4;l1,3",
-            "l0,4;l1,5",
-            "l0,5;l1,5",
-            "l0,5;l1,6",
-            "l0,5;l1,4",
-        ];
-        let mut followup_scores = std::collections::HashMap::new();
-
-        println!(
-            "selected={} runtime_selected={} filtered_len={} turn_engine_enabled={} turn_engine_mode={:?}",
-            Input::fen_from_array(&selected),
-            Input::fen_from_array(&runtime_selected),
-            filtered.len(),
-            config.enable_turn_engine_selector,
-            config.turn_engine_mode,
-        );
-        for target in interesting {
-            let rank = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == target);
-            println!("target={} rank={:?}", target, rank);
-            if let Some(index) = rank {
-                let root = &scored_roots[index];
-                let projection = projections.get(&index).map(|plan| {
-                    (
-                        plan.plan.head_family,
-                        plan.plan.goal_family,
-                        plan.plan.utility,
-                        plan.plan.head_utility,
-                    )
-                });
-                let followup_score = MonsGameModel::pro_v2_spirit_followup_floor_score(
-                    &root.game,
-                    perspective,
-                    config,
-                );
-                followup_scores.insert(index, followup_score);
-                println!(
-                    "  fen={} score={} eff={} spirit={} plain_spirit={} vuln={} walk_vuln={} handoff={} roundtrip={} window={} setup_now={} own_setup={} filtered={} projected={} projection={:?} followup_floor={}",
-                    target,
-                    root.score,
-                    root.efficiency,
-                    root.spirit_development,
-                    MonsGameModel::is_plain_spirit_development_root(root),
-                    root.own_drainer_vulnerable,
-                    root.own_drainer_walk_vulnerable,
-                    root.mana_handoff_to_opponent,
-                    root.has_roundtrip,
-                    root.same_turn_score_window_value,
-                    root.spirit_same_turn_score_setup_now,
-                    root.spirit_own_mana_setup_now,
-                    filtered.contains(&index),
-                    projections.contains_key(&index),
-                    projection,
-                    followup_score,
-                );
-            }
-        }
-        for window in interesting.windows(2) {
-            let left = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == window[0]);
-            let right = scored_roots
-                .iter()
-                .position(|root| Input::fen_from_array(&root.inputs) == window[1]);
-            if let (Some(left_index), Some(right_index)) = (left, right) {
-                let projection_order =
-                    match (projections.get(&left_index), projections.get(&right_index)) {
-                        (Some(left_projection), Some(right_projection)) => {
-                            Some(MonsGameModel::compare_spirit_root_projection_plans(
-                                left_projection,
-                                right_projection,
-                                (scored_roots[left_index].score - scored_roots[right_index].score)
-                                    .abs()
-                                    <= 192,
-                            ))
-                        }
-                        _ => None,
-                    };
-                println!(
-                    "compare {} vs {} => projection_order={:?} followup_order={:?}",
-                    window[0],
-                    window[1],
-                    projection_order,
-                    MonsGameModel::pro_v2_spirit_followup_floor_order(
-                        &game,
-                        &scored_roots,
-                        left_index,
-                        right_index,
-                        perspective,
-                        config,
-                        &mut followup_scores,
-                    ),
-                );
-            }
-        }
     }
 
     fn ranked_child_state_for_test(
@@ -33125,61 +25825,6 @@ mod smart_automove_tests {
             quiet_reduction_candidate: false,
             classes,
         }
-    }
-
-    #[test]
-    fn same_turn_score_window_transition_sort_prefers_stronger_exact_window() {
-        let weaker = LegalInputTransition {
-            inputs: vec![Input::Location(Location::new(0, 0))],
-            game: game_with_items(
-                vec![
-                    (
-                        Location::new(9, 0),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(9, 1),
-                        Item::Mana {
-                            mana: Mana::Regular(Color::White),
-                        },
-                    ),
-                ],
-                Color::White,
-                2,
-            ),
-            events: Vec::new(),
-        };
-        let stronger = LegalInputTransition {
-            inputs: vec![Input::Location(Location::new(1, 1))],
-            game: game_with_items(
-                vec![
-                    (
-                        Location::new(9, 0),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(9, 1),
-                        Item::Mana {
-                            mana: Mana::Regular(Color::Black),
-                        },
-                    ),
-                ],
-                Color::White,
-                2,
-            ),
-            events: Vec::new(),
-        };
-
-        let mut transitions = [weaker, stronger.clone()];
-        transitions.sort_by(|a, b| {
-            MonsGameModel::compare_same_turn_score_window_transitions(a, b, Color::White)
-        });
-
-        assert_eq!(transitions[0].inputs, stronger.inputs);
     }
 
     #[test]
@@ -33389,8 +26034,8 @@ mod smart_automove_tests {
         );
 
         assert!(
-            MonsGameModel::has_exact_frontier_tactical_potential(&game),
-            "same-turn exact safe supermana progress should block frontier futility pruning"
+            MonsGameModel::has_frontier_tactical_potential(&game),
+            "same-turn safe supermana progress should block frontier futility pruning"
         );
     }
 
@@ -33416,7 +26061,7 @@ mod smart_automove_tests {
         );
 
         assert!(
-            !MonsGameModel::has_exact_frontier_tactical_potential(&game),
+            !MonsGameModel::has_frontier_tactical_potential(&game),
             "quiet frontier state should remain eligible for futility pruning"
         );
     }
@@ -33462,8 +26107,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         assert!(
-            MonsGameModel::has_exact_frontier_tactical_potential(&game),
-            "spirit-assisted exact supermana progress should block frontier futility pruning"
+            MonsGameModel::has_frontier_tactical_potential(&game),
+            "spirit-assisted supermana progress should block frontier futility pruning"
         );
     }
 
@@ -33495,11 +26140,8 @@ mod smart_automove_tests {
         );
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut progress = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -33670,11 +26312,8 @@ mod smart_automove_tests {
         );
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut progress = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -33745,11 +26384,8 @@ mod smart_automove_tests {
         );
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut progress = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -33818,11 +26454,8 @@ mod smart_automove_tests {
         );
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut stronger = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -33982,11 +26615,8 @@ mod smart_automove_tests {
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
         config.node_enum_limit = 256;
         config.node_branch_limit = 64;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::Black,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::Black, true);
         let child = MonsGameModel::build_scored_root_move(
             &game,
             Color::Black,
@@ -34001,15 +26631,7 @@ mod smart_automove_tests {
         .expect("mirrored opponent spirit supermana handoff inputs should build a scored root");
         let child_hash = MonsGameModel::search_state_hash(&child.game);
 
-        let children = MonsGameModel::ranked_child_states(
-            &game,
-            Color::White,
-            false,
-            None,
-            [0; 2],
-            config,
-            &HistoryTable::default(),
-        );
+        let children = MonsGameModel::ranked_child_states(&game, Color::White, false, None, config);
         let ranked_child = children
             .iter()
             .find(|candidate| candidate.hash == child_hash)
@@ -34030,250 +26652,6 @@ mod smart_automove_tests {
                 ranked_child.classes,
             ),
             "dangerous opponent spirit setup should qualify for selective extension"
-        );
-    }
-
-    #[test]
-    fn ranked_child_states_surface_exact_supermana_progress_with_node_enum_cutoff() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(0, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        assert!(
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-                .safe_supermana_progress,
-            "board should start with exact safe supermana progress"
-        );
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let limited_transitions = MonsGameModel::enumerate_legal_transitions(
-            &game,
-            1,
-            SuggestedStartInputOptions::for_automove(),
-        );
-        assert!(
-            !limited_transitions.iter().any(|transition| {
-                MonsGameModel::transition_preserves_exact_progress(
-                    transition,
-                    Color::White,
-                    Mana::Supermana,
-                )
-            }),
-            "plain tiny child enumeration should miss exact supermana continuations on this board"
-        );
-
-        let mut cutoff_config = config;
-        cutoff_config.node_enum_limit = 1;
-        cutoff_config.node_branch_limit = 8;
-        cutoff_config.enable_child_exact_tactics = true;
-        crate::models::automove_exact::clear_exact_state_analysis_cache();
-        crate::models::automove_exact::clear_exact_query_diagnostics();
-        let children = MonsGameModel::ranked_child_states(
-            &game,
-            Color::White,
-            true,
-            None,
-            [0; 2],
-            cutoff_config,
-            &HistoryTable::default(),
-        );
-        let diagnostics = crate::models::automove_exact::exact_query_diagnostics_snapshot();
-        assert!(
-            diagnostics.exact_turn_summary_builds > 0,
-            "exact safe supermana fixture should still probe exact child progress"
-        );
-
-        assert!(
-            children.iter().any(|candidate| {
-                let game = &candidate.game;
-                MonsGameModel::own_drainer_carries_specific_mana_safely(
-                    &game.board,
-                    Color::White,
-                    Mana::Supermana,
-                ) || (game.active_color == Color::White && {
-                    let exact_turn =
-                        crate::models::automove_exact::exact_turn_summary(game, Color::White);
-                    exact_turn.safe_supermana_progress
-                        || exact_turn.spirit_assisted_supermana_progress
-                })
-            }),
-            "exact safe supermana continuation child should survive tiny child enumeration cutoff"
-        );
-    }
-
-    #[test]
-    fn ranked_child_states_skip_exact_progress_probe_without_progress_targets() {
-        crate::models::automove_exact::clear_exact_state_analysis_cache();
-        crate::models::automove_exact::clear_exact_query_diagnostics();
-
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.node_enum_limit = 1;
-        config.node_branch_limit = 8;
-        config.enable_child_exact_tactics = true;
-        config.enable_root_efficiency = false;
-        config.enable_static_exact_evaluation = false;
-
-        let children = MonsGameModel::ranked_child_states(
-            &game,
-            Color::White,
-            true,
-            None,
-            [0; 2],
-            config,
-            &HistoryTable::default(),
-        );
-        assert!(
-            !children.is_empty(),
-            "simple board should still enumerate child states"
-        );
-
-        let diagnostics = crate::models::automove_exact::exact_query_diagnostics_snapshot();
-        assert_eq!(
-            diagnostics.exact_turn_summary_builds, 0,
-            "no-progress board should skip exact child progress probing"
-        );
-    }
-
-    #[test]
-    fn ranked_child_states_surface_exact_opponent_mana_progress_with_node_enum_cutoff() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(0, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        assert!(
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-                .safe_opponent_mana_progress,
-            "board should start with exact safe opponent-mana progress"
-        );
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let limited_transitions = MonsGameModel::enumerate_legal_transitions(
-            &game,
-            1,
-            SuggestedStartInputOptions::for_automove(),
-        );
-        assert!(
-            !limited_transitions.iter().any(|transition| {
-                MonsGameModel::transition_preserves_exact_progress(
-                    transition,
-                    Color::White,
-                    Mana::Regular(Color::Black),
-                )
-            }),
-            "plain tiny child enumeration should miss exact opponent-mana continuations on this board"
-        );
-
-        let mut cutoff_config = config;
-        cutoff_config.node_enum_limit = 1;
-        cutoff_config.node_branch_limit = 8;
-        cutoff_config.enable_child_exact_tactics = true;
-        crate::models::automove_exact::clear_exact_state_analysis_cache();
-        crate::models::automove_exact::clear_exact_query_diagnostics();
-        let children = MonsGameModel::ranked_child_states(
-            &game,
-            Color::White,
-            true,
-            None,
-            [0; 2],
-            cutoff_config,
-            &HistoryTable::default(),
-        );
-        let diagnostics = crate::models::automove_exact::exact_query_diagnostics_snapshot();
-        assert!(
-            diagnostics.exact_turn_summary_builds > 0,
-            "exact safe opponent-mana fixture should still probe exact child progress"
-        );
-
-        assert!(
-            children.iter().any(|candidate| {
-                let game = &candidate.game;
-                MonsGameModel::own_drainer_carries_specific_mana_safely(
-                    &game.board,
-                    Color::White,
-                    Mana::Regular(Color::Black),
-                ) || (game.active_color == Color::White
-                    && {
-                        let exact_turn =
-                            crate::models::automove_exact::exact_turn_summary(game, Color::White);
-                        exact_turn.safe_opponent_mana_progress
-                            || exact_turn.spirit_assisted_opponent_mana_progress
-                            || exact_turn.spirit_assisted_denial
-                    })
-            }),
-            "exact safe opponent-mana continuation child should survive tiny child enumeration cutoff"
         );
     }
 
@@ -34305,11 +26683,8 @@ mod smart_automove_tests {
         );
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -34397,11 +26772,8 @@ mod smart_automove_tests {
         );
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -34729,115 +27101,6 @@ mod smart_automove_tests {
                 .iter()
                 .map(|root| root.inputs.clone())
                 .collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn spirit_setup_into_same_turn_score_is_preferred_when_available() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 0),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        assert!(
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-                .spirit_assisted_score
-        );
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-setup inputs should be legal");
-        let after_best_score = crate::models::automove_exact::exact_state_analysis(&after)
-            .color_summary(Color::White)
-            .immediate_window
-            .best_score;
-
-        assert!(
-            after_best_score > 0,
-            "selected line should preserve the spirit-assisted same-turn scoring window, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_setup_into_same_turn_score_survives_root_enumeration_cutoff() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 0),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        assert!(
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-                .spirit_assisted_score
-        );
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-setup inputs should be legal");
-        let after_best_score = crate::models::automove_exact::exact_state_analysis(&after)
-            .color_summary(Color::White)
-            .immediate_window
-            .best_score;
-
-        assert!(
-            after_best_score > 0,
-            "selected line should still preserve the spirit-assisted same-turn scoring window with capped root enumeration, inputs={:?}, events={:?}",
-            inputs,
-            events
         );
     }
 
@@ -35237,153 +27500,6 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn spirit_moves_own_mana_closer_to_pool_with_root_cutoff_when_setup_is_strongest() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let game = game_with_items(
-            vec![
-                (Location::new(9, 7), Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 8),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (_, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-setup inputs should be legal");
-        let spirit_moved_own_mana_closer = events.iter().any(|event| {
-            let Event::SpiritTargetMove {
-                item:
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                from,
-                to,
-                ..
-            } = event
-            else {
-                return false;
-            };
-            let from_pool_steps = from
-                .distance(&Location::new(10, 0))
-                .min(from.distance(&Location::new(10, 10)));
-            let to_pool_steps = to
-                .distance(&Location::new(10, 0))
-                .min(to.distance(&Location::new(10, 10)));
-            to_pool_steps < from_pool_steps
-        });
-        assert!(
-            spirit_moved_own_mana_closer,
-            "selected line should still use spirit to move own mana closer to a pool under capped root enumeration, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_setup_with_shorter_exact_score_path_gets_higher_root_priority() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 7),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(6, 5)),
-                Input::Location(Location::new(5, 7)),
-                Input::Location(Location::new(6, 6)),
-            ],
-        )
-        .expect("shorter spirit setup inputs should build a scored root");
-        let long = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(6, 5)),
-                Input::Location(Location::new(5, 7)),
-                Input::Location(Location::new(6, 7)),
-            ],
-        )
-        .expect("longer spirit setup inputs should build a scored root");
-
-        assert!(short.spirit_own_mana_setup_now);
-        assert!(long.spirit_own_mana_setup_now);
-        assert!(!short.spirit_same_turn_score_setup_now);
-        assert!(!long.spirit_same_turn_score_setup_now);
-        assert_eq!(short.score_path_best_steps, 7);
-        assert_eq!(long.score_path_best_steps, 8);
-        assert!(MonsGameModel::is_better_tactical_root_candidate(
-            &short, &long
-        ));
-        let picked = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, short.inputs);
-    }
-
-    #[test]
     fn spirit_supermana_setup_prefers_shorter_exact_secure_continuation() {
         let mut game = game_with_items(
             vec![
@@ -35418,11 +27534,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -35495,11 +27608,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -35564,11 +27674,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -35641,11 +27748,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -35717,11 +27821,8 @@ mod smart_automove_tests {
         config.root_reply_risk_shortlist_max = 1;
         config.root_reply_risk_reply_limit = 1;
         config.root_reply_risk_node_share_bp = 1_000;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -35789,11 +27890,8 @@ mod smart_automove_tests {
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
         config.enable_turn_engine_selector = true;
         config.enable_interview_deterministic_tiebreak = true;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -35888,11 +27986,8 @@ mod smart_automove_tests {
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
         config.enable_normal_root_safety_deep_floor = false;
         config.node_enum_limit = 1;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -35960,11 +28055,8 @@ mod smart_automove_tests {
         config.depth = 2;
         config.root_focus_k = 2;
         config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -36055,11 +28147,8 @@ mod smart_automove_tests {
         config.depth = 2;
         config.root_focus_k = 1;
         config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut progress = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -36139,11 +28228,8 @@ mod smart_automove_tests {
         config.depth = 2;
         config.root_focus_k = 2;
         config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -36230,11 +28316,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -36317,7 +28400,7 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn pro_v2_mixed_plain_spirit_projection_order_prefers_immediate_score_goal() {
+    fn current_pro_prefers_tactical_goal_then_safe_recovery() {
         let mut game = MonsGame::new(false, GameVariant::Classic);
         game.active_color = Color::Black;
         game.turn_number = 2;
@@ -36341,7 +28424,7 @@ mod smart_automove_tests {
         );
         progress_root.efficiency = 90;
 
-        let spirit_projection = TurnEngineRootProjection {
+        let mut spirit_projection = TurnEngineRootProjection {
             plan: TurnPlan {
                 actions: Vec::new(),
                 compiled_chunks: vec![vec![Input::Location(Location::new(1, 3))]],
@@ -36374,10 +28457,10 @@ mod smart_automove_tests {
         let scored_roots = [spirit_root, progress_root];
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
         config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::ProV2;
+        config.turn_engine_mode = TurnEngineMode::CurrentPro;
 
         assert_eq!(
-            MonsGameModel::pro_v2_mixed_plain_spirit_projection_order(
+            MonsGameModel::current_pro_mixed_plain_spirit_projection_order(
                 &game,
                 &scored_roots,
                 0,
@@ -36390,96 +28473,26 @@ mod smart_automove_tests {
             ),
             Some(std::cmp::Ordering::Greater),
         );
-    }
 
-    #[test]
-    fn pro_v2_reply_risk_candidate_prefers_immediate_score_goal_for_safe_plain_spirit_pair() {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        game.turn_number = 2;
-
-        let mut spirit_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 3),
-            924,
-            true,
-            false,
-            false,
-        );
-        spirit_root.efficiency = 90;
-        let mut progress_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 5),
-            924,
-            true,
-            false,
-            false,
-        );
-        progress_root.efficiency = 90;
-
-        let spirit_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 3))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 365),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, 594, -220, 0, 2, 479,
-                ),
-                head_family: TurnPlanFamily::SpiritImpact,
-                goal_family: TurnPlanFamily::ImmediateScore,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let progress_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 5))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 898),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, -306, -220, 0, -1, 346,
-                ),
-                head_family: TurnPlanFamily::SafeSupermanaProgress,
-                goal_family: TurnPlanFamily::DrainerSafetyRecovery,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let scored_roots = [spirit_root, progress_root];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::ProV2;
-
-        assert!(
-            MonsGameModel::is_better_reply_risk_candidate(
+        spirit_projection.plan.goal_family = TurnPlanFamily::SpiritImpact;
+        assert_eq!(
+            MonsGameModel::current_pro_mixed_plain_spirit_projection_order(
                 &game,
-                0,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 372,
-                },
-                1,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 544,
-                },
-                Some(&spirit_projection),
-                Some(&progress_projection),
                 &scored_roots,
+                1,
+                &progress_projection,
+                0,
+                &spirit_projection,
                 Color::Black,
                 config,
                 &mut std::collections::HashMap::new(),
             ),
-            "safe plain-spirit reply-risk comparison should allow the immediate-score spirit line to beat the recovery-progress sibling",
+            Some(std::cmp::Ordering::Greater),
         );
     }
 
     #[test]
-    fn pro_v2_spirit_projection_challenge_prefers_safe_non_spirit_root() {
+    fn current_pro_spirit_challenge_accepts_only_safe_non_spirit_roots() {
         let mut game = MonsGame::new(false, GameVariant::Classic);
         game.active_color = Color::Black;
         let spirit_root = root_evaluation_for_projection_test(
@@ -36530,7 +28543,7 @@ mod smart_automove_tests {
         };
 
         assert_eq!(
-            MonsGameModel::pro_v2_spirit_projection_challenge_order(
+            MonsGameModel::current_pro_spirit_projection_challenge_order(
                 &challenger_root,
                 Some(&challenger_projection),
                 &spirit_root,
@@ -36538,21 +28551,8 @@ mod smart_automove_tests {
             ),
             Some(std::cmp::Ordering::Greater),
         );
-    }
 
-    #[test]
-    fn pro_v2_spirit_projection_challenge_rejects_unsafe_non_spirit_root() {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        let spirit_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 4),
-            924,
-            true,
-            false,
-            false,
-        );
-        let challenger_root = root_evaluation_for_projection_test(
+        let unsafe_challenger = root_evaluation_for_projection_test(
             &game,
             Location::new(1, 2),
             904,
@@ -36560,272 +28560,20 @@ mod smart_automove_tests {
             true,
             false,
         );
-        let spirit_projection = turn_engine_projection_for_test(
-            &game,
-            TurnPlanFamily::SpiritImpact,
-            790,
-            Location::new(1, 4),
-        );
-        let challenger_projection = turn_engine_projection_for_test(
+        let unsafe_projection = turn_engine_projection_for_test(
             &game,
             TurnPlanFamily::ManaTempo,
             900,
             Location::new(1, 2),
         );
-
         assert_eq!(
-            MonsGameModel::pro_v2_spirit_projection_challenge_order(
-                &challenger_root,
-                Some(&challenger_projection),
+            MonsGameModel::current_pro_spirit_projection_challenge_order(
+                &unsafe_challenger,
+                Some(&unsafe_projection),
                 &spirit_root,
                 Some(&spirit_projection),
             ),
             None,
-        );
-    }
-
-    #[test]
-    fn pro_v2_spirit_score_challenge_prefers_safe_non_spirit_root() {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        let spirit_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 4),
-            916,
-            true,
-            false,
-            false,
-        );
-        let challenger_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 2),
-            967,
-            false,
-            false,
-            false,
-        );
-
-        assert_eq!(
-            MonsGameModel::pro_v2_spirit_score_challenge_order(&challenger_root, &spirit_root,),
-            Some(std::cmp::Ordering::Greater),
-        );
-    }
-
-    #[test]
-    fn pro_v2_safe_non_spirit_followup_order_allows_opening_tempo_escape() {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        game.turn_number = 2;
-
-        let challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 2),
-            988,
-            false,
-            false,
-            false,
-        );
-        let spirit = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 5),
-            934,
-            true,
-            false,
-            false,
-        );
-        let scored_roots = [challenger, spirit];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::ProV2;
-        let mut cached_scores = std::collections::HashMap::new();
-        cached_scores.insert(0usize, 968);
-        cached_scores.insert(1usize, 968);
-
-        assert_eq!(
-            MonsGameModel::pro_v2_safe_non_spirit_followup_order(
-                &game,
-                &scored_roots,
-                0,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 127,
-                },
-                1,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 554,
-                },
-                Color::Black,
-                config,
-                &mut cached_scores,
-            ),
-            Some(std::cmp::Ordering::Greater),
-        );
-    }
-
-    #[test]
-    fn pro_v2_reply_risk_candidate_prefers_safer_recovery_plain_spirit_pair_when_spirit_goal_is_non_tactical(
-    ) {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        game.turn_number = 2;
-
-        let mut spirit_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 3),
-            924,
-            true,
-            false,
-            false,
-        );
-        spirit_root.efficiency = 90;
-        let mut recovery_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 5),
-            924,
-            true,
-            false,
-            false,
-        );
-        recovery_root.efficiency = 90;
-        let scored_roots = [recovery_root, spirit_root];
-
-        let recovery_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 5))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 898),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, -306, -220, 0, -1, 346,
-                ),
-                head_family: TurnPlanFamily::SafeSupermanaProgress,
-                goal_family: TurnPlanFamily::DrainerSafetyRecovery,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let spirit_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 3))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 365),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, 594, -220, 0, 2, 479,
-                ),
-                head_family: TurnPlanFamily::SpiritImpact,
-                goal_family: TurnPlanFamily::SpiritImpact,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::ProV2;
-
-        assert!(
-            MonsGameModel::is_better_reply_risk_candidate(
-                &game,
-                0,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 544,
-                },
-                1,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 372,
-                },
-                Some(&recovery_projection),
-                Some(&spirit_projection),
-                &scored_roots,
-                Color::Black,
-                config,
-                &mut std::collections::HashMap::new(),
-            ),
-            "a safer mixed-head spirit root should beat a non-tactical spirit-impact sibling when reply risk strongly favors the recovery line",
-        );
-    }
-
-    #[test]
-    fn pro_v2_mixed_plain_spirit_projection_order_prefers_better_ranked_recovery_when_spirit_goal_is_non_tactical(
-    ) {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        game.turn_number = 2;
-
-        let mut recovery_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 5),
-            924,
-            true,
-            false,
-            false,
-        );
-        recovery_root.efficiency = 90;
-        let mut spirit_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 3),
-            924,
-            true,
-            false,
-            false,
-        );
-        spirit_root.efficiency = 90;
-        let scored_roots = [recovery_root, spirit_root];
-
-        let recovery_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 5))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 898),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, -306, -220, 0, -1, 346,
-                ),
-                head_family: TurnPlanFamily::SafeSupermanaProgress,
-                goal_family: TurnPlanFamily::DrainerSafetyRecovery,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let spirit_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 3))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 365),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, 594, -220, 0, 2, 479,
-                ),
-                head_family: TurnPlanFamily::SpiritImpact,
-                goal_family: TurnPlanFamily::SpiritImpact,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::ProV2;
-
-        assert_eq!(
-            MonsGameModel::pro_v2_mixed_plain_spirit_projection_order(
-                &game,
-                &scored_roots,
-                0,
-                &recovery_projection,
-                1,
-                &spirit_projection,
-                Color::Black,
-                config,
-                &mut std::collections::HashMap::new(),
-            ),
-            Some(std::cmp::Ordering::Greater),
         );
     }
 
@@ -36864,11 +28612,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -36933,11 +28678,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -37010,11 +28752,8 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -37086,11 +28825,8 @@ mod smart_automove_tests {
         config.root_reply_risk_shortlist_max = 1;
         config.root_reply_risk_reply_limit = 1;
         config.root_reply_risk_node_share_bp = 1_000;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -37158,11 +28894,8 @@ mod smart_automove_tests {
         let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
         config.enable_normal_root_safety_deep_floor = false;
         config.node_enum_limit = 1;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -37230,11 +28963,8 @@ mod smart_automove_tests {
         config.depth = 2;
         config.root_focus_k = 2;
         config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -37333,11 +29063,8 @@ mod smart_automove_tests {
         config.depth = 2;
         config.root_focus_k = 2;
         config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before = MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            config.enable_enhanced_drainer_vulnerability,
-        );
+        let own_drainer_vulnerable_before =
+            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
         let mut short = MonsGameModel::build_scored_root_move(
             &game,
             Color::White,
@@ -37928,9 +29655,17 @@ mod smart_automove_tests {
 }
 
 fn random_index(len: usize) -> usize {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    rng.gen_range(0..len)
+    assert!(len > 0, "random index requires a non-empty collection");
+    let unbiased_upper_bound = usize::MAX - usize::MAX % len;
+
+    loop {
+        let mut bytes = [0_u8; std::mem::size_of::<usize>()];
+        getrandom::getrandom(&mut bytes).expect("secure randomness should be available");
+        let value = usize::from_ne_bytes(bytes);
+        if value < unbiased_upper_bound {
+            return value % len;
+        }
+    }
 }
 
 #[wasm_bindgen]

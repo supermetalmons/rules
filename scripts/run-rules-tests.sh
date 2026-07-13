@@ -3,159 +3,166 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
-DEFAULT_RULES_DIR="rules-tests"
-DEFAULT_CHUNKS_DIR="${REPO_DIR}/rules-tests-chunks"
-LEGACY_ARCHIVE_PATH="${REPO_DIR}/rules-tests.tar.gz"
-
-tar_mode_from_path() {
-  case "$1" in
-    *.tar.xz|*.txz) echo "J" ;;
-    *.tar.gz|*.tgz) echo "z" ;;
-    *.tar) echo "" ;;
-    *) echo "z" ;;
-  esac
-}
+DEFAULT_CORPUS="${REPO_DIR}/test-data/rules-regressions.jsonl.gz"
+DEFAULT_MANIFEST="${REPO_DIR}/test-data/rules-regressions.manifest.json"
+MAX_COMPRESSED_BYTES=1000000
+APPROVED_MANIFEST_SHA256="b3c9227a560f4e03d54cbf06668e64a465b870cf1bab673d906ac1926d251b29"
+APPROVED_COMPRESSED_SHA256="4f96c9a638ff81ef1c07bd63f7d528a70676281bd18cabc20eef86b42dbb68dc"
+APPROVED_UNCOMPRESSED_SHA256="5c3e3a5034d187ee0daf528bc0fb5bedeb3a27a864d8e7f6ce0aa0880fd02afc"
+APPROVED_COMPRESSED_BYTES=654974
+APPROVED_UNCOMPRESSED_BYTES=4032569
 
 print_help() {
   cat <<'EOF'
-Run rules-tests fixtures against Mons game logic.
+Run the selected rules regression corpus against Mons game logic.
 
 Usage:
   ./scripts/run-rules-tests.sh [script-options] [rules_tests options]
 
 Script options:
-  --chunks-dir <path>  Fixture chunk archive directory (default: rules-tests-chunks)
-  --archive <path>     Single fixture archive path (legacy fallback)
-  --dir <path>         Fixture directory (bypasses archive extraction)
-  --help, -h           Show this help message
+  --corpus <path>    Gzip JSONL corpus (default: test-data/rules-regressions.jsonl.gz)
+  --manifest <path>  Selection manifest (default: test-data/rules-regressions.manifest.json)
+  --help, -h         Show this help message
 
 rules_tests options:
-  --limit <n>
-  --log <path>
-  --verbose
+  --limit <n>        Execute the first n cases while validating the complete stream
+  --log <path>       Also write progress and failures to a log file
+  --verbose          Print every passing FNV-1a fixture ID
 
-Examples:
-  ./scripts/run-rules-tests.sh --limit 200
-  ./scripts/run-rules-tests.sh --chunks-dir ./rules-tests-chunks --limit 1000 --verbose
+The script pins the approved manifest and corpus hashes, validates the selection
+and coverage contract, then streams the corpus to the Rust runner.
 EOF
 }
 
-extract_archive_all() {
-  local archive_path="$1"
-  local destination="$2"
-  local mode
-  mode="$(tar_mode_from_path "${archive_path}")"
-  if [[ -n "${mode}" ]]; then
-    tar "-x${mode}f" "${archive_path}" -C "${destination}"
-  else
-    tar -xf "${archive_path}" -C "${destination}"
-  fi
+validate_manifest_contract() {
+  node - "${manifest_path}" <<'NODE'
+const fs = require("node:fs");
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+
+function assertEqual(actual, expected, label) {
+  if (actual !== expected) {
+    throw new Error(`${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  }
 }
 
-extract_archive_first_n() {
-  local archive_path="$1"
-  local n="$2"
-  local destination="$3"
-  local list_file="$4"
-  local mode
-  mode="$(tar_mode_from_path "${archive_path}")"
+assertEqual(manifest.schemaVersion, 1, "schemaVersion");
+assertEqual(manifest.selectionVersion, "rules-regressions-v1", "selectionVersion");
+assertEqual(manifest.source.caseCount, 699999, "source.caseCount");
+assertEqual(manifest.source.uniqueCanonicalTransitions, 699994, "source.uniqueCanonicalTransitions");
+assertEqual(manifest.source.archives.length, 7, "source archive count");
+assertEqual(manifest.source.baseline.passed, 699999, "source baseline passed");
+assertEqual(manifest.source.baseline.failed, 0, "source baseline failed");
 
-  if [[ -n "${mode}" ]]; then
-    tar "-t${mode}f" "${archive_path}" \
-      | awk -v limit="${n}" '
-          BEGIN { count = 0 }
-          {
-            if ($0 ~ /\/$/) { next }
-            print $0
-            count++
-            if (count >= limit) { exit }
-          }
-        ' >"${list_file}"
-  else
-    tar -tf "${archive_path}" \
-      | awk -v limit="${n}" '
-          BEGIN { count = 0 }
-          {
-            if ($0 ~ /\/$/) { next }
-            print $0
-            count++
-            if (count >= limit) { exit }
-          }
-        ' >"${list_file}"
-  fi
+const selection = manifest.selection;
+assertEqual(selection.selectedCaseCount, 10000, "selectedCaseCount");
+assertEqual(selection.uniqueFnv1a64Ids, 10000, "uniqueFnv1a64Ids");
+assertEqual(selection.uniqueTransitions, 10000, "uniqueTransitions");
+assertEqual(selection.mandatoryCaseCount, 4685, "mandatoryCaseCount");
+assertEqual(selection.greedyCoverageAdditions, 18, "greedyCoverageAdditions");
+assertEqual(selection.roundRobinAdditions, 5297, "roundRobinAdditions");
+assertEqual(selection.rareEventOccurrenceThreshold, 1000, "rareEventOccurrenceThreshold");
+assertEqual(selection.rareNextInputOccurrenceThreshold, 500, "rareNextInputOccurrenceThreshold");
 
-  if [[ ! -s "${list_file}" ]]; then
+const requiredDimensions = {
+  output_kind: 4,
+  output_cardinality: 27,
+  event_kind: 18,
+  next_input_kind: 9,
+  input_kind: 3,
+  input_length: 5,
+  color: 2,
+  score_pair: 28,
+  item_kind: 5,
+  mon_kind: 5,
+  mana_kind: 3,
+  source_square: 6,
+  target_square: 6,
+  direction: 9,
+  distance: 11,
+  geometry: 254,
+  turn_bucket: 4,
+  variant: 1,
+};
+const dimensions = manifest.coverage.distinctValueCounts;
+assertEqual(
+  JSON.stringify(Object.keys(dimensions).sort()),
+  JSON.stringify(Object.keys(requiredDimensions).sort()),
+  "coverage dimension keys",
+);
+let observedValues = 0;
+for (const [key, expectedCount] of Object.entries(requiredDimensions)) {
+  assertEqual(dimensions[key].source, expectedCount, `${key}.source`);
+  assertEqual(dimensions[key].selected, dimensions[key].source, `${key} source/selected`);
+  observedValues += dimensions[key].source;
+}
+assertEqual(observedValues, 400, "total observed coverage values");
+
+const requiredGaps = [
+  "The source corpus contains only the Classic variant; variants 1 through 11 are covered by focused Rust tests instead.",
+  "The source corpus contains no BombExplosion (be) event.",
+  "The source corpus contains no takeback input or Takeback (z) event.",
+  "The source corpus contains no Cancel (mc) modifier input.",
+  "The source corpus contains no turn-number-zero transition; observed turn buckets are 1-2, 3-5, 6-9, and 10+.",
+];
+assertEqual(JSON.stringify(manifest.knownGaps), JSON.stringify(requiredGaps), "knownGaps");
+NODE
+}
+
+manifest_number() {
+  local key="$1"
+  local value
+  value="$(
+    sed -nE \
+      "s/^[[:space:]]*\"${key}\":[[:space:]]*([0-9]+),?$/\\1/p" \
+      "${manifest_path}"
+  )"
+  if [[ -z "${value}" || "${value}" == *$'\n'* ]]; then
+    echo "error: manifest must contain exactly one numeric '${key}' field" >&2
     return 1
   fi
-
-  if [[ -n "${mode}" ]]; then
-    tar "-x${mode}f" "${archive_path}" -C "${destination}" -T "${list_file}"
-  else
-    tar -xf "${archive_path}" -C "${destination}" -T "${list_file}"
-  fi
-  return 0
+  echo "${value}"
 }
 
-count_archive_files() {
-  local archive_path="$1"
-  local mode
-  mode="$(tar_mode_from_path "${archive_path}")"
-  if [[ -n "${mode}" ]]; then
-    tar "-t${mode}f" "${archive_path}" | awk 'BEGIN { c=0 } $0 !~ /\/$/ { c++ } END { print c }'
-  else
-    tar -tf "${archive_path}" | awk 'BEGIN { c=0 } $0 !~ /\/$/ { c++ } END { print c }'
+manifest_string() {
+  local key="$1"
+  local value
+  value="$(
+    sed -nE \
+      "s/^[[:space:]]*\"${key}\":[[:space:]]*\"([^\"]+)\",?$/\\1/p" \
+      "${manifest_path}"
+  )"
+  if [[ -z "${value}" || "${value}" == *$'\n'* ]]; then
+    echo "error: manifest must contain exactly one string '${key}' field" >&2
+    return 1
   fi
+  echo "${value}"
 }
 
-resolve_extracted_rules_dir() {
-  local extracted_root="$1"
-  if [[ -d "${extracted_root}/${DEFAULT_RULES_DIR}" ]]; then
-    echo "${extracted_root}/${DEFAULT_RULES_DIR}"
-    return
-  fi
-
-  top_dirs=()
-  while IFS= read -r top_dir; do
-    top_dirs+=("${top_dir}")
-  done < <(find "${extracted_root}" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
-  if ((${#top_dirs[@]} == 1)); then
-    echo "${top_dirs[0]}"
-    return
-  fi
-
-  echo "${extracted_root}"
-}
-
-archive_path=""
-chunks_dir="${DEFAULT_CHUNKS_DIR}"
-rules_dir=""
+corpus_path="${DEFAULT_CORPUS}"
+manifest_path="${DEFAULT_MANIFEST}"
 runner_args=()
 
 while (($# > 0)); do
   case "$1" in
-    --archive)
+    --corpus)
       shift
       if (($# == 0)); then
-        echo "error: --archive requires a value" >&2
+        echo "error: --corpus requires a value" >&2
         exit 2
       fi
-      archive_path="$1"
+      corpus_path="$1"
       ;;
-    --chunks-dir)
+    --manifest)
       shift
       if (($# == 0)); then
-        echo "error: --chunks-dir requires a value" >&2
+        echo "error: --manifest requires a value" >&2
         exit 2
       fi
-      chunks_dir="$1"
+      manifest_path="$1"
       ;;
-    --dir)
-      shift
-      if (($# == 0)); then
-        echo "error: --dir requires a value" >&2
-        exit 2
-      fi
-      rules_dir="$1"
+    --stdin|--expected-count|--source-label|--protect-path)
+      echo "error: '$1' is managed by run-rules-tests.sh" >&2
+      exit 2
       ;;
     --help|-h)
       print_help
@@ -168,111 +175,88 @@ while (($# > 0)); do
   shift
 done
 
-limit_value=""
-for ((i=0; i<${#runner_args[@]}; i++)); do
-  if [[ "${runner_args[$i]}" == "--limit" && $((i + 1)) -lt ${#runner_args[@]} ]]; then
-    limit_value="${runner_args[$((i + 1))]}"
-  fi
-done
-
-if [[ -n "${limit_value}" && ! "${limit_value}" =~ ^[0-9]+$ ]]; then
-  echo "error: --limit must be a non-negative integer (got '${limit_value}')" >&2
-  exit 2
+if [[ ! -f "${corpus_path}" ]]; then
+  echo "error: rules corpus '${corpus_path}' not found" >&2
+  exit 1
+fi
+if [[ ! -f "${manifest_path}" ]]; then
+  echo "error: rules manifest '${manifest_path}' not found" >&2
+  exit 1
 fi
 
+corpus_path="$(realpath -- "${corpus_path}")"
+manifest_path="$(realpath -- "${manifest_path}")"
+
+actual_manifest_sha="$(shasum -a 256 "${manifest_path}" | awk '{print $1}')"
+if [[ "${actual_manifest_sha}" != "${APPROVED_MANIFEST_SHA256}" ]]; then
+  echo "error: manifest does not match the independently approved SHA-256" >&2
+  exit 1
+fi
+validate_manifest_contract
+
+expected_count="$(manifest_number selectedCaseCount)"
+expected_compressed_bytes="$(manifest_number compressedBytes)"
+expected_uncompressed_bytes="$(manifest_number uncompressedBytes)"
+expected_compressed_sha="$(manifest_string compressedSha256)"
+expected_uncompressed_sha="$(manifest_string uncompressedSha256)"
+
+if [[ "${expected_count}" != "10000" ]]; then
+  echo "error: manifest selectedCaseCount must be exactly 10000 (got ${expected_count})" >&2
+  exit 1
+fi
+if ((expected_compressed_bytes > MAX_COMPRESSED_BYTES)); then
+  echo "error: compressed corpus exceeds ${MAX_COMPRESSED_BYTES} bytes" >&2
+  exit 1
+fi
+if [[ "${expected_compressed_bytes}" != "${APPROVED_COMPRESSED_BYTES}" ||
+  "${expected_uncompressed_bytes}" != "${APPROVED_UNCOMPRESSED_BYTES}" ]]; then
+  echo "error: manifest corpus byte counts do not match the approved contract" >&2
+  exit 1
+fi
+if [[ "${expected_compressed_sha}" != "${APPROVED_COMPRESSED_SHA256}" ||
+  "${expected_uncompressed_sha}" != "${APPROVED_UNCOMPRESSED_SHA256}" ]]; then
+  echo "error: manifest corpus hashes do not match the approved contract" >&2
+  exit 1
+fi
+
+gzip -t "${corpus_path}"
+actual_compressed_bytes="$(wc -c <"${corpus_path}" | tr -d ' ')"
+actual_compressed_sha="$(shasum -a 256 "${corpus_path}" | awk '{print $1}')"
+actual_uncompressed_bytes="$(gzip -dc "${corpus_path}" | wc -c | tr -d ' ')"
+actual_uncompressed_sha="$(gzip -dc "${corpus_path}" | shasum -a 256 | awk '{print $1}')"
+
+if [[ "${actual_compressed_bytes}" != "${expected_compressed_bytes}" ]]; then
+  echo "error: compressed byte count mismatch (manifest ${expected_compressed_bytes}, actual ${actual_compressed_bytes})" >&2
+  exit 1
+fi
+if [[ "${actual_uncompressed_bytes}" != "${expected_uncompressed_bytes}" ]]; then
+  echo "error: uncompressed byte count mismatch (manifest ${expected_uncompressed_bytes}, actual ${actual_uncompressed_bytes})" >&2
+  exit 1
+fi
+if [[ "${actual_compressed_sha}" != "${expected_compressed_sha}" ]]; then
+  echo "error: compressed SHA-256 mismatch" >&2
+  exit 1
+fi
+if [[ "${actual_uncompressed_sha}" != "${expected_uncompressed_sha}" ]]; then
+  echo "error: uncompressed SHA-256 mismatch" >&2
+  exit 1
+fi
+
+echo "🔐 Verified ${expected_count} fixtures (${actual_compressed_bytes} compressed bytes)"
 cd "${REPO_DIR}"
-
-temp_dir=""
-cleanup() {
-  if [[ -n "${temp_dir}" && -d "${temp_dir}" ]]; then
-    cleanup_started_at="$(date +%s)"
-    echo "🧹 Cleaning up extracted fixtures at ${temp_dir}..."
-    rm -rf "${temp_dir}"
-    cleanup_elapsed="$(( $(date +%s) - cleanup_started_at ))"
-    echo "🧹 Cleanup finished in ${cleanup_elapsed}s"
-  fi
-}
-trap cleanup EXIT
-
-if [[ -z "${rules_dir}" ]]; then
-  if [[ -n "${archive_path}" ]]; then
-    if [[ ! -f "${archive_path}" ]]; then
-      echo "error: archive `${archive_path}` not found" >&2
-      exit 1
-    fi
-    temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/mons-rules-tests.XXXXXX")"
-    if [[ -n "${limit_value}" ]]; then
-      list_file="${temp_dir}/extract.list"
-      if ! extract_archive_first_n "${archive_path}" "${limit_value}" "${temp_dir}" "${list_file}"; then
-        echo "error: archive `${archive_path}` has no fixture files" >&2
-        exit 1
-      fi
-    else
-      extract_archive_all "${archive_path}" "${temp_dir}"
-    fi
-    rules_dir="$(resolve_extracted_rules_dir "${temp_dir}")"
-  elif [[ -d "${chunks_dir}" ]]; then
-    chunk_archives=()
-    while IFS= read -r chunk_archive; do
-      chunk_archives+=("${chunk_archive}")
-    done < <(
-      find "${chunks_dir}" -maxdepth 1 -type f \
-        \( -name '*.tar.gz' -o -name '*.tgz' -o -name '*.tar.xz' -o -name '*.txz' -o -name '*.tar' \) \
-        | LC_ALL=C sort
-    )
-    if ((${#chunk_archives[@]} > 0)); then
-      temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/mons-rules-tests.XXXXXX")"
-      extracted=0
-      for chunk_archive in "${chunk_archives[@]}"; do
-        if [[ -n "${limit_value}" ]]; then
-          remaining=$((limit_value - extracted))
-          if ((remaining <= 0)); then
-            break
-          fi
-          chunk_count="$(count_archive_files "${chunk_archive}")"
-          if ((chunk_count <= remaining)); then
-            extract_archive_all "${chunk_archive}" "${temp_dir}"
-            extracted=$((extracted + chunk_count))
-          else
-            list_file="${temp_dir}/extract.list"
-            extract_archive_first_n "${chunk_archive}" "${remaining}" "${temp_dir}" "${list_file}"
-            extracted=$((extracted + remaining))
-            break
-          fi
-        else
-          extract_archive_all "${chunk_archive}" "${temp_dir}"
-        fi
-      done
-      rules_dir="$(resolve_extracted_rules_dir "${temp_dir}")"
-    fi
-  fi
-
-  if [[ -z "${rules_dir}" && -f "${LEGACY_ARCHIVE_PATH}" ]]; then
-    temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/mons-rules-tests.XXXXXX")"
-    if [[ -n "${limit_value}" ]]; then
-      list_file="${temp_dir}/extract.list"
-      if ! extract_archive_first_n "${LEGACY_ARCHIVE_PATH}" "${limit_value}" "${temp_dir}" "${list_file}"; then
-        echo "error: archive `${LEGACY_ARCHIVE_PATH}` has no fixture files" >&2
-        exit 1
-      fi
-    else
-      extract_archive_all "${LEGACY_ARCHIVE_PATH}" "${temp_dir}"
-    fi
-    rules_dir="$(resolve_extracted_rules_dir "${temp_dir}")"
-  fi
-
-  if [[ -z "${rules_dir}" && -d "${DEFAULT_RULES_DIR}" ]]; then
-    rules_dir="${DEFAULT_RULES_DIR}"
-  fi
-
-  if [[ -z "${rules_dir}" ]]; then
-    echo "error: no fixtures found (expected --dir, --chunks-dir, or ${LEGACY_ARCHIVE_PATH})" >&2
-    exit 1
-  fi
-fi
-
 if ((${#runner_args[@]} > 0)); then
-  cargo run --quiet --bin rules_tests -- --dir "${rules_dir}" "${runner_args[@]}"
+  gzip -dc "${corpus_path}" | cargo run --quiet --bin rules_tests -- \
+    --stdin \
+    --expected-count "${expected_count}" \
+    --source-label "${corpus_path}" \
+    --protect-path "${corpus_path}" \
+    --protect-path "${manifest_path}" \
+    "${runner_args[@]}"
 else
-  cargo run --quiet --bin rules_tests -- --dir "${rules_dir}"
+  gzip -dc "${corpus_path}" | cargo run --quiet --bin rules_tests -- \
+    --stdin \
+    --expected-count "${expected_count}" \
+    --source-label "${corpus_path}" \
+    --protect-path "${corpus_path}" \
+    --protect-path "${manifest_path}"
 fi

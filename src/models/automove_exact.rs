@@ -23,6 +23,21 @@ fn cache_write_allowed() -> bool {
     true
 }
 
+#[cfg(test)]
+macro_rules! update_exact_query_diagnostics {
+    (|$diagnostics:ident| $update:expr) => {
+        EXACT_QUERY_DIAGNOSTICS.with(|storage| {
+            let $diagnostics: &mut ExactQueryDiagnostics = &mut storage.borrow_mut();
+            $update
+        })
+    };
+}
+
+#[cfg(not(test))]
+macro_rules! update_exact_query_diagnostics {
+    (|$diagnostics:ident| $update:expr) => {};
+}
+
 const EXACT_ANALYSIS_CACHE_MAX_ENTRIES: usize = 512;
 const EXACT_ATTACK_REACH_CACHE_MAX_ENTRIES: usize = 8192;
 const EXACT_CARRIER_DISTANCE_MAP_CACHE_MAX_ENTRIES: usize = 8192;
@@ -212,7 +227,7 @@ impl ExactActorMoveMemo {
             return exact_actor_move_memo_decode(cached);
         }
 
-        update_exact_query_diagnostics(|diagnostics| {
+        update_exact_query_diagnostics!(|diagnostics| {
             diagnostics.actor_payload_after_move_calls += 1
         });
         let result = actor_payload_after_move_compute(
@@ -255,7 +270,7 @@ impl ExactDrainerMoveMemo {
             return exact_drainer_move_memo_decode(cached);
         }
 
-        update_exact_query_diagnostics(|diagnostics| {
+        update_exact_query_diagnostics!(|diagnostics| {
             diagnostics.actor_payload_after_move_calls += 1
         });
         let result = actor_payload_after_move_compute(
@@ -423,7 +438,6 @@ pub(crate) struct ExactTurnSummary {
     #[cfg(test)]
     pub spirit_assisted_score_value: i32,
     pub spirit_assisted_denial: bool,
-    pub spirit_assisted_denial_value: i32,
     pub same_turn_score_window_value: i32,
     pub score_path_best_steps: Option<i32>,
 }
@@ -493,7 +507,6 @@ pub(crate) struct ExactOpportunityDelta {
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExactOpportunityContext {
     pub budget: ExactOpportunityBudget,
-    #[allow(dead_code)]
     pub turn: ExactTurnTacticalProjection,
     pub delta: ExactOpportunityDelta,
     pub opponent_can_win_immediately: bool,
@@ -1114,6 +1127,7 @@ struct ExactSecureManaCache {
     visiting: ExactHashSet<ExactSecureManaQueryKey>,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExactQueryDiagnostics {
     pub exact_turn_summary_builds: u32,
@@ -1200,50 +1214,6 @@ thread_local! {
     #[cfg(test)]
     static EXACT_QUERY_DIAGNOSTICS: RefCell<ExactQueryDiagnostics> =
         RefCell::new(ExactQueryDiagnostics::default());
-}
-
-#[cfg(test)]
-#[inline]
-fn update_exact_query_diagnostics(update: impl FnOnce(&mut ExactQueryDiagnostics)) {
-    EXACT_QUERY_DIAGNOSTICS.with(|diagnostics| update(&mut diagnostics.borrow_mut()));
-}
-
-#[cfg(all(not(test), target_arch = "wasm32"))]
-#[inline]
-fn update_exact_query_diagnostics(_: impl FnOnce(&mut ExactQueryDiagnostics)) {}
-
-#[cfg(all(not(test), not(target_arch = "wasm32")))]
-impl ExactQueryDiagnostics {
-    #[inline]
-    fn host_sink(self) -> u32 {
-        self.exact_turn_summary_builds
-            .saturating_add(self.passive_strategic_summary_builds)
-            .saturating_add(self.attack_reach_summary_builds)
-            .saturating_add(self.attack_reach_calls)
-            .saturating_add(self.attack_reach_cache_hits)
-            .saturating_add(self.drainer_immediate_threat_calls)
-            .saturating_add(self.actor_payload_after_move_calls)
-            .saturating_add(self.tactical_spirit_summary_calls)
-            .saturating_add(self.tactical_spirit_summary_cache_hits)
-            .saturating_add(self.immediate_tactical_window_queries)
-            .saturating_add(self.tactical_spirit_after_window_calls)
-            .saturating_add(self.passive_spirit_summary_calls)
-            .saturating_add(self.exact_secure_mana_calls)
-            .saturating_add(self.exact_secure_mana_cache_hits)
-            .saturating_add(self.exact_secure_mana_board_cache_hits)
-            .saturating_add(self.exact_secure_drainer_walk_apply_calls)
-            .saturating_add(self.pickup_path_calls)
-            .saturating_add(self.pickup_path_cache_hits)
-            .saturating_add(self.pickup_path_cache_misses)
-    }
-}
-
-#[cfg(all(not(test), not(target_arch = "wasm32")))]
-#[inline]
-fn update_exact_query_diagnostics(update: impl FnOnce(&mut ExactQueryDiagnostics)) {
-    let mut diagnostics = ExactQueryDiagnostics::default();
-    update(&mut diagnostics);
-    let _ = diagnostics.host_sink();
 }
 
 #[cfg(test)]
@@ -1824,7 +1794,7 @@ pub(crate) fn attack_reach_summary_for_targets_with_hash(
     can_use_action: bool,
     targets: &[Location],
 ) -> AttackReachSummary {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.attack_reach_summary_builds += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.attack_reach_summary_builds += 1);
 
     let mut summary = AttackReachSummary::default();
     if remaining_moves < 0 || !can_use_action || targets.is_empty() || checkpoint() {
@@ -1949,7 +1919,7 @@ pub(crate) fn can_attack_target_on_board_with_hash(
     remaining_moves: i32,
     can_use_action: bool,
 ) -> bool {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.attack_reach_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.attack_reach_calls += 1);
     if remaining_moves < 0 || !can_use_action || board.item(target).is_none() || checkpoint() {
         return false;
     }
@@ -1965,7 +1935,7 @@ pub(crate) fn can_attack_target_on_board_with_hash(
     if let Some(cached) =
         EXACT_ATTACK_REACH_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics(|diagnostics| diagnostics.attack_reach_cache_hits += 1);
+        update_exact_query_diagnostics!(|diagnostics| diagnostics.attack_reach_cache_hits += 1);
         return cached;
     }
 
@@ -2551,7 +2521,7 @@ pub(crate) fn drainer_immediate_threats_with_hash(
     location: Location,
     _board_hash: u64,
 ) -> (i32, i32) {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.drainer_immediate_threat_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.drainer_immediate_threat_calls += 1);
     if checkpoint() {
         return (1, 1);
     }
@@ -2913,7 +2883,7 @@ fn build_color_summary(
     if checkpoint_with_reserve(20.0) {
         return ExactColorSummary::default();
     }
-    update_exact_query_diagnostics(|diagnostics| match mode {
+    update_exact_query_diagnostics!(|diagnostics| match mode {
         #[cfg(test)]
         ExactColorSummaryMode::ActiveTactical => diagnostics.active_tactical_summary_builds += 1,
         ExactColorSummaryMode::PassiveStrategic => {
@@ -3050,7 +3020,7 @@ fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
     if checkpoint_with_reserve(20.0) {
         return ExactTurnSummary::default();
     }
-    update_exact_query_diagnostics(|diagnostics| diagnostics.exact_turn_summary_builds += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_turn_summary_builds += 1);
 
     let color = game.active_color;
     let remaining_moves = (Config::MONS_MOVES_PER_TURN - game.mons_moves_count).max(0);
@@ -3105,7 +3075,6 @@ fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
         #[cfg(test)]
         spirit_assisted_score_value: tactical_spirit.same_turn_score_value,
         spirit_assisted_denial: tactical_spirit.same_turn_opponent_mana_score,
-        spirit_assisted_denial_value: tactical_spirit.same_turn_opponent_mana_score_value,
         same_turn_score_window_value,
         score_path_best_steps: exact_best_score_steps_on_board(&game.board, color),
     };
@@ -3329,26 +3298,7 @@ where
     None
 }
 
-#[allow(dead_code)]
-fn actor_payload_after_move(
-    board: &Board,
-    mon_kind: MonKind,
-    color: Color,
-    payload: ExactActorPayload,
-    destination: Location,
-    allow_pick_bomb: bool,
-) -> Option<ExactActorPayload> {
-    actor_payload_after_move_with_hash(
-        board,
-        exact_board_hash(board),
-        mon_kind,
-        color,
-        payload,
-        destination,
-        allow_pick_bomb,
-    )
-}
-
+#[cfg(any(target_arch = "wasm32", test))]
 fn actor_payload_after_move_with_hash(
     board: &Board,
     _board_hash: u64,
@@ -3358,7 +3308,7 @@ fn actor_payload_after_move_with_hash(
     destination: Location,
     allow_pick_bomb: bool,
 ) -> Option<ExactActorPayload> {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.actor_payload_after_move_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.actor_payload_after_move_calls += 1);
     actor_payload_after_move_compute(
         board,
         mon_kind,
@@ -4088,7 +4038,7 @@ fn exact_drainer_pickup_window_uncached_with_hash(
     opponent_mana: Mana,
     _board_hash: u64,
 ) -> ExactDrainerPickupWindow {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.pickup_path_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_calls += 1);
 
     if (!need_score && !need_denial) || checkpoint() {
         return ExactDrainerPickupWindow::default();
@@ -4344,7 +4294,7 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
     mana_filter: ExactPickupFilter,
     board_hash: u64,
 ) -> Option<ExactDrainerPickupPath> {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.pickup_path_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_calls += 1);
     if checkpoint() {
         return None;
     }
@@ -4358,10 +4308,10 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
     if let Some(cached) =
         EXACT_PICKUP_PATH_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics(|diagnostics| diagnostics.pickup_path_cache_hits += 1);
+        update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_cache_hits += 1);
         return cached;
     }
-    update_exact_query_diagnostics(|diagnostics| diagnostics.pickup_path_cache_misses += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_cache_misses += 1);
 
     if max_steps.is_some_and(|limit| {
         exact_filtered_drainer_pickup_remaining_steps_lower_bound(
@@ -4614,7 +4564,7 @@ pub(crate) fn exact_secure_specific_mana_steps_on_board(
     if let Some(cached) =
         EXACT_SECURE_MANA_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics(|diagnostics| {
+        update_exact_query_diagnostics!(|diagnostics| {
             diagnostics.exact_secure_mana_calls += 1;
             diagnostics.exact_secure_mana_cache_hits += 1;
             diagnostics.exact_secure_mana_board_cache_hits += 1;
@@ -4646,7 +4596,7 @@ fn exact_secure_specific_mana_steps_in_game_with_key(
     wanted: Mana,
     state: ExactSecureManaStateKey,
 ) -> Option<i32> {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.exact_secure_mana_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_secure_mana_calls += 1);
     if checkpoint() {
         return None;
     }
@@ -4702,7 +4652,7 @@ fn exact_secure_specific_mana_steps_in_game_with_key_at_mut(
         wanted,
     };
     if let Some(cached) = cache.entries.get(&key).copied() {
-        update_exact_query_diagnostics(|diagnostics| diagnostics.exact_secure_mana_cache_hits += 1);
+        update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_secure_mana_cache_hits += 1);
         return cached;
     }
 
@@ -5101,7 +5051,7 @@ fn exact_apply_secure_drainer_walk_in_place(
     from: Location,
     to: Location,
 ) -> Option<ExactSecureDrainerWalkMutation> {
-    update_exact_query_diagnostics(|diagnostics| {
+    update_exact_query_diagnostics!(|diagnostics| {
         diagnostics.exact_secure_drainer_walk_apply_calls += 1
     });
     if checkpoint() || !exact_walk_destination_plausible(&game.board, from, to) {
@@ -5360,7 +5310,7 @@ fn exact_spirit_summary(
     remaining_mon_moves: i32,
     can_use_action: bool,
 ) -> ExactSpiritSummary {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.exact_spirit_summary_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_spirit_summary_calls += 1);
     if remaining_mon_moves < 0 || checkpoint() {
         return ExactSpiritSummary::default();
     }
@@ -5373,7 +5323,7 @@ fn exact_spirit_summary(
     if let Some(cached) =
         EXACT_SPIRIT_SUMMARY_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics(|diagnostics| {
+        update_exact_query_diagnostics!(|diagnostics| {
             diagnostics.exact_spirit_summary_cache_hits += 1
         });
         return cached;
@@ -5404,7 +5354,7 @@ fn exact_tactical_spirit_summary(
     can_use_action: bool,
     fields: u8,
 ) -> ExactSpiritSummary {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.tactical_spirit_summary_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.tactical_spirit_summary_calls += 1);
     if remaining_mon_moves < 0 || fields == 0 || checkpoint() {
         return ExactSpiritSummary::default();
     }
@@ -5418,7 +5368,7 @@ fn exact_tactical_spirit_summary(
     if let Some(cached) =
         EXACT_SPIRIT_TACTICAL_SUMMARY_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics(|diagnostics| {
+        update_exact_query_diagnostics!(|diagnostics| {
             diagnostics.tactical_spirit_summary_cache_hits += 1;
         });
         return cached;
@@ -5442,7 +5392,7 @@ fn exact_tactical_spirit_summary(
         }
         None
     }) {
-        update_exact_query_diagnostics(|diagnostics| {
+        update_exact_query_diagnostics!(|diagnostics| {
             diagnostics.tactical_spirit_summary_cache_hits += 1;
         });
         return cached;
@@ -5478,7 +5428,7 @@ fn exact_passive_spirit_summary(
     remaining_mon_moves: i32,
     can_use_action: bool,
 ) -> ExactSpiritSummary {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.passive_spirit_summary_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.passive_spirit_summary_calls += 1);
     if remaining_mon_moves < 0 || !can_use_action || checkpoint() {
         return ExactSpiritSummary::default();
     }
@@ -5840,7 +5790,7 @@ fn exact_tactical_spirit_summary_uncached(
                             if let Some(cached) = after_window_cache.get(&key).copied() {
                                 cached
                             } else {
-                                update_exact_query_diagnostics(|diagnostics| {
+                                update_exact_query_diagnostics!(|diagnostics| {
                                     diagnostics.tactical_spirit_after_window_calls += 1;
                                 });
                                 let window = if min_score > 1 {
@@ -6136,7 +6086,7 @@ fn exact_followup_summary(
     color: Color,
     remaining_moves: i32,
 ) -> ExactFollowupSummary {
-    update_exact_query_diagnostics(|diagnostics| diagnostics.exact_followup_summary_calls += 1);
+    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_followup_summary_calls += 1);
     if remaining_moves < 0 || checkpoint() {
         return ExactFollowupSummary::default();
     }
@@ -6150,7 +6100,7 @@ fn exact_followup_summary(
     if let Some(cached) =
         EXACT_FOLLOWUP_SUMMARY_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics(|diagnostics| {
+        update_exact_query_diagnostics!(|diagnostics| {
             diagnostics.exact_followup_summary_cache_hits += 1
         });
         return cached;
@@ -7054,7 +7004,7 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
     need_denial: bool,
     board_hash: u64,
 ) -> ExactImmediateTacticalWindow {
-    update_exact_query_diagnostics(|diagnostics| {
+    update_exact_query_diagnostics!(|diagnostics| {
         diagnostics.immediate_tactical_window_queries += 1;
     });
     if move_budget < 0 || (!need_score && !need_denial) || checkpoint() {
@@ -11823,10 +11773,6 @@ mod tests {
             projection.spirit_assisted_denial,
             turn.spirit_assisted_denial
         );
-        assert_eq!(
-            projection.spirit_assisted_denial_value,
-            turn.spirit_assisted_denial_value
-        );
         assert!(!projection.spirit_assisted_score);
         assert_eq!(projection.spirit_assisted_score_value, 0);
         assert_eq!(projection.same_turn_score_window_value, 0);
@@ -11873,10 +11819,6 @@ mod tests {
         assert_eq!(
             projection.spirit_assisted_denial,
             turn.spirit_assisted_denial
-        );
-        assert_eq!(
-            projection.spirit_assisted_denial_value,
-            turn.spirit_assisted_denial_value
         );
         assert_eq!(projection.spirit_assisted_score, turn.spirit_assisted_score);
         assert_eq!(
