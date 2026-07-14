@@ -1,6 +1,6 @@
 [package]
 name = "mons-rust"
-version = "0.1.132"
+version = "0.1.133"
 edition = "2021"
 description = "super metal mons"
 license = "CC0-1.0"
