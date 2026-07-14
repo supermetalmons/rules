@@ -7,11 +7,11 @@ license = "CC0-1.0"
 repository = "https://github.com/supermetalmons/mons-rust"
 readme = "README.md"
 include = [
-  "Cargo.toml",
-  "Cargo.lock",
-  "src/**",
-  "README.md",
-  "LICENSE",
+  "/Cargo.toml",
+  "/Cargo.lock",
+  "/src/**",
+  "/README.md",
+  "/LICENSE",
 ]
 
 [dependencies]

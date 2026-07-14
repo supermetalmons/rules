@@ -43,6 +43,9 @@ while IFS= read -r script; do
   node --check "${script}"
 done < <(find scripts -type f -name '*.cjs' -print | LC_ALL=C sort)
 
+run_step "complete games corpus"
+node ./scripts/check-complete-games.cjs
+
 run_step "source hygiene"
 if rg -n 'automove_experiments|smart_automove_pool_tests' src; then
   echo "retired experiment harness reference remains"

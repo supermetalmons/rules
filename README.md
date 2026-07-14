@@ -24,6 +24,13 @@ Experiments use a small candidate-specific `#[cfg(test)]` harness:
 - `cargo test --release --lib <test_name> -- --ignored --nocapture --test-threads=1`
 - `./scripts/check-automove-hygiene.sh`
 
+## Real-player complete games
+
+The immutable, move-only corpus of 1,527 complete games played by real players is
+documented in [test-data/complete-games/v1](https://github.com/supermetalmons/mons-rust/tree/main/test-data/complete-games/v1).
+It is repository research data, not part of the Rust or npm package surface. Run
+`node ./scripts/check-complete-games.cjs` to verify its pinned bytes and schema.
+
 ## Rules Tests
 
 Runner:

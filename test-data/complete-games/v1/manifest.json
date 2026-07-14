@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "complete-games-v1",
+  "description": "Immutable move-only complete games played by real players.",
+  "license": "CC0-1.0",
+  "source": {
+    "kind": "real-player-complete-games",
+    "sourceIdsIncluded": false,
+    "directIdentifiersIncluded": false
+  },
+  "format": {
+    "kind": "jsonl",
+    "encoding": "UTF-8",
+    "canonicalJson": true,
+    "trailingNewline": true,
+    "lineOrderHasMeaning": false,
+    "duplicateRecordsAllowed": true
+  },
+  "statistics": {
+    "recordCount": 1527,
+    "turnCount": 25185,
+    "inputCount": 169480,
+    "variantGameCounts": {
+      "Classic": 1486,
+      "SwappedManaRows": 2,
+      "OffsetArcManaRows": 4,
+      "CenterSpokeManaRows": 3,
+      "AlternatingManaRows": 6,
+      "InnerWedgeManaRows": 3,
+      "OuterWedgeManaRows": 2,
+      "BentCenterManaRows": 6,
+      "OuterEdgeManaRows": 2,
+      "SplitFlankManaRows": 4,
+      "ForwardBridgeManaRows": 6,
+      "CornerChainManaRows": 3
+    }
+  },
+  "artifact": {
+    "path": "test-data/complete-games/v1/complete-games.jsonl",
+    "bytes": 2273026,
+    "sha256": "5bc194f15516a9c275807415910c95b2e62ce63df9e575ac93e1dd93013197eb"
+  }
+}
