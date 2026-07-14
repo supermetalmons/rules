@@ -50,7 +50,7 @@ fi
 
 echo "Confirming optimized public Pro route..."
 cargo test --release --lib \
-    smart_automove_pro_matches_frontier_bounded_tactical_selector_on_release_fixture \
+    smart_automove_pro_matches_shipping_pro_selector_on_release_fixture \
     -- --test-threads=1
 
 echo "Running release hygiene checks..."

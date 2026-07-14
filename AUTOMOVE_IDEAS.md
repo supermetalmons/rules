@@ -1,19 +1,21 @@
-# Automove: Next Idea
+# Automove: One Active Hypothesis
 
-Baseline: Pro uses promoted bounded tactical; Fast and Normal retain shipping search.
-The hard limit is `700ms` per independently cold complete public call.
+Baseline: current public Pro; every cold complete public call must be `<700ms`.
 
-## Deterministic bounded/lazy root generation
+## Bounded/lazy root generation
 
-Generate roots incrementally into a fixed-cap pool *before* exact analysis and the
-turn engine. Always admit mandatory tactical families, then fill remaining slots in a
-stable order. Stop generation at the cap so downstream work is bounded by construction.
+ID: `bounded-lazy-root-v1`.
 
-First proof: demonstrate a changed public root choice, legal replay across all 12
-variants, and two cold calls per witness below `700ms`. Then run sampled and all-variant
-direct duels against the current Pro baseline.
+Before exact or turn-engine work, admit roots to one fixed-cap pool. In the harness,
+freeze the cap, mandatory-family list/order, one reserved slot per present family,
+deterministic within-family/overflow order, and fixed-cap dedup storage. Fill the rest
+in stable order; downstream sees only admitted roots. Kill if the present
+mandatory-family count exceeds the cap. Never sweep it.
 
-Kill if mandatory roots can be omitted, work escapes the cap, public outputs never
-change, or a cold call exceeds `700ms`. Do not turn it into another node-budget,
-completed-depth, tactical-pool, static-selector, policy-stitching, or current-corpus
-evaluator tweak.
+Keep discovery, sampled-gate, and all-variant confirmation offsets mutually disjoint.
+First prove public reach, all-variant legal replay, bounded-work counters, and two cold
+calls per witness below `700ms`; only then duel shipping Pro, Normal, and Fast.
+
+Kill on absent reach, hidden work, family loss, unstable overflow, or a cold call
+`>=700ms`. Do not revive node/depth/tactical-pool budgets, selector stitching, or a
+current-corpus evaluator.

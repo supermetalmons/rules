@@ -322,9 +322,9 @@ fn validate_log_path(log_path: &Path, protected_paths: &[PathBuf]) -> Result<(),
 }
 
 fn paths_alias(left: &Path, right: &Path) -> io::Result<bool> {
-    if let (Ok(left_metadata), Ok(right_metadata)) = (fs::metadata(left), fs::metadata(right)) {
-        #[cfg(unix)]
-        {
+    #[cfg(unix)]
+    {
+        if let (Ok(left_metadata), Ok(right_metadata)) = (fs::metadata(left), fs::metadata(right)) {
             use std::os::unix::fs::MetadataExt;
             if left_metadata.dev() == right_metadata.dev()
                 && left_metadata.ino() == right_metadata.ino()

@@ -5,9 +5,9 @@ use crate::models::automove_deadline;
 use super::*;
 
 const EMERGENCY_MAX_INPUT_CHAIN: usize = 8;
-const FRONTIER_FAST_BANK_BUDGET_MS: f64 = 200.0;
-const FRONTIER_PRO_START_RESERVE_MS: f64 = 100.0;
-const FRONTIER_SELECTOR_BUDGET_MS: f64 = 550.0;
+const PRO_FAST_BANK_BUDGET_MS: f64 = 200.0;
+const PRO_START_RESERVE_MS: f64 = 100.0;
+const PRO_SELECTOR_BUDGET_MS: f64 = 550.0;
 
 fn shipping_search_config_for_game(
     game: &MonsGame,
@@ -41,17 +41,13 @@ fn select_shipping_search_inputs_internal(
     }
 }
 
-fn select_frontier_shipping_fallback_inputs(
-    game: &MonsGame,
-    config: AutomoveSearchConfig,
-) -> Vec<Input> {
-    // The bounded current-Pro route already has an outer frontier deadline, while the
-    // The retained current comparator intentionally has none. Inherit whichever state
-    // the caller established instead of starting a fresh shipping deadline.
+fn select_shipping_fallback_inputs(game: &MonsGame, config: AutomoveSearchConfig) -> Vec<Input> {
+    // The shipping Pro route already owns its deadline. Inherit whichever deadline
+    // state the caller established instead of starting a fresh one here.
     select_shipping_search_inputs_internal(game, config)
 }
 
-fn select_search_inputs_with_fresh_frontier_cache(
+fn select_search_inputs_with_fresh_pro_cache(
     game: &MonsGame,
     config: AutomoveSearchConfig,
 ) -> Vec<Input> {
@@ -70,11 +66,9 @@ fn clear_selector_caches_after_timeout() {
     clear_turn_engine_selector_followup_floor_cache();
 }
 
-fn select_frontier_fast_bank_inputs(
-    select_fast: impl FnOnce() -> Vec<Input>,
-) -> Option<Vec<Input>> {
+fn select_pro_fast_bank_inputs(select_fast: impl FnOnce() -> Vec<Input>) -> Option<Vec<Input>> {
     let selected =
-        automove_deadline::with_cooperative_subdeadline(FRONTIER_FAST_BANK_BUDGET_MS, select_fast);
+        automove_deadline::with_cooperative_subdeadline(PRO_FAST_BANK_BUDGET_MS, select_fast);
     if selected.is_none() {
         clear_selector_caches_after_timeout();
     }
@@ -144,12 +138,12 @@ fn select_with_shared_deadline(game: &MonsGame, select: impl FnOnce() -> Vec<Inp
     )
 }
 
-fn select_frontier_with_shared_deadline(
+fn select_pro_with_shared_deadline(
     game: &MonsGame,
     select: impl FnOnce() -> Vec<Input>,
 ) -> Vec<Input> {
     let clear_warm_caches = automove_deadline::take_previous_timeout();
-    automove_deadline::with_deadline_if_absent(FRONTIER_SELECTOR_BUDGET_MS, || {
+    automove_deadline::with_deadline_if_absent(PRO_SELECTOR_BUDGET_MS, || {
         let emergency_inputs = deterministic_legal_fallback_inputs(game);
         if clear_warm_caches {
             clear_selector_caches_after_timeout();
@@ -159,7 +153,7 @@ fn select_frontier_with_shared_deadline(
         }
 
         let fast_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Fast);
-        let fast_inputs = select_frontier_fast_bank_inputs(|| {
+        let fast_inputs = select_pro_fast_bank_inputs(|| {
             MonsGameModel::smart_search_best_inputs(game, fast_runtime)
         })
         .unwrap_or_default();
@@ -168,7 +162,7 @@ fn select_frontier_with_shared_deadline(
         } else {
             emergency_inputs
         };
-        if automove_deadline::checkpoint_with_reserve(FRONTIER_PRO_START_RESERVE_MS) {
+        if automove_deadline::checkpoint_with_reserve(PRO_START_RESERVE_MS) {
             return timeout_inputs;
         }
 
@@ -190,7 +184,7 @@ pub(crate) fn select_shipping_search_inputs(
     })
 }
 
-pub(crate) fn apply_current_pro_config(config: AutomoveSearchConfig) -> AutomoveSearchConfig {
+pub(crate) fn apply_shipping_pro_config(config: AutomoveSearchConfig) -> AutomoveSearchConfig {
     let mut runtime = config;
     if runtime.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
         && runtime.enable_normal_root_safety_deep_floor
@@ -247,10 +241,7 @@ fn select_early_white_fallback_inputs(game: &MonsGame) -> Option<Vec<Input>> {
         || white_turn_three_mid_turn_full_resources
     {
         let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-        return Some(select_frontier_shipping_fallback_inputs(
-            game,
-            shipping_runtime,
-        ));
+        return Some(select_shipping_fallback_inputs(game, shipping_runtime));
     }
 
     let white_turn_three_mana_only = game.active_color == Color::White
@@ -276,7 +267,7 @@ fn select_early_white_fallback_inputs(game: &MonsGame) -> Option<Vec<Input>> {
     }
 
     let fast_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Fast);
-    Some(select_frontier_shipping_fallback_inputs(
+    Some(select_shipping_fallback_inputs(
         game,
         MonsGameModel::with_pre_exact_runtime_policy(fast_runtime),
     ))
@@ -300,23 +291,23 @@ fn select_score_window_tactical_fallback_inputs(
         return None;
     }
 
-    Some(select_search_inputs_with_fresh_frontier_cache(
+    Some(select_search_inputs_with_fresh_pro_cache(
         game,
-        apply_current_pro_config(config),
+        apply_shipping_pro_config(config),
     ))
 }
 
 fn select_white_early_engine_disabled_fallback_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
-    frontier_inputs: &[Input],
+    pro_inputs: &[Input],
 ) -> Option<Vec<Input>> {
     let white_turn_five_turn_start_action_mana = game.active_color == Color::White
         && game.turn_number == 5
         && game.mons_moves_count == 0
         && game.player_can_use_action()
         && game.player_can_move_mana();
-    if !white_turn_five_turn_start_action_mana || frontier_inputs.is_empty() {
+    if !white_turn_five_turn_start_action_mana || pro_inputs.is_empty() {
         return None;
     }
 
@@ -330,35 +321,34 @@ fn select_white_early_engine_disabled_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_current_pro_config(config);
-    let frontier_roots =
-        MonsGameModel::ranked_root_moves(game, game.active_color, frontier_runtime);
-    let frontier_selected = frontier_roots
+    let pro_runtime = apply_shipping_pro_config(config);
+    let pro_roots = MonsGameModel::ranked_root_moves(game, game.active_color, pro_runtime);
+    let pro_selected = pro_roots
         .iter()
-        .find(|root| root.inputs.as_slice() == frontier_inputs)?;
-    if frontier_selected.wins_immediately
-        || frontier_selected.attacks_opponent_drainer
-        || frontier_selected.spirit_development
-        || frontier_selected.spirit_same_turn_score_setup_now
-        || frontier_selected.spirit_own_mana_setup_now
-        || frontier_selected.scores_supermana_this_turn
-        || frontier_selected.scores_opponent_mana_this_turn
-        || frontier_selected.safe_supermana_pickup_now
-        || frontier_selected.safe_opponent_mana_pickup_now
-        || frontier_selected.supermana_progress
-        || frontier_selected.opponent_mana_progress
-        || !frontier_selected.own_drainer_vulnerable
-        || frontier_selected.own_drainer_walk_vulnerable
-        || frontier_selected.mana_handoff_to_opponent
-        || frontier_selected.has_roundtrip
-        || frontier_selected.same_turn_score_window_value != 1
+        .find(|root| root.inputs.as_slice() == pro_inputs)?;
+    if pro_selected.wins_immediately
+        || pro_selected.attacks_opponent_drainer
+        || pro_selected.spirit_development
+        || pro_selected.spirit_same_turn_score_setup_now
+        || pro_selected.spirit_own_mana_setup_now
+        || pro_selected.scores_supermana_this_turn
+        || pro_selected.scores_opponent_mana_this_turn
+        || pro_selected.safe_supermana_pickup_now
+        || pro_selected.safe_opponent_mana_pickup_now
+        || pro_selected.supermana_progress
+        || pro_selected.opponent_mana_progress
+        || !pro_selected.own_drainer_vulnerable
+        || pro_selected.own_drainer_walk_vulnerable
+        || pro_selected.mana_handoff_to_opponent
+        || pro_selected.has_roundtrip
+        || pro_selected.same_turn_score_window_value != 1
     {
         return None;
     }
 
     let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-    let shipping_inputs = select_frontier_shipping_fallback_inputs(game, shipping_runtime);
-    if shipping_inputs.is_empty() || shipping_inputs == frontier_inputs {
+    let shipping_inputs = select_shipping_fallback_inputs(game, shipping_runtime);
+    if shipping_inputs.is_empty() || shipping_inputs == pro_inputs {
         return None;
     }
 
@@ -391,14 +381,14 @@ fn select_white_early_engine_disabled_fallback_inputs(
 fn select_white_nonnegative_deny_search_only_fallback_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
-    frontier_inputs: &[Input],
+    pro_inputs: &[Input],
 ) -> Option<Vec<Input>> {
     let white_turn_three_mana_only = game.active_color == Color::White
         && game.turn_number == 3
         && game.mons_moves_count == 1
         && !game.player_can_use_action()
         && game.player_can_move_mana();
-    if !white_turn_three_mana_only || frontier_inputs.is_empty() {
+    if !white_turn_three_mana_only || pro_inputs.is_empty() {
         return None;
     }
 
@@ -412,31 +402,30 @@ fn select_white_nonnegative_deny_search_only_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_current_pro_config(config);
-    let frontier_roots =
-        MonsGameModel::ranked_root_moves(game, game.active_color, frontier_runtime);
-    let frontier_selected = frontier_roots
+    let pro_runtime = apply_shipping_pro_config(config);
+    let pro_roots = MonsGameModel::ranked_root_moves(game, game.active_color, pro_runtime);
+    let pro_selected = pro_roots
         .iter()
-        .find(|root| root.inputs.as_slice() == frontier_inputs)?;
-    let frontier_family = MonsGameModel::turn_engine_root_move_family(frontier_selected);
-    let frontier_utility = MonsGameModel::turn_engine_scored_root_utility(
+        .find(|root| root.inputs.as_slice() == pro_inputs)?;
+    let pro_family = MonsGameModel::turn_engine_root_move_family(pro_selected);
+    let pro_utility = MonsGameModel::turn_engine_scored_root_utility(
         game,
-        frontier_selected,
+        pro_selected,
         game.active_color,
-        frontier_runtime,
-        frontier_family,
+        pro_runtime,
+        pro_family,
     );
-    if !frontier_utility.has_nonnegative_deny_gain() {
+    if !pro_utility.has_nonnegative_deny_gain() {
         return None;
     }
 
-    let mut search_only_runtime = frontier_runtime;
+    let mut search_only_runtime = pro_runtime;
     search_only_runtime.enable_turn_engine_selector = false;
     search_only_runtime.enable_turn_head_rerank = true;
     search_only_runtime.turn_engine_mode = TurnEngineMode::ProV1;
 
-    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
-    if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
+    let search_only_inputs = select_shipping_fallback_inputs(game, search_only_runtime);
+    if search_only_inputs.is_empty() || search_only_inputs == pro_inputs {
         return None;
     }
 
@@ -446,14 +435,14 @@ fn select_white_nonnegative_deny_search_only_fallback_inputs(
 fn select_white_negative_deny_search_only_selected_rank_fallback_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
-    frontier_inputs: &[Input],
+    pro_inputs: &[Input],
 ) -> Option<Vec<Input>> {
     let white_turn_three_mana_only = game.active_color == Color::White
         && game.turn_number == 3
         && game.mons_moves_count == 1
         && !game.player_can_use_action()
         && game.player_can_move_mana();
-    if !white_turn_three_mana_only || frontier_inputs.is_empty() {
+    if !white_turn_three_mana_only || pro_inputs.is_empty() {
         return None;
     }
 
@@ -467,25 +456,24 @@ fn select_white_negative_deny_search_only_selected_rank_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_current_pro_config(config);
-    let frontier_roots =
-        MonsGameModel::ranked_root_moves(game, game.active_color, frontier_runtime);
-    let frontier_selected = frontier_roots
+    let pro_runtime = apply_shipping_pro_config(config);
+    let pro_roots = MonsGameModel::ranked_root_moves(game, game.active_color, pro_runtime);
+    let pro_selected = pro_roots
         .iter()
-        .find(|root| root.inputs.as_slice() == frontier_inputs)?;
-    let frontier_family = MonsGameModel::turn_engine_root_move_family(frontier_selected);
-    let frontier_utility = MonsGameModel::turn_engine_scored_root_utility(
+        .find(|root| root.inputs.as_slice() == pro_inputs)?;
+    let pro_family = MonsGameModel::turn_engine_root_move_family(pro_selected);
+    let pro_utility = MonsGameModel::turn_engine_scored_root_utility(
         game,
-        frontier_selected,
+        pro_selected,
         game.active_color,
-        frontier_runtime,
-        frontier_family,
+        pro_runtime,
+        pro_family,
     );
-    if frontier_utility.has_nonnegative_deny_gain() {
+    if pro_utility.has_nonnegative_deny_gain() {
         return None;
     }
 
-    let mut search_only_runtime = frontier_runtime;
+    let mut search_only_runtime = pro_runtime;
     search_only_runtime.enable_turn_engine_selector = false;
     search_only_runtime.enable_turn_head_rerank = true;
     let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
@@ -495,8 +483,8 @@ fn select_white_negative_deny_search_only_selected_rank_fallback_inputs(
         shipping_runtime.turn_engine_per_node_family_cap;
     search_only_runtime.turn_engine_step_cap = shipping_runtime.turn_engine_step_cap;
 
-    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
-    if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
+    let search_only_inputs = select_shipping_fallback_inputs(game, search_only_runtime);
+    if search_only_inputs.is_empty() || search_only_inputs == pro_inputs {
         return None;
     }
 
@@ -573,7 +561,7 @@ fn root_evaluation_from_scored_root(candidate: ScoredRootMove, score: i32) -> Ro
     }
 }
 
-fn focused_scored_roots_for_frontier_runtime(
+fn focused_scored_roots_for_pro_runtime(
     game: &MonsGame,
     config: AutomoveSearchConfig,
 ) -> Vec<RootEvaluation> {
@@ -654,14 +642,14 @@ fn focused_scored_roots_for_frontier_runtime(
 fn select_white_confirm_prov1_search_only_tiebreak_fallback_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
-    frontier_inputs: &[Input],
+    pro_inputs: &[Input],
 ) -> Option<Vec<Input>> {
     let white_turn_three_mons2_mana_only = game.active_color == Color::White
         && game.turn_number == 3
         && game.mons_moves_count == 2
         && !game.player_can_use_action()
         && game.player_can_move_mana();
-    if !white_turn_three_mons2_mana_only || frontier_inputs.is_empty() {
+    if !white_turn_three_mons2_mana_only || pro_inputs.is_empty() {
         return None;
     }
 
@@ -678,56 +666,56 @@ fn select_white_confirm_prov1_search_only_tiebreak_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_current_pro_config(config);
-    let frontier_roots = focused_scored_roots_for_frontier_runtime(game, frontier_runtime);
-    let frontier_index = frontier_roots
+    let pro_runtime = apply_shipping_pro_config(config);
+    let pro_roots = focused_scored_roots_for_pro_runtime(game, pro_runtime);
+    let pro_index = pro_roots
         .iter()
-        .position(|root| root.inputs.as_slice() == frontier_inputs)?;
+        .position(|root| root.inputs.as_slice() == pro_inputs)?;
     let candidate_indices = MonsGameModel::filtered_root_candidate_indices(
         game,
-        frontier_roots.as_slice(),
+        pro_roots.as_slice(),
         game.active_color,
-        frontier_runtime,
+        pro_runtime,
     );
-    if candidate_indices.len() != 2 || !candidate_indices.contains(&frontier_index) {
+    if candidate_indices.len() != 2 || !candidate_indices.contains(&pro_index) {
         return None;
     }
     let shortlist = MonsGameModel::reply_risk_guard_shortlist_indices(
-        frontier_roots.as_slice(),
+        pro_roots.as_slice(),
         candidate_indices.as_slice(),
-        frontier_runtime,
+        pro_runtime,
     );
-    if shortlist.len() != candidate_indices.len() || !shortlist.contains(&frontier_index) {
+    if shortlist.len() != candidate_indices.len() || !shortlist.contains(&pro_index) {
         return None;
     }
 
-    let mut search_only_runtime = frontier_runtime;
+    let mut search_only_runtime = pro_runtime;
     search_only_runtime.enable_turn_engine_selector = false;
     search_only_runtime.enable_turn_head_rerank = true;
     search_only_runtime.turn_engine_mode = TurnEngineMode::ProV1;
 
-    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
-    if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
+    let search_only_inputs = select_shipping_fallback_inputs(game, search_only_runtime);
+    if search_only_inputs.is_empty() || search_only_inputs == pro_inputs {
         return None;
     }
 
-    let search_only_index = frontier_roots
+    let search_only_index = pro_roots
         .iter()
         .position(|root| root.inputs.as_slice() == search_only_inputs.as_slice())?;
     if !candidate_indices.contains(&search_only_index) || !shortlist.contains(&search_only_index) {
         return None;
     }
 
-    let frontier_selected = &frontier_roots[frontier_index];
-    let search_only_selected = &frontier_roots[search_only_index];
-    if frontier_selected.score != search_only_selected.score
-        || frontier_selected.spirit_setup_gain != search_only_selected.spirit_setup_gain
-        || frontier_selected.safe_supermana_progress_steps
+    let pro_selected = &pro_roots[pro_index];
+    let search_only_selected = &pro_roots[search_only_index];
+    if pro_selected.score != search_only_selected.score
+        || pro_selected.spirit_setup_gain != search_only_selected.spirit_setup_gain
+        || pro_selected.safe_supermana_progress_steps
             != search_only_selected.safe_supermana_progress_steps
-        || frontier_selected.safe_opponent_mana_progress_steps
+        || pro_selected.safe_opponent_mana_progress_steps
             != search_only_selected.safe_opponent_mana_progress_steps
-        || frontier_selected.score_path_best_steps != search_only_selected.score_path_best_steps
-        || !is_safe_quiet_mana_tempo_root(frontier_selected)
+        || pro_selected.score_path_best_steps != search_only_selected.score_path_best_steps
+        || !is_safe_quiet_mana_tempo_root(pro_selected)
         || !is_safe_quiet_mana_tempo_root(search_only_selected)
     {
         return None;
@@ -739,14 +727,14 @@ fn select_white_confirm_prov1_search_only_tiebreak_fallback_inputs(
 fn select_white_confirm_prov1_better_ordered_search_only_fallback_inputs(
     game: &MonsGame,
     config: AutomoveSearchConfig,
-    frontier_inputs: &[Input],
+    pro_inputs: &[Input],
 ) -> Option<Vec<Input>> {
     let white_turn_three_late_mana_only = game.active_color == Color::White
         && game.turn_number == 3
         && game.mons_moves_count >= 3
         && !game.player_can_use_action()
         && game.player_can_move_mana();
-    if !white_turn_three_late_mana_only || frontier_inputs.is_empty() {
+    if !white_turn_three_late_mana_only || pro_inputs.is_empty() {
         return None;
     }
 
@@ -763,57 +751,57 @@ fn select_white_confirm_prov1_better_ordered_search_only_fallback_inputs(
         return None;
     }
 
-    let frontier_runtime = apply_current_pro_config(config);
-    let frontier_roots = focused_scored_roots_for_frontier_runtime(game, frontier_runtime);
-    let frontier_index = frontier_roots
+    let pro_runtime = apply_shipping_pro_config(config);
+    let pro_roots = focused_scored_roots_for_pro_runtime(game, pro_runtime);
+    let pro_index = pro_roots
         .iter()
-        .position(|root| root.inputs.as_slice() == frontier_inputs)?;
+        .position(|root| root.inputs.as_slice() == pro_inputs)?;
     let candidate_indices = MonsGameModel::filtered_root_candidate_indices(
         game,
-        frontier_roots.as_slice(),
+        pro_roots.as_slice(),
         game.active_color,
-        frontier_runtime,
+        pro_runtime,
     );
-    if !candidate_indices.contains(&frontier_index) {
+    if !candidate_indices.contains(&pro_index) {
         return None;
     }
     let shortlist = MonsGameModel::reply_risk_guard_shortlist_indices(
-        frontier_roots.as_slice(),
+        pro_roots.as_slice(),
         candidate_indices.as_slice(),
-        frontier_runtime,
+        pro_runtime,
     );
-    if !shortlist.contains(&frontier_index) {
+    if !shortlist.contains(&pro_index) {
         return None;
     }
 
-    let mut search_only_runtime = frontier_runtime;
+    let mut search_only_runtime = pro_runtime;
     search_only_runtime.enable_turn_engine_selector = false;
     search_only_runtime.enable_turn_head_rerank = true;
     search_only_runtime.turn_engine_mode = TurnEngineMode::ProV1;
 
-    let search_only_inputs = select_frontier_shipping_fallback_inputs(game, search_only_runtime);
-    if search_only_inputs.is_empty() || search_only_inputs == frontier_inputs {
+    let search_only_inputs = select_shipping_fallback_inputs(game, search_only_runtime);
+    if search_only_inputs.is_empty() || search_only_inputs == pro_inputs {
         return None;
     }
 
-    let search_only_index = frontier_roots
+    let search_only_index = pro_roots
         .iter()
         .position(|root| root.inputs.as_slice() == search_only_inputs.as_slice())?;
     if !candidate_indices.contains(&search_only_index) || !shortlist.contains(&search_only_index) {
         return None;
     }
 
-    let frontier_selected = &frontier_roots[frontier_index];
-    let search_only_selected = &frontier_roots[search_only_index];
-    if search_only_selected.score < frontier_selected.score
-        || search_only_selected.root_rank >= frontier_selected.root_rank
-        || frontier_selected.spirit_setup_gain != search_only_selected.spirit_setup_gain
-        || frontier_selected.safe_supermana_progress_steps
+    let pro_selected = &pro_roots[pro_index];
+    let search_only_selected = &pro_roots[search_only_index];
+    if search_only_selected.score < pro_selected.score
+        || search_only_selected.root_rank >= pro_selected.root_rank
+        || pro_selected.spirit_setup_gain != search_only_selected.spirit_setup_gain
+        || pro_selected.safe_supermana_progress_steps
             != search_only_selected.safe_supermana_progress_steps
-        || frontier_selected.safe_opponent_mana_progress_steps
+        || pro_selected.safe_opponent_mana_progress_steps
             != search_only_selected.safe_opponent_mana_progress_steps
-        || frontier_selected.score_path_best_steps != search_only_selected.score_path_best_steps
-        || !is_safe_quiet_mana_tempo_root(frontier_selected)
+        || pro_selected.score_path_best_steps != search_only_selected.score_path_best_steps
+        || !is_safe_quiet_mana_tempo_root(pro_selected)
         || !is_safe_quiet_mana_tempo_root(search_only_selected)
     {
         return None;
@@ -843,10 +831,7 @@ fn select_unconditional_black_search_fallback_inputs(game: &MonsGame) -> Option<
         || black_turn_four_turn_start_action_mana
     {
         let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-        return Some(select_frontier_shipping_fallback_inputs(
-            game,
-            shipping_runtime,
-        ));
+        return Some(select_shipping_fallback_inputs(game, shipping_runtime));
     }
 
     None
@@ -854,9 +839,9 @@ fn select_unconditional_black_search_fallback_inputs(game: &MonsGame) -> Option<
 
 fn select_late_black_search_fallback_inputs(
     game: &MonsGame,
-    frontier_inputs: &[Input],
+    pro_inputs: &[Input],
 ) -> Option<Vec<Input>> {
-    if frontier_inputs.is_empty() {
+    if pro_inputs.is_empty() {
         return None;
     }
 
@@ -872,11 +857,11 @@ fn select_late_black_search_fallback_inputs(
         && game.player_can_move_mana();
     if black_turn_four_bridge_shipping_fallback || black_mid_turn_action_mana_shipping_fallback {
         let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
-        let shipping_inputs = select_frontier_shipping_fallback_inputs(game, shipping_runtime);
+        let shipping_inputs = select_shipping_fallback_inputs(game, shipping_runtime);
 
         if black_turn_four_bridge_shipping_fallback
             && !shipping_inputs.is_empty()
-            && shipping_inputs != frontier_inputs
+            && shipping_inputs != pro_inputs
             && shipping_inputs.len() == 3
             && Input::fen_from_array(&shipping_inputs).ends_with(";mb")
         {
@@ -885,7 +870,7 @@ fn select_late_black_search_fallback_inputs(
 
         if black_mid_turn_action_mana_shipping_fallback
             && !shipping_inputs.is_empty()
-            && shipping_inputs != frontier_inputs
+            && shipping_inputs != pro_inputs
         {
             return Some(shipping_inputs);
         }
@@ -894,17 +879,17 @@ fn select_late_black_search_fallback_inputs(
     None
 }
 
-fn execute_frontier_candidate_inputs_with_runtime(
+fn execute_pro_candidate_inputs_with_runtime(
     game: &MonsGame,
     runtime: AutomoveSearchConfig,
 ) -> Vec<Input> {
-    select_search_inputs_with_fresh_frontier_cache(game, runtime)
+    select_search_inputs_with_fresh_pro_cache(game, runtime)
 }
 
-fn select_current_pro_inputs_with_runtime(
+fn select_pro_inputs_with_runtime(
     game: &MonsGame,
     config: AutomoveSearchConfig,
-    frontier_runtime: AutomoveSearchConfig,
+    pro_runtime: AutomoveSearchConfig,
 ) -> Vec<Input> {
     if automove_deadline::checkpoint() {
         return Vec::new();
@@ -925,12 +910,12 @@ fn select_current_pro_inputs_with_runtime(
         return inputs;
     }
 
-    let frontier_inputs = execute_frontier_candidate_inputs_with_runtime(game, frontier_runtime);
+    let pro_inputs = execute_pro_candidate_inputs_with_runtime(game, pro_runtime);
     if automove_deadline::checkpoint() {
         return Vec::new();
     }
     if let Some(inputs) =
-        select_white_early_engine_disabled_fallback_inputs(game, config, frontier_inputs.as_slice())
+        select_white_early_engine_disabled_fallback_inputs(game, config, pro_inputs.as_slice())
     {
         return inputs;
     }
@@ -940,7 +925,7 @@ fn select_current_pro_inputs_with_runtime(
     if let Some(inputs) = select_white_nonnegative_deny_search_only_fallback_inputs(
         game,
         config,
-        frontier_inputs.as_slice(),
+        pro_inputs.as_slice(),
     ) {
         return inputs;
     }
@@ -950,7 +935,7 @@ fn select_current_pro_inputs_with_runtime(
     if let Some(inputs) = select_white_negative_deny_search_only_selected_rank_fallback_inputs(
         game,
         config,
-        frontier_inputs.as_slice(),
+        pro_inputs.as_slice(),
     ) {
         return inputs;
     }
@@ -960,7 +945,7 @@ fn select_current_pro_inputs_with_runtime(
     if let Some(inputs) = select_white_confirm_prov1_search_only_tiebreak_fallback_inputs(
         game,
         config,
-        frontier_inputs.as_slice(),
+        pro_inputs.as_slice(),
     ) {
         return inputs;
     }
@@ -970,26 +955,22 @@ fn select_current_pro_inputs_with_runtime(
     if let Some(inputs) = select_white_confirm_prov1_better_ordered_search_only_fallback_inputs(
         game,
         config,
-        frontier_inputs.as_slice(),
+        pro_inputs.as_slice(),
     ) {
         return inputs;
     }
     if automove_deadline::checkpoint() {
         return Vec::new();
     }
-    if let Some(inputs) = select_late_black_search_fallback_inputs(game, frontier_inputs.as_slice())
-    {
+    if let Some(inputs) = select_late_black_search_fallback_inputs(game, pro_inputs.as_slice()) {
         return inputs;
     }
-    frontier_inputs
+    pro_inputs
 }
 
-pub(crate) fn select_current_pro_bounded_tactical_inputs(
-    game: &MonsGame,
-    config: AutomoveSearchConfig,
-) -> Vec<Input> {
-    select_frontier_with_shared_deadline(game, || {
-        select_current_pro_inputs_with_runtime(game, config, apply_current_pro_config(config))
+pub(crate) fn select_pro_inputs(game: &MonsGame, config: AutomoveSearchConfig) -> Vec<Input> {
+    select_pro_with_shared_deadline(game, || {
+        select_pro_inputs_with_runtime(game, config, apply_shipping_pro_config(config))
     })
 }
 
@@ -1063,7 +1044,7 @@ mod tests {
                 let pro_config =
                     shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
                 let selected = automove_deadline::with_deadline_if_absent(0.0, || {
-                    select_current_pro_bounded_tactical_inputs(&game, pro_config)
+                    select_pro_inputs(&game, pro_config)
                 });
                 assert_eq!(selected, expected, "variant={variant_id} mode=Pro");
                 assert_inputs_yield_events(&game, selected.as_slice());
@@ -1072,15 +1053,15 @@ mod tests {
     }
 
     #[test]
-    fn automove_runtime_frontier_timeout_returns_completed_fast_fallback() {
+    fn automove_runtime_pro_timeout_returns_completed_fast_fallback() {
         let game = MonsGame::new(false, GameVariant::Classic);
         let fast_config = shipping_search_config_for_game(&game, SmartAutomovePreference::Fast);
         let expected = MonsGameModel::smart_search_best_inputs(&game, fast_config);
         assert_inputs_yield_events(&game, expected.as_slice());
 
         automove_deadline::with_test_clock(0.0, || {
-            let selected = select_frontier_with_shared_deadline(&game, || {
-                automove_deadline::set_test_now_ms(FRONTIER_SELECTOR_BUDGET_MS + 1.0);
+            let selected = select_pro_with_shared_deadline(&game, || {
+                automove_deadline::set_test_now_ms(PRO_SELECTOR_BUDGET_MS + 1.0);
                 Vec::new()
             });
             assert_eq!(selected, expected);
@@ -1098,7 +1079,7 @@ mod tests {
             automove_deadline::with_deadline_if_absent(
                 automove_deadline::AUTOMOVE_SELECTOR_BUDGET_MS,
                 || {
-                    let selected = select_frontier_fast_bank_inputs(|| {
+                    let selected = select_pro_fast_bank_inputs(|| {
                         let _ = MonsGameModel::move_efficiency_snapshot(
                             &game,
                             game.active_color,
@@ -1106,7 +1087,7 @@ mod tests {
                             false,
                         );
                         assert!(move_efficiency_snapshot_cache_len() > 0);
-                        automove_deadline::set_test_now_ms(FRONTIER_FAST_BANK_BUDGET_MS + 1.0);
+                        automove_deadline::set_test_now_ms(PRO_FAST_BANK_BUDGET_MS + 1.0);
                         emergency_inputs.clone()
                     });
 
@@ -1117,12 +1098,12 @@ mod tests {
                         automove_deadline::remaining_ms(),
                         Some(
                             automove_deadline::AUTOMOVE_SELECTOR_BUDGET_MS
-                                - FRONTIER_FAST_BANK_BUDGET_MS
+                                - PRO_FAST_BANK_BUDGET_MS
                                 - 1.0
                         )
                     );
                     assert!(!automove_deadline::checkpoint_with_reserve(
-                        FRONTIER_PRO_START_RESERVE_MS
+                        PRO_START_RESERVE_MS
                     ));
                 },
             );
@@ -1150,10 +1131,10 @@ mod tests {
     }
 
     #[test]
-    fn current_pro_config_applies_shipping_runtime_contract() {
+    fn shipping_pro_config_applies_runtime_contract() {
         let game = MonsGame::new(false, GameVariant::Classic);
         let config = shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-        let current = apply_current_pro_config(config);
+        let current = apply_shipping_pro_config(config);
 
         assert!(config.enable_root_reply_risk_guard);
         assert!(current.enable_targeted_drainer_attack_fallback);
@@ -1195,8 +1176,8 @@ mod tests {
                 output.input_fen(),
             );
             assert!(
-                elapsed_ms <= 700.0,
-                "Black turn-8 public Pro call exceeded hard limit: repeat={repeat} elapsed_ms={elapsed_ms:.3}"
+                elapsed_ms < 700.0,
+                "Black turn-8 public Pro call must stay below 700ms: repeat={repeat} elapsed_ms={elapsed_ms:.3}"
             );
         }
     }

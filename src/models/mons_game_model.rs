@@ -11,8 +11,8 @@ use crate::models::scoring::{
 use crate::*;
 
 #[cfg(any(target_arch = "wasm32", test))]
-#[path = "automove_runtime_variants.rs"]
-pub(crate) mod automove_runtime_variants;
+#[path = "automove_runtime.rs"]
+pub(crate) mod automove_runtime;
 
 #[wasm_bindgen]
 #[derive(Debug)]
@@ -85,29 +85,11 @@ const SMART_ROOT_MANA_HANDOFF_PENALTY: i32 = 220;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_DRAINER_SAFETY_SCORE_MARGIN: i32 = 2_200;
 #[cfg(any(target_arch = "wasm32", test))]
-#[cfg(test)]
-const SMART_NORMAL_ROOT_SAFETY_SHORTLIST_MAX: usize = 4;
-#[cfg(any(target_arch = "wasm32", test))]
-#[cfg(test)]
-const SMART_NORMAL_ROOT_SAFETY_SCORE_MARGIN: i32 = 3_000;
-#[cfg(any(target_arch = "wasm32", test))]
 const SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MIN: usize = 12;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MAX: usize = 36;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_RACE_TRIGGER: i32 = 3;
-#[cfg(any(target_arch = "wasm32", test))]
-#[cfg(test)]
-const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_MARGIN: i32 = 2_400;
-#[cfg(any(target_arch = "wasm32", test))]
-#[cfg(test)]
-const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_MAX_CANDIDATES: usize = 3;
-#[cfg(any(target_arch = "wasm32", test))]
-#[cfg(test)]
-const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_REPLY_LIMIT_MIN: usize = 8;
-#[cfg(any(target_arch = "wasm32", test))]
-#[cfg(test)]
-const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_REPLY_LIMIT_MAX: usize = 16;
 #[cfg(any(target_arch = "wasm32", test))]
 const SMART_ROOT_REPLY_RISK_SCORE_MARGIN: i32 = 140;
 #[cfg(any(target_arch = "wasm32", test))]
@@ -912,36 +894,6 @@ struct TurnEngineRootProjection {
     plan: TurnPlan,
 }
 
-#[cfg(test)]
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct TurnEngineSelectorDiagnostics {
-    pub head_plan_calls: usize,
-    pub head_plan_hits: usize,
-    pub selected_override_calls: usize,
-    pub selected_override_plan_calls: usize,
-    pub selected_override_plan_hits: usize,
-    pub spirit_projection_passes: usize,
-    pub spirit_projection_root_count: usize,
-    pub spirit_projection_plan_calls: usize,
-    pub spirit_projection_plan_hits: usize,
-    pub reply_projection_passes: usize,
-    pub reply_projection_root_count: usize,
-    pub reply_projection_plan_calls: usize,
-    pub reply_projection_plan_hits: usize,
-    pub followup_floor_calls: usize,
-    pub ranked_child_states_calls: usize,
-    pub ranked_child_states_children_enumerated: usize,
-    pub ranked_child_states_children_fully_scored: usize,
-    pub move_efficiency_snapshot_builds: usize,
-    pub move_efficiency_snapshot_cache_hits: usize,
-    pub search_preferability_builds: usize,
-    pub search_preferability_cache_hits: usize,
-    pub selector_disable_reason: &'static str,
-    pub last_return_stage: &'static str,
-    pub top_level_selector_disable_reason: &'static str,
-    pub top_level_last_return_stage: &'static str,
-}
-
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum CurrentProRootAdvisorReasonCode {
@@ -983,14 +935,6 @@ pub(crate) struct CurrentProRootAdvisorDecision {
     pub preserved_family_representatives: Vec<CurrentProRootAdvisorEntry>,
     pub approved_root: Option<CurrentProRootAdvisorEntry>,
     pub injected_root: Option<CurrentProInjectedRootAdvisorDecision>,
-}
-
-#[cfg(test)]
-thread_local! {
-    static TURN_ENGINE_SELECTOR_DIAGNOSTICS: std::cell::RefCell<TurnEngineSelectorDiagnostics> =
-        std::cell::RefCell::new(TurnEngineSelectorDiagnostics::default());
-    static TURN_ENGINE_SELECTOR_RUNTIME_DEPTH: std::cell::Cell<usize> =
-        const { std::cell::Cell::new(0) };
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -1049,19 +993,6 @@ fn clear_turn_engine_selector_followup_floor_cache() {
 }
 
 #[cfg(test)]
-pub(crate) fn clear_turn_engine_selector_diagnostics() {
-    TURN_ENGINE_SELECTOR_DIAGNOSTICS.with(|diagnostics| {
-        *diagnostics.borrow_mut() = TurnEngineSelectorDiagnostics::default();
-    });
-    clear_turn_engine_selector_followup_floor_cache();
-}
-
-#[cfg(test)]
-pub(crate) fn turn_engine_selector_diagnostics_snapshot() -> TurnEngineSelectorDiagnostics {
-    TURN_ENGINE_SELECTOR_DIAGNOSTICS.with(|diagnostics| *diagnostics.borrow())
-}
-
-#[cfg(test)]
 fn move_efficiency_snapshot_cache_len() -> usize {
     MOVE_EFFICIENCY_SNAPSHOT_CACHE.with(|cache| cache.borrow().len())
 }
@@ -1069,56 +1000,6 @@ fn move_efficiency_snapshot_cache_len() -> usize {
 #[cfg(test)]
 fn search_preferability_cache_len() -> usize {
     SEARCH_PREFERABILITY_CACHE.with(|cache| cache.borrow().len())
-}
-
-#[cfg(test)]
-fn update_turn_engine_selector_diagnostics(
-    update: impl FnOnce(&mut TurnEngineSelectorDiagnostics),
-) {
-    TURN_ENGINE_SELECTOR_DIAGNOSTICS.with(|diagnostics| update(&mut diagnostics.borrow_mut()));
-}
-
-#[cfg(test)]
-struct TurnEngineSelectorRuntimeDepthGuard;
-
-#[cfg(test)]
-impl TurnEngineSelectorRuntimeDepthGuard {
-    fn enter() -> Self {
-        TURN_ENGINE_SELECTOR_RUNTIME_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
-        Self
-    }
-}
-
-#[cfg(test)]
-impl Drop for TurnEngineSelectorRuntimeDepthGuard {
-    fn drop(&mut self) {
-        TURN_ENGINE_SELECTOR_RUNTIME_DEPTH.with(|depth| {
-            depth.set(depth.get().saturating_sub(1));
-        });
-    }
-}
-
-#[cfg(test)]
-fn turn_engine_selector_runtime_depth() -> usize {
-    TURN_ENGINE_SELECTOR_RUNTIME_DEPTH.with(|depth| depth.get())
-}
-
-#[cfg(test)]
-fn update_top_level_turn_engine_selector_disable_reason(reason: &'static str) {
-    if turn_engine_selector_runtime_depth() == 1 {
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.top_level_selector_disable_reason = reason;
-        });
-    }
-}
-
-#[cfg(test)]
-fn update_top_level_turn_engine_selector_last_return_stage(stage: &'static str) {
-    if turn_engine_selector_runtime_depth() == 1 {
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.top_level_last_return_stage = stage;
-        });
-    }
 }
 
 #[cfg(any(target_arch = "wasm32", test))]
@@ -1255,39 +1136,6 @@ type RootMoveRepresentativeSpec = (CurrentProRootAdvisorReasonCode, fn(&ScoredRo
 #[cfg(any(target_arch = "wasm32", test))]
 type RootEvaluationRepresentativeSpec =
     (CurrentProRootAdvisorReasonCode, fn(&RootEvaluation) -> bool);
-
-#[cfg(test)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum AsyncSmartSearchPhase {
-    PendingRootRanking,
-    PendingFocusedCandidates,
-    Scoring,
-}
-
-#[cfg(test)]
-#[allow(clippy::large_enum_variant)]
-enum AsyncSmartSearchStart {
-    Immediate(OutputModel),
-    Pending(Box<AsyncSmartSearchState>),
-}
-
-#[cfg(test)]
-struct AsyncSmartSearchState {
-    game: MonsGame,
-    perspective: Color,
-    config: AutomoveSearchConfig,
-    phase: AsyncSmartSearchPhase,
-    root_moves: Vec<ScoredRootMove>,
-    pending_output: Option<OutputModel>,
-    next_index: usize,
-    visited_nodes: usize,
-    alpha: i32,
-    extension_nodes_used: usize,
-    extension_node_budget: usize,
-    scored_roots: Vec<RootEvaluation>,
-    transposition_table: U64HashMap<TranspositionEntry>,
-    quiescence_nodes_used: usize,
-}
 
 #[wasm_bindgen]
 impl MonsGameModel {
@@ -1609,13 +1457,9 @@ impl MonsGameModel {
         config: AutomoveSearchConfig,
     ) -> Vec<Input> {
         match preference {
-            SmartAutomovePreference::Pro => {
-                automove_runtime_variants::select_current_pro_bounded_tactical_inputs(
-                    &self.game, config,
-                )
-            }
+            SmartAutomovePreference::Pro => automove_runtime::select_pro_inputs(&self.game, config),
             SmartAutomovePreference::Fast | SmartAutomovePreference::Normal => {
-                automove_runtime_variants::select_shipping_search_inputs(&self.game, config)
+                automove_runtime::select_shipping_search_inputs(&self.game, config)
             }
         }
     }
@@ -1638,77 +1482,11 @@ impl MonsGameModel {
         self.output_model_from_runtime_inputs(inputs)
     }
 
-    #[cfg(test)]
-    fn new_async_smart_search_state(
-        game: MonsGame,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-    ) -> AsyncSmartSearchState {
-        AsyncSmartSearchState {
-            game,
-            perspective,
-            config,
-            phase: AsyncSmartSearchPhase::PendingRootRanking,
-            root_moves: Vec::new(),
-            pending_output: None,
-            next_index: 0,
-            visited_nodes: 0,
-            alpha: i32::MIN,
-            extension_nodes_used: 0,
-            extension_node_budget: 0,
-            scored_roots: Vec::new(),
-            transposition_table: U64HashMap::default(),
-            quiescence_nodes_used: 0,
-        }
-    }
-
-    #[cfg(test)]
-    fn begin_async_smart_search(
-        &self,
-        preference: SmartAutomovePreference,
-    ) -> AsyncSmartSearchStart {
-        clear_exact_state_analysis_cache();
-        let config = self.shipping_search_config_for_preference(preference);
-        if matches!(preference, SmartAutomovePreference::Pro) {
-            let inputs = self.public_runtime_inputs(preference, config);
-            return AsyncSmartSearchStart::Immediate(self.output_model_from_runtime_inputs(inputs));
-        }
-        let perspective = self.game.active_color;
-        let game = self.game.clone_for_simulation();
-        AsyncSmartSearchStart::Pending(Box::new(Self::new_async_smart_search_state(
-            game,
-            perspective,
-            config,
-        )))
-    }
-
     fn shipping_search_config_for_preference(
         &self,
         preference: SmartAutomovePreference,
     ) -> AutomoveSearchConfig {
         Self::shipping_search_config_for_game(&self.game, preference)
-    }
-
-    #[cfg(test)]
-    fn smart_automove_output_via_async_loop(
-        &self,
-        preference: SmartAutomovePreference,
-    ) -> OutputModel {
-        let mut state = match self.begin_async_smart_search(preference) {
-            AsyncSmartSearchStart::Immediate(output) => return output,
-            AsyncSmartSearchStart::Pending(state) => *state,
-        };
-
-        for _ in 0..1_000_000usize {
-            if Self::advance_async_search(&mut state) {
-                return Self::finalize_async_search(&mut state);
-            }
-        }
-
-        panic!(
-            "async smart search did not finish for {} within tick budget",
-            preference.as_api_value()
-        );
     }
 
     fn shipping_search_config_for_game(
@@ -3779,7 +3557,7 @@ impl MonsGameModel {
             && !Self::find_potential_drainer_attacker_locations(game, color).is_empty()
     }
 
-    fn has_frontier_tactical_potential(game: &MonsGame) -> bool {
+    fn has_pro_tactical_potential(game: &MonsGame) -> bool {
         let active_color = game.active_color;
         let turn_summary = Self::approximate_active_turn_summary(game, active_color, false);
         turn_summary.same_turn_score_window_value > 0
@@ -4582,7 +4360,7 @@ impl MonsGameModel {
 
     #[cfg(any(target_arch = "wasm32", test))]
     fn turn_engine_config_from_search_config(config: AutomoveSearchConfig) -> TurnEngineConfig {
-        automove_runtime_variants::turn_engine_config_from_search_config(config)
+        automove_runtime::turn_engine_config_from_search_config(config)
     }
 
     #[cfg(any(target_arch = "wasm32", test))]
@@ -5045,10 +4823,6 @@ impl MonsGameModel {
             return cached;
         }
 
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.selected_override_calls += 1
-        });
         let engine_config = Self::turn_engine_projection_config_for_game(&selected.game, config);
         let base_state_utility =
             turn_engine_evaluate_state_utility(&selected.game, root, perspective, engine_config);
@@ -5087,18 +4861,8 @@ impl MonsGameModel {
                 if !selected_has_followup_surface && !selected_safe_mana_tempo_projection {
                     base_utility
                 } else {
-                    #[cfg(test)]
-                    update_turn_engine_selector_diagnostics(|diagnostics| {
-                        diagnostics.selected_override_plan_calls += 1;
-                    });
                     let projected_plan =
                         turn_engine_candidate_plan(&selected.game, perspective, engine_config);
-                    #[cfg(test)]
-                    if projected_plan.is_some() {
-                        update_turn_engine_selector_diagnostics(|diagnostics| {
-                            diagnostics.selected_override_plan_hits += 1;
-                        });
-                    }
                     projected_plan
                         .map(|plan| plan.utility.max(base_utility))
                         .unwrap_or(base_utility)
@@ -7615,29 +7379,11 @@ impl MonsGameModel {
         if crate::models::automove_deadline::checkpoint() {
             return Vec::new();
         }
-        #[cfg(test)]
-        let _turn_engine_selector_runtime_depth = TurnEngineSelectorRuntimeDepthGuard::enter();
         clear_exact_state_analysis_cache();
         clear_turn_engine_selector_followup_floor_cache();
         let mut config = config;
         let perspective = game.active_color;
         let live_turn_engine_config = Self::turn_engine_config_for_game(game, config);
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.selector_disable_reason = if config.enable_turn_engine_selector {
-                "not_disabled"
-            } else {
-                "pre_disabled"
-            };
-        });
-        #[cfg(test)]
-        update_top_level_turn_engine_selector_disable_reason(
-            if config.enable_turn_engine_selector {
-                "not_disabled"
-            } else {
-                "pre_disabled"
-            },
-        );
         let mut prechecked_cached_inputs = None;
         if Self::current_pro_low_budget_guard_live(config) {
             prechecked_cached_inputs = turn_engine_cached_step(game, live_turn_engine_config);
@@ -7645,12 +7391,6 @@ impl MonsGameModel {
                 && Self::should_skip_current_pro_low_budget_state(game)
             {
                 config.enable_turn_engine_selector = false;
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.selector_disable_reason = "low_budget_guard";
-                });
-                #[cfg(test)]
-                update_top_level_turn_engine_selector_disable_reason("low_budget_guard");
             }
         }
         if Self::current_pro_mid_turn_tactical_guard_live(config)
@@ -7658,12 +7398,6 @@ impl MonsGameModel {
         {
             prechecked_cached_inputs = None;
             config.enable_turn_engine_selector = false;
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.selector_disable_reason = "mid_turn_tactical_guard";
-            });
-            #[cfg(test)]
-            update_top_level_turn_engine_selector_disable_reason("mid_turn_tactical_guard");
         }
         if Self::current_pro_low_budget_guard_live(config)
             && Self::current_pro_is_safe_early_black_opening_state(game)
@@ -7672,36 +7406,12 @@ impl MonsGameModel {
             config.enable_turn_engine_selected_followup_projection = false;
         }
         config = Self::apply_current_pro_low_budget_search_clamp(game, config);
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.last_return_stage = if config.enable_turn_engine_selector {
-                "engine_enabled"
-            } else {
-                "engine_disabled"
-            };
-        });
-        #[cfg(test)]
-        update_top_level_turn_engine_selector_last_return_stage(
-            if config.enable_turn_engine_selector {
-                "engine_enabled"
-            } else {
-                "engine_disabled"
-            },
-        );
         if !config.enable_turn_engine_selector
             && matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro)
             && Self::current_pro_is_white_turn_one_mana_only_followup(game)
         {
             let mut baseline_fallback = config;
             baseline_fallback.turn_engine_mode = TurnEngineMode::ProV1;
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.last_return_stage = "engine_disabled_prov1_fallback";
-            });
-            #[cfg(test)]
-            update_top_level_turn_engine_selector_last_return_stage(
-                "engine_disabled_prov1_fallback",
-            );
             return Self::smart_search_best_inputs_internal(
                 game,
                 baseline_fallback,
@@ -7732,12 +7442,6 @@ impl MonsGameModel {
                 root_moves.as_slice(),
                 config,
             );
-            #[cfg(test)]
-            if !skip_head_plan {
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.head_plan_calls += 1
-                });
-            }
             let engine_head_plan = if skip_head_plan {
                 None
             } else if Self::current_pro_use_fresh_live_head_plan(game, config) {
@@ -7748,12 +7452,6 @@ impl MonsGameModel {
             if crate::models::automove_deadline::checkpoint() {
                 return Vec::new();
             }
-            #[cfg(test)]
-            if engine_head_plan.is_some() {
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.head_plan_hits += 1
-                });
-            }
             if matches!(engine_mode, TurnEngineMode::CurrentPro) {
                 if let Some(cached_inputs) = cached_inputs.as_ref() {
                     if Self::should_resume_turn_engine_cached_step(
@@ -7761,10 +7459,6 @@ impl MonsGameModel {
                         cached_inputs.as_slice(),
                         engine_mode,
                     ) {
-                        #[cfg(test)]
-                        update_turn_engine_selector_diagnostics(|diagnostics| {
-                            diagnostics.last_return_stage = "engine_cached_resume";
-                        });
                         return cached_inputs.clone();
                     }
                 }
@@ -7772,10 +7466,6 @@ impl MonsGameModel {
                     (cached_inputs.as_ref(), engine_head_plan.as_ref())
                 {
                     if plan.compiled_chunks.first() == Some(cached_inputs) {
-                        #[cfg(test)]
-                        update_turn_engine_selector_diagnostics(|diagnostics| {
-                            diagnostics.last_return_stage = "engine_cached_resume";
-                        });
                         turn_engine_commit_plan(
                             game,
                             perspective,
@@ -7843,14 +7533,6 @@ impl MonsGameModel {
                                         inputs.as_slice(),
                                     );
                                 if override_candidate && !advisor_conflict {
-                                    #[cfg(test)]
-                                    update_turn_engine_selector_diagnostics(|diagnostics| {
-                                        diagnostics.last_return_stage = "engine_allowed_head";
-                                    });
-                                    #[cfg(test)]
-                                    update_top_level_turn_engine_selector_last_return_stage(
-                                        "engine_allowed_head",
-                                    );
                                     turn_engine_commit_plan(
                                         game,
                                         perspective,
@@ -7880,12 +7562,6 @@ impl MonsGameModel {
                 root_moves.as_slice(),
                 config,
             ) {
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.last_return_stage = "engine_forced_prepass";
-                });
-                #[cfg(test)]
-                update_top_level_turn_engine_selector_last_return_stage("engine_forced_prepass");
                 if let Some(plan) = engine_head_plan.as_ref() {
                     if plan.compiled_chunks.first() == Some(&forced_inputs) {
                         turn_engine_commit_plan(
@@ -7914,14 +7590,6 @@ impl MonsGameModel {
                     plan,
                     config,
                 ) {
-                    #[cfg(test)]
-                    update_turn_engine_selector_diagnostics(|diagnostics| {
-                        diagnostics.last_return_stage = "engine_low_budget_prepass";
-                    });
-                    #[cfg(test)]
-                    update_top_level_turn_engine_selector_last_return_stage(
-                        "engine_low_budget_prepass",
-                    );
                     turn_engine_commit_plan(game, perspective, engine_mode, plan, engine_config);
                     Self::seed_turn_engine_followup_cache_if_safe(
                         game,
@@ -8056,12 +7724,6 @@ impl MonsGameModel {
                 }
             }
             if cached_inputs.as_ref() == Some(&selected_inputs) {
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.last_return_stage = "engine_cached_selected";
-                });
-                #[cfg(test)]
-                update_top_level_turn_engine_selector_last_return_stage("engine_cached_selected");
                 return selected_inputs;
             }
             if let Some(plan) = engine_head_plan.as_ref() {
@@ -8077,12 +7739,6 @@ impl MonsGameModel {
                     );
                 }
             }
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.last_return_stage = "engine_post_search";
-            });
-            #[cfg(test)]
-            update_top_level_turn_engine_selector_last_return_stage("engine_post_search");
             return selected_inputs;
         }
         let mut root_moves = Self::ranked_root_moves(game, perspective, config);
@@ -8128,14 +7784,6 @@ impl MonsGameModel {
                                 inputs.as_slice(),
                             );
                         if override_candidate && !advisor_conflict {
-                            #[cfg(test)]
-                            update_turn_engine_selector_diagnostics(|diagnostics| {
-                                diagnostics.last_return_stage = "search_only_engine_allowed_head";
-                            });
-                            #[cfg(test)]
-                            update_top_level_turn_engine_selector_last_return_stage(
-                                "search_only_engine_allowed_head",
-                            );
                             return inputs;
                         }
                     }
@@ -8146,12 +7794,6 @@ impl MonsGameModel {
         if let Some(forced_inputs) =
             Self::forced_tactical_prepass_choice(game, perspective, root_moves.as_slice(), config)
         {
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.last_return_stage = "search_only_forced_prepass";
-            });
-            #[cfg(test)]
-            update_top_level_turn_engine_selector_last_return_stage("search_only_forced_prepass");
             return forced_inputs;
         }
 
@@ -8828,10 +8470,7 @@ impl MonsGameModel {
 
         // Futility pruning: at frontier nodes (depth=1), skip expansion if static eval
         // is so far from the window that no child move could possibly improve it enough
-        if config.enable_futility_pruning
-            && depth == 1
-            && !Self::has_frontier_tactical_potential(game)
-        {
+        if config.enable_futility_pruning && depth == 1 && !Self::has_pro_tactical_potential(game) {
             let static_eval = Self::evaluate_search_preferability(game, perspective, config);
             if maximizing && static_eval + config.futility_margin < alpha {
                 return static_eval;
@@ -9035,20 +8674,12 @@ impl MonsGameModel {
         preferred_child_hash: Option<u64>,
         config: AutomoveSearchConfig,
     ) -> Vec<RankedChildState> {
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.ranked_child_states_calls += 1;
-        });
         let mut scored_states: Vec<(i32, RankedChildState)> = Vec::new();
         let actor_color = game.active_color;
         let scratch = Self::build_child_ordering_scratch(game, perspective, actor_color);
         let start_options = Self::automove_start_input_options();
         let child_transitions =
             Self::enumerate_legal_transitions(game, config.node_enum_limit, start_options);
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.ranked_child_states_children_enumerated += child_transitions.len();
-        });
         for transition in child_transitions {
             if crate::models::automove_deadline::checkpoint() {
                 return Vec::new();
@@ -9114,10 +8745,6 @@ impl MonsGameModel {
             if crate::models::automove_deadline::cancelled() {
                 return Vec::new();
             }
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.ranked_child_states_children_fully_scored += 1;
-            });
 
             scored_states.push((
                 heuristic,
@@ -9952,10 +9579,6 @@ impl MonsGameModel {
         if let Some(cached) =
             MOVE_EFFICIENCY_SNAPSHOT_CACHE.with(|cache| cache.borrow().get(&cache_key).copied())
         {
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.move_efficiency_snapshot_cache_hits += 1;
-            });
             return cached;
         }
 
@@ -10013,10 +9636,6 @@ impl MonsGameModel {
         include_strategic_exact: bool,
         state_hash: u64,
     ) -> MoveEfficiencySnapshot {
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.move_efficiency_snapshot_builds += 1;
-        });
         let unknown_steps = Config::BOARD_SIZE + 4;
         let strategic = include_strategic_exact.then(|| exact_strategic_analysis(game));
         let my_summary = strategic.map(|analysis| analysis.color_summary(perspective));
@@ -10444,137 +10063,6 @@ impl MonsGameModel {
         value = (value ^ (value >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
         value = (value ^ (value >> 27)).wrapping_mul(0x94d049bb133111eb);
         value ^ (value >> 31)
-    }
-
-    #[cfg(test)]
-    fn advance_async_search(state: &mut AsyncSmartSearchState) -> bool {
-        match state.phase {
-            AsyncSmartSearchPhase::PendingRootRanking => {
-                state.root_moves =
-                    Self::ranked_root_moves(&state.game, state.perspective, state.config);
-                state.phase = AsyncSmartSearchPhase::PendingFocusedCandidates;
-                false
-            }
-            AsyncSmartSearchPhase::PendingFocusedCandidates => {
-                if let Some(forced_inputs) = Self::forced_tactical_prepass_choice(
-                    &state.game,
-                    state.perspective,
-                    state.root_moves.as_slice(),
-                    state.config,
-                ) {
-                    let mut forced_game = state.game.clone_for_simulation();
-                    let input_fen = Input::fen_from_array(&forced_inputs);
-                    let output = forced_game.process_input(forced_inputs, false, false);
-                    state.pending_output = Some(OutputModel::new(output, input_fen.as_str()));
-                    return true;
-                }
-
-                let root_moves = std::mem::take(&mut state.root_moves);
-                let (root_moves, scout_visited_nodes) = Self::focused_root_candidates(
-                    &state.game,
-                    state.perspective,
-                    root_moves,
-                    state.config,
-                    true,
-                );
-                state.root_moves = root_moves;
-                state.visited_nodes = scout_visited_nodes;
-                state.extension_node_budget = if state.config.enable_selective_extensions
-                    && state.config.selective_extension_node_share_bp > 0
-                {
-                    ((state.config.max_visited_nodes
-                        * state.config.selective_extension_node_share_bp as usize)
-                        / 10_000)
-                        .max(1)
-                } else {
-                    0
-                };
-                state.phase = AsyncSmartSearchPhase::Scoring;
-                state.next_index >= state.root_moves.len()
-                    || state.visited_nodes >= state.config.max_visited_nodes
-            }
-            AsyncSmartSearchPhase::Scoring => {
-                if state.next_index >= state.root_moves.len()
-                    || state.visited_nodes >= state.config.max_visited_nodes
-                {
-                    return true;
-                }
-
-                let candidate = &state.root_moves[state.next_index];
-                state.visited_nodes += 1;
-                let candidate_score = Self::evaluate_root_candidate_score(
-                    candidate,
-                    state.perspective,
-                    state.alpha,
-                    &mut state.visited_nodes,
-                    state.config,
-                    &mut state.transposition_table,
-                    &mut state.extension_nodes_used,
-                    state.extension_node_budget,
-                    true,
-                    &mut state.quiescence_nodes_used,
-                );
-
-                state.scored_roots.push(RootEvaluation {
-                    root_rank: candidate.root_rank,
-                    score: candidate_score,
-                    efficiency: candidate.efficiency,
-                    inputs: candidate.inputs.clone(),
-                    game: candidate.game.clone(),
-                    wins_immediately: candidate.wins_immediately,
-                    attacks_opponent_drainer: candidate.attacks_opponent_drainer,
-                    own_drainer_vulnerable: candidate.own_drainer_vulnerable,
-                    own_drainer_walk_vulnerable: candidate.own_drainer_walk_vulnerable,
-                    spirit_development: candidate.spirit_development,
-                    keeps_awake_spirit_on_base: candidate.keeps_awake_spirit_on_base,
-                    mana_handoff_to_opponent: candidate.mana_handoff_to_opponent,
-                    has_roundtrip: candidate.has_roundtrip,
-                    scores_supermana_this_turn: candidate.scores_supermana_this_turn,
-                    scores_opponent_mana_this_turn: candidate.scores_opponent_mana_this_turn,
-                    safe_supermana_pickup_now: candidate.safe_supermana_pickup_now,
-                    safe_opponent_mana_pickup_now: candidate.safe_opponent_mana_pickup_now,
-                    safe_supermana_progress_steps: candidate.safe_supermana_progress_steps,
-                    safe_opponent_mana_progress_steps: candidate.safe_opponent_mana_progress_steps,
-                    score_path_best_steps: candidate.score_path_best_steps,
-                    same_turn_score_window_value: candidate.same_turn_score_window_value,
-                    spirit_setup_gain: candidate.spirit_setup_gain,
-                    spirit_same_turn_score_setup_now: candidate.spirit_same_turn_score_setup_now,
-                    spirit_own_mana_setup_now: candidate.spirit_own_mana_setup_now,
-                    supermana_progress: candidate.supermana_progress,
-                    opponent_mana_progress: candidate.opponent_mana_progress,
-                    interview_soft_priority: candidate.interview_soft_priority,
-                    classes: candidate.classes,
-                });
-
-                if candidate_score > state.alpha {
-                    state.alpha = candidate_score;
-                }
-
-                state.next_index += 1;
-                state.next_index >= state.root_moves.len()
-                    || state.visited_nodes >= state.config.max_visited_nodes
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn finalize_async_search(state: &mut AsyncSmartSearchState) -> OutputModel {
-        if let Some(output) = state.pending_output.take() {
-            return output;
-        }
-        if state.scored_roots.is_empty() {
-            return Self::automove_game(&mut state.game);
-        }
-
-        let best_inputs = Self::pick_root_move_with_exploration(
-            &state.game,
-            &state.scored_roots,
-            state.perspective,
-            state.config,
-        );
-        let input_fen = Input::fen_from_array(&best_inputs);
-        let output = state.game.process_input(best_inputs, false, false);
-        OutputModel::new(output, input_fen.as_str())
     }
 
     fn events_include_opponent_drainer_fainted(events: &[Event], perspective: Color) -> bool {
@@ -19149,11 +18637,6 @@ impl MonsGameModel {
         let rerank_engine_config = Self::turn_engine_rerank_config(config);
         let full_engine_config = Self::turn_engine_config_from_search_config(config);
         let mut projections = std::collections::HashMap::new();
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.spirit_projection_passes += 1;
-            diagnostics.spirit_projection_root_count += shortlist.len();
-        });
         for index in shortlist {
             let root = &scored_roots[index];
             let risky_recovery_challenger =
@@ -19166,15 +18649,7 @@ impl MonsGameModel {
             } else {
                 rerank_engine_config
             };
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.spirit_projection_plan_calls += 1;
-            });
             if let Some(plan) = turn_engine_candidate_plan(&root.game, perspective, engine_config) {
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.spirit_projection_plan_hits += 1;
-                });
                 projections.insert(index, TurnEngineRootProjection { plan });
             }
         }
@@ -19614,20 +19089,11 @@ impl MonsGameModel {
         let rerank_engine_config = Self::turn_engine_rerank_config(config);
         let full_engine_config = Self::turn_engine_config_from_search_config(config);
         let mut projections = std::collections::HashMap::new();
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.reply_projection_passes += 1;
-        });
         for index in shortlist.iter().copied().take(projection_limit) {
             let root = &scored_roots[index];
             if root.game.active_color != perspective || root.game.winner_color().is_some() {
                 continue;
             }
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.reply_projection_root_count += 1;
-                diagnostics.reply_projection_plan_calls += 1;
-            });
             let current_pro = matches!(config.turn_engine_mode, TurnEngineMode::CurrentPro);
             let vulnerable_recovery_projection = current_pro
                 && root.own_drainer_vulnerable
@@ -19639,10 +19105,6 @@ impl MonsGameModel {
                 rerank_engine_config
             };
             if let Some(plan) = turn_engine_candidate_plan(&root.game, perspective, engine_config) {
-                #[cfg(test)]
-                update_turn_engine_selector_diagnostics(|diagnostics| {
-                    diagnostics.reply_projection_plan_hits += 1;
-                });
                 projections.insert(index, TurnEngineRootProjection { plan });
             }
         }
@@ -22270,112 +21732,6 @@ impl MonsGameModel {
         })
     }
 
-    #[cfg(test)]
-    fn pick_root_move_with_normal_safety(
-        game: &MonsGame,
-        scored_roots: &[RootEvaluation],
-        candidate_indices: &[usize],
-        perspective: Color,
-        config: AutomoveSearchConfig,
-    ) -> Vec<Input> {
-        if scored_roots.is_empty() {
-            return Vec::new();
-        }
-
-        let eligible_indices = if candidate_indices.is_empty() {
-            (0..scored_roots.len()).collect::<Vec<_>>()
-        } else {
-            candidate_indices.to_vec()
-        };
-        let best_score = eligible_indices
-            .iter()
-            .map(|index| scored_roots[*index].score)
-            .max()
-            .unwrap_or(i32::MIN);
-        let score_margin = SMART_NORMAL_ROOT_SAFETY_SCORE_MARGIN.max(0);
-        let reply_limit = config.node_enum_limit.clamp(
-            SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MIN,
-            SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MAX,
-        );
-        let my_score_before = if perspective == Color::White {
-            game.white_score
-        } else {
-            game.black_score
-        };
-        let shortlist_limit = SMART_NORMAL_ROOT_SAFETY_SHORTLIST_MAX.max(1);
-
-        let mut shortlist = eligible_indices
-            .iter()
-            .copied()
-            .filter(|index| scored_roots[*index].score + score_margin >= best_score)
-            .collect::<Vec<_>>();
-        shortlist.sort_by(|a, b| Self::compare_ranked_scored_root_indices(scored_roots, *a, *b));
-        if shortlist.len() > shortlist_limit {
-            shortlist.truncate(shortlist_limit);
-        }
-
-        if shortlist.is_empty() {
-            let best_index =
-                Self::best_scored_root_index(scored_roots, eligible_indices.as_slice());
-            return scored_roots[best_index].inputs.clone();
-        }
-
-        let best_scored_index = shortlist[0];
-        if shortlist.len() < 2 {
-            return scored_roots[best_scored_index].inputs.clone();
-        }
-
-        let shortlist_indices = shortlist;
-        let start_options = Self::automove_start_input_options();
-
-        let mut best_index = best_scored_index;
-        let mut best_snapshot = Self::normal_root_safety_snapshot(
-            &scored_roots[best_scored_index].game,
-            perspective,
-            my_score_before,
-            config,
-            reply_limit,
-            start_options,
-        );
-
-        for index in shortlist_indices.iter().copied().skip(1) {
-            let evaluation = &scored_roots[index];
-            let snapshot = Self::normal_root_safety_snapshot(
-                &evaluation.game,
-                perspective,
-                my_score_before,
-                config,
-                reply_limit,
-                start_options,
-            );
-            if Self::is_better_normal_root_safety_candidate(
-                snapshot,
-                evaluation.score,
-                best_snapshot,
-                scored_roots[best_index].score,
-            ) {
-                best_index = index;
-                best_snapshot = snapshot;
-            }
-        }
-
-        let selected_index = if config.enable_normal_root_safety_deep_floor
-            && Self::should_apply_normal_root_safety_deep_floor(game, perspective)
-        {
-            Self::pick_normal_root_with_deep_floor(
-                scored_roots,
-                shortlist_indices.as_slice(),
-                best_index,
-                perspective,
-                config,
-            )
-        } else {
-            best_index
-        };
-
-        scored_roots[selected_index].inputs.clone()
-    }
-
     fn normal_root_safety_snapshot(
         state_after_move: &MonsGame,
         perspective: Color,
@@ -22505,67 +21861,6 @@ impl MonsGameModel {
             || opponent_distance_to_win <= SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_RACE_TRIGGER
     }
 
-    #[cfg(test)]
-    fn pick_normal_root_with_deep_floor(
-        scored_roots: &[RootEvaluation],
-        shortlist_indices: &[usize],
-        selected_index: usize,
-        perspective: Color,
-        config: AutomoveSearchConfig,
-    ) -> usize {
-        if shortlist_indices.len() < 2 {
-            return selected_index;
-        }
-
-        let shortlist_best_score = shortlist_indices
-            .iter()
-            .map(|index| scored_roots[*index].score)
-            .max()
-            .unwrap_or(i32::MIN);
-        let margin = SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_MARGIN.max(0);
-        let max_candidates = SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_MAX_CANDIDATES.max(1);
-        let reply_limit = config.node_enum_limit.clamp(
-            SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_REPLY_LIMIT_MIN,
-            SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_REPLY_LIMIT_MAX,
-        );
-
-        let mut candidate_indices = shortlist_indices
-            .iter()
-            .copied()
-            .filter(|index| scored_roots[*index].score + margin >= shortlist_best_score)
-            .collect::<Vec<_>>();
-        if candidate_indices.len() > max_candidates {
-            candidate_indices.truncate(max_candidates);
-        }
-        if !candidate_indices.contains(&selected_index) {
-            candidate_indices.push(selected_index);
-        }
-        if candidate_indices.len() < 2 {
-            return selected_index;
-        }
-
-        let mut best_index = selected_index;
-        let mut best_floor_score = i32::MIN;
-        for index in candidate_indices {
-            let floor_score = Self::normal_root_safety_deep_floor_score(
-                &scored_roots[index].game,
-                perspective,
-                config,
-                reply_limit,
-            );
-            if floor_score > best_floor_score
-                || (floor_score == best_floor_score
-                    && Self::compare_ranked_scored_root_indices(scored_roots, index, best_index)
-                        == std::cmp::Ordering::Less)
-            {
-                best_floor_score = floor_score;
-                best_index = index;
-            }
-        }
-
-        best_index
-    }
-
     fn normal_root_safety_deep_floor_score(
         state_after_move: &MonsGame,
         perspective: Color,
@@ -22686,10 +21981,6 @@ impl MonsGameModel {
             return cached;
         }
 
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.followup_floor_calls += 1
-        });
         if let Some(winner) = state_after_move.winner_color() {
             let result = if winner == perspective {
                 SMART_TERMINAL_SCORE / 2
@@ -22848,17 +22139,9 @@ impl MonsGameModel {
         if let Some(cached) =
             SEARCH_PREFERABILITY_CACHE.with(|cache| cache.borrow().get(&cache_key).copied())
         {
-            #[cfg(test)]
-            update_turn_engine_selector_diagnostics(|diagnostics| {
-                diagnostics.search_preferability_cache_hits += 1;
-            });
             return cached;
         }
 
-        #[cfg(test)]
-        update_turn_engine_selector_diagnostics(|diagnostics| {
-            diagnostics.search_preferability_builds += 1;
-        });
         let score = evaluate_preferability_with_weights_and_exact_policy(
             game,
             perspective,
@@ -23369,10 +22652,6 @@ mod smart_automove_tests {
         fixtures
     }
 
-    fn clone_model_for_smart_automove_tests(model: &MonsGameModel) -> MonsGameModel {
-        MonsGameModel::with_game(model.game.clone_for_simulation())
-    }
-
     fn exhaustive_same_turn_reachable<F>(game: &MonsGame, color: Color, predicate: F) -> bool
     where
         F: Fn(&MonsGame, &[Event]) -> bool,
@@ -23618,35 +22897,6 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn pro_runtime_uses_engine_allowed_rerank_override_on_immediate_score_fixture() {
-        clear_turn_engine_selector_diagnostics();
-        crate::models::automove_turn_engine::clear_turn_engine_plan_cache();
-
-        let game = immediate_score_runtime_fixture();
-        let model = MonsGameModel::with_game(game.clone_for_simulation());
-        let config = model.shipping_search_config_for_preference(SmartAutomovePreference::Pro);
-        assert!(
-            !config.enable_turn_engine_selector,
-            "base runtime pro config should still have the full turn engine disabled"
-        );
-        assert!(
-            config.enable_turn_head_rerank,
-            "fixture should exercise the head-rerank replacement seam"
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        assert!(
-            !inputs.is_empty(),
-            "selector should still produce a legal immediate-score move"
-        );
-        let diagnostics = turn_engine_selector_diagnostics_snapshot();
-        assert_eq!(
-            diagnostics.last_return_stage,
-            "search_only_engine_allowed_head"
-        );
-    }
-
-    #[test]
     fn active_turn_exact_tactical_queries_match_exhaustive_curated_fixtures() {
         let attack_game = game_with_items(
             vec![
@@ -23819,57 +23069,7 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn smart_automove_sync_matches_async_pipeline_on_sparse_tactical_position_for_all_modes() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let base_model = MonsGameModel::with_game(game);
-
-        for preference in [
-            SmartAutomovePreference::Fast,
-            SmartAutomovePreference::Normal,
-            SmartAutomovePreference::Pro,
-        ] {
-            let sync_model = clone_model_for_smart_automove_tests(&base_model);
-            let async_model = clone_model_for_smart_automove_tests(&base_model);
-
-            let sync_output = sync_model.smart_automove_output(preference);
-            let async_output = async_model.smart_automove_output_via_async_loop(preference);
-
-            assert_eq!(sync_output.kind, OutputModelKind::Events);
-            assert_eq!(async_output.kind, OutputModelKind::Events);
-            assert_eq!(
-                sync_output.input_fen(),
-                async_output.input_fen(),
-                "sync production helper should match test-only async pipeline for {}",
-                preference.as_api_value()
-            );
-        }
-    }
-
-    #[test]
-    fn smart_automove_pro_matches_frontier_bounded_tactical_selector_on_release_fixture() {
+    fn smart_automove_pro_matches_shipping_pro_selector_on_release_fixture() {
         let game = MonsGame::from_fen(
             "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n02E0xn01A0xD0xS0xY0xn03",
             false,
@@ -23881,16 +23081,12 @@ mod smart_automove_tests {
             clear_exact_state_analysis_cache();
             clear_turn_engine_plan_cache();
             clear_turn_engine_selector_followup_floor_cache();
-            let expected_inputs =
-                automove_runtime_variants::select_current_pro_bounded_tactical_inputs(
-                    &game, config,
-                );
+            let expected_inputs = automove_runtime::select_pro_inputs(&game, config);
             let expected_input_fen = Input::fen_from_array(&expected_inputs);
             clear_exact_state_analysis_cache();
             clear_turn_engine_plan_cache();
             clear_turn_engine_selector_followup_floor_cache();
-            let shipping_inputs =
-                automove_runtime_variants::select_shipping_search_inputs(&game, config);
+            let shipping_inputs = automove_runtime::select_shipping_search_inputs(&game, config);
             let shipping_input_fen = Input::fen_from_array(&shipping_inputs);
 
             assert_eq!(expected_input_fen, "l10,5;l9,4");
@@ -23941,8 +23137,8 @@ mod smart_automove_tests {
                     elapsed_ms,
                 );
                 assert!(
-                    elapsed_ms <= 700.0,
-                    "public {} call exceeded 700ms on fixture {}: {:.3}ms",
+                    elapsed_ms < 700.0,
+                    "public {} call must stay below 700ms on fixture {}: {:.3}ms",
                     preference.as_api_value(),
                     fixture_index,
                     elapsed_ms,
@@ -26007,7 +25203,7 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn frontier_tactical_potential_detects_safe_supermana_progress() {
+    fn pro_tactical_potential_detects_safe_supermana_progress() {
         let game = game_with_items(
             vec![
                 (
@@ -26034,13 +25230,13 @@ mod smart_automove_tests {
         );
 
         assert!(
-            MonsGameModel::has_frontier_tactical_potential(&game),
+            MonsGameModel::has_pro_tactical_potential(&game),
             "same-turn safe supermana progress should block frontier futility pruning"
         );
     }
 
     #[test]
-    fn frontier_tactical_potential_is_false_on_quiet_board() {
+    fn pro_tactical_potential_is_false_on_quiet_board() {
         let game = game_with_items(
             vec![
                 (
@@ -26061,13 +25257,13 @@ mod smart_automove_tests {
         );
 
         assert!(
-            !MonsGameModel::has_frontier_tactical_potential(&game),
+            !MonsGameModel::has_pro_tactical_potential(&game),
             "quiet frontier state should remain eligible for futility pruning"
         );
     }
 
     #[test]
-    fn frontier_tactical_potential_detects_spirit_supermana_progress() {
+    fn pro_tactical_potential_detects_spirit_supermana_progress() {
         let mut game = game_with_items(
             vec![
                 (
@@ -26107,7 +25303,7 @@ mod smart_automove_tests {
         game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
 
         assert!(
-            MonsGameModel::has_frontier_tactical_potential(&game),
+            MonsGameModel::has_pro_tactical_potential(&game),
             "spirit-assisted supermana progress should block frontier futility pruning"
         );
     }
@@ -27950,74 +27146,6 @@ mod smart_automove_tests {
     }
 
     #[test]
-    fn normal_root_safety_shortlist_prefers_spirit_supermana_exact_continuation_when_score_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.enable_normal_root_safety_deep_floor = false;
-        config.node_enum_limit = 1;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let picked = MonsGameModel::pick_root_move_with_normal_safety(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            &[0, 1],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, short.inputs);
-    }
-
-    #[test]
     fn focused_root_candidates_prioritize_spirit_supermana_exact_continuation_when_scout_tied() {
         let mut game = game_with_items(
             vec![
@@ -28855,74 +27983,6 @@ mod smart_automove_tests {
             config,
         );
         assert_eq!(picked, Some(1));
-    }
-
-    #[test]
-    fn normal_root_safety_shortlist_prefers_spirit_opponent_exact_continuation_when_score_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.enable_normal_root_safety_deep_floor = false;
-        config.node_enum_limit = 1;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let picked = MonsGameModel::pick_root_move_with_normal_safety(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            &[0, 1],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, short.inputs);
     }
 
     #[test]

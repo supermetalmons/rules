@@ -3,8 +3,9 @@
 This is the compact durable record for shipping automove work. It preserves decisions,
 measurements, and reusable failure lessons; it is not an experiment diary. Use
 `HOW_TO_ITERATE_ON_AUTOMOVE.md` for the workflow and `AUTOMOVE_IDEAS.md` for the one
-next mechanism. Detailed receipts deleted during the cleanup remain available in Git
-history before the cleanup revision.
+next mechanism. The verified `2026-07-13` v10 promotion receipt remains available at
+commit `96020462be` as
+`docs/automove-frontier-pro-v10-bounded-tactical-promotion-result.json`.
 
 ## Current Shipping Truth
 
@@ -63,51 +64,12 @@ unwrapped comparator reached `5,016.97ms`; it is evidence only, not an acceptabl
 runtime. The direct result proves a Pro replacement. It does not claim that Fast or
 Normal were replaced.
 
-The final tail regression observed promoted repetitions around `530ms`, with a native
-maximum of `539.185ms`; the final generated Node/Wasm cold tail measured approximately
-Fast `246.86ms`, Normal `412.364ms`, and Pro `532.25ms`. A prior `703.067ms` failure was
-not excused: the frontier deadline was reduced, the Fast bank bounded, and fallback
-generation structurally limited before final evidence was accepted.
-
-## What Counts as Evidence
-
-### Public causal reach
-
-Automove is judged at the public returned input, not at an internal seam. A changed
-score, reordered child list, completed depth, visited-node counter, or activated branch
-with the same final input is diagnostic activity, not decision value. For a layer over
-another experimental substrate, compare the public baseline, the substrate without the
-layer, and the complete candidate under equivalent cold accounting. Only a difference
-caused by the layer proves reach.
-
-### Complete cold cost
-
-Time the public selector from entry to returned input. Include root generation, exact
-queries, turn-engine enumeration, evaluation, fallback construction, cache setup, and
-cleanup. Measure fresh processes or completely cleared selector state and retain the
-maximum individual call. Warm match averages are useful operational statistics but do
-not satisfy the hard ceiling.
-
-### Strength and breadth
-
-Promotion evidence must be a direct candidate-versus-baseline duel with deterministic
-seeds, mirrored colors, legal replay, and all variants. Sampled panels are only a cheap
-failure gate. Fresh repeat offsets are mandatory holdouts. Report each opponent budget
-and variant because aggregate wins can conceal a budget-specific save loss or a variant
-collapse.
-
-The retained threshold is `7/12` aggregate points with confidence at least `0.60` for
-the sampled gate; `6-6` fails. Confirmation permits no more than two variants below
-`0.50` in a panel, no invalid/empty moves, at most `3%` replay mismatch per profile and
-panel, and no original or cold-replay call at or above `700ms`.
-
-### Clean discovery
-
-Do not train, select features, freeze a denylist, or tune policy using confirmation
-openings. Preserve full opening provenance before fitting. Raw-state quarantine must be
-prospective and cover every viewed data source. Identical features with conflicting
-labels are an architecture failure, not noise to fit through. A new architecture needs
-a new ID, fresh disjoint data, and deterministic provenance regeneration.
+The final black-turn-eight tail regression observed promoted repetitions around
+`530ms`, with a native maximum of `539.185ms`; the generated Node/Wasm cold measurements
+on that fixture were approximately Fast `246.86ms`, Normal `412.364ms`, and Pro
+`532.25ms`. A prior `703.067ms` failure was not excused: the frontier deadline was
+reduced, the Fast bank bounded, and fallback generation structurally limited before
+final evidence was accepted.
 
 ## Durable Failed-Direction Lessons
 
@@ -183,40 +145,10 @@ substrate. Root-policy probes found candidate wins but also same-state blockers 
 opposite-side saves. The reusable rule is simple: preserve branch/accounting parity,
 change one mechanism, and inspect the actual public move before any expensive duel.
 
-## Direction for the Next Mechanism
-
-The next candidate is deterministic bounded/lazy root generation. Its purpose is to
-make the expensive candidate set small before exact and turn-engine work begins, not to
-limit a counter after the roots already exist.
-
-Required design properties:
-
-- enumerate incrementally into a fixed-cap root pool;
-- admit mandatory tactical families even when the cap is nearly full;
-- fill remaining capacity in stable lexical/priority order;
-- deduplicate without unbounded secondary collections;
-- pass only the capped pool to exact, reply-risk, scoring, and turn-engine work;
-- retain a completed legal baseline result before stronger work begins;
-- make cancellation and emergency fallback deterministic;
-- expose test-only counts for generated, admitted, mandatory, deduplicated, and
-  downstream-analyzed roots;
-- prove that total downstream work is a function of the admitted cap.
-
-The first experiment is not a strength tournament. Freeze a few positions where the
-bounded generator chooses a different public root while retaining mandatory tactics.
-Prove legality and replay across all variants, causal output reach, and at least two
-independently cold complete calls below `700ms`. Only then run sampled and all-variant
-direct duels using fresh offsets.
-
-Kill this line if mandatory roots can disappear, hidden work grows outside the cap,
-the public result never changes, or cold timing fails. Do not turn it into another node
-fraction, completed-depth heuristic, tactical-pool resize, static selector, policy
-stitch, or evaluator trained on the existing corpus.
-
 ## Maintenance Rule
 
-Keep this document between 8 and 12 KB. Add only promoted evidence, a changed shipping
-contract, or a lesson that rules out a meaningful class of future work. Replace stale
-detail instead of appending a diary. Keep `AUTOMOVE_IDEAS.md` under 1 KB and limited to
-one prospective mechanism. Candidate-specific harnesses and logs are deleted when the
-line ends; permanent tests cover the shipping behavior and release gates.
+Keep this document at most 12 KiB. Add only promoted evidence, a changed shipping contract,
+or a lesson that rules out a meaningful class of future work. Replace stale detail
+instead of appending a diary. Raw logs, command transcripts, per-position traces, and
+prospective mechanisms do not belong here. Candidate harnesses and logs are deleted
+when the line ends; permanent tests cover shipping behavior and release gates.

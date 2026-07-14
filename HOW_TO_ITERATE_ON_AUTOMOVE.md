@@ -2,14 +2,15 @@
 
 This is the operational runbook for improving the shipping automove. Durable results
 and failed-direction lessons live in `docs/automove-knowledge.md`; the single next
-hypothesis lives in `AUTOMOVE_IDEAS.md`. Raw experiment receipts are disposable and
-remain recoverable from Git history when historical detail is needed.
+hypothesis lives in `AUTOMOVE_IDEAS.md`. Historical tracked receipts remain recoverable
+from Git. New logs under `target/` or `/tmp` are disposable and are not recoverable
+unless their durable result is recorded before deletion.
 
 ## Quick Reference
 
 1. Read `AUTOMOVE_IDEAS.md` and work on its one hypothesis only.
 2. Treat public Fast, Normal, and Pro calls as the product boundary. An internal
-   counter or changed score is not evidence until the returned public move changes.
+   counter or changed score is not evidence until the returned public input changes.
 3. Preserve the current public contract: all variants, legal/replayable inputs,
    deterministic emergency fallback, and the existing deadline hierarchy.
 4. Add the smallest candidate-specific `#[cfg(test)]` harness beside the mechanism.
@@ -34,9 +35,8 @@ cargo test --release --lib <test_name> -- --ignored --nocapture --test-threads=1
 - Shipping selection has a cooperative `650ms` outer deadline. Pro has a `550ms`
   frontier deadline and first banks the unchanged Fast result under a `200ms` child
   deadline. Cancellation returns the banked result or a deterministic legal fallback.
-- The immutable empirical limit is `700ms` for every independently cold, complete
-  public selector call. A node count, average, warm cache, or nominal deadline is not
-  a substitute.
+- Every independently cold, complete public selector call must finish in `<700ms`.
+  A node count, average, warm cache, or nominal deadline is not a substitute.
 - The discriminating public Pro fixture must keep returning `l10,5;l9,4`.
 
 The promotion baseline is recorded in `docs/automove-knowledge.md`. Do not spend a
@@ -45,10 +45,21 @@ the current route.
 
 ## Define the Experiment First
 
-In the candidate test, freeze one hypothesis, insertion point, baseline, causal path to
-the public root, complete-work bound, disjoint discovery/confirmation sets, and pass or
-kill conditions. Use a new ID for a new mechanism; do not reactivate a retired profile
-or retune a failed family.
+Before implementation, put a frozen experiment contract in the candidate test:
+
+- one unique mechanism ID, hypothesis, and insertion point;
+- the public shipping baseline and, for a layered mechanism, a substrate-only ablation;
+- one total-work bound, including generation and every downstream consumer;
+- discovery and confirmation provenance, seeds, and disjoint repeat offsets;
+- exact reach, legality, timing, strength, and kill conditions.
+
+Freeze parameters, fixtures, ordering, and datasets before evidence begins. Do not
+sweep or tune them after seeing results. A new mechanism gets a new ID; never reactivate
+a retired profile or disguise a failed family as a new percentage, cap, or wrapper.
+
+For a learned candidate, inventory every viewed data source and quarantine raw states
+prospectively. Identical features with conflicting labels kill the architecture; they
+are not noise to fit through.
 
 ## Evidence Ladder
 
@@ -60,15 +71,16 @@ and affected fallbacks.
 
 ### 2. Public causal reach
 
-On frozen positions compare the public baseline, substrate without the new layer, and
-complete candidate. Continue only if the layer changes a public input for the intended
-reason. Internal score/order/depth/counter changes with identical inputs fail reach.
+On frozen positions compare the public baseline and complete candidate. For a layered
+mechanism, also compare the substrate-only ablation with branch and accounting parity.
+Continue only if the new mechanism changes a public input for the intended reason.
+Internal score/order/depth/counter changes with identical inputs fail reach.
 
 ### 3. Cold complete-selector timing
 
 Time the whole public call after a fresh process or complete cache reset, including
 generation, exact/turn-engine work, fallback, and cleanup. Run two cold calls per
-witness and stop on any call above `700ms`. Bound work by construction because a
+witness and stop on any call `>=700ms`. Bound work by construction because a
 cooperative deadline cannot interrupt checkpoint-free work or scheduler suspension.
 
 ### 4. Sampled strength
@@ -76,6 +88,10 @@ cooperative deadline cannot interrupt checkpoint-free work or scheduler suspensi
 Use seeded openings across variants and mirrored colors against the public baseline,
 with confirmation offsets excluded from discovery. The floor is `7/12` with confidence
 at least `0.60`; `6-6` fails. Sampling authorizes confirmation, not promotion.
+
+Points are `(wins + 0.5 * draws) / games`. Confidence is one minus the one-sided
+`p=0.5` binomial probability of at least the observed wins among decisive games; it is
+zero when there are no decisive games or when wins are not greater than losses.
 
 ### 5. All-variant confirmation
 
@@ -94,7 +110,8 @@ Use fresh repeat offsets and report per-variant results.
 
 Duel the selector it would replace. Then run the active suite, legality, cold runtime,
 deadline-tail, generated Node/Wasm route, and package-surface gates. Native success
-does not waive Wasm timing or legality.
+does not waive Wasm timing or legality. `./publish.sh --check-only` is the complete
+release proof after the focused candidate gates pass.
 
 ## Recording Results
 
@@ -106,12 +123,13 @@ Logs under `target/` or `/tmp` are disposable. When a line ends:
 - remove the candidate harness if the mechanism is killed;
 - delete logs, generated receipts, profiles, analyzers, and unused branches.
 
-Record variant policy, offsets, opponent, games, legality/replay counts, cold maximum,
-and source revision. A bare score is not reusable evidence.
+Record mechanism ID, variant policy, offsets, opponent, games, legality/replay counts,
+cold maximum, and a reproducible source revision or content hash. A bare score or an
+unidentified dirty worktree is not reusable evidence.
 
 ## Stop Rules
 
-Kill on absent public reach, a cold call above `700ms`, work that cannot be bounded,
+Kill on absent public reach, a cold call `>=700ms`, work that cannot be bounded,
 sampled failure, fresh-offset or opponent-budget reversal, baseline-save/variant
 contamination, feature aliasing or data leakage, or an unintended contract change.
 

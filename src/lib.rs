@@ -86,45 +86,25 @@ pub fn winner(
 mod tests {
     use super::*;
 
-    use std::io::{self};
-
     #[test]
-    fn automove_till_end() -> io::Result<()> {
-        let mut game = MonsGameModel::new(GameVariant::Classic);
-        loop {
-            _ = game.automove();
-            if let Some(winner) = game.winner_color() {
-                println!("Winner: {:?}", winner);
-                break;
-            }
-        }
-        Ok(())
-    }
-
-    #[test]
-    fn automove() -> io::Result<()> {
+    fn automove() {
         let mut game = MonsGameModel::new(GameVariant::Classic);
         let output = game.automove();
-        println!("{:?}", game.fen());
-        match output.kind {
-            OutputModelKind::Events => (),
-            _ => panic!("Expected Events"),
-        }
-        Ok(())
+        assert_eq!(output.kind, OutputModelKind::Events);
+        assert!(!output.input_fen().is_empty());
     }
 
     #[test]
-    fn check_initial_fen() -> io::Result<()> {
+    fn check_initial_fen() {
         let game = MonsGame::new(false, GameVariant::Classic);
         let fen = game.fen();
         assert!(
             fen == "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
         );
-        Ok(())
     }
 
     #[test]
-    fn simulation_clone_discards_tracking_buffers() -> io::Result<()> {
+    fn simulation_clone_discards_tracking_buffers() {
         let mut game = MonsGame::new(true, GameVariant::Classic);
         game.takeback_fens = vec!["f0".to_string(), "f1".to_string()];
         game.verbose_tracking_entities = vec![VerboseTrackingEntity {
@@ -137,11 +117,10 @@ mod tests {
         assert!(simulation_game.takeback_fens.is_empty());
         assert!(simulation_game.verbose_tracking_entities.is_empty());
         assert!(!simulation_game.with_verbose_tracking);
-        Ok(())
     }
 
     #[test]
-    fn clear_tracking_releases_history_buffers() -> io::Result<()> {
+    fn clear_tracking_releases_history_buffers() {
         let mut game = MonsGame::new(true, GameVariant::Classic);
         for i in 0..128 {
             let fen = format!("fen-{i}");
@@ -161,21 +140,19 @@ mod tests {
         assert!(game.verbose_tracking_entities.is_empty());
         assert!(game.takeback_fens.capacity() <= takeback_capacity_before);
         assert!(game.verbose_tracking_entities.capacity() <= verbose_capacity_before);
-        Ok(())
     }
 
     #[test]
-    fn simulation_model_avoids_verbose_tracking_growth() -> io::Result<()> {
+    fn simulation_model_avoids_verbose_tracking_growth() {
         let mut game = MonsGameModel::new_for_simulation(GameVariant::Classic);
         let output = game.automove();
         assert_eq!(output.kind, OutputModelKind::Events);
         assert!(game.verbose_tracking_entities().is_empty());
         assert!(game.takeback_fens().is_empty());
-        Ok(())
     }
 
     #[test]
-    fn tracked_and_simulation_modes_stay_in_sync_when_replaying_inputs() -> io::Result<()> {
+    fn tracked_and_simulation_modes_stay_in_sync_when_replaying_inputs() {
         let mut tracked = MonsGameModel::new(GameVariant::Classic);
         let mut simulation = MonsGameModel::new_for_simulation(GameVariant::Classic);
 
@@ -197,14 +174,12 @@ mod tests {
         }
 
         assert_eq!(tracked.winner_color(), simulation.winner_color());
-        Ok(())
     }
 
     #[test]
-    fn model_is_later_than_rejects_cross_variant_fens() -> io::Result<()> {
+    fn model_is_later_than_rejects_cross_variant_fens() {
         let model = MonsGameModel::new(GameVariant::Classic);
         let other = MonsGame::new(false, GameVariant::SwappedManaRows);
         assert!(!model.is_later_than(other.fen().as_str()));
-        Ok(())
     }
 }
