@@ -1,6 +1,6 @@
 use crate::*;
 
-pub trait FenRepresentable {
+pub(crate) trait FenRepresentable {
     fn fen(&self) -> String;
 }
 
@@ -46,6 +46,7 @@ impl MonsGame {
         game.turn_number = fields[8].parse().ok()?;
         game.takeback_fens.clear();
         game.is_moves_verified = false;
+        #[cfg(any(target_arch = "wasm32", test))]
         game.verbose_tracking_entities.clear();
         game.invalidate_process_input_cache();
         Some(game)
@@ -319,99 +320,6 @@ impl FenRepresentable for Event {
     }
 }
 
-impl Event {
-    fn from_fen(fen: &str) -> Option<Self> {
-        let parts: Vec<&str> = fen.split(' ').collect();
-        match parts.as_slice() {
-            ["mm", item_fen, from_fen, to_fen] => Some(Event::MonMove {
-                item: Item::from_fen(item_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["mma", mana_fen, from_fen, to_fen] => Some(Event::ManaMove {
-                mana: Mana::from_fen(mana_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["ms", mana_fen, at_fen] => Some(Event::ManaScored {
-                mana: Mana::from_fen(mana_fen)?,
-                at: Location::from_fen(at_fen)?,
-            }),
-            ["ma", mystic_fen, from_fen, to_fen] => Some(Event::MysticAction {
-                mystic: Mon::from_fen(mystic_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["da", demon_fen, from_fen, to_fen] => Some(Event::DemonAction {
-                demon: Mon::from_fen(demon_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["das", demon_fen, from_fen, to_fen] => Some(Event::DemonAdditionalStep {
-                demon: Mon::from_fen(demon_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["stm", item_fen, from_fen, to_fen, by_fen] => Some(Event::SpiritTargetMove {
-                item: Item::from_fen(item_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-                by: Location::from_fen(by_fen)?,
-            }),
-            ["pb", by_fen, at_fen] => Some(Event::PickupBomb {
-                by: Mon::from_fen(by_fen)?,
-                at: Location::from_fen(at_fen)?,
-            }),
-            ["pp", by_fen, at_fen] => Some(Event::PickupPotion {
-                by: Item::from_fen(by_fen)?,
-                at: Location::from_fen(at_fen)?,
-            }),
-            ["pm", mana_fen, by_fen, at_fen] => Some(Event::PickupMana {
-                mana: Mana::from_fen(mana_fen)?,
-                by: Mon::from_fen(by_fen)?,
-                at: Location::from_fen(at_fen)?,
-            }),
-            ["mf", mon_fen, from_fen, to_fen] => Some(Event::MonFainted {
-                mon: Mon::from_fen(mon_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["md", mana_fen, at_fen] => Some(Event::ManaDropped {
-                mana: Mana::from_fen(mana_fen)?,
-                at: Location::from_fen(at_fen)?,
-            }),
-            ["sb", from_fen, to_fen] => Some(Event::SupermanaBackToBase {
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["ba", by_fen, from_fen, to_fen] => Some(Event::BombAttack {
-                by: Mon::from_fen(by_fen)?,
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            ["maw", mon_fen, at_fen] => Some(Event::MonAwake {
-                mon: Mon::from_fen(mon_fen)?,
-                at: Location::from_fen(at_fen)?,
-            }),
-            ["be", at_fen] => Some(Event::BombExplosion {
-                at: Location::from_fen(at_fen)?,
-            }),
-            ["nt", color_fen] => Some(Event::NextTurn {
-                color: Color::from_fen(color_fen)?,
-            }),
-            ["go", winner_fen] => Some(Event::GameOver {
-                winner: Color::from_fen(winner_fen)?,
-            }),
-            ["z"] => Some(Event::Takeback),
-            ["up", from_fen, to_fen] => Some(Event::UsePotion {
-                from: Location::from_fen(from_fen)?,
-                to: Location::from_fen(to_fen)?,
-            }),
-            _ => None,
-        }
-    }
-}
-
 impl FenRepresentable for NextInput {
     fn fen(&self) -> String {
         format!(
@@ -422,24 +330,6 @@ impl FenRepresentable for NextInput {
                 .as_ref()
                 .map_or("o".to_string(), |item| item.fen())
         )
-    }
-}
-
-impl NextInput {
-    fn from_fen(fen: &str) -> Option<Self> {
-        let components: Vec<&str> = fen.split_whitespace().collect();
-        if components.len() != 3 {
-            return None;
-        }
-        let input = Input::from_fen(components[0])?;
-        let kind = NextInputKind::from_fen(components[1])?;
-        let actor_mon_item = if components[2] != "o" {
-            Some(Item::from_fen(components[2])?)
-        } else {
-            None
-        };
-
-        Some(Self::new(input, kind, actor_mon_item))
     }
 }
 
@@ -455,23 +345,6 @@ impl FenRepresentable for NextInputKind {
             NextInputKind::SpiritTargetMove => "stm".to_string(),
             NextInputKind::SelectConsumable => "sc".to_string(),
             NextInputKind::BombAttack => "ba".to_string(),
-        }
-    }
-}
-
-impl NextInputKind {
-    fn from_fen(fen: &str) -> Option<Self> {
-        match fen {
-            "mm" => Some(NextInputKind::MonMove),
-            "mma" => Some(NextInputKind::ManaMove),
-            "ma" => Some(NextInputKind::MysticAction),
-            "da" => Some(NextInputKind::DemonAction),
-            "das" => Some(NextInputKind::DemonAdditionalStep),
-            "stc" => Some(NextInputKind::SpiritTargetCapture),
-            "stm" => Some(NextInputKind::SpiritTargetMove),
-            "sc" => Some(NextInputKind::SelectConsumable),
-            "ba" => Some(NextInputKind::BombAttack),
-            _ => None,
         }
     }
 }
@@ -527,6 +400,7 @@ impl FenRepresentable for Input {
 }
 
 impl Input {
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn fen_from_array(inputs: &[Input]) -> String {
         inputs
             .iter()
@@ -576,49 +450,6 @@ impl FenRepresentable for Output {
                 sorted_events.sort();
                 "e".to_owned() + &sorted_events.join("/")
             }
-        }
-    }
-}
-
-impl Output {
-    pub fn from_fen(fen: &str) -> Option<Self> {
-        let (prefix, data) = fen.split_at(1);
-        match prefix {
-            "i" => Some(Output::InvalidInput),
-            "l" => {
-                let locations = data
-                    .split('/')
-                    .filter_map(Location::from_fen)
-                    .collect::<Vec<_>>();
-                if !locations.is_empty() {
-                    Some(Output::LocationsToStartFrom(locations))
-                } else {
-                    None
-                }
-            }
-            "n" => {
-                let next_inputs = data
-                    .split('/')
-                    .filter_map(NextInput::from_fen)
-                    .collect::<Vec<_>>();
-                if !next_inputs.is_empty() {
-                    Some(Output::NextInputOptions(next_inputs))
-                } else {
-                    None
-                }
-            }
-            "e" => {
-                let events = data
-                    .split('/')
-                    .filter_map(Event::from_fen)
-                    .collect::<Vec<_>>();
-                if !events.is_empty() {
-                    Some(Output::Events(events))
-                } else {
-                    None
-                }
-            }
-            _ => None,
         }
     }
 }

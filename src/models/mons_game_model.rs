@@ -1,4 +1,4 @@
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 use crate::models::scoring::{
     evaluate_preferability_with_weights_and_exact_policy, ScoringWeights,
     BALANCED_DISTANCE_SCORING_WEIGHTS, DEFAULT_SCORING_WEIGHTS,
@@ -10,7 +10,7 @@ use crate::models::scoring::{
 };
 use crate::*;
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[path = "automove_runtime.rs"]
 pub(crate) mod automove_runtime;
 
@@ -20,14 +20,14 @@ pub struct MonsGameModel {
     game: MonsGame,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TurnEngineRerankOverrideAcceptance {
     Accepted,
     Rejected(TurnEngineRerankOverrideRejectReason),
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TurnEngineRerankOverrideRejectReason {
     NotInRoot,
@@ -46,133 +46,145 @@ impl Clone for MonsGameModel {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const MIN_SMART_SEARCH_DEPTH: usize = 1;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const MAX_SMART_SEARCH_DEPTH: usize = 5;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const MIN_SMART_MAX_VISITED_NODES: usize = 32;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const MAX_SMART_MAX_VISITED_NODES: usize = 180_000;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TERMINAL_SCORE: i32 = i32::MAX / 8;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_MAX_INPUT_CHAIN: usize = 8;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TRANSPOSITION_TABLE_MAX_ENTRIES: usize = 12_000;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_NO_EFFECT_ROOT_PENALTY: i32 = 120;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_LOW_IMPACT_ROOT_PENALTY: i32 = 40;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_EFFICIENCY_SCORE_MARGIN: i32 = 2_500;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_BACKTRACK_PENALTY: i32 = 140;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TT_BEST_CHILD_BONUS: i32 = 2_400;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TWO_PASS_ROOT_SCOUT_DEPTH: usize = 2;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TWO_PASS_ROOT_SCOUT_MIN_NODES: usize = 96;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
+const SMART_TWO_PASS_ROOT_FOCUS_K: usize = 3;
+#[cfg(target_arch = "wasm32")]
+const SMART_TWO_PASS_ROOT_FOCUS_BUDGET_SHARE_BP: i32 = 7_000;
+#[cfg(target_arch = "wasm32")]
 const SMART_TWO_PASS_ROOT_FOCUS_SCORE_MARGIN: i32 = 2_000;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TWO_PASS_ROOT_VOLATILITY_KEEP: usize = 2;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TWO_PASS_ROOT_VOLATILITY_MARGIN: i32 = 600;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_MANA_HANDOFF_PENALTY: i32 = 220;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_DRAINER_SAFETY_SCORE_MARGIN: i32 = 2_200;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MIN: usize = 12;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_NORMAL_ROOT_SAFETY_REPLY_LIMIT_MAX: usize = 36;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_NORMAL_ROOT_SAFETY_DEEP_FLOOR_SCORE_RACE_TRIGGER: i32 = 3;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_REPLY_RISK_SCORE_MARGIN: i32 = 140;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_REPLY_RISK_SHORTLIST_FAST: usize = 3;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_REPLY_RISK_REPLY_LIMIT_FAST: usize = 8;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_REPLY_RISK_NODE_SHARE_BP_FAST: i32 = 600;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_REPLY_RISK_WINNER_SPREAD_SKIP: i32 = SMART_TWO_PASS_ROOT_NARROW_SPREAD_FALLBACK;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_TWO_PASS_ROOT_NARROW_SPREAD_FALLBACK: i32 = 700;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_MOVE_CLASS_ROOT_SCORE_MARGIN: i32 = 120;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_MOVE_CLASS_CHILD_SCORE_MARGIN: i32 = 110;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_ANTI_HELP_SCORE_MARGIN: i32 = 180;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_ANTI_HELP_REPLY_LIMIT_FAST: usize = 6;
-#[cfg(any(target_arch = "wasm32", test))]
-const SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP_NORMAL: i32 = 1_200;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
+const SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP: i32 = 1_500;
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_SPIRIT_DEVELOPMENT_SCORE_MARGIN: i32 = 700;
-#[cfg(any(target_arch = "wasm32", test))]
-const SMART_INTERVIEW_SOFT_PRIORITY_SCORE_MARGIN: i32 = 120;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
+const SMART_INTERVIEW_SOFT_PRIORITY_SCORE_MARGIN: i32 = 80;
+#[cfg(target_arch = "wasm32")]
 const SMART_INTERVIEW_SOFT_SUPERMANA_PROGRESS_BONUS: i32 = 240;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_INTERVIEW_SOFT_SUPERMANA_SCORE_BONUS: i32 = 420;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_INTERVIEW_SOFT_OPPONENT_MANA_PROGRESS_BONUS: i32 = 210;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_INTERVIEW_SOFT_OPPONENT_MANA_SCORE_BONUS: i32 = 360;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_INTERVIEW_SOFT_MANA_HANDOFF_PENALTY: i32 = 220;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_INTERVIEW_SOFT_ROUNDTRIP_PENALTY: i32 = 140;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_FAST: i32 = 340;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_NORMAL: i32 = 260;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_ROOT_POTION_HOLD_SCORE_MARGIN: i32 = 180;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_SPIRIT_DEPLOY_EFFICIENCY_BONUS: i32 = 90;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_SPIRIT_ACTION_TARGET_DELTA_WEIGHT: i32 = 22;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_FORCED_DRAINER_ATTACK_FALLBACK_FAST_CANDIDATES: usize = 4;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_FORCED_DRAINER_ATTACK_FALLBACK_NORMAL_CANDIDATES: usize = 6;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_FORCED_DRAINER_ATTACK_FALLBACK_NODE_BUDGET_FAST: usize = 600;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_FORCED_DRAINER_ATTACK_FALLBACK_NODE_BUDGET_NORMAL: usize = 1_800;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_FORCED_DRAINER_ATTACK_FALLBACK_ENUM_LIMIT_FAST: usize = 220;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_FORCED_DRAINER_ATTACK_FALLBACK_ENUM_LIMIT_NORMAL: usize = 280;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_AUTOMOVE_FAST_DEPTH: i32 = 2;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_AUTOMOVE_FAST_MAX_VISITED_NODES: i32 = 480;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_AUTOMOVE_NORMAL_DEPTH: i32 = 3;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_AUTOMOVE_NORMAL_MAX_VISITED_NODES: i32 = 3800;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_AUTOMOVE_PRO_DEPTH: i32 = 4;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_AUTOMOVE_PRO_MAX_VISITED_NODES: i32 =
     SMART_AUTOMOVE_NORMAL_MAX_VISITED_NODES * 369 / 100;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
+const SMART_MAX_EXTENSIONS_PER_PATH: usize = 1;
+#[cfg(target_arch = "wasm32")]
+const SMART_QUIESCENCE_NODE_BUDGET: usize = 120;
+#[cfg(target_arch = "wasm32")]
+const SMART_QUIESCENCE_TACTICAL_ENUM_LIMIT: usize = 12;
+#[cfg(target_arch = "wasm32")]
+const SMART_FUTILITY_MARGIN: i32 = 2_300;
+#[cfg(target_arch = "wasm32")]
 const SMART_MOVE_EFFICIENCY_SNAPSHOT_CACHE_MAX_ENTRIES: usize = 16_384;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const SMART_SEARCH_PREFERABILITY_CACHE_MAX_ENTRIES: usize = 32_768;
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Default)]
 struct IdentityU64Hasher(u64);
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 impl std::hash::Hasher for IdentityU64Hasher {
     fn finish(&self) -> u64 {
         self.0
@@ -192,18 +204,18 @@ impl std::hash::Hasher for IdentityU64Hasher {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 type U64BuildHasher = std::hash::BuildHasherDefault<IdentityU64Hasher>;
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 type U64HashMap<V> = std::collections::HashMap<u64, V, U64BuildHasher>;
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 type U64HashSet = std::collections::HashSet<u64, U64BuildHasher>;
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 type FastHashMap<K, V> = std::collections::HashMap<K, V, U64BuildHasher>;
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
     ScoringWeights {
         use_legacy_formula: false,
@@ -225,7 +237,7 @@ const RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeigh
         spirit_action_utility: 86,
         ..BALANCED_DISTANCE_SCORING_WEIGHTS
     };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
     ScoringWeights {
         use_legacy_formula: false,
@@ -247,7 +259,7 @@ const RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeigh
         spirit_action_utility: 90,
         ..TACTICAL_BALANCED_SCORING_WEIGHTS
     };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
     ScoringWeights {
         use_legacy_formula: false,
@@ -269,7 +281,7 @@ const RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS: S
         spirit_action_utility: 94,
         ..TACTICAL_BALANCED_AGGRESSIVE_SCORING_WEIGHTS
     };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
     ScoringWeights {
         use_legacy_formula: false,
@@ -290,7 +302,7 @@ const RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS: Scoring
         spirit_action_utility: 88,
         ..FINISHER_BALANCED_SOFT_SCORING_WEIGHTS
     };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
     ScoringWeights {
         use_legacy_formula: false,
@@ -312,35 +324,35 @@ const RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGH
         ..FINISHER_BALANCED_SOFT_AGGRESSIVE_SCORING_WEIGHTS
     };
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
     ScoringWeights {
         drainer_danger_boolean: -1200,
         mana_carrier_danger_boolean: -800,
         ..RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
     };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS: ScoringWeights =
     ScoringWeights {
         drainer_danger_boolean: -1200,
         mana_carrier_danger_boolean: -800,
         ..RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
     };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_danger_boolean: -1200,
     mana_carrier_danger_boolean: -800,
     ..RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_danger_boolean: -1200,
     mana_carrier_danger_boolean: -800,
     ..RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_danger_boolean: -1200,
@@ -348,35 +360,35 @@ const RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BA
     ..RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
     mana_carrier_walk_threat_boolean: -150,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
     mana_carrier_walk_threat_boolean: -150,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
     mana_carrier_walk_threat_boolean: -150,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
     mana_carrier_walk_threat_boolean: -150,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     drainer_walk_threat_boolean: -300,
@@ -384,38 +396,38 @@ const RUNTIME_NORMAL_WALK_THREAT_MEDIUM_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_ATTACKER_PROXIMITY_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     attacker_close_to_opponent_drainer: 200,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_ATTACKER_PROXIMITY_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     attacker_close_to_opponent_drainer: 200,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_ATTACKER_PROXIMITY_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     attacker_close_to_opponent_drainer: 200,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     attacker_close_to_opponent_drainer: 200,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS
 };
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 const RUNTIME_NORMAL_ATTACKER_PROXIMITY_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS:
     ScoringWeights = ScoringWeights {
     attacker_close_to_opponent_drainer: 200,
     ..RUNTIME_NORMAL_BOOLEAN_DRAINER_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS
 };
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SmartAutomovePreference {
     Fast,
@@ -423,7 +435,7 @@ enum SmartAutomovePreference {
     Pro,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 impl SmartAutomovePreference {
     fn from_api_value(value: &str) -> Option<Self> {
         let normalized = value.trim();
@@ -464,7 +476,7 @@ impl SmartAutomovePreference {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy)]
 pub(crate) struct AutomoveSearchConfig {
     depth: usize,
@@ -475,12 +487,8 @@ pub(crate) struct AutomoveSearchConfig {
     node_branch_limit: usize,
     scoring_weights: &'static ScoringWeights,
     enable_two_pass_root_allocation: bool,
-    root_focus_k: usize,
-    root_focus_budget_share_bp: i32,
     enable_selective_extensions: bool,
     enable_quiet_reductions: bool,
-    max_extensions_per_path: usize,
-    selective_extension_node_share_bp: i32,
     enable_targeted_drainer_attack_fallback: bool,
     enable_forced_tactical_prepass: bool,
     enable_turn_head_rerank: bool,
@@ -501,8 +509,7 @@ pub(crate) struct AutomoveSearchConfig {
     turn_engine_reply_beam_width: usize,
     turn_engine_expansion_cap: usize,
     turn_engine_enable_spirit_family: bool,
-    enable_exact_lite_progress_checks: bool,
-    enable_exact_lite_spirit_window_checks: bool,
+    enable_exact_lite_checks: bool,
     exact_lite_root_call_budget: usize,
     exact_lite_static_call_budget: usize,
     enable_root_spirit_development_pref: bool,
@@ -525,7 +532,6 @@ pub(crate) struct AutomoveSearchConfig {
     root_efficiency_score_margin: i32,
     potion_spend_penalty_fast: i32,
     potion_spend_penalty_normal: i32,
-    interview_soft_score_margin: i32,
     interview_soft_supermana_progress_bonus: i32,
     interview_soft_supermana_score_bonus: i32,
     interview_soft_opponent_mana_progress_bonus: i32,
@@ -534,15 +540,11 @@ pub(crate) struct AutomoveSearchConfig {
     interview_soft_roundtrip_penalty: i32,
     enable_supermana_prepass_exception: bool,
     enable_quiescence_search: bool,
-    quiescence_node_budget: usize,
-    enable_quiescence_tactical_children_only: bool,
-    quiescence_tactical_enum_limit: usize,
     quiet_reduction_depth_threshold: usize,
     enable_futility_pruning: bool,
-    futility_margin: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 impl AutomoveSearchConfig {
     fn from_preference(preference: SmartAutomovePreference) -> Self {
         let (depth, max_visited_nodes) = preference.depth_and_max_nodes();
@@ -551,12 +553,8 @@ impl AutomoveSearchConfig {
             SmartAutomovePreference::Fast => {
                 let mut tuned = Self::with_fast_wideroot_shape(config);
                 tuned.enable_two_pass_root_allocation = false;
-                tuned.root_focus_k = 2;
-                tuned.root_focus_budget_share_bp = 6_000;
                 tuned.enable_selective_extensions = false;
                 tuned.enable_quiet_reductions = true;
-                tuned.max_extensions_per_path = 1;
-                tuned.selective_extension_node_share_bp = 0;
                 tuned.enable_forced_tactical_prepass = true;
                 tuned.enable_root_spirit_development_pref = true;
                 tuned.enable_root_reply_risk_guard = true;
@@ -579,7 +577,6 @@ impl AutomoveSearchConfig {
                 tuned.potion_spend_penalty_fast = 220;
                 tuned.potion_spend_penalty_normal =
                     SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_NORMAL;
-                tuned.interview_soft_score_margin = 80;
                 tuned.interview_soft_supermana_progress_bonus = 320;
                 tuned.interview_soft_supermana_score_bonus = 600;
                 tuned.interview_soft_opponent_mana_progress_bonus = 200;
@@ -603,13 +600,8 @@ impl AutomoveSearchConfig {
                 tuned.node_enum_limit =
                     ((tuned.node_branch_limit + 2) * 6).clamp(tuned.node_branch_limit, 156);
                 tuned.enable_two_pass_root_allocation = true;
-                tuned.root_focus_k = 3;
-                tuned.root_focus_budget_share_bp = 7_000;
                 tuned.enable_selective_extensions = false;
                 tuned.enable_quiet_reductions = false;
-                tuned.max_extensions_per_path = 1;
-                tuned.selective_extension_node_share_bp =
-                    SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP_NORMAL;
                 tuned.enable_forced_tactical_prepass = true;
                 tuned.enable_root_spirit_development_pref = true;
                 tuned.enable_root_reply_risk_guard = true;
@@ -629,10 +621,8 @@ impl AutomoveSearchConfig {
                 tuned.root_mana_handoff_penalty = 340;
                 tuned.root_backtrack_penalty = 240;
                 tuned.root_efficiency_score_margin = 1_400;
-                tuned.selective_extension_node_share_bp = 1_250;
                 tuned.potion_spend_penalty_fast = SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_FAST;
                 tuned.potion_spend_penalty_normal = 130;
-                tuned.interview_soft_score_margin = 80;
                 tuned.interview_soft_supermana_progress_bonus = 240;
                 tuned.interview_soft_supermana_score_bonus = 300;
                 tuned.interview_soft_opponent_mana_progress_bonus = 220;
@@ -651,12 +641,8 @@ impl AutomoveSearchConfig {
                 tuned.node_enum_limit =
                     ((tuned.node_branch_limit + 2) * 6).clamp(tuned.node_branch_limit, 132);
                 tuned.enable_two_pass_root_allocation = true;
-                tuned.root_focus_k = 3;
-                tuned.root_focus_budget_share_bp = 7_000;
                 tuned.enable_selective_extensions = true;
                 tuned.enable_quiet_reductions = true;
-                tuned.max_extensions_per_path = 1;
-                tuned.selective_extension_node_share_bp = 1_500;
                 tuned.enable_forced_tactical_prepass = false;
                 tuned.enable_root_spirit_development_pref = true;
                 tuned.enable_root_reply_risk_guard = true;
@@ -677,11 +663,9 @@ impl AutomoveSearchConfig {
                 tuned.root_backtrack_penalty = 240;
                 tuned.root_efficiency_score_margin = 1_400;
                 tuned.enable_futility_pruning = true;
-                tuned.futility_margin = 2_300;
                 tuned.quiet_reduction_depth_threshold = 2;
                 tuned.potion_spend_penalty_fast = SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_FAST;
                 tuned.potion_spend_penalty_normal = 130;
-                tuned.interview_soft_score_margin = 80;
                 tuned.interview_soft_supermana_progress_bonus = 240;
                 tuned.interview_soft_supermana_score_bonus = 300;
                 tuned.interview_soft_opponent_mana_progress_bonus = 280;
@@ -715,12 +699,8 @@ impl AutomoveSearchConfig {
             node_branch_limit,
             scoring_weights: &DEFAULT_SCORING_WEIGHTS,
             enable_two_pass_root_allocation: false,
-            root_focus_k: 2,
-            root_focus_budget_share_bp: 7_000,
             enable_selective_extensions: false,
             enable_quiet_reductions: false,
-            max_extensions_per_path: 0,
-            selective_extension_node_share_bp: 0,
             enable_targeted_drainer_attack_fallback: false,
             enable_forced_tactical_prepass: true,
             enable_turn_head_rerank: false,
@@ -741,8 +721,7 @@ impl AutomoveSearchConfig {
             turn_engine_reply_beam_width: 0,
             turn_engine_expansion_cap: 0,
             turn_engine_enable_spirit_family: false,
-            enable_exact_lite_progress_checks: false,
-            enable_exact_lite_spirit_window_checks: false,
+            enable_exact_lite_checks: false,
             exact_lite_root_call_budget: 0,
             exact_lite_static_call_budget: 0,
             enable_root_spirit_development_pref: true,
@@ -765,7 +744,6 @@ impl AutomoveSearchConfig {
             root_efficiency_score_margin: SMART_ROOT_EFFICIENCY_SCORE_MARGIN,
             potion_spend_penalty_fast: SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_FAST,
             potion_spend_penalty_normal: SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_NORMAL,
-            interview_soft_score_margin: SMART_INTERVIEW_SOFT_PRIORITY_SCORE_MARGIN,
             interview_soft_supermana_progress_bonus: SMART_INTERVIEW_SOFT_SUPERMANA_PROGRESS_BONUS,
             interview_soft_supermana_score_bonus: SMART_INTERVIEW_SOFT_SUPERMANA_SCORE_BONUS,
             interview_soft_opponent_mana_progress_bonus:
@@ -776,12 +754,8 @@ impl AutomoveSearchConfig {
             interview_soft_roundtrip_penalty: SMART_INTERVIEW_SOFT_ROUNDTRIP_PENALTY,
             enable_supermana_prepass_exception: false,
             enable_quiescence_search: false,
-            quiescence_node_budget: 0,
-            enable_quiescence_tactical_children_only: false,
-            quiescence_tactical_enum_limit: 0,
             quiet_reduction_depth_threshold: 3,
             enable_futility_pruning: false,
-            futility_margin: 3000,
         }
     }
 
@@ -822,7 +796,7 @@ impl AutomoveSearchConfig {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
 struct ScoredRootMove {
     root_rank: usize,
@@ -855,7 +829,7 @@ struct ScoredRootMove {
     classes: MoveClassFlags,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
 pub(crate) struct RootEvaluation {
     root_rank: usize,
@@ -888,13 +862,13 @@ pub(crate) struct RootEvaluation {
     classes: MoveClassFlags,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
 struct TurnEngineRootProjection {
     plan: TurnPlan,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum CurrentProRootAdvisorReasonCode {
     RankedRoot,
@@ -910,7 +884,7 @@ pub(crate) enum CurrentProRootAdvisorReasonCode {
     ApprovedFamilyCompetition,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CurrentProRootAdvisorEntry {
     pub inputs: Vec<Input>,
@@ -919,7 +893,7 @@ pub(crate) struct CurrentProRootAdvisorEntry {
     pub reason: CurrentProRootAdvisorReasonCode,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CurrentProInjectedRootAdvisorDecision {
     pub inputs: Vec<Input>,
@@ -928,7 +902,7 @@ pub(crate) struct CurrentProInjectedRootAdvisorDecision {
     pub reason: CurrentProRootAdvisorReasonCode,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct CurrentProRootAdvisorDecision {
     pub ordered_shortlist: Vec<CurrentProRootAdvisorEntry>,
@@ -937,21 +911,21 @@ pub(crate) struct CurrentProRootAdvisorDecision {
     pub injected_root: Option<CurrentProInjectedRootAdvisorDecision>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct TurnEngineSelectorFollowupFloorCacheKey {
     state_hash: u64,
     perspective: Color,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct TurnEngineSelectedOverrideCacheKey {
     state_hash: u64,
     family: TurnPlanFamily,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct MoveEfficiencySnapshotCacheKey {
     state_hash: u64,
@@ -960,7 +934,7 @@ struct MoveEfficiencySnapshotCacheKey {
     include_strategic_exact: bool,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct SearchPreferabilityCacheKey {
     state_hash: u64,
@@ -968,7 +942,7 @@ struct SearchPreferabilityCacheKey {
     scoring_weights_key: u64,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 thread_local! {
     static TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE: std::cell::RefCell<
         std::collections::HashMap<TurnEngineSelectorFollowupFloorCacheKey, i32>
@@ -984,7 +958,7 @@ thread_local! {
     > = std::cell::RefCell::new(FastHashMap::default());
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 fn clear_turn_engine_selector_followup_floor_cache() {
     TURN_ENGINE_SELECTOR_FOLLOWUP_FLOOR_CACHE.with(|cache| cache.borrow_mut().clear());
     TURN_ENGINE_SELECTED_OVERRIDE_UTILITY_CACHE.with(|cache| cache.borrow_mut().clear());
@@ -992,17 +966,7 @@ fn clear_turn_engine_selector_followup_floor_cache() {
     SEARCH_PREFERABILITY_CACHE.with(|cache| cache.borrow_mut().clear());
 }
 
-#[cfg(test)]
-fn move_efficiency_snapshot_cache_len() -> usize {
-    MOVE_EFFICIENCY_SNAPSHOT_CACHE.with(|cache| cache.borrow().len())
-}
-
-#[cfg(test)]
-fn search_preferability_cache_len() -> usize {
-    SEARCH_PREFERABILITY_CACHE.with(|cache| cache.borrow().len())
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct MoveEfficiencySnapshot {
     my_best_carrier_steps: i32,
@@ -1029,14 +993,14 @@ struct MoveEfficiencySnapshot {
     opponent_safe_opponent_mana_progress_steps: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy)]
 struct CarrierProgressSnapshot {
     carrier_count: i32,
     best_carrier_steps: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy)]
 struct NormalRootSafetySnapshot {
     allows_immediate_opponent_win: bool,
@@ -1046,7 +1010,7 @@ struct NormalRootSafetySnapshot {
     worst_reply_score: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum MoveClass {
     ImmediateScore,
@@ -1054,7 +1018,7 @@ enum MoveClass {
     DrainerSafetyRecover,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy, Debug, Default)]
 struct MoveClassFlags {
     immediate_score: bool,
@@ -1065,7 +1029,7 @@ struct MoveClassFlags {
     quiet: bool,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 impl MoveClassFlags {
     fn has(self, class: MoveClass) -> bool {
         match class {
@@ -1080,7 +1044,7 @@ impl MoveClassFlags {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy)]
 struct RootReplyRiskSnapshot {
     allows_immediate_opponent_win: bool,
@@ -1088,7 +1052,7 @@ struct RootReplyRiskSnapshot {
     worst_reply_score: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy)]
 enum TranspositionBound {
     Exact,
@@ -1096,7 +1060,7 @@ enum TranspositionBound {
     UpperBound,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone, Copy)]
 struct TranspositionEntry {
     depth: usize,
@@ -1105,7 +1069,7 @@ struct TranspositionEntry {
     best_child_hash: u64,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
 struct RankedChildState {
     game: MonsGame,
@@ -1116,13 +1080,13 @@ struct RankedChildState {
     classes: MoveClassFlags,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 struct ChildOrderingScratch {
     before_efficiency_snapshot: MoveEfficiencySnapshot,
     own_drainer_vulnerable_before: bool,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
 pub(crate) struct LegalInputTransition {
     pub inputs: Vec<Input>,
@@ -1130,10 +1094,10 @@ pub(crate) struct LegalInputTransition {
     pub events: Vec<Event>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 type RootMoveRepresentativeSpec = (CurrentProRootAdvisorReasonCode, fn(&ScoredRootMove) -> bool);
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 type RootEvaluationRepresentativeSpec =
     (CurrentProRootAdvisorReasonCode, fn(&RootEvaluation) -> bool);
 
@@ -1449,7 +1413,7 @@ impl MonsGameModel {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
+#[cfg(target_arch = "wasm32")]
 impl MonsGameModel {
     fn public_runtime_inputs(
         &self,
@@ -1477,16 +1441,9 @@ impl MonsGameModel {
     }
 
     fn smart_automove_output(&self, preference: SmartAutomovePreference) -> OutputModel {
-        let config = self.shipping_search_config_for_preference(preference);
+        let config = Self::shipping_search_config_for_game(&self.game, preference);
         let inputs = self.public_runtime_inputs(preference, config);
         self.output_model_from_runtime_inputs(inputs)
-    }
-
-    fn shipping_search_config_for_preference(
-        &self,
-        preference: SmartAutomovePreference,
-    ) -> AutomoveSearchConfig {
-        Self::shipping_search_config_for_game(&self.game, preference)
     }
 
     fn shipping_search_config_for_game(
@@ -1497,29 +1454,14 @@ impl MonsGameModel {
             game,
             AutomoveSearchConfig::from_preference(preference),
         );
-        if Self::uses_deep_runtime_context(preference) {
-            config = Self::apply_deep_runtime_context_profile(game, config, preference);
+        if matches!(preference, SmartAutomovePreference::Pro) {
+            config = Self::apply_pro_primary_profile(game, config);
         }
         config = Self::with_pre_exact_runtime_policy(config);
         if matches!(preference, SmartAutomovePreference::Normal) {
             config = Self::apply_runtime_normal_fast_core_budget_spend_profile(config);
         }
         config
-    }
-
-    fn uses_deep_runtime_context(preference: SmartAutomovePreference) -> bool {
-        matches!(preference, SmartAutomovePreference::Pro)
-    }
-
-    fn apply_deep_runtime_context_profile(
-        game: &MonsGame,
-        config: AutomoveSearchConfig,
-        preference: SmartAutomovePreference,
-    ) -> AutomoveSearchConfig {
-        match preference {
-            SmartAutomovePreference::Pro => Self::apply_pro_primary_profile(game, config),
-            SmartAutomovePreference::Fast | SmartAutomovePreference::Normal => config,
-        }
     }
 
     fn apply_runtime_normal_fast_policy_block(
@@ -1532,10 +1474,7 @@ impl MonsGameModel {
         config.node_enum_limit =
             (config.node_branch_limit * 4).clamp(config.node_branch_limit, 108);
         config.enable_two_pass_root_allocation = false;
-        config.root_focus_k = 2;
-        config.root_focus_budget_share_bp = 6_000;
         config.enable_selective_extensions = false;
-        config.selective_extension_node_share_bp = 0;
         config.enable_quiet_reductions = true;
         config.root_reply_risk_score_margin = 125;
         config.root_reply_risk_shortlist_max = 4;
@@ -1555,7 +1494,6 @@ impl MonsGameModel {
         config.root_efficiency_score_margin = 1_700;
         config.potion_spend_penalty_fast = 220;
         config.potion_spend_penalty_normal = SMART_POTION_SPEND_NO_COMPENSATION_PENALTY_NORMAL;
-        config.interview_soft_score_margin = 80;
         config.interview_soft_supermana_progress_bonus = 320;
         config.interview_soft_supermana_score_bonus = 600;
         config.interview_soft_opponent_mana_progress_bonus = 200;
@@ -1570,12 +1508,8 @@ impl MonsGameModel {
     fn apply_runtime_normal_fast_core_budget_spend_profile(
         mut config: AutomoveSearchConfig,
     ) -> AutomoveSearchConfig {
-        if config.depth < 3 || config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize {
-            return config;
-        }
         config = Self::apply_runtime_normal_fast_policy_block(config);
-        config.enable_exact_lite_progress_checks = true;
-        config.enable_exact_lite_spirit_window_checks = true;
+        config.enable_exact_lite_checks = true;
         config.exact_lite_root_call_budget = 1;
         config.exact_lite_static_call_budget = 1;
         config.max_visited_nodes = config.max_visited_nodes.saturating_mul(130) / 100;
@@ -1592,9 +1526,6 @@ impl MonsGameModel {
         game: &MonsGame,
         mut config: AutomoveSearchConfig,
     ) -> AutomoveSearchConfig {
-        if config.depth < SMART_AUTOMOVE_PRO_DEPTH as usize {
-            return config;
-        }
         config.max_visited_nodes = SMART_AUTOMOVE_PRO_MAX_VISITED_NODES as usize;
         config.enable_forced_tactical_prepass = false;
         config.root_branch_limit = config.root_branch_limit.clamp(14, 34);
@@ -1604,7 +1535,6 @@ impl MonsGameModel {
         config.node_enum_limit =
             ((config.node_branch_limit + 2) * 6).clamp(config.node_branch_limit, 132);
         config.enable_futility_pruning = true;
-        config.futility_margin = 2_300;
         config.enable_quiet_reductions = true;
         config.quiet_reduction_depth_threshold = 2;
         config.enable_root_reply_risk_guard = true;
@@ -1616,8 +1546,6 @@ impl MonsGameModel {
         config.enable_normal_root_safety_deep_floor = true;
         config.root_drainer_safety_score_margin = 4_800;
         config.enable_selective_extensions = true;
-        config.max_extensions_per_path = 1;
-        config.selective_extension_node_share_bp = 1_500;
         config.enable_interview_deterministic_tiebreak = true;
         config.max_visited_nodes = config.max_visited_nodes.saturating_mul(9) / 8;
         config.root_branch_limit = config.root_branch_limit.saturating_add(1).min(16);
@@ -1628,15 +1556,11 @@ impl MonsGameModel {
         config.interview_soft_opponent_mana_progress_bonus = 320;
         config.interview_soft_opponent_mana_score_bonus = 400;
         config.enable_quiescence_search = true;
-        config.quiescence_node_budget = 120;
-        config.enable_quiescence_tactical_children_only = true;
-        config.quiescence_tactical_enum_limit = 12;
         config
     }
 
     fn with_pre_exact_runtime_policy(mut config: AutomoveSearchConfig) -> AutomoveSearchConfig {
-        config.enable_exact_lite_progress_checks = false;
-        config.enable_exact_lite_spirit_window_checks = false;
+        config.enable_exact_lite_checks = false;
         config.exact_lite_root_call_budget = 0;
         config.exact_lite_static_call_budget = 0;
         config
@@ -3673,17 +3597,6 @@ impl MonsGameModel {
         root_moves
     }
 
-    #[cfg(test)]
-    fn sort_root_moves_by_ranked_scores(
-        root_moves: Vec<ScoredRootMove>,
-        scores: &[i32],
-    ) -> Vec<ScoredRootMove> {
-        debug_assert_eq!(root_moves.len(), scores.len());
-        let mut ranked_indices = scores.iter().copied().enumerate().collect::<Vec<_>>();
-        ranked_indices.sort_by(|a, b| Self::compare_ranked_root_indices(&root_moves, *a, *b));
-        Self::reorder_root_moves_by_ranked_indices(root_moves, ranked_indices.as_slice())
-    }
-
     fn compare_tactical_root_evaluations(
         candidate: &RootEvaluation,
         incumbent: &RootEvaluation,
@@ -4353,22 +4266,22 @@ impl MonsGameModel {
         scored_states.swap(swap_index, replacement_index);
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn smart_search_best_inputs(game: &MonsGame, config: AutomoveSearchConfig) -> Vec<Input> {
         Self::smart_search_best_inputs_internal(game, config, true)
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_config_from_search_config(config: AutomoveSearchConfig) -> TurnEngineConfig {
         automove_runtime::turn_engine_config_from_search_config(config)
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_mode_uses_macro_plans(mode: TurnEngineMode) -> bool {
         matches!(mode, TurnEngineMode::CurrentPro)
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_config_for_game(
         game: &MonsGame,
         config: AutomoveSearchConfig,
@@ -4392,7 +4305,7 @@ impl MonsGameModel {
         engine
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_rerank_config(config: AutomoveSearchConfig) -> TurnEngineConfig {
         let mut engine = Self::turn_engine_config_from_search_config(config);
         let current_pro = Self::turn_engine_mode_uses_macro_plans(config.turn_engine_mode);
@@ -4420,7 +4333,7 @@ impl MonsGameModel {
         engine
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_projection_config_for_game(
         game: &MonsGame,
         config: AutomoveSearchConfig,
@@ -4507,7 +4420,7 @@ impl MonsGameModel {
             || (!candidate_unsafe && top_unsafe && index <= 10 && heuristic_gap <= 256)
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn seed_turn_engine_followup_cache_if_safe(
         game: &MonsGame,
         perspective: Color,
@@ -4548,7 +4461,7 @@ impl MonsGameModel {
         );
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn should_resume_turn_engine_cached_step(
         root_moves: &[ScoredRootMove],
         cached_inputs: &[Input],
@@ -4564,7 +4477,7 @@ impl MonsGameModel {
                 .unwrap_or(false)
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_move_family(root: &ScoredRootMove) -> TurnPlanFamily {
         if root.wins_immediately
             || root.scores_supermana_this_turn
@@ -4591,7 +4504,7 @@ impl MonsGameModel {
         }
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_evaluation_family(root: &RootEvaluation) -> TurnPlanFamily {
         if root.wins_immediately
             || root.scores_supermana_this_turn
@@ -4618,7 +4531,7 @@ impl MonsGameModel {
         }
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_move_has_progress_surface(root: &ScoredRootMove) -> bool {
         root.safe_supermana_pickup_now
             || root.safe_opponent_mana_pickup_now
@@ -4626,7 +4539,7 @@ impl MonsGameModel {
             || root.opponent_mana_progress
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_evaluation_has_progress_surface(root: &RootEvaluation) -> bool {
         root.safe_supermana_pickup_now
             || root.safe_opponent_mana_pickup_now
@@ -4634,7 +4547,7 @@ impl MonsGameModel {
             || root.opponent_mana_progress
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_move_has_concrete_score_surface(root: &ScoredRootMove) -> bool {
         root.wins_immediately
             || root.scores_supermana_this_turn
@@ -4643,7 +4556,7 @@ impl MonsGameModel {
             || root.safe_opponent_mana_pickup_now
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_evaluation_has_concrete_score_surface(root: &RootEvaluation) -> bool {
         root.wins_immediately
             || root.scores_supermana_this_turn
@@ -4652,7 +4565,7 @@ impl MonsGameModel {
             || root.safe_opponent_mana_pickup_now
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_move_is_unsafe(root: &ScoredRootMove) -> bool {
         root.mana_handoff_to_opponent
             || (root.own_drainer_vulnerable
@@ -4661,7 +4574,7 @@ impl MonsGameModel {
                 && !Self::turn_engine_root_move_has_concrete_score_surface(root))
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_evaluation_is_unsafe(root: &RootEvaluation) -> bool {
         root.mana_handoff_to_opponent
             || (root.own_drainer_vulnerable
@@ -4670,7 +4583,7 @@ impl MonsGameModel {
                 && !Self::turn_engine_root_evaluation_has_concrete_score_surface(root))
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_scored_root_utility(
         root: &MonsGame,
         candidate: &ScoredRootMove,
@@ -4683,8 +4596,6 @@ impl MonsGameModel {
             actions: Vec::new(),
             compiled_chunks: vec![candidate.inputs.clone()],
             end_game: candidate.game.clone_for_simulation(),
-            #[cfg(test)]
-            end_snapshot: TurnSnapshot::from_game(&candidate.game),
             utility: turn_engine_evaluate_state_utility(
                 &candidate.game,
                 root,
@@ -4706,7 +4617,7 @@ impl MonsGameModel {
         plan.utility
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     pub(crate) fn focused_candidate_rank_for_runtime_inputs(
         game: &MonsGame,
         perspective: Color,
@@ -4748,7 +4659,7 @@ impl MonsGameModel {
             .position(|root| root.inputs.as_slice() == selected_inputs)
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_plan_utility(
         root: &MonsGame,
         selected: &RootEvaluation,
@@ -4766,7 +4677,7 @@ impl MonsGameModel {
         )
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_root_plan_utility_with_engine_config(
         root: &MonsGame,
         selected: &RootEvaluation,
@@ -4778,8 +4689,6 @@ impl MonsGameModel {
             actions: Vec::new(),
             compiled_chunks: vec![selected.inputs.clone()],
             end_game: selected.game.clone_for_simulation(),
-            #[cfg(test)]
-            end_snapshot: TurnSnapshot::from_game(&selected.game),
             utility: turn_engine_evaluate_state_utility(
                 &selected.game,
                 root,
@@ -4805,7 +4714,7 @@ impl MonsGameModel {
         selected_plan.utility
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_selected_override_utility(
         root: &MonsGame,
         selected: &RootEvaluation,
@@ -4877,7 +4786,7 @@ impl MonsGameModel {
         result
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn inject_turn_engine_root_candidate(
         game: &MonsGame,
         perspective: Color,
@@ -5309,7 +5218,7 @@ impl MonsGameModel {
             && !setup.opponent_mana_progress
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn accept_turn_engine_head_after_search(
         game: &MonsGame,
         perspective: Color,
@@ -7135,7 +7044,7 @@ impl MonsGameModel {
         }
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn classify_turn_engine_rerank_override(
         root_moves: &[ScoredRootMove],
         override_inputs: &[Input],
@@ -7288,7 +7197,7 @@ impl MonsGameModel {
         )
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn current_pro_root_advisor_conflicts_with_choice(
         game: &MonsGame,
         perspective: Color,
@@ -7311,7 +7220,7 @@ impl MonsGameModel {
             .is_some_and(|approved| approved.inputs.as_slice() != inputs)
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn turn_engine_allowed_rerank_override_candidate(
         root_moves: &[ScoredRootMove],
         inputs: &[Input],
@@ -7334,7 +7243,7 @@ impl MonsGameModel {
             || candidate.spirit_same_turn_score_setup_now
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn should_invoke_turn_head_rerank(root_moves: &[ScoredRootMove]) -> bool {
         let Some(top) = root_moves.first() else {
             return false;
@@ -7370,7 +7279,7 @@ impl MonsGameModel {
         })
     }
 
-    #[cfg(any(target_arch = "wasm32", test))]
+    #[cfg(target_arch = "wasm32")]
     fn smart_search_best_inputs_internal(
         game: &MonsGame,
         config: AutomoveSearchConfig,
@@ -7636,10 +7545,8 @@ impl MonsGameModel {
             let mut alpha = i32::MIN;
             let mut scored_roots = Vec::with_capacity(root_moves.len());
             let mut transposition_table = U64HashMap::default();
-            let extension_node_budget = if config.enable_selective_extensions
-                && config.selective_extension_node_share_bp > 0
-            {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
+            let extension_node_budget = if config.enable_selective_extensions {
+                ((config.max_visited_nodes * SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP as usize)
                     / 10_000)
                     .max(1)
             } else {
@@ -7829,14 +7736,12 @@ impl MonsGameModel {
         let mut alpha = i32::MIN;
         let mut scored_roots = Vec::with_capacity(root_moves.len());
         let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
+        let extension_node_budget = if config.enable_selective_extensions {
+            ((config.max_visited_nodes * SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP as usize) / 10_000)
+                .max(1)
+        } else {
+            0
+        };
         let mut extension_nodes_used = 0usize;
         let mut quiescence_nodes_used = 0usize;
 
@@ -7928,30 +7833,11 @@ impl MonsGameModel {
             visited_nodes,
             config,
             transposition_table,
-            config.max_extensions_per_path,
+            SMART_MAX_EXTENSIONS_PER_PATH,
             extension_nodes_used,
             extension_node_budget,
             use_transposition_table,
             quiescence_nodes_used,
-        )
-    }
-
-    #[cfg(test)]
-    fn focused_root_candidates(
-        game: &MonsGame,
-        perspective: Color,
-        root_moves: Vec<ScoredRootMove>,
-        config: AutomoveSearchConfig,
-        use_transposition_table: bool,
-    ) -> (Vec<ScoredRootMove>, usize) {
-        Self::focused_root_candidates_with_priority_inputs(
-            game,
-            perspective,
-            root_moves,
-            config,
-            use_transposition_table,
-            None,
-            None,
         )
     }
 
@@ -7988,7 +7874,7 @@ impl MonsGameModel {
             return (Vec::new(), 0);
         }
         if !config.enable_two_pass_root_allocation
-            || root_moves.len() <= config.root_focus_k.max(1)
+            || root_moves.len() <= SMART_TWO_PASS_ROOT_FOCUS_K
             || config.depth <= 1
         {
             return (
@@ -8002,7 +7888,7 @@ impl MonsGameModel {
         } else {
             config.depth.clamp(1, SMART_TWO_PASS_ROOT_SCOUT_DEPTH)
         };
-        let scout_share_bp = (10_000 - config.root_focus_budget_share_bp).clamp(500, 4_000);
+        let scout_share_bp = (10_000 - SMART_TWO_PASS_ROOT_FOCUS_BUDGET_SHARE_BP).clamp(500, 4_000);
         let scout_budget = if scout_depth <= 1 {
             root_moves.len()
         } else {
@@ -8069,7 +7955,7 @@ impl MonsGameModel {
             scout_alpha = scout_alpha.max(score);
         }
 
-        let focus_k = config.root_focus_k.max(1).min(root_moves.len());
+        let focus_k = SMART_TWO_PASS_ROOT_FOCUS_K.min(root_moves.len());
         let mut ranked_indices = (0..root_moves.len())
             .map(|index| {
                 let score = if scout_scores[index] == i32::MIN {
@@ -8307,8 +8193,7 @@ impl MonsGameModel {
         if depth == 0 {
             if config.enable_quiescence_search
                 && *visited_nodes < config.max_visited_nodes
-                && (config.quiescence_node_budget == 0
-                    || *quiescence_nodes_used < config.quiescence_node_budget)
+                && *quiescence_nodes_used < SMART_QUIESCENCE_NODE_BUDGET
             {
                 let stand_pat = Self::evaluate_search_preferability(game, perspective, config);
                 let maximizing = game.active_color == perspective;
@@ -8319,56 +8204,23 @@ impl MonsGameModel {
                     *quiescence_nodes_used += 1;
                     let mut q_alpha = alpha.max(stand_pat);
                     let mut best = stand_pat;
-                    if config.enable_quiescence_tactical_children_only {
-                        for child_game in
-                            Self::enumerate_quiescence_tactical_games(game, config).iter()
-                        {
-                            if *visited_nodes >= config.max_visited_nodes {
-                                break;
-                            }
-                            *visited_nodes += 1;
-                            let score = Self::evaluate_search_preferability(
-                                child_game,
-                                perspective,
-                                config,
-                            );
-                            if crate::models::automove_deadline::cancelled() {
-                                return 0;
-                            }
-                            if score > best {
-                                best = score;
-                            }
-                            q_alpha = q_alpha.max(best);
-                            if q_alpha >= beta {
-                                break;
-                            }
+                    for child_game in Self::enumerate_quiescence_tactical_games(game, config).iter()
+                    {
+                        if *visited_nodes >= config.max_visited_nodes {
+                            break;
                         }
-                    } else {
-                        let children =
-                            Self::ranked_child_states(game, perspective, maximizing, None, config);
-                        for child in children.iter() {
-                            if child.classes.quiet {
-                                continue;
-                            }
-                            if *visited_nodes >= config.max_visited_nodes {
-                                break;
-                            }
-                            *visited_nodes += 1;
-                            let score = Self::evaluate_search_preferability(
-                                &child.game,
-                                perspective,
-                                config,
-                            );
-                            if crate::models::automove_deadline::cancelled() {
-                                return 0;
-                            }
-                            if score > best {
-                                best = score;
-                            }
-                            q_alpha = q_alpha.max(best);
-                            if q_alpha >= beta {
-                                break;
-                            }
+                        *visited_nodes += 1;
+                        let score =
+                            Self::evaluate_search_preferability(child_game, perspective, config);
+                        if crate::models::automove_deadline::cancelled() {
+                            return 0;
+                        }
+                        if score > best {
+                            best = score;
+                        }
+                        q_alpha = q_alpha.max(best);
+                        if q_alpha >= beta {
+                            break;
                         }
                     }
                     return best;
@@ -8379,56 +8231,23 @@ impl MonsGameModel {
                     *quiescence_nodes_used += 1;
                     let mut q_beta = beta.min(stand_pat);
                     let mut best = stand_pat;
-                    if config.enable_quiescence_tactical_children_only {
-                        for child_game in
-                            Self::enumerate_quiescence_tactical_games(game, config).iter()
-                        {
-                            if *visited_nodes >= config.max_visited_nodes {
-                                break;
-                            }
-                            *visited_nodes += 1;
-                            let score = Self::evaluate_search_preferability(
-                                child_game,
-                                perspective,
-                                config,
-                            );
-                            if crate::models::automove_deadline::cancelled() {
-                                return 0;
-                            }
-                            if score < best {
-                                best = score;
-                            }
-                            q_beta = q_beta.min(best);
-                            if q_beta <= alpha {
-                                break;
-                            }
+                    for child_game in Self::enumerate_quiescence_tactical_games(game, config).iter()
+                    {
+                        if *visited_nodes >= config.max_visited_nodes {
+                            break;
                         }
-                    } else {
-                        let children =
-                            Self::ranked_child_states(game, perspective, maximizing, None, config);
-                        for child in children.iter() {
-                            if child.classes.quiet {
-                                continue;
-                            }
-                            if *visited_nodes >= config.max_visited_nodes {
-                                break;
-                            }
-                            *visited_nodes += 1;
-                            let score = Self::evaluate_search_preferability(
-                                &child.game,
-                                perspective,
-                                config,
-                            );
-                            if crate::models::automove_deadline::cancelled() {
-                                return 0;
-                            }
-                            if score < best {
-                                best = score;
-                            }
-                            q_beta = q_beta.min(best);
-                            if q_beta <= alpha {
-                                break;
-                            }
+                        *visited_nodes += 1;
+                        let score =
+                            Self::evaluate_search_preferability(child_game, perspective, config);
+                        if crate::models::automove_deadline::cancelled() {
+                            return 0;
+                        }
+                        if score < best {
+                            best = score;
+                        }
+                        q_beta = q_beta.min(best);
+                        if q_beta <= alpha {
+                            break;
                         }
                     }
                     return best;
@@ -8472,10 +8291,10 @@ impl MonsGameModel {
         // is so far from the window that no child move could possibly improve it enough
         if config.enable_futility_pruning && depth == 1 && !Self::has_pro_tactical_potential(game) {
             let static_eval = Self::evaluate_search_preferability(game, perspective, config);
-            if maximizing && static_eval + config.futility_margin < alpha {
+            if maximizing && static_eval + SMART_FUTILITY_MARGIN < alpha {
                 return static_eval;
             }
-            if !maximizing && static_eval - config.futility_margin > beta {
+            if !maximizing && static_eval - SMART_FUTILITY_MARGIN > beta {
                 return static_eval;
             }
         }
@@ -9015,18 +8834,6 @@ impl MonsGameModel {
         }
     }
 
-    #[cfg(test)]
-    fn enumerate_legal_inputs(
-        game: &MonsGame,
-        max_moves: usize,
-        start_options: SuggestedStartInputOptions,
-    ) -> Vec<Vec<Input>> {
-        Self::enumerate_legal_transitions(game, max_moves, start_options)
-            .into_iter()
-            .map(|transition| transition.inputs)
-            .collect()
-    }
-
     pub(crate) fn apply_inputs_for_search(game: &MonsGame, inputs: &[Input]) -> Option<MonsGame> {
         Self::apply_inputs_for_search_with_events(game, inputs)
             .map(|(simulated_game, _)| simulated_game)
@@ -9101,8 +8908,7 @@ impl MonsGameModel {
         if crate::models::automove_deadline::checkpoint() {
             return Vec::new();
         }
-        let enum_limit = config
-            .quiescence_tactical_enum_limit
+        let enum_limit = SMART_QUIESCENCE_TACTICAL_ENUM_LIMIT
             .max(1)
             .min(config.node_enum_limit.max(1));
         let transitions = Self::enumerate_legal_transitions(
@@ -9208,13 +9014,11 @@ impl MonsGameModel {
     }
 
     fn allow_exact_lite_root_analysis(config: AutomoveSearchConfig) -> bool {
-        config.exact_lite_root_call_budget > 0
-            && (config.enable_exact_lite_progress_checks
-                || config.enable_exact_lite_spirit_window_checks)
+        config.exact_lite_root_call_budget > 0 && config.enable_exact_lite_checks
     }
 
     fn allow_exact_lite_static_analysis(config: AutomoveSearchConfig) -> bool {
-        config.exact_lite_static_call_budget > 0 && config.enable_exact_lite_spirit_window_checks
+        config.exact_lite_static_call_budget > 0 && config.enable_exact_lite_checks
     }
 
     fn should_use_root_exact_summary_for_transition(
@@ -9224,10 +9028,8 @@ impl MonsGameModel {
         if !Self::allow_exact_lite_root_analysis(config) {
             return false;
         }
-        (config.enable_exact_lite_progress_checks
-            && Self::root_transition_requires_exact_lite_progress(events))
-            || (config.enable_exact_lite_spirit_window_checks
-                && Self::root_transition_requires_exact_lite_spirit_window(events))
+        Self::root_transition_requires_exact_lite_progress(events)
+            || Self::root_transition_requires_exact_lite_spirit_window(events)
     }
 
     fn with_exact_lite_budgeted_transition_config(
@@ -9297,47 +9099,6 @@ impl MonsGameModel {
                 .or_else(|| Self::approximate_best_carrier_steps(game, color)),
             ..ExactTurnSummary::default()
         }
-    }
-
-    #[cfg(test)]
-    #[allow(clippy::too_many_arguments)]
-    fn move_efficiency_delta(
-        game: &MonsGame,
-        simulated_game: &MonsGame,
-        perspective: Color,
-        events: &[Event],
-        is_root: bool,
-        apply_backtrack_penalty: bool,
-        apply_root_mana_handoff_guard: bool,
-        include_tactical_exact: bool,
-        include_strategic_exact: bool,
-        root_backtrack_penalty: i32,
-        root_mana_handoff_penalty: i32,
-    ) -> i32 {
-        let before_hash = Self::search_state_hash(game);
-        let after_hash = Self::search_state_hash(simulated_game);
-        let before = Self::move_efficiency_snapshot_with_hash(
-            game,
-            perspective,
-            include_tactical_exact && game.active_color == perspective,
-            include_strategic_exact,
-            before_hash,
-        );
-        Self::move_efficiency_delta_from_before_snapshot(
-            game,
-            simulated_game,
-            perspective,
-            events,
-            before,
-            after_hash,
-            is_root,
-            apply_backtrack_penalty,
-            apply_root_mana_handoff_guard,
-            include_tactical_exact,
-            include_strategic_exact,
-            root_backtrack_penalty,
-            root_mana_handoff_penalty,
-        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -9545,22 +9306,6 @@ impl MonsGameModel {
         }
 
         penalty
-    }
-
-    #[cfg(test)]
-    fn move_efficiency_snapshot(
-        game: &MonsGame,
-        perspective: Color,
-        include_tactical_exact: bool,
-        include_strategic_exact: bool,
-    ) -> MoveEfficiencySnapshot {
-        Self::move_efficiency_snapshot_with_hash(
-            game,
-            perspective,
-            include_tactical_exact,
-            include_strategic_exact,
-            Self::search_state_hash(game),
-        )
     }
 
     fn move_efficiency_snapshot_with_hash(
@@ -10163,26 +9908,6 @@ impl MonsGameModel {
             own_drainer_location,
             opponent_remaining_moves.max(0),
             opponent_can_use_action,
-        )
-    }
-
-    #[cfg(test)]
-    fn is_own_drainer_immediately_vulnerable(
-        game: &MonsGame,
-        perspective: Color,
-        enhanced: bool,
-    ) -> bool {
-        Self::is_own_drainer_immediately_vulnerable_on_board(
-            &game.board,
-            perspective,
-            game.active_color == perspective.other(),
-            if game.active_color == perspective.other() {
-                (Config::MONS_MOVES_PER_TURN - game.mons_moves_count).max(0)
-            } else {
-                0
-            },
-            game.player_can_use_action(),
-            enhanced,
         )
     }
 
@@ -17319,10 +17044,10 @@ impl MonsGameModel {
             let roundtrip_better = !evaluation.has_roundtrip && best_has_roundtrip;
             let equal_roundtrip = evaluation.has_roundtrip == best_has_roundtrip;
             let soft_better = evaluation.interview_soft_priority
-                > best_soft_priority.saturating_add(config.interview_soft_score_margin.max(0));
+                > best_soft_priority.saturating_add(SMART_INTERVIEW_SOFT_PRIORITY_SCORE_MARGIN);
             let soft_equal_or_disabled = evaluation
                 .interview_soft_priority
-                .saturating_add(config.interview_soft_score_margin.max(0))
+                .saturating_add(SMART_INTERVIEW_SOFT_PRIORITY_SCORE_MARGIN)
                 >= best_soft_priority;
             let efficiency_or_score_better = evaluation.efficiency > best_efficiency
                 || (evaluation.efficiency == best_efficiency
@@ -22190,6527 +21915,6 @@ impl MonsGameModel {
             return candidate_snapshot.worst_reply_score > incumbent_snapshot.worst_reply_score;
         }
         candidate_score > incumbent_score
-    }
-}
-
-#[cfg(test)]
-mod evaluation_cache_tests {
-    use super::*;
-
-    fn game_with_items(items: Vec<(Location, Item)>, active_color: Color) -> MonsGame {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.replace_board_items(items);
-        game.active_color = active_color;
-        game.turn_number = 2;
-        game.actions_used_count = 0;
-        game.mana_moves_count = 0;
-        game.mons_moves_count = 0;
-        game.white_score = 0;
-        game.black_score = 0;
-        game.white_potions_count = 0;
-        game.black_potions_count = 0;
-        game
-    }
-
-    #[test]
-    fn automove_deadline_discards_partial_enumeration_and_root_ranking() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        crate::models::automove_deadline::with_test_clock(0.0, || {
-            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
-                let transitions = MonsGameModel::enumerate_legal_transitions(
-                    &game,
-                    64,
-                    SuggestedStartInputOptions::default(),
-                );
-                assert!(crate::models::automove_deadline::cancelled());
-                assert!(transitions.is_empty());
-
-                let roots = MonsGameModel::ranked_root_moves(
-                    &game,
-                    game.active_color,
-                    AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-                );
-                assert!(roots.is_empty());
-            });
-        });
-    }
-
-    #[test]
-    fn automove_deadline_blocks_long_lived_evaluation_cache_writes() {
-        clear_turn_engine_selector_followup_floor_cache();
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        crate::models::automove_deadline::with_test_clock(0.0, || {
-            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
-                let _ =
-                    MonsGameModel::move_efficiency_snapshot(&game, game.active_color, false, false);
-                let _ = MonsGameModel::cached_search_preferability_score(
-                    &game,
-                    game.active_color,
-                    config.scoring_weights,
-                );
-            });
-        });
-        assert_eq!(move_efficiency_snapshot_cache_len(), 0);
-        assert_eq!(search_preferability_cache_len(), 0);
-    }
-
-    #[test]
-    fn move_efficiency_snapshot_cache_reuses_repeated_state() {
-        clear_turn_engine_selector_followup_floor_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(8, 8),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        let first = MonsGameModel::move_efficiency_snapshot(&game, Color::White, true, true);
-        let second = MonsGameModel::move_efficiency_snapshot(&game, Color::White, true, true);
-
-        assert_eq!(move_efficiency_snapshot_cache_len(), 1);
-        assert_eq!(
-            first.my_best_drainer_to_mana_steps,
-            second.my_best_drainer_to_mana_steps
-        );
-        assert_eq!(
-            first.my_same_turn_score_value,
-            second.my_same_turn_score_value
-        );
-    }
-
-    #[test]
-    fn search_preferability_cache_reuses_repeated_state() {
-        clear_turn_engine_selector_followup_floor_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let config =
-            MonsGameModel::shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-
-        let first = MonsGameModel::evaluate_search_preferability(&game, Color::White, config);
-        let second = MonsGameModel::evaluate_search_preferability(&game, Color::White, config);
-
-        assert_eq!(search_preferability_cache_len(), 1);
-        assert_eq!(first, second);
-    }
-
-    #[test]
-    fn move_efficiency_snapshot_tactical_projection_matches_exact_summary() {
-        clear_turn_engine_selector_followup_floor_cache();
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        let snapshot = MonsGameModel::move_efficiency_snapshot(&game, Color::White, true, true);
-        let diagnostics = exact_query_diagnostics_snapshot();
-        let turn = exact_turn_summary(&game, Color::White);
-        let projection = crate::models::automove_exact::exact_turn_tactical_projection(
-            &game,
-            Color::White,
-            MonsGameModel::move_efficiency_tactical_projection_flags(),
-        );
-
-        assert_eq!(diagnostics.exact_turn_summary_builds, 0);
-        assert_eq!(
-            snapshot.my_same_turn_score_value,
-            turn.spirit_assisted_score_value
-        );
-        assert_eq!(
-            snapshot.my_same_turn_opponent_mana_score_value,
-            projection.spirit_assisted_denial_value
-        );
-        assert_eq!(
-            snapshot.my_safe_supermana_progress,
-            turn.safe_supermana_progress
-        );
-        assert_eq!(
-            snapshot.my_safe_supermana_progress_steps,
-            turn.safe_supermana_progress_steps
-                .unwrap_or(Config::BOARD_SIZE + 4)
-        );
-        assert_eq!(
-            snapshot.my_safe_opponent_mana_progress,
-            turn.safe_opponent_mana_progress
-        );
-        assert_eq!(
-            snapshot.my_safe_opponent_mana_progress_steps,
-            turn.safe_opponent_mana_progress_steps
-                .unwrap_or(Config::BOARD_SIZE + 4)
-        );
-    }
-
-    #[test]
-    fn move_efficiency_delta_after_snapshot_helper_matches_existing_path() {
-        clear_turn_engine_selector_followup_floor_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        let transition = MonsGameModel::enumerate_legal_transitions(
-            &game,
-            config.node_enum_limit,
-            MonsGameModel::automove_start_input_options(),
-        )
-        .into_iter()
-        .find(|transition| !transition.events.is_empty())
-        .expect("expected at least one legal transition");
-        let child_hash = MonsGameModel::search_state_hash(&transition.game);
-        let before_hash = MonsGameModel::search_state_hash(&game);
-        let before = MonsGameModel::move_efficiency_snapshot_with_hash(
-            &game,
-            Color::White,
-            false,
-            false,
-            before_hash,
-        );
-        let after = MonsGameModel::move_efficiency_snapshot_uncached_with_hash(
-            &transition.game,
-            Color::White,
-            false,
-            false,
-            child_hash,
-        );
-
-        let baseline = MonsGameModel::move_efficiency_delta_from_before_snapshot(
-            &game,
-            &transition.game,
-            Color::White,
-            transition.events.as_slice(),
-            before,
-            child_hash,
-            false,
-            false,
-            false,
-            false,
-            false,
-            config.root_backtrack_penalty,
-            config.root_mana_handoff_penalty,
-        );
-        let reused = MonsGameModel::move_efficiency_delta_from_before_snapshot_with_after_snapshot(
-            &game,
-            &transition.game,
-            Color::White,
-            transition.events.as_slice(),
-            before,
-            after,
-            false,
-            false,
-            false,
-            config.root_backtrack_penalty,
-            config.root_mana_handoff_penalty,
-        );
-
-        assert_eq!(baseline, reused);
-    }
-}
-
-#[cfg(test)]
-mod smart_automove_tests {
-    use super::*;
-    use rand::rngs::StdRng;
-    use rand::{Rng, SeedableRng};
-    use std::collections::HashSet;
-
-    fn game_with_items(
-        items: Vec<(Location, Item)>,
-        active_color: Color,
-        turn_number: i32,
-    ) -> MonsGame {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.replace_board_items(items);
-        game.active_color = active_color;
-        game.turn_number = turn_number;
-        game.actions_used_count = 0;
-        game.mana_moves_count = 0;
-        game.mons_moves_count = 0;
-        game.white_score = 0;
-        game.black_score = 0;
-        game.white_potions_count = 0;
-        game.black_potions_count = 0;
-        game
-    }
-
-    fn apply_seeded_runtime_move(game: &mut MonsGame, rng: &mut StdRng) -> bool {
-        let legal_inputs =
-            MonsGameModel::enumerate_legal_inputs(game, 256, SuggestedStartInputOptions::default());
-        if legal_inputs.is_empty() {
-            return false;
-        }
-        let random_index = rng.gen_range(0..legal_inputs.len());
-        matches!(
-            game.process_input(legal_inputs[random_index].clone(), false, false),
-            Output::Events(_)
-        )
-    }
-
-    fn seeded_runtime_speed_positions(
-        seed: u64,
-        count: usize,
-        min_plies: usize,
-        max_plies: usize,
-    ) -> Vec<MonsGame> {
-        let mut rng = StdRng::seed_from_u64(seed);
-        let mut positions = Vec::with_capacity(count);
-
-        while positions.len() < count.max(1) {
-            let mut game = MonsGame::new(false, GameVariant::Classic);
-            let plies = rng.gen_range(min_plies..=max_plies.max(min_plies));
-            let mut valid = true;
-
-            for _ in 0..plies {
-                if game.winner_color().is_some() || !apply_seeded_runtime_move(&mut game, &mut rng)
-                {
-                    valid = false;
-                    break;
-                }
-            }
-
-            if valid && game.winner_color().is_none() {
-                positions.push(game);
-            }
-        }
-
-        positions
-    }
-
-    fn immediate_score_runtime_fixture() -> MonsGame {
-        for location in [
-            Location::new(9, 0),
-            Location::new(9, 1),
-            Location::new(9, 2),
-            Location::new(8, 1),
-        ] {
-            let mut probe = game_with_items(
-                vec![
-                    (
-                        location,
-                        Item::MonWithMana {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                            mana: Mana::Regular(Color::Black),
-                        },
-                    ),
-                    (
-                        Location::new(0, 10),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                        },
-                    ),
-                ],
-                Color::White,
-                3,
-            );
-            probe.white_score = Config::TARGET_SCORE - 2;
-            let has_immediate_win = MonsGameModel::enumerate_legal_inputs(
-                &probe,
-                96,
-                SuggestedStartInputOptions::for_automove(),
-            )
-            .into_iter()
-            .any(|inputs| {
-                let mut after = probe.clone_for_simulation();
-                matches!(after.process_input(inputs, false, false), Output::Events(_))
-                    && after.winner_color() == Some(Color::White)
-            });
-            if has_immediate_win {
-                return probe;
-            }
-        }
-
-        panic!("expected an immediate-score runtime fixture");
-    }
-
-    fn cold_public_runtime_gate_fixtures() -> Vec<MonsGame> {
-        let mut fixtures = seeded_runtime_speed_positions(0x5eed_0ee1, 3, 2, 6);
-        fixtures.extend(seeded_runtime_speed_positions(0x5eed_1d00, 3, 10, 16));
-        fixtures.extend([
-            immediate_score_runtime_fixture(),
-            game_with_items(
-                vec![
-                    (
-                        Location::new(5, 5),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(10, 5),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(7, 7),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                        },
-                    ),
-                ],
-                Color::White,
-                2,
-            ),
-            game_with_items(
-                vec![
-                    (
-                        Location::new(6, 5),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        },
-                    ),
-                    (
-                        Location::new(5, 5),
-                        Item::Mana {
-                            mana: Mana::Supermana,
-                        },
-                    ),
-                    (
-                        Location::new(0, 10),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                        },
-                    ),
-                ],
-                Color::White,
-                2,
-            ),
-        ]);
-
-        fixtures
-    }
-
-    fn exhaustive_same_turn_reachable<F>(game: &MonsGame, color: Color, predicate: F) -> bool
-    where
-        F: Fn(&MonsGame, &[Event]) -> bool,
-    {
-        fn visit<F>(game: &MonsGame, color: Color, seen: &mut HashSet<u64>, predicate: &F) -> bool
-        where
-            F: Fn(&MonsGame, &[Event]) -> bool,
-        {
-            if game.active_color != color {
-                return false;
-            }
-
-            let state_hash = MonsGameModel::search_state_hash(game);
-            if !seen.insert(state_hash) {
-                return false;
-            }
-
-            for transition in MonsGameModel::enumerate_legal_transitions(
-                game,
-                usize::MAX,
-                SuggestedStartInputOptions::for_automove(),
-            ) {
-                if predicate(&transition.game, &transition.events) {
-                    return true;
-                }
-                if transition.game.active_color == color
-                    && visit(&transition.game, color, seen, predicate)
-                {
-                    return true;
-                }
-            }
-
-            false
-        }
-
-        if predicate(game, &[]) {
-            return true;
-        }
-
-        let mut seen = HashSet::new();
-        visit(game, color, &mut seen, &predicate)
-    }
-
-    fn exhaustive_same_turn_reachable_with_spirit_history<F>(
-        game: &MonsGame,
-        color: Color,
-        predicate: F,
-    ) -> bool
-    where
-        F: Fn(&MonsGame, bool) -> bool,
-    {
-        fn visit<F>(
-            game: &MonsGame,
-            color: Color,
-            spirit_used: bool,
-            seen: &mut HashSet<(u64, bool)>,
-            predicate: &F,
-        ) -> bool
-        where
-            F: Fn(&MonsGame, bool) -> bool,
-        {
-            if game.active_color != color {
-                return false;
-            }
-
-            let state_hash = MonsGameModel::search_state_hash(game);
-            if !seen.insert((state_hash, spirit_used)) {
-                return false;
-            }
-
-            for transition in MonsGameModel::enumerate_legal_transitions(
-                game,
-                usize::MAX,
-                SuggestedStartInputOptions::for_automove(),
-            ) {
-                let used_spirit = spirit_used
-                    || MonsGameModel::events_include_spirit_target_move(&transition.events);
-                if predicate(&transition.game, used_spirit) {
-                    return true;
-                }
-                if transition.game.active_color == color
-                    && visit(&transition.game, color, used_spirit, seen, predicate)
-                {
-                    return true;
-                }
-            }
-
-            false
-        }
-
-        if predicate(game, false) {
-            return true;
-        }
-
-        let mut seen = HashSet::new();
-        visit(game, color, false, &mut seen, &predicate)
-    }
-
-    fn drainer_carries_exact_safe_mana(board: &Board, color: Color, wanted_mana: Mana) -> bool {
-        board.occupied().any(|(location, item)| {
-            matches!(
-                item,
-                Item::MonWithMana { mon, mana }
-                    if mon.color == color
-                        && mon.kind == MonKind::Drainer
-                        && !mon.is_fainted()
-                        && *mana == wanted_mana
-                        && crate::models::automove_exact::is_drainer_exactly_safe_next_turn_on_board(
-                            board,
-                            color,
-                            location,
-                        )
-            )
-        })
-    }
-
-    #[test]
-    fn pro_mode_is_accepted_and_produces_legal_inputs() {
-        assert_eq!(
-            SmartAutomovePreference::from_api_value("pro"),
-            Some(SmartAutomovePreference::Pro)
-        );
-        assert_eq!(SmartAutomovePreference::Pro.as_api_value(), "pro");
-        assert_eq!(SmartAutomovePreference::from_api_value("expert"), None);
-        assert_eq!(SmartAutomovePreference::from_api_value("EXPERT"), None);
-
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.depth = 1;
-        config.max_visited_nodes = 16;
-        config.root_branch_limit = 1;
-        config.node_branch_limit = 1;
-        config.root_enum_limit = 1;
-        config.node_enum_limit = 1;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        assert!(
-            !inputs.is_empty(),
-            "pro mode should produce at least one input from initial position"
-        );
-        assert!(
-            MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs).is_some(),
-            "pro mode selected inputs should be legal"
-        );
-    }
-
-    #[test]
-    #[ignore = "release gate: all variants and public modes must be deterministic and replayable"]
-    fn smart_automove_public_variant_legality_and_replay_gate() {
-        for variant_id in 0..=11 {
-            let variant = GameVariant::from_id(variant_id).expect("known public game variant");
-            let game = MonsGame::new(false, variant);
-
-            for preference in [
-                SmartAutomovePreference::Fast,
-                SmartAutomovePreference::Normal,
-                SmartAutomovePreference::Pro,
-            ] {
-                let mut observed = None;
-                for repeat in 0..2 {
-                    clear_exact_state_analysis_cache();
-                    clear_turn_engine_plan_cache();
-                    clear_turn_engine_selector_followup_floor_cache();
-                    let model = MonsGameModel::with_game(game.clone_for_simulation());
-                    let output = model.smart_automove_output(preference);
-                    assert_eq!(output.kind, OutputModelKind::Events);
-
-                    let input_fen = output.input_fen();
-                    assert!(!input_fen.is_empty());
-                    let mut replay = game.clone_for_simulation();
-                    assert!(matches!(
-                        replay.process_input(Input::array_from_fen(&input_fen), false, false),
-                        Output::Events(_)
-                    ));
-                    let replay_fen = replay.fen();
-
-                    if let Some((expected_inputs, expected_replay)) = observed.as_ref() {
-                        assert_eq!(
-                            input_fen,
-                            *expected_inputs,
-                            "variant={variant_id} mode={} repeat={repeat}",
-                            preference.as_api_value(),
-                        );
-                        assert_eq!(
-                            replay_fen,
-                            *expected_replay,
-                            "variant={variant_id} mode={} repeat={repeat}",
-                            preference.as_api_value(),
-                        );
-                    } else {
-                        observed = Some((input_fen, replay_fen));
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn smart_automove_preserves_immediate_score_fixture_for_all_modes() {
-        let game = immediate_score_runtime_fixture();
-
-        for preference in [
-            SmartAutomovePreference::Fast,
-            SmartAutomovePreference::Normal,
-            SmartAutomovePreference::Pro,
-        ] {
-            let model = MonsGameModel::with_game(game.clone_for_simulation());
-            let search_inputs = MonsGameModel::smart_search_best_inputs(
-                &model.game,
-                model.shipping_search_config_for_preference(preference),
-            );
-            assert!(
-                !search_inputs.is_empty(),
-                "{} smart search should not fall back on the immediate-score fixture",
-                preference.as_api_value()
-            );
-            let output = model.smart_automove_output(preference);
-            assert_eq!(
-                output.kind,
-                OutputModelKind::Events,
-                "{} should produce a legal move in the immediate-score fixture",
-                preference.as_api_value()
-            );
-
-            let mut after = game.clone_for_simulation();
-            let inputs = Input::array_from_fen(output.input_fen().as_str());
-            assert!(
-                matches!(after.process_input(inputs, false, false), Output::Events(_)),
-                "{} should stay legal in the immediate-score fixture",
-                preference.as_api_value()
-            );
-            assert!(
-                after.white_score > game.white_score,
-                "{} should convert the immediate-score fixture by scoring immediately",
-                preference.as_api_value()
-            );
-            assert_eq!(
-                after.winner_color(),
-                Some(Color::White),
-                "{} should convert the immediate-score fixture",
-                preference.as_api_value()
-            );
-        }
-    }
-
-    #[test]
-    fn active_turn_exact_tactical_queries_match_exhaustive_curated_fixtures() {
-        let attack_game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let attack_turn =
-            crate::models::automove_exact::exact_turn_summary(&attack_game, Color::White);
-        assert_eq!(
-            attack_turn.can_attack_opponent_drainer,
-            exhaustive_same_turn_reachable(&attack_game, Color::White, |_, events| {
-                events.iter().any(|event| {
-                    matches!(
-                        event,
-                        Event::MonFainted { mon, .. }
-                            if mon.kind == MonKind::Drainer && mon.color == Color::Black
-                    )
-                })
-            })
-        );
-
-        let supermana_game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let supermana_turn =
-            crate::models::automove_exact::exact_turn_summary(&supermana_game, Color::White);
-        assert_eq!(
-            supermana_turn.safe_supermana_progress,
-            exhaustive_same_turn_reachable(&supermana_game, Color::White, |reachable, events| {
-                events.iter().any(|event| {
-                    matches!(event, Event::ManaScored { mana, .. } if *mana == Mana::Supermana)
-                }) || drainer_carries_exact_safe_mana(&reachable.board, Color::White, Mana::Supermana)
-            })
-        );
-
-        let opponent_mana_game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let opponent_mana_turn =
-            crate::models::automove_exact::exact_turn_summary(&opponent_mana_game, Color::White);
-        assert_eq!(
-            opponent_mana_turn.safe_opponent_mana_progress,
-            exhaustive_same_turn_reachable(
-                &opponent_mana_game,
-                Color::White,
-                |reachable, events| {
-                    events.iter().any(|event| {
-                        matches!(
-                            event,
-                            Event::ManaScored { mana, .. }
-                                if *mana == Mana::Regular(Color::Black)
-                        )
-                    }) || drainer_carries_exact_safe_mana(
-                        &reachable.board,
-                        Color::White,
-                        Mana::Regular(Color::Black),
-                    )
-                }
-            )
-        );
-
-        let mut spirit_game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        spirit_game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 2;
-        let spirit_turn =
-            crate::models::automove_exact::exact_turn_summary(&spirit_game, Color::White);
-        let exhaustive_spirit_score = exhaustive_same_turn_reachable_with_spirit_history(
-            &spirit_game,
-            Color::White,
-            |reachable, spirit_used| spirit_used && reachable.white_score > 0,
-        );
-        let exhaustive_spirit_denial = exhaustive_same_turn_reachable_with_spirit_history(
-            &spirit_game,
-            Color::White,
-            |reachable, spirit_used| {
-                spirit_used
-                    && (reachable.white_score >= Mana::Regular(Color::Black).score(Color::White)
-                        || drainer_carries_exact_safe_mana(
-                            &reachable.board,
-                            Color::White,
-                            Mana::Regular(Color::Black),
-                        ))
-            },
-        );
-        assert_eq!(spirit_turn.spirit_assisted_score, exhaustive_spirit_score);
-        assert_eq!(spirit_turn.spirit_assisted_denial, exhaustive_spirit_denial);
-    }
-
-    #[test]
-    fn smart_automove_pro_matches_shipping_pro_selector_on_release_fixture() {
-        let game = MonsGame::from_fen(
-            "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n02E0xn01A0xD0xS0xY0xn03",
-            false,
-        )
-        .expect("release Pro route fixture should be valid");
-        let model = MonsGameModel::with_game(game.clone_for_simulation());
-        let config = model.shipping_search_config_for_preference(SmartAutomovePreference::Pro);
-        automove_deadline::with_test_clock(0.0, || {
-            clear_exact_state_analysis_cache();
-            clear_turn_engine_plan_cache();
-            clear_turn_engine_selector_followup_floor_cache();
-            let expected_inputs = automove_runtime::select_pro_inputs(&game, config);
-            let expected_input_fen = Input::fen_from_array(&expected_inputs);
-            clear_exact_state_analysis_cache();
-            clear_turn_engine_plan_cache();
-            clear_turn_engine_selector_followup_floor_cache();
-            let shipping_inputs = automove_runtime::select_shipping_search_inputs(&game, config);
-            let shipping_input_fen = Input::fen_from_array(&shipping_inputs);
-
-            assert_eq!(expected_input_fen, "l10,5;l9,4");
-            assert_eq!(shipping_input_fen, "l10,6;l9,6");
-            assert_ne!(expected_input_fen, shipping_input_fen);
-
-            clear_exact_state_analysis_cache();
-            clear_turn_engine_plan_cache();
-            clear_turn_engine_selector_followup_floor_cache();
-            let output = model.smart_automove_output(SmartAutomovePreference::Pro);
-
-            assert_eq!(output.kind, OutputModelKind::Events);
-            assert_eq!(output.input_fen(), expected_input_fen.as_str());
-            assert_ne!(output.input_fen(), shipping_input_fen.as_str());
-        });
-    }
-
-    #[test]
-    #[ignore = "release gate: independently cold public calls must remain legal and under 700ms"]
-    fn smart_automove_public_runtime_budget_gate() {
-        use std::time::Instant;
-
-        for (fixture_index, game) in cold_public_runtime_gate_fixtures().into_iter().enumerate() {
-            for preference in [
-                SmartAutomovePreference::Fast,
-                SmartAutomovePreference::Normal,
-                SmartAutomovePreference::Pro,
-            ] {
-                clear_exact_state_analysis_cache();
-                clear_turn_engine_plan_cache();
-                clear_turn_engine_selector_followup_floor_cache();
-                let model = MonsGameModel::with_game(game.clone_for_simulation());
-                let start = Instant::now();
-                let output = model.smart_automove_output(preference);
-                let elapsed_ms = start.elapsed().as_secs_f64() * 1_000.0;
-                assert_eq!(output.kind, OutputModelKind::Events);
-
-                let mut replay = game.clone_for_simulation();
-                let inputs = Input::array_from_fen(output.input_fen().as_str());
-                assert!(matches!(
-                    replay.process_input(inputs, false, false),
-                    Output::Events(_)
-                ));
-                println!(
-                    "AUTOMOVE_PUBLIC_RUNTIME fixture={} mode={} elapsed_ms={:.3}",
-                    fixture_index,
-                    preference.as_api_value(),
-                    elapsed_ms,
-                );
-                assert!(
-                    elapsed_ms < 700.0,
-                    "public {} call must stay below 700ms on fixture {}: {:.3}ms",
-                    preference.as_api_value(),
-                    fixture_index,
-                    elapsed_ms,
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn pro_runtime_profile_applies_expected_tuning() {
-        let base_game = MonsGame::new(false, GameVariant::Classic);
-        let independent_model = MonsGameModel::with_game(base_game);
-        let independent_config =
-            independent_model.shipping_search_config_for_preference(SmartAutomovePreference::Pro);
-        assert_eq!(
-            independent_config.max_visited_nodes,
-            (SMART_AUTOMOVE_PRO_MAX_VISITED_NODES as usize).saturating_mul(9) / 8
-        );
-        assert!(independent_config.enable_turn_head_rerank);
-        assert!(
-            !independent_config.enable_turn_engine_selector,
-            "shipping Pro search config must keep the turn-engine selector disabled"
-        );
-        assert_eq!(independent_config.root_reply_risk_score_margin, 165);
-        assert_eq!(independent_config.root_reply_risk_shortlist_max, 9);
-        assert_eq!(independent_config.root_reply_risk_reply_limit, 24);
-        assert_eq!(independent_config.root_reply_risk_node_share_bp, 2_000);
-        assert!(independent_config.enable_normal_root_safety_deep_floor);
-        assert_eq!(independent_config.root_drainer_safety_score_margin, 4_800);
-        assert_eq!(independent_config.selective_extension_node_share_bp, 1_500);
-        assert_eq!(
-            independent_config.interview_soft_opponent_mana_progress_bonus,
-            320
-        );
-        assert_eq!(
-            independent_config.interview_soft_opponent_mana_score_bonus,
-            400
-        );
-        assert!(independent_config.enable_quiescence_search);
-        assert_eq!(independent_config.quiescence_node_budget, 120);
-        assert!(independent_config.enable_quiescence_tactical_children_only);
-        assert_eq!(independent_config.quiescence_tactical_enum_limit, 12);
-    }
-
-    #[test]
-    fn live_spirit_setup_gain_marks_runtime_setup_root_positive() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let candidate = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("runtime spirit setup inputs should build a scored root");
-
-        assert!(
-            candidate.spirit_setup_gain > 0,
-            "runtime setup roots should retain a live positive setup signal when static exact eval is disabled"
-        );
-    }
-
-    #[test]
-    fn current_pro_preserves_safe_pickup_and_non_concrete_progress_precedence() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let mut pickup = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 1),
-            920,
-            false,
-            false,
-            false,
-        );
-        pickup.safe_supermana_pickup_now = true;
-
-        let mut progress = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 2),
-            980,
-            false,
-            false,
-            false,
-        );
-        progress.supermana_progress = true;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_safe_pickup_reply_order(
-                &pickup,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 480,
-                },
-                &progress,
-                RootReplyRiskSnapshot {
-                    allows_immediate_opponent_win: false,
-                    opponent_reaches_match_point: false,
-                    worst_reply_score: 620,
-                },
-                config,
-            ),
-            Some(std::cmp::Ordering::Greater),
-        );
-
-        assert_current_pro_non_concrete_progress_does_not_replace_unsafe_root();
-    }
-
-    fn assert_current_pro_non_concrete_progress_does_not_replace_unsafe_root() {
-        fn current_pro_candidate_config(game: &MonsGame) -> AutomoveSearchConfig {
-            let mut config = MonsGameModel::with_game(game.clone())
-                .shipping_search_config_for_preference(SmartAutomovePreference::Pro);
-            if config.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-                && config.enable_normal_root_safety_deep_floor
-            {
-                config.enable_turn_head_rerank = false;
-                config.enable_turn_engine_selector = true;
-                config.turn_engine_mode = TurnEngineMode::CurrentPro;
-                config.turn_engine_seed_cap = 14;
-                config.turn_engine_beam_width = 5;
-                config.turn_engine_per_node_family_cap = 4;
-                config.turn_engine_step_cap = 6;
-                config.turn_engine_opponent_seed_cap = 6;
-                config.turn_engine_opponent_beam_width = 2;
-                config.turn_engine_reply_seed_cap = 3;
-                config.turn_engine_reply_beam_width = 1;
-                config.turn_engine_expansion_cap = 176;
-                config.turn_engine_enable_spirit_family = true;
-                config.root_reply_risk_reply_limit = config.root_reply_risk_reply_limit.min(24);
-                config.root_reply_risk_node_share_bp =
-                    config.root_reply_risk_node_share_bp.min(2_000);
-                config.enable_turn_engine_low_budget_guard = true;
-                config.enable_turn_engine_mid_turn_tactical_guard = true;
-                config.enable_turn_engine_late_safe_mana_root_preference = true;
-            }
-            config
-        }
-
-        let game = MonsGame::from_fen(
-            "0 0 b 1 0 4 0 0 6 n03y0xn07/n07e0xn03/n06d0xa0xn03/n03xxmn03xxmn03/n02s0xxxmxxmn02xxmn03/xxQn04xxUn01xxMn02xxQ/n05xxMn05/n02xxMn03xxMn03Y0x/n03xxMn03D0xn03/n05A0xn05/n03E0xn02S0xn04",
-            false,
-        )
-        .expect("primary_ext_sensitive_no_ext_a fen should be valid");
-        let perspective = game.active_color;
-        let config = current_pro_candidate_config(&game);
-        let root_moves = MonsGameModel::ranked_root_moves(&game, perspective, config);
-        let mut visited_nodes = 0usize;
-        let mut alpha = i32::MIN;
-        let mut scored_roots = Vec::with_capacity(root_moves.len());
-        let mut transposition_table = U64HashMap::default();
-        let extension_node_budget =
-            if config.enable_selective_extensions && config.selective_extension_node_share_bp > 0 {
-                ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize)
-                    / 10_000)
-                    .max(1)
-            } else {
-                0
-            };
-        let mut extension_nodes_used = 0usize;
-        let mut quiescence_nodes_used = 0usize;
-
-        for candidate in root_moves {
-            if visited_nodes >= config.max_visited_nodes {
-                break;
-            }
-            visited_nodes += 1;
-            let candidate_score = MonsGameModel::evaluate_root_candidate_score(
-                &candidate,
-                perspective,
-                alpha,
-                &mut visited_nodes,
-                config,
-                &mut transposition_table,
-                &mut extension_nodes_used,
-                extension_node_budget,
-                true,
-                &mut quiescence_nodes_used,
-            );
-            alpha = alpha.max(candidate_score);
-            scored_roots.push(root_evaluation_for_test(&candidate, candidate_score));
-        }
-
-        let selected_inputs = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &scored_roots,
-            perspective,
-            config,
-        );
-        assert_eq!(Input::fen_from_array(&selected_inputs), "l0,3;l1,3");
-
-        let plan = turn_engine_candidate_plan(
-            &game,
-            perspective,
-            MonsGameModel::turn_engine_config_from_search_config(config),
-        )
-        .expect("fixture should produce a progress head");
-        assert_eq!(plan.head_family, TurnPlanFamily::SafeSupermanaProgress);
-        assert_eq!(
-            Input::fen_from_array(
-                plan.compiled_chunks
-                    .first()
-                    .expect("turn-engine plan should have a first chunk"),
-            ),
-            "l2,6;l3,7",
-        );
-        assert_eq!(plan.compiled_chunks.len(), 1);
-
-        assert!(
-            !MonsGameModel::accept_turn_engine_head_after_search(
-                &game,
-                perspective,
-                config,
-                &scored_roots,
-                selected_inputs.as_slice(),
-                &plan,
-            ),
-            "a non-concrete one-chunk progress head should not override an unsafe non-progress selected root",
-        );
-        assert_eq!(
-            Input::fen_from_array(&MonsGameModel::smart_search_best_inputs(&game, config)),
-            "l0,3;l1,3",
-        );
-    }
-
-    #[test]
-    fn runtime_preferences_configure_exact_lite_features() {
-        let preferences = [
-            SmartAutomovePreference::Fast,
-            SmartAutomovePreference::Normal,
-            SmartAutomovePreference::Pro,
-        ];
-
-        for preference in preferences {
-            let independent_model =
-                MonsGameModel::with_game(MonsGame::new(false, GameVariant::Classic));
-            let independent_config =
-                independent_model.shipping_search_config_for_preference(preference);
-            if preference == SmartAutomovePreference::Normal {
-                assert!(
-                    independent_config.enable_exact_lite_progress_checks,
-                    "{} should enable exact-lite progress checks in runtime defaults",
-                    preference.as_api_value()
-                );
-                assert!(
-                    independent_config.enable_exact_lite_spirit_window_checks,
-                    "{} should enable exact-lite spirit checks in runtime defaults",
-                    preference.as_api_value()
-                );
-                assert_eq!(
-                    independent_config.exact_lite_root_call_budget,
-                    1,
-                    "{} should set exact-lite root budget to one in runtime defaults",
-                    preference.as_api_value()
-                );
-                assert_eq!(
-                    independent_config.exact_lite_static_call_budget,
-                    1,
-                    "{} should set exact-lite static budget to one in runtime defaults",
-                    preference.as_api_value()
-                );
-            } else {
-                assert!(
-                    !independent_config.enable_exact_lite_progress_checks,
-                    "{} should disable exact-lite progress checks in runtime defaults",
-                    preference.as_api_value()
-                );
-                assert!(
-                    !independent_config.enable_exact_lite_spirit_window_checks,
-                    "{} should disable exact-lite spirit checks in runtime defaults",
-                    preference.as_api_value()
-                );
-                assert_eq!(
-                    independent_config.exact_lite_root_call_budget,
-                    0,
-                    "{} should keep exact-lite root budget at zero in runtime defaults",
-                    preference.as_api_value()
-                );
-                assert_eq!(
-                    independent_config.exact_lite_static_call_budget,
-                    0,
-                    "{} should keep exact-lite static budget at zero in runtime defaults",
-                    preference.as_api_value()
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn forced_drainer_attack_selects_a_drainer_fainting_turn_when_available() {
-        let white_mystic = Mon::new(MonKind::Mystic, Color::White, 0);
-        let white_drainer = Mon::new(MonKind::Drainer, Color::White, 0);
-        let black_drainer = Mon::new(MonKind::Drainer, Color::Black, 0);
-        let game = game_with_items(
-            vec![
-                (Location::new(5, 5), Item::Mon { mon: white_mystic }),
-                (Location::new(10, 5), Item::Mon { mon: white_drainer }),
-                (Location::new(7, 7), Item::Mon { mon: black_drainer }),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (_, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("expected selected inputs to be legal");
-        assert!(MonsGameModel::events_include_opponent_drainer_fainted(
-            &events,
-            Color::White
-        ));
-    }
-
-    #[test]
-    fn forced_drainer_attack_with_bomb_survives_root_enumeration_cutoff() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 2),
-                    Item::Consumable {
-                        consumable: Consumable::BombOrPotion,
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("expected selected bomb inputs to be legal");
-        let attacks_now =
-            MonsGameModel::events_include_opponent_drainer_fainted(&events, Color::White);
-        let mut continuation_budget = SMART_FORCED_DRAINER_ATTACK_FALLBACK_NODE_BUDGET_FAST;
-        let attacks_later_this_turn = after.active_color == Color::White
-            && MonsGameModel::can_attack_opponent_drainer_before_turn_ends(
-                &after,
-                Color::White,
-                SMART_FORCED_DRAINER_ATTACK_FALLBACK_ENUM_LIMIT_FAST,
-                SuggestedStartInputOptions::for_automove(),
-                &mut continuation_budget,
-                &mut U64HashSet::default(),
-            );
-        assert!(
-            attacks_now || attacks_later_this_turn,
-            "selected line must keep same-turn drainer attack reachable"
-        );
-    }
-
-    #[test]
-    fn bounded_lexicographic_transition_prefix_matches_full_sorted_enumeration() {
-        fn signatures(
-            transitions: &[LegalInputTransition],
-        ) -> Vec<(Vec<Input>, String, Vec<Event>)> {
-            transitions
-                .iter()
-                .map(|transition| {
-                    (
-                        transition.inputs.clone(),
-                        transition.game.fen(),
-                        transition.events.clone(),
-                    )
-                })
-                .collect()
-        }
-
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::White, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-        let start_options = MonsGameModel::automove_start_input_options();
-        let full = MonsGameModel::enumerate_legal_transitions(&game, usize::MAX, start_options);
-        let full_signatures = signatures(full.as_slice());
-        assert!(
-            full_signatures.len() >= 4,
-            "fixture should expose a useful prefix"
-        );
-
-        let mut attacker_mask = [false; BOARD_CELLS];
-        for location in
-            MonsGameModel::find_potential_drainer_attacker_locations(&game, Color::White)
-        {
-            attacker_mask[location.index()] = true;
-        }
-        let targeted_full = full
-            .iter()
-            .filter(|transition| {
-                matches!(
-                    transition.inputs.first(),
-                    Some(Input::Location(location)) if attacker_mask[location.index()]
-                )
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-        let targeted_full_signatures = signatures(targeted_full.as_slice());
-        assert!(
-            targeted_full_signatures.len() >= 2,
-            "fixture should expose multiple targeted roots"
-        );
-        assert!(
-            targeted_full_signatures.len() < full_signatures.len(),
-            "targeted mask must exclude at least one full transition"
-        );
-        assert!(full.iter().any(|transition| {
-            !matches!(
-                transition.inputs.first(),
-                Some(Input::Location(location)) if attacker_mask[location.index()]
-            )
-        }));
-
-        let mut unfiltered_caps = (1..=full_signatures.len().min(16)).collect::<Vec<_>>();
-        unfiltered_caps.extend([0, full_signatures.len(), full_signatures.len() + 1]);
-        unfiltered_caps.sort_unstable();
-        unfiltered_caps.dedup();
-        for cap in unfiltered_caps {
-            let bounded = MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
-                &game,
-                cap,
-                start_options,
-                None,
-            );
-            assert_eq!(
-                signatures(bounded.as_slice()),
-                full_signatures
-                    .iter()
-                    .take(cap)
-                    .cloned()
-                    .collect::<Vec<_>>(),
-                "unfiltered lexical prefix diverged at cap {cap}"
-            );
-        }
-
-        let mut targeted_caps = (1..=targeted_full_signatures.len().min(16)).collect::<Vec<_>>();
-        targeted_caps.extend([
-            0,
-            targeted_full_signatures.len(),
-            targeted_full_signatures.len() + 1,
-        ]);
-        targeted_caps.sort_unstable();
-        targeted_caps.dedup();
-        for cap in targeted_caps {
-            let bounded = MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
-                &game,
-                cap,
-                start_options,
-                Some(&attacker_mask),
-            );
-            assert_eq!(
-                signatures(bounded.as_slice()),
-                targeted_full_signatures
-                    .iter()
-                    .take(cap)
-                    .cloned()
-                    .collect::<Vec<_>>(),
-                "targeted lexical prefix diverged at cap {cap}"
-            );
-        }
-
-        let empty_mask = [false; BOARD_CELLS];
-        assert!(
-            MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
-                &game,
-                full_signatures.len() + 1,
-                start_options,
-                Some(&empty_mask),
-            )
-            .is_empty()
-        );
-
-        let mut distinct_root_locations = full
-            .iter()
-            .filter_map(|transition| match transition.inputs.first() {
-                Some(Input::Location(location)) => Some(*location),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        distinct_root_locations.sort_unstable();
-        distinct_root_locations.dedup();
-        assert!(distinct_root_locations.len() >= 2);
-        let manually_selected_root = distinct_root_locations[1];
-        let mut manual_mask = [false; BOARD_CELLS];
-        manual_mask[manually_selected_root.index()] = true;
-        let manual_full = full
-            .iter()
-            .filter(|transition| {
-                matches!(
-                    transition.inputs.first(),
-                    Some(Input::Location(location)) if *location == manually_selected_root
-                )
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-        let manual_bounded = MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
-            &game,
-            manual_full.len() + 1,
-            start_options,
-            Some(&manual_mask),
-        );
-        assert_eq!(
-            signatures(manual_bounded.as_slice()),
-            signatures(manual_full.as_slice())
-        );
-
-        crate::models::automove_deadline::with_test_clock(0.0, || {
-            crate::models::automove_deadline::with_deadline_if_absent(0.0, || {
-                let mut partial = Vec::new();
-                let mut partial_transitions = vec![full[0].clone()];
-                let mut simulated = game.clone_for_simulation();
-                MonsGameModel::collect_legal_transitions_lexicographic_bounded(
-                    &mut simulated,
-                    &mut partial,
-                    &mut partial_transitions,
-                    16,
-                    start_options,
-                    None,
-                );
-                assert!(partial_transitions.is_empty());
-                assert!(
-                    MonsGameModel::enumerate_legal_transitions_lexicographic_bounded(
-                        &game,
-                        16,
-                        start_options,
-                        None,
-                    )
-                    .is_empty()
-                );
-            });
-            assert!(crate::models::automove_deadline::take_previous_timeout());
-        });
-    }
-
-    #[test]
-    fn drainer_vulnerability_detection_respects_friendly_angel_guard() {
-        let white_drainer = Mon::new(MonKind::Drainer, Color::White, 0);
-        let white_angel = Mon::new(MonKind::Angel, Color::White, 0);
-        let black_mystic = Mon::new(MonKind::Mystic, Color::Black, 0);
-
-        let unguarded = game_with_items(
-            vec![
-                (Location::new(5, 5), Item::Mon { mon: white_drainer }),
-                (Location::new(3, 3), Item::Mon { mon: black_mystic }),
-            ],
-            Color::Black,
-            2,
-        );
-        assert!(MonsGameModel::is_own_drainer_immediately_vulnerable(
-            &unguarded,
-            Color::White,
-            false,
-        ));
-
-        let guarded = game_with_items(
-            vec![
-                (Location::new(5, 5), Item::Mon { mon: white_drainer }),
-                (Location::new(5, 4), Item::Mon { mon: white_angel }),
-                (Location::new(3, 3), Item::Mon { mon: black_mystic }),
-            ],
-            Color::Black,
-            2,
-        );
-        assert!(!MonsGameModel::is_own_drainer_immediately_vulnerable(
-            &guarded,
-            Color::White,
-            false,
-        ));
-    }
-
-    #[test]
-    fn drainer_vulnerability_detects_multi_step_mystic_attack() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        assert!(
-            !crate::models::automove_exact::is_drainer_under_immediate_threat(
-                &game.board,
-                Color::White,
-                Location::new(8, 5),
-                false,
-            ),
-            "pure immediate geometry should not already see this multi-step attack"
-        );
-        assert!(
-            !crate::models::automove_exact::is_drainer_under_walk_threat(
-                &game.board,
-                Color::White,
-                Location::new(8, 5),
-                false,
-            ),
-            "one-step walk geometry should not already see this two-step mystic attack"
-        );
-        assert!(MonsGameModel::is_own_drainer_vulnerable_next_turn(
-            &game,
-            Color::White,
-            true,
-        ));
-    }
-
-    #[test]
-    fn selected_line_avoids_drainer_vulnerability_when_safe_root_exists() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let roots = MonsGameModel::ranked_root_moves(&game, Color::White, config);
-        assert!(
-            roots.iter().any(|root| !root.own_drainer_vulnerable),
-            "scenario should offer at least one safe root"
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected drainer-safety inputs should be legal");
-        assert!(
-            !MonsGameModel::is_own_drainer_vulnerable_next_turn(
-                &after,
-                Color::White,
-                true,
-            ),
-            "selected line should keep drainer safe when a safe root exists, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn selected_line_avoids_drainer_vulnerability_with_root_cutoff() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let roots = MonsGameModel::ranked_root_moves(&game, Color::White, config);
-        assert!(
-            roots.iter().any(|root| !root.own_drainer_vulnerable),
-            "scenario should offer at least one safe root"
-        );
-
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected drainer-safety inputs should be legal");
-        assert!(
-            !MonsGameModel::is_own_drainer_vulnerable_next_turn(
-                &after,
-                Color::White,
-                true,
-            ),
-            "selected line should keep drainer safe under capped root enumeration when a safe root exists, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_development_is_preferred_when_drainer_progress_is_still_available() {
-        let spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let spirit_base = Board::new().base(spirit);
-        let game = game_with_items(
-            vec![
-                (spirit_base, Item::Mon { mon: spirit }),
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(1, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, _) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit development inputs should be legal");
-        assert!(
-            !MonsGameModel::has_awake_spirit_on_base(&after.board, Color::White),
-            "selected move should deploy awake spirit off base when core progress remains available"
-        );
-    }
-
-    #[test]
-    fn spirit_scores_opponent_mana_when_immediately_available() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-score inputs should be legal");
-        assert!(
-            after.white_score >= game.white_score + 2,
-            "selected line should score opponent mana immediately, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_scores_own_mana_when_immediately_available() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-score inputs should be legal");
-        assert!(
-            after.white_score > game.white_score,
-            "selected line should score own mana immediately, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn safe_supermana_pickup_is_preferred_when_available() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let white_spirit_base = Board::new().base(white_spirit);
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (white_spirit_base, Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected supermana inputs should be legal");
-        assert!(
-            matches!(
-                after.board.item(Location::new(5, 5)),
-                Some(Item::MonWithMana {
-                    mon,
-                    mana: Mana::Supermana,
-                }) if mon.color == Color::White && mon.kind == MonKind::Drainer
-            ),
-            "selected line should pick up safe supermana, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn safe_opponent_mana_pickup_is_preferred_when_available() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let white_spirit_base = Board::new().base(white_spirit);
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (white_spirit_base, Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected opponent-mana inputs should be legal");
-        assert!(
-            matches!(
-                after.board.item(Location::new(5, 4)),
-                Some(Item::MonWithMana {
-                    mon,
-                    mana: Mana::Regular(Color::Black),
-                }) if mon.color == Color::White && mon.kind == MonKind::Drainer
-            ),
-            "selected line should pick up safe opponent mana, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn unsafe_multi_step_attack_supermana_pickup_is_not_flagged_safe() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let candidate = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true),
-            &[
-                Input::Location(Location::new(9, 5)),
-                Input::Location(Location::new(8, 5)),
-            ],
-        )
-        .expect("supermana pickup inputs should build a scored root");
-
-        assert!(
-            candidate.own_drainer_vulnerable,
-            "pickup square should be exactly vulnerable to the black mystic"
-        );
-        assert!(
-            !candidate.safe_supermana_pickup_now,
-            "unsafe exact-vulnerable supermana pickup must not be flagged safe"
-        );
-    }
-
-    #[test]
-    fn unsafe_multi_step_attack_opponent_mana_pickup_is_not_flagged_safe() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let candidate = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true),
-            &[
-                Input::Location(Location::new(9, 5)),
-                Input::Location(Location::new(8, 5)),
-            ],
-        )
-        .expect("opponent-mana pickup inputs should build a scored root");
-
-        assert!(
-            candidate.own_drainer_vulnerable,
-            "pickup square should be exactly vulnerable to the black mystic"
-        );
-        assert!(
-            !candidate.safe_opponent_mana_pickup_now,
-            "unsafe exact-vulnerable opponent-mana pickup must not be flagged safe"
-        );
-    }
-
-    fn root_evaluation_for_test(candidate: &ScoredRootMove, score: i32) -> RootEvaluation {
-        RootEvaluation {
-            root_rank: 0,
-            score,
-            efficiency: candidate.efficiency,
-            inputs: candidate.inputs.clone(),
-            game: candidate.game.clone(),
-            wins_immediately: candidate.wins_immediately,
-            attacks_opponent_drainer: candidate.attacks_opponent_drainer,
-            own_drainer_vulnerable: candidate.own_drainer_vulnerable,
-            own_drainer_walk_vulnerable: candidate.own_drainer_walk_vulnerable,
-            spirit_development: candidate.spirit_development,
-            keeps_awake_spirit_on_base: candidate.keeps_awake_spirit_on_base,
-            mana_handoff_to_opponent: candidate.mana_handoff_to_opponent,
-            has_roundtrip: candidate.has_roundtrip,
-            scores_supermana_this_turn: candidate.scores_supermana_this_turn,
-            scores_opponent_mana_this_turn: candidate.scores_opponent_mana_this_turn,
-            safe_supermana_pickup_now: candidate.safe_supermana_pickup_now,
-            safe_opponent_mana_pickup_now: candidate.safe_opponent_mana_pickup_now,
-            safe_supermana_progress_steps: candidate.safe_supermana_progress_steps,
-            safe_opponent_mana_progress_steps: candidate.safe_opponent_mana_progress_steps,
-            score_path_best_steps: candidate.score_path_best_steps,
-            same_turn_score_window_value: candidate.same_turn_score_window_value,
-            spirit_setup_gain: candidate.spirit_setup_gain,
-            spirit_same_turn_score_setup_now: candidate.spirit_same_turn_score_setup_now,
-            spirit_own_mana_setup_now: candidate.spirit_own_mana_setup_now,
-            supermana_progress: candidate.supermana_progress,
-            opponent_mana_progress: candidate.opponent_mana_progress,
-            interview_soft_priority: candidate.interview_soft_priority,
-            classes: candidate.classes,
-        }
-    }
-
-    fn turn_engine_projection_for_test(
-        game: &MonsGame,
-        family: TurnPlanFamily,
-        eval_score: i32,
-        marker: Location,
-    ) -> TurnEngineRootProjection {
-        TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(marker)]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(game),
-                utility: TurnEngineUtility::from_eval_score_for_test(eval_score),
-                head_utility: TurnEngineUtility::from_eval_score_for_test(eval_score),
-                head_family: family,
-                goal_family: family,
-                package_meta: TurnPackageMeta::default(),
-            },
-        }
-    }
-
-    fn root_evaluation_for_projection_test(
-        game: &MonsGame,
-        input: Location,
-        score: i32,
-        spirit_development: bool,
-        own_drainer_vulnerable: bool,
-        has_roundtrip: bool,
-    ) -> RootEvaluation {
-        RootEvaluation {
-            root_rank: 0,
-            score,
-            efficiency: 0,
-            inputs: vec![Input::Location(input)],
-            game: game.clone_for_simulation(),
-            wins_immediately: false,
-            attacks_opponent_drainer: false,
-            own_drainer_vulnerable,
-            own_drainer_walk_vulnerable: false,
-            spirit_development,
-            keeps_awake_spirit_on_base: !spirit_development,
-            mana_handoff_to_opponent: false,
-            has_roundtrip,
-            scores_supermana_this_turn: false,
-            scores_opponent_mana_this_turn: false,
-            safe_supermana_pickup_now: false,
-            safe_opponent_mana_pickup_now: false,
-            safe_supermana_progress_steps: Config::BOARD_SIZE + 4,
-            safe_opponent_mana_progress_steps: Config::BOARD_SIZE + 4,
-            score_path_best_steps: Config::BOARD_SIZE * 3,
-            same_turn_score_window_value: 0,
-            spirit_setup_gain: 0,
-            spirit_same_turn_score_setup_now: false,
-            spirit_own_mana_setup_now: false,
-            supermana_progress: false,
-            opponent_mana_progress: false,
-            interview_soft_priority: 0,
-            classes: MoveClassFlags::default(),
-        }
-    }
-
-    #[test]
-    fn white_turn_three_baseline_alignment_override_prefers_split_trace_baseline_root() {
-        let game = MonsGame::from_fen(
-            "0 0 w 1 0 4 0 0 3 n03y0xn03e0xn03/n05a0xn05/n02xxmn01s0xn01d0xn04/n06xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n05xxMn01xxMn03/n03xxMxxMn01xxMn04/E0xn04S0xn05/n05D0xn05/n04A0xn03Y0xn02",
-            false,
-        )
-        .expect("valid white split-trace fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(8, 0),
-            370,
-            false,
-            false,
-            false,
-        );
-        approved.root_rank = 0;
-        approved.safe_supermana_progress_steps = 4;
-        approved.safe_opponent_mana_progress_steps = 5;
-        approved.spirit_setup_gain = 60;
-
-        let mut baseline = root_evaluation_for_projection_test(
-            &game,
-            Location::new(10, 8),
-            393,
-            false,
-            false,
-            false,
-        );
-        baseline.root_rank = 2;
-        baseline.safe_supermana_progress_steps = 4;
-        baseline.safe_opponent_mana_progress_steps = 5;
-        baseline.spirit_setup_gain = 60;
-
-        let scored_roots = [approved, baseline];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_white_turn_three_baseline_alignment_override(
-                &game,
-                &scored_roots,
-                &[0, 1],
-                0,
-                1,
-                config,
-            ),
-            Some(1),
-        );
-    }
-
-    #[test]
-    fn white_turn_three_attack_bridge_escape_prefers_full_root_mana_escape() {
-        let game = MonsGame::from_fen(
-            "0 0 w 0 0 2 0 0 3 n11/n03y0xn01s0xa0xe0xn03/n05d0xn05/n03xxmxxmn01xxmn04/n05xxmn01xxmn03/xxQn04xxUn04xxQ/n01E0xn01xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n04D0xS0xn01Y0xn03/n04A0xn06",
-            false,
-        )
-        .expect("valid white bridge fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(9, 5),
-            95_582,
-            true,
-            false,
-            false,
-        );
-        approved.root_rank = 0;
-        approved.spirit_own_mana_setup_now = true;
-        approved.spirit_setup_gain = 132;
-        approved.safe_supermana_progress_steps = 4;
-        approved.safe_opponent_mana_progress_steps = 5;
-
-        let mut baseline = root_evaluation_for_projection_test(
-            &game,
-            Location::new(6, 1),
-            1_510,
-            false,
-            false,
-            false,
-        );
-        baseline.root_rank = 0;
-        baseline.inputs = vec![
-            Input::Location(Location::new(6, 1)),
-            Input::Location(Location::new(5, 0)),
-            Input::Modifier(Modifier::SelectBomb),
-        ];
-        baseline.spirit_setup_gain = 60;
-        baseline.safe_supermana_progress_steps = 4;
-        baseline.safe_opponent_mana_progress_steps = 5;
-
-        let scored_roots = [approved, baseline];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_white_turn_three_attack_bridge_escape(
-                &game,
-                &scored_roots,
-                &[0],
-                0,
-                config,
-            ),
-            Some(1),
-        );
-    }
-
-    #[test]
-    fn black_late_window_mana_safety_override_allows_rank_zero_escape_with_progress_gain() {
-        let game = MonsGame::from_fen(
-            "3 1 b 1 0 2 0 0 14 n11/n07a0xd0xxxmn01/n01xxmn03s0xn05/n03xxmn07/n05xxmn01e0xn01Y0xn01/n11/n04xxUn01S0xn04/n04xxMn06/n01y0xA0xn04xxMn03/n01D0xn09/n03E1xn07",
-            false,
-        )
-        .expect("valid black late fast trace fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 8),
-            -809_483,
-            false,
-            true,
-            false,
-        );
-        approved.root_rank = 0;
-        approved.inputs = vec![
-            Input::Location(Location::new(1, 8)),
-            Input::Location(Location::new(1, 9)),
-        ];
-        approved.same_turn_score_window_value = 1;
-        approved.safe_supermana_progress_steps = 15;
-        approved.safe_opponent_mana_progress_steps = 15;
-
-        let mut challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 8),
-            -809_492,
-            false,
-            false,
-            false,
-        );
-        challenger.root_rank = 1;
-        challenger.inputs = vec![
-            Input::Location(Location::new(1, 8)),
-            Input::Location(Location::new(0, 8)),
-        ];
-        challenger.safe_supermana_progress_steps = 6;
-        challenger.safe_opponent_mana_progress_steps = 7;
-
-        let scored_roots = [approved, challenger];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_black_late_window_mana_safety_override(
-                &game,
-                &scored_roots,
-                &[0, 1],
-                0,
-                config,
-            ),
-            Some(1),
-        );
-    }
-
-    #[test]
-    fn black_late_window_mana_safety_override_keeps_rank_zero_window_without_progress_gain() {
-        let game = MonsGame::from_fen(
-            "3 1 b 1 0 2 0 0 14 n11/n07a0xd0xxxmn01/n01xxmn03s0xn05/n03xxmn07/n05xxmn01e0xn01Y0xn01/n11/n04xxUn01S0xn04/n04xxMn06/n01y0xA0xn04xxMn03/n01D0xn09/n03E1xn07",
-            false,
-        )
-        .expect("valid black late fast trace fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 8),
-            -809_483,
-            false,
-            true,
-            false,
-        );
-        approved.root_rank = 0;
-        approved.inputs = vec![
-            Input::Location(Location::new(1, 8)),
-            Input::Location(Location::new(1, 9)),
-        ];
-        approved.same_turn_score_window_value = 1;
-        approved.safe_supermana_progress_steps = 15;
-        approved.safe_opponent_mana_progress_steps = 15;
-
-        let mut challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 8),
-            -809_492,
-            false,
-            false,
-            false,
-        );
-        challenger.root_rank = 1;
-        challenger.inputs = vec![
-            Input::Location(Location::new(1, 8)),
-            Input::Location(Location::new(0, 8)),
-        ];
-        challenger.safe_supermana_progress_steps = 15;
-        challenger.safe_opponent_mana_progress_steps = 15;
-
-        let scored_roots = [approved, challenger];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_black_late_window_mana_safety_override(
-                &game,
-                &scored_roots,
-                &[0, 1],
-                0,
-                config,
-            ),
-            None,
-        );
-    }
-
-    #[test]
-    fn black_late_reply_risk_setup_override_prefers_shortlisted_own_setup_root() {
-        let game = MonsGame::from_fen(
-            "1 1 b 0 0 0 0 0 8 d0xn10/n05s0xa0xe0xxxmn02/n11/n07xxmn03/n03xxmn02xxmn04/n10xxQ/n02y0xn01D0UxxMn01xxMn03/n02xxMS0xn01A0xxxMn04/n06Y0xn04/n03E0xn07/n11",
-            false,
-        )
-        .expect("valid black late reply-risk setup fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(6, 2),
-            2155,
-            false,
-            false,
-            false,
-        );
-        approved.root_rank = 2;
-        approved.inputs = vec![
-            Input::Location(Location::new(6, 2)),
-            Input::Location(Location::new(5, 3)),
-        ];
-        approved.safe_supermana_progress_steps = 15;
-        approved.safe_opponent_mana_progress_steps = 6;
-        approved.score_path_best_steps = 33;
-        approved.spirit_setup_gain = 24;
-
-        let mut challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 5),
-            453,
-            true,
-            false,
-            false,
-        );
-        challenger.root_rank = 0;
-        challenger.inputs = vec![
-            Input::Location(Location::new(1, 5)),
-            Input::Location(Location::new(3, 7)),
-            Input::Location(Location::new(2, 8)),
-        ];
-        challenger.spirit_own_mana_setup_now = true;
-        challenger.safe_supermana_progress_steps = 15;
-        challenger.safe_opponent_mana_progress_steps = 6;
-        challenger.score_path_best_steps = 33;
-        challenger.spirit_setup_gain = 96;
-
-        let scored_roots = [approved, challenger];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_black_late_reply_risk_setup_override(
-                &game,
-                &scored_roots,
-                &[1],
-                0,
-                config,
-            ),
-            Some(1),
-        );
-    }
-
-    #[test]
-    fn black_late_reply_risk_setup_override_keeps_small_setup_gain_mana_root() {
-        let game = MonsGame::from_fen(
-            "1 1 b 0 0 0 0 0 8 d0xn10/n05s0xa0xe0xxxmn02/n11/n07xxmn03/n03xxmn02xxmn04/n10xxQ/n02y0xn01D0UxxMn01xxMn03/n02xxMS0xn01A0xxxMn04/n06Y0xn04/n03E0xn07/n11",
-            false,
-        )
-        .expect("valid black late reply-risk setup fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(6, 2),
-            2155,
-            false,
-            false,
-            false,
-        );
-        approved.root_rank = 2;
-        approved.inputs = vec![
-            Input::Location(Location::new(6, 2)),
-            Input::Location(Location::new(5, 3)),
-        ];
-        approved.safe_supermana_progress_steps = 15;
-        approved.safe_opponent_mana_progress_steps = 6;
-        approved.score_path_best_steps = 33;
-        approved.spirit_setup_gain = 24;
-
-        let mut challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 5),
-            453,
-            true,
-            false,
-            false,
-        );
-        challenger.root_rank = 0;
-        challenger.inputs = vec![
-            Input::Location(Location::new(1, 5)),
-            Input::Location(Location::new(3, 7)),
-            Input::Location(Location::new(2, 8)),
-        ];
-        challenger.spirit_own_mana_setup_now = true;
-        challenger.safe_supermana_progress_steps = 15;
-        challenger.safe_opponent_mana_progress_steps = 6;
-        challenger.score_path_best_steps = 33;
-        challenger.spirit_setup_gain = 80;
-
-        let scored_roots = [approved, challenger];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_black_late_reply_risk_setup_override(
-                &game,
-                &scored_roots,
-                &[1],
-                0,
-                config,
-            ),
-            None,
-        );
-    }
-
-    #[test]
-    fn black_late_weak_window_safe_progress_setup_override_prefers_own_setup_progress_root() {
-        let game = MonsGame::from_fen(
-            "2 1 b 0 0 0 0 0 10 n05d0xn03xxmn01/n04a0xn02e0xn03/n05s0xn05/E0xn02xxmn03xxmn03/n05xxmn05/n05xxUn04xxQ/n05xxMn05/n03S0xn01Y0xxxMn04/n03y0xn04xxMn02/n03A0xn07/n05D1xn05",
-            false,
-        )
-        .expect("valid black confirm fast setup split fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(0, 5),
-            -806_965,
-            false,
-            false,
-            false,
-        );
-        approved.root_rank = 1;
-        approved.inputs = vec![
-            Input::Location(Location::new(0, 5)),
-            Input::Location(Location::new(1, 5)),
-        ];
-        approved.supermana_progress = true;
-        approved.safe_supermana_progress_steps = 4;
-        approved.safe_opponent_mana_progress_steps = 5;
-        approved.score_path_best_steps = 33;
-        approved.spirit_setup_gain = 60;
-
-        let mut shortlisted_plain = root_evaluation_for_projection_test(
-            &game,
-            Location::new(2, 5),
-            -806_965,
-            true,
-            false,
-            false,
-        );
-        shortlisted_plain.root_rank = 0;
-        shortlisted_plain.inputs = vec![
-            Input::Location(Location::new(2, 5)),
-            Input::Location(Location::new(0, 5)),
-            Input::Location(Location::new(1, 5)),
-        ];
-        shortlisted_plain.supermana_progress = true;
-        shortlisted_plain.opponent_mana_progress = true;
-        shortlisted_plain.safe_supermana_progress_steps = 4;
-        shortlisted_plain.safe_opponent_mana_progress_steps = 5;
-        shortlisted_plain.score_path_best_steps = 33;
-        shortlisted_plain.spirit_setup_gain = 84;
-
-        let mut shipping = root_evaluation_for_projection_test(
-            &game,
-            Location::new(2, 5),
-            -806_965,
-            true,
-            false,
-            false,
-        );
-        shipping.root_rank = 5;
-        shipping.inputs = vec![
-            Input::Location(Location::new(2, 5)),
-            Input::Location(Location::new(3, 7)),
-            Input::Location(Location::new(2, 8)),
-        ];
-        shipping.spirit_own_mana_setup_now = true;
-        shipping.supermana_progress = true;
-        shipping.safe_supermana_progress_steps = 5;
-        shipping.safe_opponent_mana_progress_steps = 6;
-        shipping.score_path_best_steps = 33;
-        shipping.spirit_setup_gain = 124;
-
-        let scored_roots = [approved, shortlisted_plain, shipping];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_black_late_weak_window_safe_progress_setup_override(
-                &game,
-                &scored_roots,
-                &[2, 1, 0],
-                0,
-                game.active_color,
-                config,
-            ),
-            Some(2),
-        );
-    }
-
-    #[test]
-    fn black_late_weak_window_safe_progress_setup_override_keeps_small_setup_gain_root() {
-        let game = MonsGame::from_fen(
-            "2 1 b 0 0 0 0 0 10 n05d0xn03xxmn01/n04a0xn02e0xn03/n05s0xn05/E0xn02xxmn03xxmn03/n05xxmn05/n05xxUn04xxQ/n05xxMn05/n03S0xn01Y0xxxMn04/n03y0xn04xxMn02/n03A0xn07/n05D1xn05",
-            false,
-        )
-        .expect("valid black confirm fast setup split fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(0, 5),
-            -806_965,
-            false,
-            false,
-            false,
-        );
-        approved.root_rank = 1;
-        approved.inputs = vec![
-            Input::Location(Location::new(0, 5)),
-            Input::Location(Location::new(1, 5)),
-        ];
-        approved.supermana_progress = true;
-        approved.safe_supermana_progress_steps = 4;
-        approved.safe_opponent_mana_progress_steps = 5;
-        approved.score_path_best_steps = 33;
-        approved.spirit_setup_gain = 60;
-
-        let mut challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(2, 5),
-            -806_965,
-            true,
-            false,
-            false,
-        );
-        challenger.root_rank = 5;
-        challenger.inputs = vec![
-            Input::Location(Location::new(2, 5)),
-            Input::Location(Location::new(3, 7)),
-            Input::Location(Location::new(2, 8)),
-        ];
-        challenger.spirit_own_mana_setup_now = true;
-        challenger.supermana_progress = true;
-        challenger.safe_supermana_progress_steps = 5;
-        challenger.safe_opponent_mana_progress_steps = 6;
-        challenger.score_path_best_steps = 33;
-        challenger.spirit_setup_gain = 120;
-
-        let scored_roots = [approved, challenger];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_black_late_weak_window_safe_progress_setup_override(
-                &game,
-                &scored_roots,
-                &[1],
-                0,
-                game.active_color,
-                config,
-            ),
-            None,
-        );
-    }
-
-    #[test]
-    fn white_early_safe_progress_setup_override_allows_large_rank_rescue() {
-        let game = MonsGame::from_fen(
-            "0 0 w 0 0 1 0 0 3 n05d0xn05/n05s0xa0xe0xn03/n03y0xn03xxmn03/n02xxmn01xxmn06/n05xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n05D0xn05/n03E0xn01A0xn01S0xY0xn02/n11",
-            false,
-        )
-        .expect("valid white fast ply10 fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(9, 7),
-            1509,
-            false,
-            false,
-            false,
-        );
-        approved.root_rank = 11;
-        approved.inputs = vec![
-            Input::Location(Location::new(9, 7)),
-            Input::Location(Location::new(8, 6)),
-        ];
-        approved.supermana_progress = true;
-        approved.safe_supermana_progress_steps = 3;
-        approved.safe_opponent_mana_progress_steps = 4;
-        approved.spirit_setup_gain = 68;
-
-        let mut challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(9, 7),
-            1368,
-            true,
-            false,
-            false,
-        );
-        challenger.root_rank = 1;
-        challenger.inputs = vec![
-            Input::Location(Location::new(9, 7)),
-            Input::Location(Location::new(7, 6)),
-            Input::Location(Location::new(7, 7)),
-        ];
-        challenger.spirit_own_mana_setup_now = true;
-        challenger.supermana_progress = true;
-        challenger.opponent_mana_progress = true;
-        challenger.safe_supermana_progress_steps = 3;
-        challenger.safe_opponent_mana_progress_steps = 4;
-        challenger.spirit_setup_gain = 140;
-
-        let scored_roots = [approved, challenger];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_white_early_safe_progress_setup_competition_override(
-                &game,
-                &scored_roots,
-                &[0, 1],
-                0,
-                config,
-            ),
-            Some(1),
-        );
-    }
-
-    #[test]
-    fn white_early_safe_progress_setup_override_keeps_large_gap_without_rank_rescue() {
-        let game = MonsGame::from_fen(
-            "0 0 w 0 0 1 0 0 3 n05d0xn05/n05s0xa0xe0xn03/n03y0xn03xxmn03/n02xxmn01xxmn06/n05xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n05D0xn05/n03E0xn01A0xn01S0xY0xn02/n11",
-            false,
-        )
-        .expect("valid white fast ply10 fen");
-        let mut approved = root_evaluation_for_projection_test(
-            &game,
-            Location::new(9, 7),
-            1509,
-            false,
-            false,
-            false,
-        );
-        approved.root_rank = 5;
-        approved.inputs = vec![
-            Input::Location(Location::new(9, 7)),
-            Input::Location(Location::new(8, 6)),
-        ];
-        approved.supermana_progress = true;
-        approved.safe_supermana_progress_steps = 3;
-        approved.safe_opponent_mana_progress_steps = 4;
-        approved.spirit_setup_gain = 68;
-
-        let mut challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(9, 7),
-            1368,
-            true,
-            false,
-            false,
-        );
-        challenger.root_rank = 1;
-        challenger.inputs = vec![
-            Input::Location(Location::new(9, 7)),
-            Input::Location(Location::new(7, 6)),
-            Input::Location(Location::new(7, 7)),
-        ];
-        challenger.spirit_own_mana_setup_now = true;
-        challenger.supermana_progress = true;
-        challenger.opponent_mana_progress = true;
-        challenger.safe_supermana_progress_steps = 3;
-        challenger.safe_opponent_mana_progress_steps = 4;
-        challenger.spirit_setup_gain = 140;
-
-        let scored_roots = [approved, challenger];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_root_advisor_white_early_safe_progress_setup_competition_override(
-                &game,
-                &scored_roots,
-                &[0, 1],
-                0,
-                config,
-            ),
-            None,
-        );
-    }
-
-    fn ranked_child_state_for_test(
-        game: &MonsGame,
-        hash: u64,
-        ordering_efficiency: i32,
-        classes: MoveClassFlags,
-    ) -> RankedChildState {
-        RankedChildState {
-            game: game.clone_for_simulation(),
-            hash,
-            ordering_efficiency,
-            tactical_extension_trigger: false,
-            quiet_reduction_candidate: false,
-            classes,
-        }
-    }
-
-    #[test]
-    fn child_priority_sort_prefers_higher_exact_ordering_efficiency_when_heuristic_tied() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let mut scored_states = [
-            (100, ranked_child_state_for_test(&game, 1, 0, quiet)),
-            (100, ranked_child_state_for_test(&game, 2, 40, quiet)),
-        ];
-
-        scored_states.sort_by(|a, b| MonsGameModel::compare_ranked_child_entries(a, b, true));
-        assert_eq!(scored_states[0].1.hash, 2);
-    }
-
-    #[test]
-    fn child_priority_sort_prefers_tactical_class_when_efficiency_tied() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let tactical = MoveClassFlags {
-            carrier_progress: true,
-            ..MoveClassFlags::default()
-        };
-        let mut scored_states = [
-            (100, ranked_child_state_for_test(&game, 1, 20, quiet)),
-            (100, ranked_child_state_for_test(&game, 2, 20, tactical)),
-        ];
-
-        scored_states.sort_by(|a, b| MonsGameModel::compare_ranked_child_entries(a, b, true));
-        assert_eq!(scored_states[0].1.hash, 2);
-    }
-
-    #[test]
-    fn quiet_reduction_candidate_skips_carrier_progress_class() {
-        let classes = MoveClassFlags {
-            carrier_progress: true,
-            ..MoveClassFlags::default()
-        };
-
-        assert!(
-            !MonsGameModel::is_quiet_reduction_candidate(-10, false, classes),
-            "carrier-progress child should stay at full depth even when ordering efficiency is non-positive"
-        );
-    }
-
-    #[test]
-    fn quiet_reduction_candidate_still_applies_to_true_quiet_child() {
-        let classes = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-
-        assert!(
-            MonsGameModel::is_quiet_reduction_candidate(0, false, classes),
-            "true quiet child should remain eligible for quiet reduction"
-        );
-    }
-
-    #[test]
-    fn child_search_priority_candidate_includes_positive_exact_continuation() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let child = ranked_child_state_for_test(&game, 1, 20, quiet);
-        assert!(MonsGameModel::is_child_search_priority_candidate(&child));
-    }
-
-    #[test]
-    fn selective_extension_candidate_preserves_existing_tactical_trigger() {
-        let classes = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-
-        assert!(
-            MonsGameModel::is_selective_extension_candidate(true, -20, classes),
-            "existing tactical trigger should still qualify for selective extension"
-        );
-    }
-
-    #[test]
-    fn selective_extension_candidate_includes_positive_carrier_progress() {
-        let classes = MoveClassFlags {
-            carrier_progress: true,
-            ..MoveClassFlags::default()
-        };
-
-        assert!(
-            MonsGameModel::is_selective_extension_candidate(false, 15, classes),
-            "positive exact carrier progress should qualify for selective extension"
-        );
-    }
-
-    #[test]
-    fn selective_extension_candidate_skips_nonpositive_carrier_progress() {
-        let classes = MoveClassFlags {
-            carrier_progress: true,
-            ..MoveClassFlags::default()
-        };
-
-        assert!(
-            !MonsGameModel::is_selective_extension_candidate(false, 0, classes),
-            "non-improving carrier progress should not consume selective extension budget"
-        );
-    }
-
-    #[test]
-    fn selective_extension_candidate_skips_positive_material_only_child() {
-        let classes = MoveClassFlags {
-            material: true,
-            ..MoveClassFlags::default()
-        };
-
-        assert!(
-            !MonsGameModel::is_selective_extension_candidate(false, 20, classes),
-            "material-only child should not consume selective extension budget without a tactical trigger"
-        );
-    }
-
-    #[test]
-    fn pro_tactical_potential_detects_safe_supermana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        assert!(
-            MonsGameModel::has_pro_tactical_potential(&game),
-            "same-turn safe supermana progress should block frontier futility pruning"
-        );
-    }
-
-    #[test]
-    fn pro_tactical_potential_is_false_on_quiet_board() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        assert!(
-            !MonsGameModel::has_pro_tactical_potential(&game),
-            "quiet frontier state should remain eligible for futility pruning"
-        );
-    }
-
-    #[test]
-    fn pro_tactical_potential_detects_spirit_supermana_progress() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 2),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(7, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        assert!(
-            MonsGameModel::has_pro_tactical_potential(&game),
-            "spirit-assisted supermana progress should block frontier futility pruning"
-        );
-    }
-
-    #[test]
-    fn root_focus_scout_score_rewards_exact_safe_supermana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut progress = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(7, 5)),
-                Input::Location(Location::new(6, 5)),
-            ],
-        )
-        .expect("drainer advance should build a scored root");
-        progress.heuristic = 0;
-        progress.efficiency = 0;
-        assert!(progress.supermana_progress);
-        assert!(!progress.safe_supermana_pickup_now);
-        assert!(!progress.spirit_own_mana_setup_now);
-
-        let mut filler = progress.clone();
-        filler.inputs = vec![Input::Location(Location::new(0, 0))];
-        filler.supermana_progress = false;
-        filler.safe_supermana_progress_steps = Config::BOARD_SIZE + 4;
-        filler.heuristic = 0;
-        filler.efficiency = 0;
-
-        assert!(
-            MonsGameModel::root_focus_scout_score(&progress)
-                > MonsGameModel::root_focus_scout_score(&filler),
-            "exact safe supermana progress should improve scout fallback score"
-        );
-    }
-
-    #[test]
-    fn tactical_child_top2_promotes_close_exact_continuation_child() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let mut scored_states = vec![
-            (1_000, ranked_child_state_for_test(&game, 1, 0, quiet)),
-            (995, ranked_child_state_for_test(&game, 2, 0, quiet)),
-            (986, ranked_child_state_for_test(&game, 3, 20, quiet)),
-        ];
-
-        MonsGameModel::enforce_tactical_child_top2(&mut scored_states, true, false);
-        assert_eq!(scored_states[1].1.hash, 3);
-    }
-
-    #[test]
-    fn truncate_child_states_keeps_exact_continuation_within_margin() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let truncated = MonsGameModel::truncate_child_states_with_coverage(
-            vec![
-                (1_000, ranked_child_state_for_test(&game, 1, 0, quiet)),
-                (950, ranked_child_state_for_test(&game, 2, 20, quiet)),
-            ],
-            1,
-            true,
-            false,
-        );
-        assert_eq!(truncated.len(), 1);
-        assert_eq!(truncated[0].1.hash, 2);
-    }
-
-    #[test]
-    fn truncate_child_states_drops_distant_exact_continuation_outside_margin() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let truncated = MonsGameModel::truncate_child_states_with_coverage(
-            vec![
-                (1_000, ranked_child_state_for_test(&game, 1, 0, quiet)),
-                (800, ranked_child_state_for_test(&game, 2, 20, quiet)),
-            ],
-            1,
-            true,
-            false,
-        );
-        assert_eq!(truncated.len(), 1);
-        assert_eq!(truncated[0].1.hash, 1);
-    }
-
-    #[test]
-    fn truncate_root_candidates_keeps_exact_safe_supermana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut progress = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(7, 5)),
-                Input::Location(Location::new(6, 5)),
-            ],
-        )
-        .expect("drainer advance should build a scored root");
-        progress.heuristic = 100;
-        progress.efficiency = 0;
-        assert!(progress.supermana_progress);
-        assert!(progress.safe_supermana_progress_steps < Config::BOARD_SIZE + 4);
-        assert!(!progress.safe_supermana_pickup_now);
-
-        let mut filler_a = progress.clone();
-        filler_a.inputs = vec![Input::Location(Location::new(0, 0))];
-        filler_a.supermana_progress = false;
-        filler_a.safe_supermana_progress_steps = Config::BOARD_SIZE + 4;
-        filler_a.heuristic = 2_000;
-
-        let mut filler_b = filler_a.clone();
-        filler_b.inputs = vec![Input::Location(Location::new(0, 1))];
-        filler_b.heuristic = 1_950;
-
-        progress.heuristic = 1_885;
-
-        let truncated = MonsGameModel::truncate_root_candidates_with_class_coverage(
-            vec![filler_a, filler_b, progress.clone()],
-            2,
-            false,
-        );
-        assert!(
-            truncated
-                .iter()
-                .any(|candidate| candidate.inputs == progress.inputs),
-            "exact safe supermana progress root should survive root branch truncation"
-        );
-    }
-
-    #[test]
-    fn truncate_root_candidates_keeps_exact_safe_opponent_mana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 6),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut progress = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(7, 6)),
-                Input::Location(Location::new(6, 5)),
-            ],
-        )
-        .expect("drainer advance should build a scored root");
-        progress.heuristic = 1_885;
-        progress.efficiency = 0;
-        assert!(progress.opponent_mana_progress);
-        assert!(progress.safe_opponent_mana_progress_steps < Config::BOARD_SIZE + 4);
-        assert!(!progress.safe_opponent_mana_pickup_now);
-
-        let mut filler_a = progress.clone();
-        filler_a.inputs = vec![Input::Location(Location::new(0, 0))];
-        filler_a.opponent_mana_progress = false;
-        filler_a.safe_opponent_mana_progress_steps = Config::BOARD_SIZE + 4;
-        filler_a.heuristic = 2_000;
-
-        let mut filler_b = filler_a.clone();
-        filler_b.inputs = vec![Input::Location(Location::new(0, 1))];
-        filler_b.heuristic = 1_950;
-
-        let truncated = MonsGameModel::truncate_root_candidates_with_class_coverage(
-            vec![filler_a, filler_b, progress.clone()],
-            2,
-            false,
-        );
-        assert!(
-            truncated
-                .iter()
-                .any(|candidate| candidate.inputs == progress.inputs),
-            "exact safe opponent-mana progress root should survive root branch truncation"
-        );
-    }
-
-    #[test]
-    fn truncate_root_candidates_prefers_stronger_exact_same_turn_score_window() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut stronger = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(7, 5)),
-                Input::Location(Location::new(6, 5)),
-            ],
-        )
-        .expect("drainer advance should build a scored root");
-        stronger.inputs = vec![Input::Location(Location::new(1, 1))];
-        stronger.heuristic = 1_900;
-        stronger.efficiency = 0;
-        stronger.same_turn_score_window_value = 2;
-        stronger.spirit_same_turn_score_setup_now = true;
-        stronger.own_drainer_vulnerable = false;
-        stronger.mana_handoff_to_opponent = false;
-
-        let mut weaker = stronger.clone();
-        weaker.inputs = vec![Input::Location(Location::new(0, 0))];
-        weaker.heuristic = 2_000;
-        weaker.same_turn_score_window_value = 1;
-        weaker.spirit_same_turn_score_setup_now = false;
-
-        let truncated = MonsGameModel::truncate_root_candidates_with_class_coverage(
-            vec![weaker, stronger.clone()],
-            1,
-            false,
-        );
-        assert_eq!(truncated.len(), 1);
-        assert_eq!(
-            truncated[0].inputs, stronger.inputs,
-            "stronger exact same-turn score window root should survive branch truncation even when a weaker window root has higher heuristic"
-        );
-    }
-
-    #[test]
-    fn tactical_child_top2_promotes_close_carrier_progress_child() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let carrier_progress = MoveClassFlags {
-            carrier_progress: true,
-            ..MoveClassFlags::default()
-        };
-        let mut scored_states = vec![
-            (1_000, ranked_child_state_for_test(&game, 1, 0, quiet)),
-            (995, ranked_child_state_for_test(&game, 2, 0, quiet)),
-            (
-                992,
-                ranked_child_state_for_test(&game, 3, 20, carrier_progress),
-            ),
-        ];
-
-        MonsGameModel::enforce_tactical_child_top2(&mut scored_states, true, false);
-        assert_eq!(scored_states[1].1.hash, 3);
-    }
-
-    #[test]
-    fn tactical_child_top2_keeps_existing_carrier_progress_in_front() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let quiet = MoveClassFlags {
-            quiet: true,
-            ..MoveClassFlags::default()
-        };
-        let carrier_progress = MoveClassFlags {
-            carrier_progress: true,
-            ..MoveClassFlags::default()
-        };
-        let mut scored_states = vec![
-            (
-                1_000,
-                ranked_child_state_for_test(&game, 1, 20, carrier_progress),
-            ),
-            (995, ranked_child_state_for_test(&game, 2, 0, quiet)),
-            (994, ranked_child_state_for_test(&game, 3, 0, quiet)),
-        ];
-
-        MonsGameModel::enforce_tactical_child_top2(&mut scored_states, true, false);
-        assert_eq!(scored_states[0].1.hash, 1);
-        assert_eq!(scored_states[1].1.hash, 2);
-    }
-
-    #[test]
-    fn opponent_spirit_supermana_progress_child_is_not_quiet_reduced() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(3, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 8),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-            ],
-            Color::Black,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.node_enum_limit = 256;
-        config.node_branch_limit = 64;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::Black, true);
-        let child = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::Black,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(6, 10)),
-                Input::Location(Location::new(5, 8)),
-                Input::Location(Location::new(4, 9)),
-            ],
-        )
-        .expect("mirrored opponent spirit supermana handoff inputs should build a scored root");
-        let child_hash = MonsGameModel::search_state_hash(&child.game);
-
-        let children = MonsGameModel::ranked_child_states(&game, Color::White, false, None, config);
-        let ranked_child = children
-            .iter()
-            .find(|candidate| candidate.hash == child_hash)
-            .expect("ranked child states should include mirrored opponent spirit setup");
-
-        assert!(
-            ranked_child.ordering_efficiency > 0,
-            "dangerous opponent spirit setup should have positive actor-relative ordering efficiency"
-        );
-        assert!(
-            !ranked_child.quiet_reduction_candidate,
-            "dangerous opponent spirit setup should not be marked for quiet reduction"
-        );
-        assert!(
-            MonsGameModel::is_selective_extension_candidate(
-                ranked_child.tactical_extension_trigger,
-                ranked_child.ordering_efficiency,
-                ranked_child.classes,
-            ),
-            "dangerous opponent spirit setup should qualify for selective extension"
-        );
-    }
-
-    #[test]
-    fn shorter_exact_safe_supermana_progress_gets_higher_root_priority() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(7, 5)),
-                Input::Location(Location::new(6, 5)),
-            ],
-        )
-        .expect("short supermana progress inputs should build a scored root");
-        let mut long = short.clone();
-        long.safe_supermana_progress_steps = 2;
-        long.interview_soft_priority = MonsGameModel::interview_root_soft_priority(
-            config,
-            true,
-            false,
-            2,
-            Config::BOARD_SIZE + 4,
-            false,
-            false,
-            false,
-            false,
-            false,
-        );
-
-        assert!(short.supermana_progress);
-        assert_eq!(short.safe_supermana_progress_steps, 1);
-        assert_eq!(
-            short.interview_soft_priority,
-            MonsGameModel::interview_root_soft_priority(
-                config,
-                true,
-                false,
-                1,
-                Config::BOARD_SIZE + 4,
-                false,
-                false,
-                false,
-                false,
-                false,
-            )
-        );
-        assert!(short.interview_soft_priority > long.interview_soft_priority);
-        assert!(MonsGameModel::is_better_tactical_root_candidate(
-            &short, &long
-        ));
-        let picked = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, short.inputs);
-    }
-
-    #[test]
-    fn shorter_exact_safe_opponent_mana_progress_gets_higher_root_priority() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            1,
-        );
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(7, 5)),
-                Input::Location(Location::new(6, 4)),
-            ],
-        )
-        .expect("short opponent mana progress inputs should build a scored root");
-        let mut long = short.clone();
-        long.safe_opponent_mana_progress_steps = 2;
-        long.interview_soft_priority = MonsGameModel::interview_root_soft_priority(
-            config,
-            false,
-            true,
-            Config::BOARD_SIZE + 4,
-            2,
-            false,
-            false,
-            false,
-            false,
-            false,
-        );
-
-        assert!(short.opponent_mana_progress);
-        assert_eq!(short.safe_opponent_mana_progress_steps, 1);
-        assert_eq!(
-            short.interview_soft_priority,
-            MonsGameModel::interview_root_soft_priority(
-                config,
-                false,
-                true,
-                Config::BOARD_SIZE + 4,
-                1,
-                false,
-                false,
-                false,
-                false,
-                false,
-            )
-        );
-        assert!(short.interview_soft_priority > long.interview_soft_priority);
-        assert!(MonsGameModel::is_better_tactical_root_candidate(
-            &short, &long
-        ));
-        let picked = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, short.inputs);
-    }
-
-    #[test]
-    fn ranked_root_moves_surface_safe_opponent_mana_pickup_when_available() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let white_spirit_base = Board::new().base(white_spirit);
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (white_spirit_base, Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let roots = MonsGameModel::ranked_root_moves(
-            &game,
-            Color::White,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-
-        assert!(
-            roots.iter().any(|root| root.safe_opponent_mana_pickup_now),
-            "expected a surfaced safe opponent-mana pickup root, got inputs={:?}",
-            roots
-                .iter()
-                .map(|root| root.inputs.clone())
-                .collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn ranked_root_moves_surface_safe_supermana_pickup_with_root_cutoff_when_available() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let white_spirit_base = Board::new().base(white_spirit);
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (white_spirit_base, Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 1;
-        let roots = MonsGameModel::ranked_root_moves(&game, Color::White, config);
-
-        assert!(
-            roots.iter().any(|root| root.safe_supermana_pickup_now),
-            "expected a surfaced safe supermana pickup root under cutoff, got inputs={:?}",
-            roots
-                .iter()
-                .map(|root| root.inputs.clone())
-                .collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn ranked_root_moves_surface_safe_opponent_mana_pickup_with_root_cutoff_when_available() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let white_spirit_base = Board::new().base(white_spirit);
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (white_spirit_base, Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 1;
-        let roots = MonsGameModel::ranked_root_moves(&game, Color::White, config);
-
-        assert!(
-            roots.iter().any(|root| root.safe_opponent_mana_pickup_now),
-            "expected a surfaced safe opponent-mana pickup root under cutoff, got inputs={:?}",
-            roots
-                .iter()
-                .map(|root| root.inputs.clone())
-                .collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn ranked_root_moves_surface_spirit_opponent_mana_score_when_available() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let roots = MonsGameModel::ranked_root_moves(
-            &game,
-            Color::White,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-
-        assert!(
-            roots.iter().any(|root| {
-                MonsGameModel::apply_inputs_for_search_with_events(&game, &root.inputs)
-                    .map(|(after, events)| {
-                        MonsGameModel::events_include_spirit_target_move(&events)
-                            && MonsGameModel::events_score_opponent_mana(&events, Color::White)
-                            && after.white_score >= game.white_score + 2
-                    })
-                    .unwrap_or(false)
-            }),
-            "expected a surfaced spirit opponent-mana score root, got inputs={:?}",
-            roots
-                .iter()
-                .map(|root| root.inputs.clone())
-                .collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn ranked_root_moves_surface_spirit_setup_into_same_turn_score_when_available() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 0),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        assert!(
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-                .spirit_assisted_score
-        );
-        let roots = MonsGameModel::ranked_root_moves(
-            &game,
-            Color::White,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-
-        assert!(
-            roots.iter().any(|root| {
-                MonsGameModel::apply_inputs_for_search_with_events(&game, &root.inputs)
-                    .map(|(after, _)| {
-                        crate::models::automove_exact::exact_state_analysis(&after)
-                            .color_summary(Color::White)
-                            .immediate_window
-                            .best_score
-                            > 0
-                    })
-                    .unwrap_or(false)
-            }),
-            "expected a surfaced root that preserves the spirit-assisted same-turn score window, got inputs={:?}",
-            roots
-                .iter()
-                .map(|root| root.inputs.clone())
-                .collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn selected_line_preserves_same_turn_supermana_threat_when_available() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let white_spirit_base = Board::new().base(white_spirit);
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (white_spirit_base, Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact_turn_before =
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White);
-        assert!(
-            exact_turn_before.safe_supermana_progress,
-            "scenario should start with an exact same-turn supermana threat"
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected supermana-threat inputs should be legal");
-        let exact_turn_after =
-            crate::models::automove_exact::exact_turn_summary(&after, Color::White);
-        assert!(
-            exact_turn_after.safe_supermana_progress
-                || after.board.occupied().find(|(_, item)| matches!(
-                        item,
-                        Item::MonWithMana {
-                            mon,
-                            mana: Mana::Supermana,
-                        } if mon.color == Color::White && mon.kind == MonKind::Drainer
-                    )).is_some(),
-            "selected line should preserve the exact same-turn supermana threat, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn selected_line_preserves_same_turn_supermana_threat_with_root_cutoff() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let white_spirit_base = Board::new().base(white_spirit);
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (white_spirit_base, Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact_turn_before =
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White);
-        assert!(
-            exact_turn_before.safe_supermana_progress,
-            "scenario should start with an exact same-turn supermana threat"
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected supermana-threat inputs should be legal");
-        let exact_turn_after =
-            crate::models::automove_exact::exact_turn_summary(&after, Color::White);
-        assert!(
-            exact_turn_after.safe_supermana_progress
-                || after.board.occupied().find(|(_, item)| matches!(
-                        item,
-                        Item::MonWithMana {
-                            mon,
-                            mana: Mana::Supermana,
-                        } if mon.color == Color::White && mon.kind == MonKind::Drainer
-                    )).is_some(),
-            "selected line should preserve the exact same-turn supermana threat under capped root enumeration, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_converts_supermana_with_root_cutoff_when_direct_pickup_is_unsafe() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 2),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(7, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-        let exact_turn_before =
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White);
-        assert!(
-            !exact_turn_before.safe_supermana_progress,
-            "direct safe supermana pickup should be unavailable before the spirit move"
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-supermana inputs should be legal");
-        let spirit_supermana_to_safe_drainer =
-            events.iter().any(|event| {
-                matches!(
-                    event,
-                    Event::SpiritTargetMove {
-                        item: Item::Mana {
-                            mana: Mana::Supermana,
-                        },
-                        to,
-                        ..
-                    } if *to == Location::new(10, 2)
-                )
-            }) && after.board.occupied().any(|(location, item)| {
-                matches!(
-                    item,
-                    Item::MonWithMana {
-                        mon,
-                        mana: Mana::Supermana,
-                    } if location == Location::new(10, 2)
-                        && mon.color == Color::White
-                        && mon.kind == MonKind::Drainer
-                )
-            });
-        assert!(
-            after.white_score >= game.white_score + 2 || spirit_supermana_to_safe_drainer,
-            "selected line should convert the spirit supermana opportunity into either an immediate score or a safe drainer handoff under capped root enumeration, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn move_efficiency_rewards_faster_exact_safe_supermana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact_turn_before =
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White);
-        assert_eq!(exact_turn_before.safe_supermana_progress_steps, Some(1));
-
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(
-            &game,
-            &[
-                Input::Location(Location::new(6, 5)),
-                Input::Location(Location::new(5, 5)),
-            ],
-        )
-        .expect("shortening supermana path inputs should be legal");
-        let exact_turn_after =
-            crate::models::automove_exact::exact_turn_summary(&after, Color::White);
-        assert_eq!(exact_turn_after.safe_supermana_progress_steps, Some(0));
-
-        let delta = MonsGameModel::move_efficiency_delta(
-            &game,
-            &after,
-            Color::White,
-            &events,
-            false,
-            false,
-            false,
-            true,
-            false,
-            0,
-            0,
-        );
-        assert!(delta > 0);
-    }
-
-    #[test]
-    fn move_efficiency_rewards_faster_exact_safe_opponent_mana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact_turn_before =
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White);
-        assert_eq!(exact_turn_before.safe_opponent_mana_progress_steps, Some(1));
-
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(
-            &game,
-            &[
-                Input::Location(Location::new(6, 5)),
-                Input::Location(Location::new(5, 4)),
-            ],
-        )
-        .expect("shortening opponent mana path inputs should be legal");
-        let exact_turn_after =
-            crate::models::automove_exact::exact_turn_summary(&after, Color::White);
-        assert_eq!(exact_turn_after.safe_opponent_mana_progress_steps, Some(0));
-
-        let delta = MonsGameModel::move_efficiency_delta(
-            &game,
-            &after,
-            Color::White,
-            &events,
-            false,
-            false,
-            false,
-            true,
-            false,
-            0,
-            0,
-        );
-        assert!(delta > 0);
-    }
-
-    #[test]
-    fn spirit_moves_own_mana_closer_to_pool_when_setup_is_strongest() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let game = game_with_items(
-            vec![
-                (Location::new(9, 7), Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 8),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (_, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-setup inputs should be legal");
-        let spirit_moved_own_mana_closer = events.iter().any(|event| {
-            let Event::SpiritTargetMove {
-                item:
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                from,
-                to,
-                ..
-            } = event
-            else {
-                return false;
-            };
-            let from_pool_steps = from
-                .distance(&Location::new(10, 0))
-                .min(from.distance(&Location::new(10, 10)));
-            let to_pool_steps = to
-                .distance(&Location::new(10, 0))
-                .min(to.distance(&Location::new(10, 10)));
-            to_pool_steps < from_pool_steps
-        });
-        assert!(
-            spirit_moved_own_mana_closer,
-            "selected line should use spirit to move own mana closer to a pool, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_supermana_setup_prefers_shorter_exact_secure_continuation() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        assert!(short.spirit_own_mana_setup_now);
-        assert!(short.supermana_progress);
-        assert!(short.safe_supermana_progress_steps < Config::BOARD_SIZE + 4);
-        assert!(short.score_path_best_steps > 0);
-        assert!(long.score_path_best_steps < short.score_path_best_steps);
-        assert!(MonsGameModel::is_better_tactical_root_candidate(
-            &short, &long
-        ));
-        let picked = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, short.inputs);
-    }
-
-    #[test]
-    fn filtered_root_candidates_prefer_spirit_supermana_exact_secure_continuation() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let filtered = MonsGameModel::filtered_root_candidate_indices(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            Color::White,
-            config,
-        );
-        assert_eq!(filtered, vec![1]);
-    }
-
-    #[test]
-    fn root_priority_sort_prefers_spirit_supermana_exact_continuation_when_heuristic_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        short.heuristic = 100;
-        short.efficiency = 0;
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-        long.heuristic = 100;
-        long.efficiency = 0;
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let mut candidates = vec![long, short];
-        MonsGameModel::sort_root_candidates_by_search_priority(candidates.as_mut_slice());
-
-        let short_pos = candidates
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should remain in sorted roots");
-        let long_pos = candidates
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should remain in sorted roots");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn ranked_score_sort_prefers_spirit_supermana_exact_continuation_when_score_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let ordered =
-            MonsGameModel::sort_root_moves_by_ranked_scores(vec![long, short], &[100, 100]);
-        let short_pos = ordered
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should remain in ranked-score order");
-        let long_pos = ordered
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should remain in ranked-score order");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn reply_risk_shortlist_prefers_spirit_supermana_exact_continuation_when_score_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_reply_risk_score_margin = 0;
-        config.root_reply_risk_shortlist_max = 1;
-        config.root_reply_risk_reply_limit = 1;
-        config.root_reply_risk_node_share_bp = 1_000;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let picked = MonsGameModel::pick_root_move_with_reply_risk_guard(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            &[0, 1],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, Some(1));
-    }
-
-    #[test]
-    fn reply_risk_spirit_tiebreak_stays_ahead_of_turn_engine_projection_ordering() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.enable_turn_engine_selector = true;
-        config.enable_interview_deterministic_tiebreak = true;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("short spirit supermana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let scored_roots = [
-            root_evaluation_for_test(&long, 100),
-            root_evaluation_for_test(&short, 100),
-        ];
-        let snapshot = RootReplyRiskSnapshot {
-            allows_immediate_opponent_win: false,
-            opponent_reaches_match_point: false,
-            worst_reply_score: 100,
-        };
-        let short_projection = turn_engine_projection_for_test(
-            &scored_roots[1].game,
-            TurnPlanFamily::ImmediateScore,
-            10,
-            Location::new(1, 0),
-        );
-        let long_projection = turn_engine_projection_for_test(
-            &scored_roots[0].game,
-            TurnPlanFamily::DrainerKill,
-            200,
-            Location::new(0, 0),
-        );
-
-        assert!(
-            MonsGameModel::is_better_reply_risk_candidate(
-                &game,
-                1,
-                snapshot,
-                0,
-                snapshot,
-                Some(&short_projection),
-                Some(&long_projection),
-                &scored_roots,
-                Color::White,
-                config,
-                &mut std::collections::HashMap::new(),
-            ),
-            "spirit/setup deterministic tie-break should win before turn-engine plan ordering",
-        );
-    }
-
-    #[test]
-    fn focused_root_candidates_prioritize_spirit_supermana_exact_continuation_when_scout_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.depth = 2;
-        config.root_focus_k = 2;
-        config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        short.heuristic = 100;
-        short.efficiency = 0;
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-        long.heuristic = 100;
-        long.efficiency = 0;
-
-        let mut filler = short.clone();
-        filler.inputs = vec![Input::Location(Location::new(0, 1))];
-        filler.spirit_own_mana_setup_now = false;
-        filler.supermana_progress = false;
-        filler.score_path_best_steps = Config::BOARD_SIZE * 3;
-        filler.safe_supermana_progress_steps = Config::BOARD_SIZE + 4;
-        filler.heuristic = 2_000;
-        filler.efficiency = 0;
-
-        let mut low = short.clone();
-        low.inputs = vec![Input::Location(Location::new(0, 2))];
-        low.spirit_own_mana_setup_now = false;
-        low.supermana_progress = false;
-        low.score_path_best_steps = Config::BOARD_SIZE * 3;
-        low.safe_supermana_progress_steps = Config::BOARD_SIZE + 4;
-        low.heuristic = -1_000;
-        low.efficiency = 0;
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let (focused, _) = MonsGameModel::focused_root_candidates(
-            &game,
-            Color::White,
-            vec![long, filler, low, short],
-            config,
-            true,
-        );
-        let short_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should survive focus");
-        let long_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should survive focus");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn focused_root_candidates_keep_exact_safe_supermana_progress_with_scout_bonus() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.depth = 2;
-        config.root_focus_k = 1;
-        config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut progress = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(7, 5)),
-                Input::Location(Location::new(6, 5)),
-            ],
-        )
-        .expect("drainer advance should build a scored root");
-        progress.heuristic = 0;
-        progress.efficiency = 0;
-        assert!(progress.supermana_progress);
-        assert!(!progress.safe_supermana_pickup_now);
-        assert!(!progress.spirit_own_mana_setup_now);
-
-        let mut filler = progress.clone();
-        filler.inputs = vec![Input::Location(Location::new(0, 0))];
-        filler.supermana_progress = false;
-        filler.safe_supermana_progress_steps = Config::BOARD_SIZE + 4;
-        filler.score_path_best_steps = Config::BOARD_SIZE * 3;
-        filler.heuristic = 2_500;
-        filler.efficiency = 0;
-
-        let progress_inputs = progress.inputs.clone();
-        let (focused, _) = MonsGameModel::focused_root_candidates(
-            &game,
-            Color::White,
-            vec![filler, progress],
-            config,
-            true,
-        );
-
-        assert!(
-            focused.iter().any(|candidate| candidate.inputs == progress_inputs),
-            "exact safe supermana progress root should survive scout focus despite lower raw heuristic"
-        );
-    }
-
-    #[test]
-    fn focused_root_candidates_prioritize_spirit_supermana_exact_continuation_on_narrow_spread_fallback(
-    ) {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.depth = 2;
-        config.root_focus_k = 2;
-        config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit supermana handoff inputs should build a scored root");
-        short.heuristic = 100;
-        short.efficiency = 0;
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_supermana_progress_steps = short.safe_supermana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-        long.heuristic = 100;
-        long.efficiency = 0;
-
-        let mut filler = short.clone();
-        filler.inputs = vec![Input::Location(Location::new(0, 1))];
-        filler.spirit_own_mana_setup_now = false;
-        filler.supermana_progress = false;
-        filler.score_path_best_steps = Config::BOARD_SIZE * 3;
-        filler.safe_supermana_progress_steps = Config::BOARD_SIZE + 4;
-        filler.heuristic = 0;
-        filler.efficiency = 0;
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let (focused, _) = MonsGameModel::focused_root_candidates(
-            &game,
-            Color::White,
-            vec![long, filler, short],
-            config,
-            true,
-        );
-        assert_eq!(focused.len(), 3);
-        let short_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should survive narrow fallback");
-        let long_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should survive narrow fallback");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn spirit_opponent_mana_setup_prefers_shorter_exact_secure_continuation() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        assert!(short.spirit_own_mana_setup_now);
-        assert!(short.opponent_mana_progress);
-        assert!(short.safe_opponent_mana_progress_steps < Config::BOARD_SIZE + 4);
-        assert!(short.score_path_best_steps > 0);
-        assert!(long.score_path_best_steps < short.score_path_best_steps);
-        assert!(MonsGameModel::is_better_tactical_root_candidate(
-            &short, &long
-        ));
-        let picked = MonsGameModel::pick_root_move_with_exploration(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, short.inputs);
-    }
-
-    #[test]
-    fn close_spirit_projection_prefers_immediate_score_goal_when_primary_axes_tie() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let winning_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 3))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 606),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, -306, -220, 0, -1, 403,
-                ),
-                head_family: TurnPlanFamily::SpiritImpact,
-                goal_family: TurnPlanFamily::ImmediateScore,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let losing_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 4))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 790),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, -306, -220, 0, -1, 403,
-                ),
-                head_family: TurnPlanFamily::SpiritImpact,
-                goal_family: TurnPlanFamily::SpiritImpact,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-
-        assert_eq!(
-            MonsGameModel::compare_spirit_root_projection_plans(
-                &winning_projection,
-                &losing_projection,
-                true,
-            ),
-            std::cmp::Ordering::Greater,
-        );
-    }
-
-    #[test]
-    fn current_pro_prefers_tactical_goal_then_safe_recovery() {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        game.turn_number = 2;
-
-        let mut spirit_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 3),
-            924,
-            true,
-            false,
-            false,
-        );
-        spirit_root.efficiency = 90;
-        let mut progress_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 5),
-            924,
-            true,
-            false,
-            false,
-        );
-        progress_root.efficiency = 90;
-
-        let mut spirit_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 3))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 365),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, 594, -220, 0, 2, 479,
-                ),
-                head_family: TurnPlanFamily::SpiritImpact,
-                goal_family: TurnPlanFamily::ImmediateScore,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let progress_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 5))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 898),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, -306, -220, 0, -1, 346,
-                ),
-                head_family: TurnPlanFamily::SafeSupermanaProgress,
-                goal_family: TurnPlanFamily::DrainerSafetyRecovery,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let scored_roots = [spirit_root, progress_root];
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Pro);
-        config.enable_turn_engine_selector = true;
-        config.turn_engine_mode = TurnEngineMode::CurrentPro;
-
-        assert_eq!(
-            MonsGameModel::current_pro_mixed_plain_spirit_projection_order(
-                &game,
-                &scored_roots,
-                0,
-                &spirit_projection,
-                1,
-                &progress_projection,
-                Color::Black,
-                config,
-                &mut std::collections::HashMap::new(),
-            ),
-            Some(std::cmp::Ordering::Greater),
-        );
-
-        spirit_projection.plan.goal_family = TurnPlanFamily::SpiritImpact;
-        assert_eq!(
-            MonsGameModel::current_pro_mixed_plain_spirit_projection_order(
-                &game,
-                &scored_roots,
-                1,
-                &progress_projection,
-                0,
-                &spirit_projection,
-                Color::Black,
-                config,
-                &mut std::collections::HashMap::new(),
-            ),
-            Some(std::cmp::Ordering::Greater),
-        );
-    }
-
-    #[test]
-    fn current_pro_spirit_challenge_accepts_only_safe_non_spirit_roots() {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.active_color = Color::Black;
-        let spirit_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 4),
-            924,
-            true,
-            false,
-            false,
-        );
-        let challenger_root = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 2),
-            904,
-            false,
-            false,
-            false,
-        );
-        let spirit_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 4))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 572, -220, 0, 2, 790),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, 572, -220, 0, 2, 503,
-                ),
-                head_family: TurnPlanFamily::SpiritImpact,
-                goal_family: TurnPlanFamily::SpiritImpact,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-        let challenger_projection = TurnEngineRootProjection {
-            plan: TurnPlan {
-                actions: Vec::new(),
-                compiled_chunks: vec![vec![Input::Location(Location::new(1, 2))]],
-                end_game: game.clone_for_simulation(),
-                end_snapshot: TurnSnapshot::from_game(&game),
-                utility: TurnEngineUtility::from_components_for_test(0, 1, 616, -220, 0, 2, 640),
-                head_utility: TurnEngineUtility::from_components_for_test(
-                    0, 1, 616, -220, 0, 2, 520,
-                ),
-                head_family: TurnPlanFamily::ManaTempo,
-                goal_family: TurnPlanFamily::ImmediateScore,
-                package_meta: TurnPackageMeta::default(),
-            },
-        };
-
-        assert_eq!(
-            MonsGameModel::current_pro_spirit_projection_challenge_order(
-                &challenger_root,
-                Some(&challenger_projection),
-                &spirit_root,
-                Some(&spirit_projection),
-            ),
-            Some(std::cmp::Ordering::Greater),
-        );
-
-        let unsafe_challenger = root_evaluation_for_projection_test(
-            &game,
-            Location::new(1, 2),
-            904,
-            false,
-            true,
-            false,
-        );
-        let unsafe_projection = turn_engine_projection_for_test(
-            &game,
-            TurnPlanFamily::ManaTempo,
-            900,
-            Location::new(1, 2),
-        );
-        assert_eq!(
-            MonsGameModel::current_pro_spirit_projection_challenge_order(
-                &unsafe_challenger,
-                Some(&unsafe_projection),
-                &spirit_root,
-                Some(&spirit_projection),
-            ),
-            None,
-        );
-    }
-
-    #[test]
-    fn filtered_root_candidates_prefer_spirit_opponent_exact_secure_continuation() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let filtered = MonsGameModel::filtered_root_candidate_indices(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            Color::White,
-            config,
-        );
-        assert_eq!(filtered, vec![1]);
-    }
-
-    #[test]
-    fn root_priority_sort_prefers_spirit_opponent_exact_continuation_when_heuristic_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        short.heuristic = 100;
-        short.efficiency = 0;
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-        long.heuristic = 100;
-        long.efficiency = 0;
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let mut candidates = vec![long, short];
-        MonsGameModel::sort_root_candidates_by_search_priority(candidates.as_mut_slice());
-
-        let short_pos = candidates
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should remain in sorted roots");
-        let long_pos = candidates
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should remain in sorted roots");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn ranked_score_sort_prefers_spirit_opponent_exact_continuation_when_score_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let ordered =
-            MonsGameModel::sort_root_moves_by_ranked_scores(vec![long, short], &[100, 100]);
-        let short_pos = ordered
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should remain in ranked-score order");
-        let long_pos = ordered
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should remain in ranked-score order");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn reply_risk_shortlist_prefers_spirit_opponent_exact_continuation_when_score_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_reply_risk_score_margin = 0;
-        config.root_reply_risk_shortlist_max = 1;
-        config.root_reply_risk_reply_limit = 1;
-        config.root_reply_risk_node_share_bp = 1_000;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-
-        let picked = MonsGameModel::pick_root_move_with_reply_risk_guard(
-            &game,
-            &[
-                root_evaluation_for_test(&long, 100),
-                root_evaluation_for_test(&short, 100),
-            ],
-            &[0, 1],
-            Color::White,
-            config,
-        );
-        assert_eq!(picked, Some(1));
-    }
-
-    #[test]
-    fn focused_root_candidates_prioritize_spirit_opponent_exact_continuation_when_scout_tied() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.depth = 2;
-        config.root_focus_k = 2;
-        config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        short.heuristic = 100;
-        short.efficiency = 0;
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-        long.heuristic = 100;
-        long.efficiency = 0;
-
-        let mut filler = short.clone();
-        filler.inputs = vec![Input::Location(Location::new(0, 1))];
-        filler.spirit_own_mana_setup_now = false;
-        filler.opponent_mana_progress = false;
-        filler.score_path_best_steps = Config::BOARD_SIZE * 3;
-        filler.safe_opponent_mana_progress_steps = Config::BOARD_SIZE + 4;
-        filler.heuristic = 2_000;
-        filler.efficiency = 0;
-
-        let mut low = short.clone();
-        low.inputs = vec![Input::Location(Location::new(0, 2))];
-        low.spirit_own_mana_setup_now = false;
-        low.opponent_mana_progress = false;
-        low.score_path_best_steps = Config::BOARD_SIZE * 3;
-        low.safe_opponent_mana_progress_steps = Config::BOARD_SIZE + 4;
-        low.heuristic = -1_000;
-        low.efficiency = 0;
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let (focused, _) = MonsGameModel::focused_root_candidates(
-            &game,
-            Color::White,
-            vec![long, filler, low, short],
-            config,
-            true,
-        );
-        let short_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should survive focus");
-        let long_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should survive focus");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn focused_root_candidates_prioritize_spirit_opponent_exact_continuation_on_narrow_spread_fallback(
-    ) {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 2),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.depth = 2;
-        config.root_focus_k = 2;
-        config.enable_two_pass_root_allocation = true;
-        let own_drainer_vulnerable_before =
-            MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut short = MonsGameModel::build_scored_root_move(
-            &game,
-            Color::White,
-            config,
-            own_drainer_vulnerable_before,
-            &[
-                Input::Location(Location::new(4, 0)),
-                Input::Location(Location::new(5, 2)),
-                Input::Location(Location::new(6, 1)),
-            ],
-        )
-        .expect("spirit opponent mana handoff inputs should build a scored root");
-        short.heuristic = 100;
-        short.efficiency = 0;
-        let mut long = short.clone();
-        long.inputs = vec![Input::Location(Location::new(0, 0))];
-        long.safe_opponent_mana_progress_steps = short.safe_opponent_mana_progress_steps + 2;
-        long.score_path_best_steps = short.score_path_best_steps.saturating_sub(1);
-        long.heuristic = 100;
-        long.efficiency = 0;
-
-        let mut filler = short.clone();
-        filler.inputs = vec![Input::Location(Location::new(0, 1))];
-        filler.spirit_own_mana_setup_now = false;
-        filler.opponent_mana_progress = false;
-        filler.score_path_best_steps = Config::BOARD_SIZE * 3;
-        filler.safe_opponent_mana_progress_steps = Config::BOARD_SIZE + 4;
-        filler.heuristic = 0;
-        filler.efficiency = 0;
-
-        let short_inputs = short.inputs.clone();
-        let long_inputs = long.inputs.clone();
-        let (focused, _) = MonsGameModel::focused_root_candidates(
-            &game,
-            Color::White,
-            vec![long, filler, short],
-            config,
-            true,
-        );
-        assert_eq!(focused.len(), 3);
-        let short_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == short_inputs)
-            .expect("short spirit root should survive narrow fallback");
-        let long_pos = focused
-            .iter()
-            .position(|candidate| candidate.inputs == long_inputs)
-            .expect("long spirit root should survive narrow fallback");
-        assert!(short_pos < long_pos);
-    }
-
-    #[test]
-    fn spirit_moves_opponent_mana_closer_to_pool_when_setup_is_strongest() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let game = game_with_items(
-            vec![
-                (Location::new(9, 7), Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 8),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (_, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-opponent-setup inputs should be legal");
-        let spirit_moved_opponent_mana_closer = events.iter().any(|event| {
-            let Event::SpiritTargetMove {
-                item:
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                from,
-                to,
-                ..
-            } = event
-            else {
-                return false;
-            };
-            let from_pool_steps = from
-                .distance(&Location::new(10, 0))
-                .min(from.distance(&Location::new(10, 10)));
-            let to_pool_steps = to
-                .distance(&Location::new(10, 0))
-                .min(to.distance(&Location::new(10, 10)));
-            to_pool_steps < from_pool_steps
-        });
-        assert!(
-            spirit_moved_opponent_mana_closer,
-            "selected line should use spirit to move opponent mana closer to a pool, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn spirit_moves_opponent_mana_closer_to_pool_with_root_cutoff_when_setup_is_strongest() {
-        let white_spirit = Mon::new(MonKind::Spirit, Color::White, 0);
-        let game = game_with_items(
-            vec![
-                (Location::new(9, 7), Item::Mon { mon: white_spirit }),
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 8),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (_, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-opponent-setup inputs should be legal");
-        let spirit_moved_opponent_mana_closer = events.iter().any(|event| {
-            let Event::SpiritTargetMove {
-                item:
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                from,
-                to,
-                ..
-            } = event
-            else {
-                return false;
-            };
-            let from_pool_steps = from
-                .distance(&Location::new(10, 0))
-                .min(from.distance(&Location::new(10, 10)));
-            let to_pool_steps = to
-                .distance(&Location::new(10, 0))
-                .min(to.distance(&Location::new(10, 10)));
-            to_pool_steps < from_pool_steps
-        });
-        assert!(
-            spirit_moved_opponent_mana_closer,
-            "selected line should use spirit to move opponent mana closer to a pool under capped root enumeration, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn selected_line_preserves_same_turn_opponent_mana_threat_when_available() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 3),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let exact_turn_before =
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White);
-        assert!(
-            exact_turn_before.safe_opponent_mana_progress
-                || exact_turn_before.spirit_assisted_denial,
-            "scenario should start with an exact same-turn opponent-mana threat"
-        );
-
-        let inputs = MonsGameModel::smart_search_best_inputs(
-            &game,
-            AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast),
-        );
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected spirit-setup inputs should be legal");
-        let exact_turn_after =
-            crate::models::automove_exact::exact_turn_summary(&after, Color::White);
-        assert!(
-            exact_turn_after.safe_opponent_mana_progress || exact_turn_after.spirit_assisted_denial,
-            "selected line should preserve the exact same-turn opponent-mana threat, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn selected_line_preserves_same_turn_opponent_mana_threat_with_root_cutoff() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 3),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        let exact_turn_before =
-            crate::models::automove_exact::exact_turn_summary(&game, Color::White);
-        assert!(
-            exact_turn_before.safe_opponent_mana_progress
-                || exact_turn_before.spirit_assisted_denial,
-            "scenario should start with an exact same-turn opponent-mana threat"
-        );
-
-        let mut config = AutomoveSearchConfig::from_preference(SmartAutomovePreference::Fast);
-        config.root_enum_limit = 0;
-        let inputs = MonsGameModel::smart_search_best_inputs(&game, config);
-        let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(&game, &inputs)
-            .expect("selected opponent-mana-threat inputs should be legal");
-        let exact_turn_after =
-            crate::models::automove_exact::exact_turn_summary(&after, Color::White);
-        assert!(
-            exact_turn_after.safe_opponent_mana_progress || exact_turn_after.spirit_assisted_denial,
-            "selected line should preserve the exact same-turn opponent-mana threat under capped root enumeration, inputs={:?}, events={:?}",
-            inputs,
-            events
-        );
-    }
-
-    #[test]
-    fn legal_transition_enumeration_matches_apply_helper() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let transitions = MonsGameModel::enumerate_legal_transitions(
-            &game,
-            64,
-            SuggestedStartInputOptions::for_automove(),
-        );
-        assert!(!transitions.is_empty());
-
-        for transition in transitions.iter().take(16) {
-            let (after, events) = MonsGameModel::apply_inputs_for_search_with_events(
-                &game,
-                transition.inputs.as_slice(),
-            )
-            .expect("enumerated transition input should remain legal");
-            assert_eq!(after.fen(), transition.game.fen());
-            assert_eq!(events, transition.events);
-        }
-    }
-
-    #[test]
-    fn exact_drainer_attack_oracle_matches_exhaustive_same_turn_search() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact = crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-            .can_attack_opponent_drainer;
-        let exhaustive = exhaustive_same_turn_reachable(&game, Color::White, |_, events| {
-            MonsGameModel::events_include_opponent_drainer_fainted(events, Color::White)
-        });
-
-        assert_eq!(exact, exhaustive);
-    }
-
-    #[test]
-    fn exact_drainer_vulnerability_oracle_matches_exhaustive_next_turn_search() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact = MonsGameModel::is_own_drainer_vulnerable_next_turn(&game, Color::White, true);
-        let mut opponent_turn = game.clone_for_simulation();
-        opponent_turn.active_color = Color::Black;
-        opponent_turn.actions_used_count = 0;
-        opponent_turn.mons_moves_count = 0;
-        let exhaustive =
-            exhaustive_same_turn_reachable(&opponent_turn, Color::Black, |_, events| {
-                MonsGameModel::events_include_opponent_drainer_fainted(events, Color::Black)
-            });
-
-        assert_eq!(exact, exhaustive);
-    }
-
-    #[test]
-    fn exact_drainer_pickup_score_oracle_matches_exhaustive_same_turn_search() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact = crate::models::automove_exact::exact_state_analysis(&game)
-            .white
-            .best_drainer_pickup
-            .is_some_and(|path| path.total_moves <= Config::MONS_MOVES_PER_TURN);
-        let exhaustive = exhaustive_same_turn_reachable(&game, Color::White, |state, _| {
-            state.white_score > game.white_score
-        });
-
-        assert_eq!(exact, exhaustive);
-    }
-
-    #[test]
-    fn exact_safe_supermana_progress_oracle_matches_reachable_state_search() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact = crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-            .safe_supermana_progress;
-        let exhaustive = exhaustive_same_turn_reachable(&game, Color::White, |state, _| {
-            drainer_carries_exact_safe_mana(&state.board, Color::White, Mana::Supermana)
-        });
-
-        assert_eq!(exact, exhaustive);
-    }
-
-    #[test]
-    fn exact_spirit_supermana_progress_oracle_matches_exhaustive_same_turn_search() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 2),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(5, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let exact = crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-            .spirit_assisted_supermana_progress;
-        let exhaustive = exhaustive_same_turn_reachable(&game, Color::White, |state, _| {
-            state.white_score > game.white_score
-                || drainer_carries_exact_safe_mana(&state.board, Color::White, Mana::Supermana)
-        });
-
-        assert_eq!(exact, exhaustive);
-    }
-
-    #[test]
-    fn exact_spirit_opponent_mana_progress_oracle_matches_exhaustive_same_turn_search() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 2),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(5, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let exact = crate::models::automove_exact::exact_turn_summary(&game, Color::White)
-            .spirit_assisted_opponent_mana_progress;
-        let exhaustive = exhaustive_same_turn_reachable(&game, Color::White, |state, _| {
-            state.white_score > game.white_score
-                || drainer_carries_exact_safe_mana(
-                    &state.board,
-                    Color::White,
-                    Mana::Regular(Color::Black),
-                )
-        });
-
-        assert_eq!(exact, exhaustive);
-    }
-
-    #[test]
-    fn exact_spirit_opponent_mana_score_oracle_matches_exhaustive_same_turn_search() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-            2,
-        );
-
-        let exact = crate::models::automove_exact::exact_state_analysis(&game)
-            .white
-            .spirit
-            .same_turn_opponent_mana_score;
-        let exhaustive = exhaustive_same_turn_reachable(&game, Color::White, |state, _| {
-            state.white_score > game.white_score
-        });
-
-        assert_eq!(exact, exhaustive);
-    }
-
-    #[test]
-    fn model_remove_item_invalidates_cached_start_suggestions() {
-        let mut model = MonsGameModel::new_for_simulation(GameVariant::Classic);
-        let initial_suggestions = match model.game.process_input(vec![], true, false) {
-            Output::LocationsToStartFrom(locations) => locations,
-            output => panic!("expected start locations, got {:?}", output),
-        };
-        let removed = initial_suggestions
-            .iter()
-            .copied()
-            .find(|location| model.game.board.item(*location).is_some())
-            .expect("expected removable starting piece");
-
-        model.remove_item(removed);
-
-        let updated_suggestions = match model.game.process_input(vec![], true, false) {
-            Output::LocationsToStartFrom(locations) => locations,
-            output => panic!("expected start locations after removal, got {:?}", output),
-        };
-        assert!(!updated_suggestions.contains(&removed));
     }
 }
 

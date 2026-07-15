@@ -1,7 +1,7 @@
 use crate::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
-pub enum Input {
+pub(crate) enum Input {
     Takeback,
     Location(Location),
     Modifier(Modifier),

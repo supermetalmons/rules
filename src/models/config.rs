@@ -1,6 +1,8 @@
 use crate::models::location::BOARD_CELLS;
 use crate::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(target_arch = "wasm32")]
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
 #[wasm_bindgen]
@@ -199,17 +201,11 @@ static CORNER_CHAIN_MANA_ROWS_SQUARES_ARRAY: LazyLock<[Square; BOARD_CELLS]> =
     });
 static CORNER_CHAIN_MANA_ROWS_INITIAL_ITEMS_ARRAY: LazyLock<[Option<Item>; BOARD_CELLS]> =
     LazyLock::new(|| Config::build_initial_items_array(GameVariant::CornerChainManaRows));
+#[cfg(target_arch = "wasm32")]
 static MONS_BASES_SET: LazyLock<HashSet<Location>> =
     LazyLock::new(|| Config::MONS_BASE_LOCATIONS.iter().copied().collect());
-static IS_MON_BASE: LazyLock<[bool; BOARD_CELLS]> = LazyLock::new(|| {
-    let mut arr = [false; BOARD_CELLS];
-    for loc in &Config::MONS_BASE_LOCATIONS {
-        arr[loc.index()] = true;
-    }
-    arr
-});
 
-pub struct Config;
+pub(crate) struct Config;
 
 impl Config {
     pub const BOARD_SIZE: i32 = 11;
@@ -651,16 +647,9 @@ impl Config {
         }
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn squares_ref() -> &'static HashMap<Location, Square> {
         Self::squares_ref_for_variant(GameVariant::DEFAULT)
-    }
-
-    pub fn squares_for_variant(variant: GameVariant) -> HashMap<Location, Square> {
-        Self::squares_ref_for_variant(variant).clone()
-    }
-
-    pub fn squares() -> HashMap<Location, Square> {
-        Self::squares_for_variant(GameVariant::DEFAULT)
     }
 
     #[inline]
@@ -702,40 +691,6 @@ impl Config {
         Self::square_at_for_variant(location, GameVariant::DEFAULT)
     }
 
-    pub fn squares_array_for_variant(variant: GameVariant) -> &'static [Square; BOARD_CELLS] {
-        match variant {
-            GameVariant::Classic => &CLASSIC_SQUARES_ARRAY,
-            GameVariant::SwappedManaRows => &SWAPPED_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::OffsetArcManaRows => &OFFSET_ARC_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::CenterSpokeManaRows => &CENTER_SPOKE_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::AlternatingManaRows => &ALTERNATING_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::InnerWedgeManaRows => &INNER_WEDGE_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::OuterWedgeManaRows => &OUTER_WEDGE_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::BentCenterManaRows => &BENT_CENTER_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::OuterEdgeManaRows => &OUTER_EDGE_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::SplitFlankManaRows => &SPLIT_FLANK_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::ForwardBridgeManaRows => &FORWARD_BRIDGE_MANA_ROWS_SQUARES_ARRAY,
-            GameVariant::CornerChainManaRows => &CORNER_CHAIN_MANA_ROWS_SQUARES_ARRAY,
-        }
-    }
-
-    pub fn squares_array() -> &'static [Square; BOARD_CELLS] {
-        Self::squares_array_for_variant(GameVariant::DEFAULT)
-    }
-
-    pub fn initial_items_for_variant(variant: GameVariant) -> HashMap<Location, Item> {
-        Self::squares_ref_for_variant(variant)
-            .iter()
-            .filter_map(|(location, square)| {
-                Self::initial_item_for_square(*square).map(|item| (*location, item))
-            })
-            .collect()
-    }
-
-    pub fn initial_items() -> HashMap<Location, Item> {
-        Self::initial_items_for_variant(GameVariant::DEFAULT)
-    }
-
     pub fn initial_items_array_for_variant(variant: GameVariant) -> [Option<Item>; BOARD_CELLS] {
         match variant {
             GameVariant::Classic => *CLASSIC_INITIAL_ITEMS_ARRAY,
@@ -753,11 +708,9 @@ impl Config {
         }
     }
 
-    pub fn initial_items_array() -> [Option<Item>; BOARD_CELLS] {
-        Self::initial_items_array_for_variant(GameVariant::DEFAULT)
-    }
-
+    #[cfg(target_arch = "wasm32")]
     pub const BOARD_CENTER_INDEX: i32 = Self::BOARD_SIZE / 2;
+    #[cfg(target_arch = "wasm32")]
     pub const MAX_LOCATION_INDEX: i32 = Self::BOARD_SIZE - 1;
 
     pub const SUPERMANA_BASE: Location = Location { i: 5, j: 5 };
@@ -786,14 +739,7 @@ impl Config {
         panic!("Expected at least one base for the given mon");
     }
 
-    pub fn is_mon_base(location: Location) -> bool {
-        IS_MON_BASE[location.index()]
-    }
-
-    pub fn mons_bases() -> HashSet<Location> {
-        MONS_BASES_SET.clone()
-    }
-
+    #[cfg(target_arch = "wasm32")]
     pub fn mons_bases_ref() -> &'static HashSet<Location> {
         &MONS_BASES_SET
     }

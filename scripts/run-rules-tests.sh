@@ -12,28 +12,6 @@ APPROVED_UNCOMPRESSED_SHA256="5c3e3a5034d187ee0daf528bc0fb5bedeb3a27a864d8e7f6ce
 APPROVED_COMPRESSED_BYTES=654974
 APPROVED_UNCOMPRESSED_BYTES=4032569
 
-print_help() {
-  cat <<'EOF'
-Run the selected rules regression corpus against Mons game logic.
-
-Usage:
-  ./scripts/run-rules-tests.sh [script-options] [rules_tests options]
-
-Script options:
-  --corpus <path>    Gzip JSONL corpus (default: test-data/rules-regressions.jsonl.gz)
-  --manifest <path>  Selection manifest (default: test-data/rules-regressions.manifest.json)
-  --help, -h         Show this help message
-
-rules_tests options:
-  --limit <n>        Execute the first n cases while validating the complete stream
-  --log <path>       Also write progress and failures to a log file
-  --verbose          Print every passing FNV-1a fixture ID
-
-The script pins the approved manifest and corpus hashes, validates the selection
-and coverage contract, then streams the corpus to the Rust runner.
-EOF
-}
-
 validate_manifest_contract() {
   node - "${manifest_path}" <<'NODE'
 const fs = require("node:fs");
@@ -138,42 +116,13 @@ manifest_string() {
   echo "${value}"
 }
 
+if (($# != 0)); then
+  echo "error: run-rules-tests.sh accepts no arguments" >&2
+  exit 2
+fi
+
 corpus_path="${DEFAULT_CORPUS}"
 manifest_path="${DEFAULT_MANIFEST}"
-runner_args=()
-
-while (($# > 0)); do
-  case "$1" in
-    --corpus)
-      shift
-      if (($# == 0)); then
-        echo "error: --corpus requires a value" >&2
-        exit 2
-      fi
-      corpus_path="$1"
-      ;;
-    --manifest)
-      shift
-      if (($# == 0)); then
-        echo "error: --manifest requires a value" >&2
-        exit 2
-      fi
-      manifest_path="$1"
-      ;;
-    --stdin|--expected-count|--source-label|--protect-path)
-      echo "error: '$1' is managed by run-rules-tests.sh" >&2
-      exit 2
-      ;;
-    --help|-h)
-      print_help
-      exit 0
-      ;;
-    *)
-      runner_args+=("$1")
-      ;;
-  esac
-  shift
-done
 
 if [[ ! -f "${corpus_path}" ]]; then
   echo "error: rules corpus '${corpus_path}' not found" >&2
@@ -242,21 +191,5 @@ if [[ "${actual_uncompressed_sha}" != "${expected_uncompressed_sha}" ]]; then
   exit 1
 fi
 
-echo "🔐 Verified ${expected_count} fixtures (${actual_compressed_bytes} compressed bytes)"
 cd "${REPO_DIR}"
-if ((${#runner_args[@]} > 0)); then
-  gzip -dc "${corpus_path}" | cargo run --quiet --bin rules_tests -- \
-    --stdin \
-    --expected-count "${expected_count}" \
-    --source-label "${corpus_path}" \
-    --protect-path "${corpus_path}" \
-    --protect-path "${manifest_path}" \
-    "${runner_args[@]}"
-else
-  gzip -dc "${corpus_path}" | cargo run --quiet --bin rules_tests -- \
-    --stdin \
-    --expected-count "${expected_count}" \
-    --source-label "${corpus_path}" \
-    --protect-path "${corpus_path}" \
-    --protect-path "${manifest_path}"
-fi
+gzip -dc "${corpus_path}" | cargo run --quiet --bin rules_tests

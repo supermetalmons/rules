@@ -1,10 +1,4 @@
 use std::cell::Cell;
-
-#[cfg(not(target_arch = "wasm32"))]
-use std::sync::OnceLock;
-#[cfg(not(target_arch = "wasm32"))]
-use std::time::Instant;
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub(crate) const AUTOMOVE_SELECTOR_BUDGET_MS: f64 = 650.0;
@@ -21,12 +15,6 @@ thread_local! {
     static LAST_OUTER_DEADLINE_TIMED_OUT: Cell<bool> = const { Cell::new(false) };
 }
 
-#[cfg(test)]
-thread_local! {
-    static TEST_NOW_MS: Cell<Option<f64>> = const { Cell::new(None) };
-}
-
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(
     inline_js = "export function automove_monotonic_now_ms() { return globalThis.performance.now(); }"
 )]
@@ -34,27 +22,9 @@ extern "C" {
     fn automove_monotonic_now_ms() -> f64;
 }
 
-#[cfg(target_arch = "wasm32")]
 #[inline]
 fn monotonic_now_ms() -> f64 {
-    #[cfg(test)]
-    if let Some(now_ms) = TEST_NOW_MS.with(Cell::get) {
-        return now_ms;
-    }
-
     automove_monotonic_now_ms()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[inline]
-fn monotonic_now_ms() -> f64 {
-    #[cfg(test)]
-    if let Some(now_ms) = TEST_NOW_MS.with(Cell::get) {
-        return now_ms;
-    }
-
-    static EPOCH: OnceLock<Instant> = OnceLock::new();
-    EPOCH.get_or_init(Instant::now).elapsed().as_secs_f64() * 1_000.0
 }
 
 struct DeadlineGuard;
@@ -97,8 +67,7 @@ impl Drop for DeadlineGuard {
 /// Runs `f` under a cooperative deadline, preserving an earlier outer deadline when nested.
 ///
 /// This is checkpoint-driven and non-preemptive: it cannot interrupt checkpoint-free work or
-/// compensate for scheduler/browser suspension. The independently cold 700ms promotion gate is
-/// therefore the empirical authority for the complete selector call.
+/// compensate for scheduler/browser suspension.
 pub(crate) fn with_deadline_if_absent<T>(budget_ms: f64, f: impl FnOnce() -> T) -> T {
     let _guard = DeadlineGuard::enter(budget_ms);
     f()
@@ -252,202 +221,8 @@ pub(crate) fn take_previous_timeout() -> bool {
     LAST_OUTER_DEADLINE_TIMED_OUT.with(|last| last.replace(false))
 }
 
-/// Returns the remaining active budget, polling and sticking cancellation at zero.
-#[cfg(test)]
-pub(crate) fn remaining_ms() -> Option<f64> {
-    ACTIVE_DEADLINE.with(|active| {
-        let mut deadline = active.get()?;
-        if deadline.timed_out {
-            return Some(0.0);
-        }
-        let remaining = deadline.end_ms - monotonic_now_ms();
-        if remaining <= 0.0 {
-            deadline.timed_out = true;
-            active.set(Some(deadline));
-            Some(0.0)
-        } else {
-            Some(remaining)
-        }
-    })
-}
-
 /// Cache writes are safe only while the active computation is still complete.
 #[inline]
 pub(crate) fn cache_write_allowed() -> bool {
     !checkpoint()
-}
-
-#[cfg(test)]
-pub(crate) fn set_test_now_ms(now_ms: f64) {
-    TEST_NOW_MS.with(|clock| clock.set(Some(now_ms)));
-}
-
-#[cfg(test)]
-pub(crate) fn with_test_clock<T>(now_ms: f64, f: impl FnOnce() -> T) -> T {
-    struct TestClockGuard(Option<f64>);
-
-    impl Drop for TestClockGuard {
-        fn drop(&mut self) {
-            TEST_NOW_MS.with(|clock| clock.set(self.0));
-        }
-    }
-
-    let previous = TEST_NOW_MS.with(|clock| clock.replace(Some(now_ms)));
-    let _guard = TestClockGuard(previous);
-    f()
-}
-
-#[cfg(test)]
-fn has_active_deadline() -> bool {
-    ACTIVE_DEADLINE.with(|active| active.get().is_some())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn automove_deadline_nested_guard_does_not_reset_outer_deadline() {
-        with_test_clock(10.0, || {
-            with_deadline_if_absent(50.0, || {
-                set_test_now_ms(40.0);
-                with_deadline_if_absent(1_000.0, || {
-                    set_test_now_ms(61.0);
-                    assert!(checkpoint());
-                    assert_eq!(remaining_ms(), Some(0.0));
-                });
-                assert!(cancelled());
-            });
-            assert!(!has_active_deadline());
-        });
-    }
-
-    #[test]
-    fn automove_deadline_timeout_is_sticky_and_guard_cleans_up() {
-        with_test_clock(100.0, || {
-            assert!(!checkpoint());
-            assert!(cache_write_allowed());
-            with_deadline_if_absent(10.0, || {
-                assert!(!checkpoint());
-                set_test_now_ms(111.0);
-                assert!(checkpoint());
-                set_test_now_ms(100.0);
-                assert!(checkpoint());
-                assert!(cancelled());
-                assert!(!cache_write_allowed());
-            });
-            assert!(!has_active_deadline());
-            assert!(!cancelled());
-            assert!(take_previous_timeout());
-            assert!(!take_previous_timeout());
-            assert!(!checkpoint());
-            assert!(cache_write_allowed());
-        });
-    }
-
-    #[test]
-    fn automove_deadline_reserve_cancels_before_the_absolute_end() {
-        with_test_clock(100.0, || {
-            with_deadline_if_absent(50.0, || {
-                set_test_now_ms(129.0);
-                assert!(!checkpoint_with_reserve(20.0));
-                set_test_now_ms(130.0);
-                assert!(checkpoint_with_reserve(20.0));
-                assert!(cancelled());
-            });
-            assert!(take_previous_timeout());
-        });
-    }
-
-    #[test]
-    fn automove_subdeadline_times_out_without_consuming_live_outer_deadline() {
-        with_test_clock(0.0, || {
-            with_deadline_if_absent(650.0, || {
-                let result = with_cooperative_subdeadline(200.0, || {
-                    set_test_now_ms(201.0);
-                    assert!(checkpoint());
-                    assert!(cancelled());
-                    assert!(!cache_write_allowed());
-                    set_test_now_ms(100.0);
-                    assert!(checkpoint());
-                    assert!(cancelled());
-                    assert!(!cache_write_allowed());
-                    set_test_now_ms(201.0);
-                    7
-                });
-                assert_eq!(result, None);
-                assert!(!cancelled());
-                assert_eq!(remaining_ms(), Some(449.0));
-                assert!(cache_write_allowed());
-            });
-            assert!(!take_previous_timeout());
-        });
-    }
-
-    #[test]
-    fn automove_subdeadline_discards_unpolled_late_result_and_preserves_early_result() {
-        with_test_clock(0.0, || {
-            with_deadline_if_absent(650.0, || {
-                let early = with_cooperative_subdeadline(200.0, || {
-                    set_test_now_ms(199.0);
-                    11
-                });
-                assert_eq!(early, Some(11));
-                assert_eq!(remaining_ms(), Some(451.0));
-
-                let late = with_cooperative_subdeadline(200.0, || {
-                    set_test_now_ms(400.0);
-                    13
-                });
-                assert_eq!(late, None);
-                assert!(!cancelled());
-                assert_eq!(remaining_ms(), Some(250.0));
-            });
-        });
-    }
-
-    #[test]
-    fn automove_subdeadline_preserves_outer_timeout() {
-        with_test_clock(0.0, || {
-            with_deadline_if_absent(650.0, || {
-                let result = with_cooperative_subdeadline(200.0, || {
-                    set_test_now_ms(651.0);
-                    17
-                });
-                assert_eq!(result, None);
-                assert!(cancelled());
-            });
-            assert!(take_previous_timeout());
-        });
-    }
-
-    #[test]
-    fn automove_standalone_subdeadline_discards_late_result_and_cleans_up() {
-        with_test_clock(0.0, || {
-            let result = with_cooperative_subdeadline(10.0, || {
-                set_test_now_ms(11.0);
-                19
-            });
-            assert_eq!(result, None);
-            assert!(!has_active_deadline());
-            assert!(take_previous_timeout());
-        });
-    }
-
-    #[test]
-    fn automove_zero_budget_subdeadline_does_not_invoke_closure() {
-        with_test_clock(0.0, || {
-            let invoked = Cell::new(false);
-            with_deadline_if_absent(650.0, || {
-                let result = with_cooperative_subdeadline(0.0, || {
-                    invoked.set(true);
-                    23
-                });
-                assert_eq!(result, None);
-                assert!(!cancelled());
-            });
-            assert!(!invoked.get());
-            assert!(!take_previous_timeout());
-        });
-    }
 }

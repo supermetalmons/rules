@@ -1,54 +1,26 @@
 # mons-rust
 
-`cargo add mons-rust`
+The Mons rules engine is distributed as two npm packages backed by the same Rust/Wasm
+implementation:
 
-or
+- `mons-web` for browsers and ES modules
+- `mons-rust` for Node.js
 
-`npm install mons-rust`
+Install the package for your runtime with `npm install mons-web` or
+`npm install mons-rust`. The generated TypeScript declarations define the public API;
+the Rust crate is an internal build artifact and is not a supported package surface.
 
-## Automove
+## Validation
 
-Docs:
+Run `./scripts/run-rules-tests.sh` with no options to replay the pinned compressed
+10,000-case rules corpus. The command validates the corpus before streaming it and
+does not unpack or rewrite the fixture.
 
-- runbook: `HOW_TO_ITERATE_ON_AUTOMOVE.md`
-- next mechanism: `AUTOMOVE_IDEAS.md`
-- durable evidence and lessons: `docs/automove-knowledge.md`
+Run `node ./scripts/check-complete-games.cjs` to validate the immutable public corpus
+of 1,527 complete real-player games.
 
-Shipping surface:
+## Release
 
-- Fast and Normal retain shipping search; Pro uses the promoted bounded tactical policy
-- complete independently cold selector calls must remain below `700ms`
-
-Experiments use a small candidate-specific `#[cfg(test)]` harness:
-
-- `cargo test --release --lib <test_name> -- --ignored --nocapture --test-threads=1`
-- `./scripts/check-automove-hygiene.sh`
-
-## Real-player complete games
-
-The immutable, move-only corpus of 1,527 complete games played by real players is
-documented in [test-data/complete-games/v1](https://github.com/supermetalmons/mons-rust/tree/main/test-data/complete-games/v1).
-It is repository research data, not part of the Rust or npm package surface. Run
-`node ./scripts/check-complete-games.cjs` to verify its pinned bytes and schema.
-
-## Rules Tests
-
-Runner:
-
-- `./scripts/run-rules-tests.sh`
-- `./scripts/run-rules-tests.sh --limit 100`
-- `./scripts/run-rules-tests.sh --log /tmp/rules-tests.log`
-
-The checked-in corpus is `test-data/rules-regressions.jsonl.gz`. Its manifest records
-the deterministic 10,000-case selection policy, source archive hashes, coverage, and
-artifact hashes. The runner verifies the complete stream even when `--limit` executes
-only a prefix.
-
-## Publishing
-
-- Run `./scripts/bump.sh` for a patch release, or pass `minor`, `major`, or an explicit
-  `X.Y.Z` version. Then commit the complete release change set; publishing requires a
-  clean worktree.
-- Run `./publish.sh --check-only` for the complete rules, Rust, release-gate, Wasm,
-  public-surface, cold-route, and npm-size validation without publishing.
-- Run `./publish.sh` only after the check-only path passes and the release commit is clean.
+Run `./publish.sh --check-only` to execute the Rust, Wasm, corpus, and npm-package
+checks without publishing. Run `./publish.sh` from a clean worktree to perform the
+same checks and publish both npm packages.

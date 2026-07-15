@@ -1,7 +1,7 @@
 use crate::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum Item {
+pub(crate) enum Item {
     Mon { mon: Mon },
     Mana { mana: Mana },
     MonWithMana { mon: Mon, mana: Mana },

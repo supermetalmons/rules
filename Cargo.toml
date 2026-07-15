@@ -1,25 +1,19 @@
 [package]
 name = "mons-rust"
-version = "0.1.134"
+version = "0.1.135"
 edition = "2021"
+publish = false
 description = "super metal mons"
 license = "CC0-1.0"
 repository = "https://github.com/supermetalmons/mons-rust"
-readme = "README.md"
+readme = false
 include = [
-  "/Cargo.toml",
-  "/Cargo.lock",
-  "/src/**",
-  "/README.md",
-  "/LICENSE",
+  "/src/**/*.rs",
 ]
 
 [dependencies]
 getrandom = { version = "0.2.15", features = ["js"] }
 wasm-bindgen = "0.2"
-
-[dev-dependencies]
-rand = "0.8.5"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

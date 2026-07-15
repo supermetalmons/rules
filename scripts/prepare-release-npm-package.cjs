@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
+const repoRoot = path.resolve(__dirname, "..");
 const packageDir = path.resolve(process.argv[2] ?? "");
 const packageName = process.argv[3];
 
@@ -14,6 +15,11 @@ const manifestPath = path.join(packageDir, "package.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
 manifest.name = packageName;
+
+fs.copyFileSync(
+  path.join(repoRoot, "README.md"),
+  path.join(packageDir, "README.md"),
+);
 
 const snippetsDir = path.join(packageDir, "snippets");
 if (fs.existsSync(snippetsDir)) {

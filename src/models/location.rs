@@ -56,17 +56,9 @@ impl Location {
         &NEARBY_LOCATIONS_CACHE[self.index()]
     }
 
-    pub fn nearby_locations(&self) -> Vec<Location> {
-        self.nearby_locations_ref().to_vec()
-    }
-
     #[inline]
     pub fn reachable_by_bomb_ref(&self) -> &'static [Location] {
         &BOMB_REACHABILITY_CACHE[self.index()]
-    }
-
-    pub fn reachable_by_bomb(&self) -> Vec<Location> {
-        self.reachable_by_bomb_ref().to_vec()
     }
 
     #[inline]
@@ -74,26 +66,14 @@ impl Location {
         &MYSTIC_REACHABILITY_CACHE[self.index()]
     }
 
-    pub fn reachable_by_mystic_action(&self) -> Vec<Location> {
-        self.reachable_by_mystic_action_ref().to_vec()
-    }
-
     #[inline]
     pub fn reachable_by_demon_action_ref(&self) -> &'static [Location] {
         &DEMON_REACHABILITY_CACHE[self.index()]
     }
 
-    pub fn reachable_by_demon_action(&self) -> Vec<Location> {
-        self.reachable_by_demon_action_ref().to_vec()
-    }
-
     #[inline]
     pub fn reachable_by_spirit_action_ref(&self) -> &'static [Location] {
         &SPIRIT_REACHABILITY_CACHE[self.index()]
-    }
-
-    pub fn reachable_by_spirit_action(&self) -> Vec<Location> {
-        self.reachable_by_spirit_action_ref().to_vec()
     }
 
     #[inline]

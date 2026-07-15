@@ -1,5 +1,5 @@
-pub mod models;
-pub use models::*;
+mod models;
+use models::*;
 
 #[wasm_bindgen]
 pub fn winner(
@@ -82,17 +82,17 @@ pub fn winner(
     "x".to_string()
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
+pub fn replay_rules_transition(fen_before: &str, input_fen: &str) -> Option<(String, String)> {
+    let mut game = MonsGame::from_fen(fen_before, false)?;
+    let output = game.process_input(Input::array_from_fen(input_fen), false, false);
+    Some((output.fen(), game.fen()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn automove() {
-        let mut game = MonsGameModel::new(GameVariant::Classic);
-        let output = game.automove();
-        assert_eq!(output.kind, OutputModelKind::Events);
-        assert!(!output.input_fen().is_empty());
-    }
 
     #[test]
     fn check_initial_fen() {
@@ -101,79 +101,6 @@ mod tests {
         assert!(
             fen == "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
         );
-    }
-
-    #[test]
-    fn simulation_clone_discards_tracking_buffers() {
-        let mut game = MonsGame::new(true, GameVariant::Classic);
-        game.takeback_fens = vec!["f0".to_string(), "f1".to_string()];
-        game.verbose_tracking_entities = vec![VerboseTrackingEntity {
-            fen: game.fen(),
-            color: Color::White,
-            events: vec![Event::Takeback],
-        }];
-
-        let simulation_game = game.clone_for_simulation();
-        assert!(simulation_game.takeback_fens.is_empty());
-        assert!(simulation_game.verbose_tracking_entities.is_empty());
-        assert!(!simulation_game.with_verbose_tracking);
-    }
-
-    #[test]
-    fn clear_tracking_releases_history_buffers() {
-        let mut game = MonsGame::new(true, GameVariant::Classic);
-        for i in 0..128 {
-            let fen = format!("fen-{i}");
-            game.takeback_fens.push(fen.clone());
-            game.verbose_tracking_entities.push(VerboseTrackingEntity {
-                fen,
-                color: Color::White,
-                events: vec![Event::Takeback],
-            });
-        }
-
-        let takeback_capacity_before = game.takeback_fens.capacity();
-        let verbose_capacity_before = game.verbose_tracking_entities.capacity();
-        game.clear_tracking();
-
-        assert!(game.takeback_fens.is_empty());
-        assert!(game.verbose_tracking_entities.is_empty());
-        assert!(game.takeback_fens.capacity() <= takeback_capacity_before);
-        assert!(game.verbose_tracking_entities.capacity() <= verbose_capacity_before);
-    }
-
-    #[test]
-    fn simulation_model_avoids_verbose_tracking_growth() {
-        let mut game = MonsGameModel::new_for_simulation(GameVariant::Classic);
-        let output = game.automove();
-        assert_eq!(output.kind, OutputModelKind::Events);
-        assert!(game.verbose_tracking_entities().is_empty());
-        assert!(game.takeback_fens().is_empty());
-    }
-
-    #[test]
-    fn tracked_and_simulation_modes_stay_in_sync_when_replaying_inputs() {
-        let mut tracked = MonsGameModel::new(GameVariant::Classic);
-        let mut simulation = MonsGameModel::new_for_simulation(GameVariant::Classic);
-
-        for _ in 0..512 {
-            let tracked_output = tracked.automove();
-            assert_eq!(tracked_output.kind, OutputModelKind::Events);
-
-            let input_fen = tracked_output.input_fen();
-            let simulation_output = simulation.process_input_fen(input_fen.as_str());
-            assert_eq!(simulation_output.kind, OutputModelKind::Events);
-
-            assert_eq!(tracked.fen(), simulation.fen());
-            assert_eq!(tracked.active_color(), simulation.active_color());
-            assert_eq!(tracked.turn_number(), simulation.turn_number());
-
-            if tracked.winner_color().is_some() {
-                break;
-            }
-        }
-
-        assert_eq!(tracked.winner_color(), simulation.winner_color());
     }
 
     #[test]

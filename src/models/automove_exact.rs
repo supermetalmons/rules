@@ -1,63 +1,21 @@
-#[cfg(any(target_arch = "wasm32", test))]
 use crate::models::automove_deadline::{cache_write_allowed, checkpoint, checkpoint_with_reserve};
 use crate::*;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::hash::{BuildHasherDefault, Hasher};
 
-#[cfg(not(any(target_arch = "wasm32", test)))]
-#[inline]
-fn checkpoint() -> bool {
-    false
-}
-
-#[cfg(not(any(target_arch = "wasm32", test)))]
-#[inline]
-fn checkpoint_with_reserve(_reserve_ms: f64) -> bool {
-    false
-}
-
-#[cfg(not(any(target_arch = "wasm32", test)))]
-#[inline]
-fn cache_write_allowed() -> bool {
-    true
-}
-
-#[cfg(test)]
-macro_rules! update_exact_query_diagnostics {
-    (|$diagnostics:ident| $update:expr) => {
-        EXACT_QUERY_DIAGNOSTICS.with(|storage| {
-            let $diagnostics: &mut ExactQueryDiagnostics = &mut storage.borrow_mut();
-            $update
-        })
-    };
-}
-
-#[cfg(not(test))]
-macro_rules! update_exact_query_diagnostics {
-    (|$diagnostics:ident| $update:expr) => {};
-}
-
 const EXACT_ANALYSIS_CACHE_MAX_ENTRIES: usize = 512;
 const EXACT_ATTACK_REACH_CACHE_MAX_ENTRIES: usize = 8192;
 const EXACT_CARRIER_DISTANCE_MAP_CACHE_MAX_ENTRIES: usize = 8192;
 const EXACT_CARRIER_STEPS_CACHE_MAX_ENTRIES: usize = 8192;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_DRAINER_SAFETY_CACHE_MAX_ENTRIES: usize = 8192;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_DRAINER_TO_MANA_CACHE_MAX_ENTRIES: usize = 8192;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_DRAINER_PICKUP_WINDOW_CACHE_MAX_ENTRIES: usize = 8192;
-#[cfg(test)]
-const EXACT_FOLLOWUP_SUMMARY_CACHE_MAX_ENTRIES: usize = 4096;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE_MAX_ENTRIES: usize = 8192;
 const EXACT_PICKUP_PATH_CACHE_MAX_ENTRIES: usize = 8192;
 const EXACT_SPIRIT_REACH_CACHE_MAX_ENTRIES: usize = 4096;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_SPIRIT_SUMMARY_CACHE_MAX_ENTRIES: usize = 2048;
 const EXACT_WALK_THREAT_CACHE_MAX_ENTRIES: usize = 8192;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_SECURE_MANA_CACHE_MAX_ENTRIES: usize = 4096;
 const EXACT_SPIRIT_UTILITY_CAP: i32 = 6;
 const EXACT_BFS_CAPACITY: usize = 128;
@@ -68,7 +26,6 @@ const EXACT_PAYLOAD_VARIANTS: usize = 5;
 const EXACT_CARRIER_MANA_STATE_CAPACITY: usize =
     EXACT_LOCATION_STATE_CAPACITY * EXACT_CARRIER_MANA_VARIANTS;
 const EXACT_PAYLOAD_STATE_CAPACITY: usize = EXACT_LOCATION_STATE_CAPACITY * EXACT_PAYLOAD_VARIANTS;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_SECURE_TOUCHED_ITEMS_CAPACITY: usize = 12;
 const EXACT_CARRIER_DISTANCE_UNKNOWN: u8 = u8::MAX;
 const EXACT_CARRIER_MANA_VALUES: [Mana; EXACT_CARRIER_MANA_VARIANTS] = [
@@ -105,7 +62,6 @@ impl Hasher for ExactFastHasher {
 
 type ExactBuildHasher = BuildHasherDefault<ExactFastHasher>;
 type ExactHashMap<K, V> = HashMap<K, V, ExactBuildHasher>;
-#[cfg(any(target_arch = "wasm32", test))]
 type ExactHashSet<K> = std::collections::HashSet<K, ExactBuildHasher>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -227,9 +183,6 @@ impl ExactActorMoveMemo {
             return exact_actor_move_memo_decode(cached);
         }
 
-        update_exact_query_diagnostics!(|diagnostics| {
-            diagnostics.actor_payload_after_move_calls += 1
-        });
         let result = actor_payload_after_move_compute(
             board,
             mon_kind,
@@ -270,9 +223,6 @@ impl ExactDrainerMoveMemo {
             return exact_drainer_move_memo_decode(cached);
         }
 
-        update_exact_query_diagnostics!(|diagnostics| {
-            diagnostics.actor_payload_after_move_calls += 1
-        });
         let result = actor_payload_after_move_compute(
             board,
             MonKind::Drainer,
@@ -417,14 +367,11 @@ pub(crate) struct ExactColorSummary {
     pub score_path_window: ExactScorePathWindow,
     pub immediate_window: ExactImmediateScoreWindow,
     pub best_drainer_pickup: Option<ExactDrainerPickupPath>,
-    #[cfg(any(target_arch = "wasm32", test))]
     pub best_carrier_steps: Option<i32>,
-    #[cfg(any(target_arch = "wasm32", test))]
     pub best_drainer_to_mana_steps: Option<i32>,
     pub spirit: ExactSpiritSummary,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExactTurnSummary {
     pub can_attack_opponent_drainer: bool,
@@ -435,14 +382,11 @@ pub(crate) struct ExactTurnSummary {
     pub spirit_assisted_supermana_progress: bool,
     pub spirit_assisted_opponent_mana_progress: bool,
     pub spirit_assisted_score: bool,
-    #[cfg(test)]
-    pub spirit_assisted_score_value: i32,
     pub spirit_assisted_denial: bool,
     pub same_turn_score_window_value: i32,
     pub score_path_best_steps: Option<i32>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct ExactTurnTacticalProjection {
     pub safe_supermana_progress: bool,
@@ -456,34 +400,23 @@ pub(crate) struct ExactTurnTacticalProjection {
     pub same_turn_score_window_value: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) const EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS: u8 = 1 << 0;
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) const EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS: u8 = 1 << 1;
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) const EXACT_TURN_TACTICAL_NEED_SPIRIT_SCORE: u8 = 1 << 2;
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) const EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL: u8 = 1 << 3;
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) const EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW: u8 = 1 << 4;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_TURN_TACTICAL_ALL_FLAGS: u8 = EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS
     | EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS
     | EXACT_TURN_TACTICAL_NEED_SPIRIT_SCORE
     | EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL
     | EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_TACTICAL_SPIRIT_NEED_SCORE: u8 = 1 << 0;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_TACTICAL_SPIRIT_NEED_DENIAL: u8 = 1 << 1;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_TACTICAL_SPIRIT_NEED_PROGRESS: u8 = 1 << 2;
-#[cfg(any(target_arch = "wasm32", test))]
 const EXACT_TACTICAL_SPIRIT_ALL_FIELDS: u8 = EXACT_TACTICAL_SPIRIT_NEED_SCORE
     | EXACT_TACTICAL_SPIRIT_NEED_DENIAL
     | EXACT_TACTICAL_SPIRIT_NEED_PROGRESS;
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExactOpportunityBudget {
     pub remaining_mon_moves: i32,
@@ -491,7 +424,6 @@ pub(crate) struct ExactOpportunityBudget {
     pub can_move_mana: bool,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExactOpportunityDelta {
     pub same_turn_score_window_value: i32,
@@ -503,7 +435,6 @@ pub(crate) struct ExactOpportunityDelta {
     pub safe_opponent_mana_progress_steps: Option<i32>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExactOpportunityContext {
     pub budget: ExactOpportunityBudget,
@@ -512,14 +443,6 @@ pub(crate) struct ExactOpportunityContext {
     pub opponent_can_win_immediately: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ExactColorSummaryMode {
-    #[cfg(test)]
-    ActiveTactical,
-    PassiveStrategic,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_tactical_spirit_summary_for_fields(
     summary: ExactSpiritSummary,
@@ -560,7 +483,6 @@ fn exact_tactical_spirit_summary_for_fields(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_tactical_spirit_superset_fields(fields: u8) -> &'static [u8] {
     match fields {
@@ -585,7 +507,6 @@ fn exact_tactical_spirit_superset_fields(fields: u8) -> &'static [u8] {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_immediate_tactical_window_for_axes(
     window: ExactImmediateTacticalWindow,
@@ -602,7 +523,6 @@ fn exact_immediate_tactical_window_for_axes(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_immediate_tactical_window_for_min_score(
     window: ExactImmediateTacticalWindow,
@@ -622,7 +542,6 @@ fn exact_immediate_tactical_window_for_min_score(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_drainer_pickup_window_for_axes(
     window: ExactDrainerPickupWindow,
@@ -635,7 +554,6 @@ fn exact_drainer_pickup_window_for_axes(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_drainer_pickup_window_for_min_any_score(
     window: ExactDrainerPickupWindow,
@@ -653,7 +571,6 @@ fn exact_drainer_pickup_window_for_min_any_score(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_turn_tactical_projection_for_flags(
     projection: ExactTurnTacticalProjection,
@@ -702,63 +619,6 @@ fn exact_turn_tactical_projection_for_flags(
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum ExactPickupFilter {
-    Any,
-    #[cfg(test)]
-    Wanted(Mana),
-}
-
-impl ExactPickupFilter {
-    #[inline]
-    fn matches(self, _mana: Mana) -> bool {
-        match self {
-            ExactPickupFilter::Any => true,
-            #[cfg(test)]
-            ExactPickupFilter::Wanted(wanted) => _mana == wanted,
-        }
-    }
-}
-
-#[inline]
-fn exact_pickup_filter_max_mana_value(filter: ExactPickupFilter, color: Color) -> i32 {
-    match filter {
-        ExactPickupFilter::Any => Mana::Supermana.score(color),
-        #[cfg(test)]
-        ExactPickupFilter::Wanted(wanted) => wanted.score(color),
-    }
-}
-
-#[cfg(test)]
-#[derive(Debug, Clone, Copy, Default)]
-struct ExactFollowupSummary {
-    best_score_steps: Option<i32>,
-    opponent_best_score_steps: Option<i32>,
-    immediate_score: i32,
-    immediate_opponent_mana_score: i32,
-    secure_supermana: bool,
-    secure_opponent_mana: bool,
-}
-
-#[cfg(test)]
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct ExactStateAnalysis {
-    pub white: ExactColorSummary,
-    pub black: ExactColorSummary,
-}
-
-#[cfg(test)]
-impl ExactStateAnalysis {
-    #[inline]
-    pub(crate) fn color_summary(self, color: Color) -> ExactColorSummary {
-        if color == Color::White {
-            self.white
-        } else {
-            self.black
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExactStrategicAnalysis {
     pub white: ExactColorSummary,
@@ -776,19 +636,11 @@ impl ExactStrategicAnalysis {
     }
 }
 
-#[cfg(test)]
-#[derive(Default)]
-pub(crate) struct ExactStateAnalysisCache {
-    entries: ExactHashMap<u64, ExactStateAnalysis>,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactTurnSummaryCache {
     entries: ExactHashMap<u64, ExactTurnSummary>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactTurnTacticalProjectionKey {
     state_hash: u64,
@@ -798,7 +650,6 @@ struct ExactTurnTacticalProjectionKey {
     flags: u8,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactTurnTacticalProjectionCache {
     entries: ExactHashMap<ExactTurnTacticalProjectionKey, ExactTurnTacticalProjection>,
@@ -885,14 +736,12 @@ struct ExactAttackReachCache {
     entries: ExactHashMap<ExactAttackQueryKey, bool>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactDrainerSafetyQueryKey {
     board_hash: u64,
     color: Color,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactDrainerSafetyCache {
     entries: ExactHashMap<ExactDrainerSafetyQueryKey, i32>,
@@ -957,7 +806,6 @@ struct ExactCarrierStepsCache {
     entries: ExactHashMap<ExactCarrierStepsQueryKey, Option<i32>>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactDrainerToManaQueryKey {
     board_hash: u64,
@@ -965,24 +813,9 @@ struct ExactDrainerToManaQueryKey {
     start: Location,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactDrainerToManaCache {
     entries: ExactHashMap<ExactDrainerToManaQueryKey, Option<i32>>,
-}
-
-#[cfg(test)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct ExactFollowupSummaryKey {
-    board_hash: u64,
-    color: Color,
-    remaining_moves: i32,
-}
-
-#[cfg(test)]
-#[derive(Default)]
-struct ExactFollowupSummaryCache {
-    entries: ExactHashMap<ExactFollowupSummaryKey, ExactFollowupSummary>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -991,7 +824,6 @@ struct ExactPickupPathQueryKey {
     color: Color,
     start: Location,
     max_steps: Option<i32>,
-    filter: ExactPickupFilter,
 }
 
 #[derive(Default)]
@@ -999,7 +831,6 @@ struct ExactPickupPathCache {
     entries: ExactHashMap<ExactPickupPathQueryKey, Option<ExactDrainerPickupPath>>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactDrainerPickupWindowQueryKey {
     board_hash: u64,
@@ -1012,28 +843,11 @@ struct ExactDrainerPickupWindowQueryKey {
     opponent_mana: Mana,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactDrainerPickupWindowCache {
     entries: ExactHashMap<ExactDrainerPickupWindowQueryKey, ExactDrainerPickupWindow>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct ExactSpiritSummaryKey {
-    board_hash: u64,
-    color: Color,
-    remaining_mon_moves: i32,
-    can_use_action: bool,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
-#[derive(Default)]
-struct ExactSpiritSummaryCache {
-    entries: ExactHashMap<ExactSpiritSummaryKey, ExactSpiritSummary>,
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactTacticalSpiritSummaryKey {
     board_hash: u64,
@@ -1043,13 +857,11 @@ struct ExactTacticalSpiritSummaryKey {
     fields: u8,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactSpiritTacticalSummaryCache {
     entries: ExactHashMap<ExactTacticalSpiritSummaryKey, ExactSpiritSummary>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactTacticalSpiritAfterWindowKey {
     board_hash: u64,
@@ -1059,7 +871,6 @@ struct ExactTacticalSpiritAfterWindowKey {
     need_denial: bool,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactImmediateTacticalWindowQueryKey {
     board_hash: u64,
@@ -1070,7 +881,6 @@ struct ExactImmediateTacticalWindowQueryKey {
     need_denial: bool,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactImmediateTacticalWindowCache {
     entries: ExactHashMap<ExactImmediateTacticalWindowQueryKey, ExactImmediateTacticalWindow>,
@@ -1102,7 +912,6 @@ struct ExactWalkThreatCache {
     entries: ExactHashMap<ExactWalkThreatQueryKey, bool>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactSecureManaStateKey {
     board_hash: u64,
@@ -1112,7 +921,6 @@ struct ExactSecureManaStateKey {
     black_regular_mana_count: u8,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ExactSecureManaQueryKey {
     state: ExactSecureManaStateKey,
@@ -1120,62 +928,21 @@ struct ExactSecureManaQueryKey {
     wanted: Mana,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Default)]
 struct ExactSecureManaCache {
     entries: ExactHashMap<ExactSecureManaQueryKey, Option<i32>>,
     visiting: ExactHashSet<ExactSecureManaQueryKey>,
 }
 
-#[cfg(test)]
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct ExactQueryDiagnostics {
-    pub exact_turn_summary_builds: u32,
-    #[cfg(test)]
-    pub active_tactical_summary_builds: u32,
-    pub passive_strategic_summary_builds: u32,
-    pub attack_reach_summary_builds: u32,
-    pub attack_reach_calls: u32,
-    pub attack_reach_cache_hits: u32,
-    pub drainer_immediate_threat_calls: u32,
-    pub actor_payload_after_move_calls: u32,
-    #[cfg(test)]
-    pub exact_spirit_summary_calls: u32,
-    #[cfg(test)]
-    pub exact_spirit_summary_cache_hits: u32,
-    pub tactical_spirit_summary_calls: u32,
-    pub tactical_spirit_summary_cache_hits: u32,
-    pub immediate_tactical_window_queries: u32,
-    pub tactical_spirit_after_window_calls: u32,
-    pub passive_spirit_summary_calls: u32,
-    #[cfg(test)]
-    pub exact_followup_summary_calls: u32,
-    #[cfg(test)]
-    pub exact_followup_summary_cache_hits: u32,
-    pub exact_secure_mana_calls: u32,
-    pub exact_secure_mana_cache_hits: u32,
-    pub exact_secure_mana_board_cache_hits: u32,
-    pub exact_secure_drainer_walk_apply_calls: u32,
-    pub pickup_path_calls: u32,
-    pub pickup_path_cache_hits: u32,
-    pub pickup_path_cache_misses: u32,
-}
-
 thread_local! {
-    #[cfg(test)]
-    static EXACT_STATE_ANALYSIS_CACHE: RefCell<ExactStateAnalysisCache> =
-        RefCell::new(ExactStateAnalysisCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_TURN_SUMMARY_CACHE: RefCell<ExactTurnSummaryCache> =
         RefCell::new(ExactTurnSummaryCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_TURN_TACTICAL_PROJECTION_CACHE: RefCell<ExactTurnTacticalProjectionCache> =
         RefCell::new(ExactTurnTacticalProjectionCache::default());
     static EXACT_STRATEGIC_ANALYSIS_CACHE: RefCell<ExactStrategicAnalysisCache> =
         RefCell::new(ExactStrategicAnalysisCache::default());
     static EXACT_ATTACK_REACH_CACHE: RefCell<ExactAttackReachCache> =
         RefCell::new(ExactAttackReachCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_DRAINER_SAFETY_CACHE: RefCell<ExactDrainerSafetyCache> =
         RefCell::new(ExactDrainerSafetyCache::default());
     static EXACT_CARRIER_DISTANCE_MAP_CACHE: RefCell<ExactCarrierDistanceMapCache> =
@@ -1184,57 +951,26 @@ thread_local! {
         RefCell::new(ExactCarrierDistanceMapWarmupCache::default());
     static EXACT_CARRIER_STEPS_CACHE: RefCell<ExactCarrierStepsCache> =
         RefCell::new(ExactCarrierStepsCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_DRAINER_TO_MANA_CACHE: RefCell<ExactDrainerToManaCache> =
         RefCell::new(ExactDrainerToManaCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_DRAINER_PICKUP_WINDOW_CACHE: RefCell<ExactDrainerPickupWindowCache> =
         RefCell::new(ExactDrainerPickupWindowCache::default());
-    #[cfg(test)]
-    static EXACT_FOLLOWUP_SUMMARY_CACHE: RefCell<ExactFollowupSummaryCache> =
-        RefCell::new(ExactFollowupSummaryCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE: RefCell<ExactImmediateTacticalWindowCache> =
         RefCell::new(ExactImmediateTacticalWindowCache::default());
     static EXACT_PICKUP_PATH_CACHE: RefCell<ExactPickupPathCache> =
         RefCell::new(ExactPickupPathCache::default());
     static EXACT_SPIRIT_REACH_CACHE: RefCell<ExactSpiritReachCache> =
         RefCell::new(ExactSpiritReachCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
-    static EXACT_SPIRIT_SUMMARY_CACHE: RefCell<ExactSpiritSummaryCache> =
-        RefCell::new(ExactSpiritSummaryCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_SPIRIT_TACTICAL_SUMMARY_CACHE: RefCell<ExactSpiritTacticalSummaryCache> =
         RefCell::new(ExactSpiritTacticalSummaryCache::default());
     static EXACT_WALK_THREAT_CACHE: RefCell<ExactWalkThreatCache> =
         RefCell::new(ExactWalkThreatCache::default());
-    #[cfg(any(target_arch = "wasm32", test))]
     static EXACT_SECURE_MANA_CACHE: RefCell<ExactSecureManaCache> =
         RefCell::new(ExactSecureManaCache::default());
-    #[cfg(test)]
-    static EXACT_QUERY_DIAGNOSTICS: RefCell<ExactQueryDiagnostics> =
-        RefCell::new(ExactQueryDiagnostics::default());
 }
 
-#[cfg(test)]
-#[inline]
-pub(crate) fn clear_exact_query_diagnostics() {
-    EXACT_QUERY_DIAGNOSTICS.with(|diagnostics| {
-        *diagnostics.borrow_mut() = ExactQueryDiagnostics::default();
-    });
-}
-
-#[cfg(test)]
-#[inline]
-pub(crate) fn exact_query_diagnostics_snapshot() -> ExactQueryDiagnostics {
-    EXACT_QUERY_DIAGNOSTICS.with(|diagnostics| *diagnostics.borrow())
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 pub(crate) fn clear_exact_state_analysis_cache() {
-    #[cfg(test)]
-    EXACT_STATE_ANALYSIS_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_TURN_SUMMARY_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_TURN_TACTICAL_PROJECTION_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_STRATEGIC_ANALYSIS_CACHE.with(|cache| cache.borrow_mut().entries.clear());
@@ -1245,12 +981,9 @@ pub(crate) fn clear_exact_state_analysis_cache() {
     EXACT_CARRIER_STEPS_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_DRAINER_TO_MANA_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_DRAINER_PICKUP_WINDOW_CACHE.with(|cache| cache.borrow_mut().entries.clear());
-    #[cfg(test)]
-    EXACT_FOLLOWUP_SUMMARY_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_PICKUP_PATH_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_SPIRIT_REACH_CACHE.with(|cache| cache.borrow_mut().entries.clear());
-    EXACT_SPIRIT_SUMMARY_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_SPIRIT_TACTICAL_SUMMARY_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_WALK_THREAT_CACHE.with(|cache| cache.borrow_mut().entries.clear());
     EXACT_SECURE_MANA_CACHE.with(|cache| {
@@ -1258,40 +991,6 @@ pub(crate) fn clear_exact_state_analysis_cache() {
         cache.entries.clear();
         cache.visiting.clear();
     });
-}
-
-#[cfg(test)]
-pub(crate) fn exact_state_analysis(game: &MonsGame) -> ExactStateAnalysis {
-    let key = exact_search_state_hash(game);
-    exact_state_analysis_with_search_hash(game, key)
-}
-
-#[cfg(test)]
-pub(crate) fn exact_state_analysis_with_search_hash(
-    game: &MonsGame,
-    key: u64,
-) -> ExactStateAnalysis {
-    if checkpoint_with_reserve(20.0) {
-        return ExactStateAnalysis::default();
-    }
-    EXACT_STATE_ANALYSIS_CACHE.with(|cache| {
-        let mut cache = cache.borrow_mut();
-        if let Some(cached) = cache.entries.get(&key).copied() {
-            return cached;
-        }
-        let built = build_exact_state_analysis(game);
-        if cache_write_allowed() {
-            if cache.entries.len() >= EXACT_ANALYSIS_CACHE_MAX_ENTRIES
-                && !cache.entries.contains_key(&key)
-            {
-                cache.entries.clear();
-            }
-            cache.entries.insert(key, built);
-            built
-        } else {
-            ExactStateAnalysis::default()
-        }
-    })
 }
 
 pub(crate) fn exact_strategic_analysis(game: &MonsGame) -> ExactStrategicAnalysis {
@@ -1326,14 +1025,12 @@ pub(crate) fn exact_strategic_analysis_with_search_hash(
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 pub(crate) fn exact_turn_summary(game: &MonsGame, color: Color) -> ExactTurnSummary {
     let key = exact_search_state_hash(game);
     exact_turn_summary_with_search_hash(game, color, key)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 pub(crate) fn exact_turn_summary_with_search_hash(
     game: &MonsGame,
@@ -1366,22 +1063,6 @@ pub(crate) fn exact_turn_summary_with_search_hash(
     }
 }
 
-#[cfg(test)]
-#[inline]
-pub(crate) fn exact_turn_tactical_projection(
-    game: &MonsGame,
-    color: Color,
-    flags: u8,
-) -> ExactTurnTacticalProjection {
-    exact_turn_tactical_projection_with_search_hash(
-        game,
-        color,
-        exact_search_state_hash(game),
-        flags,
-    )
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 pub(crate) fn exact_turn_tactical_projection_with_search_hash(
     game: &MonsGame,
@@ -1440,7 +1121,6 @@ pub(crate) fn exact_turn_tactical_projection_with_search_hash(
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 pub(crate) fn exact_same_turn_score_window_with_search_hash(
     game: &MonsGame,
@@ -1456,7 +1136,6 @@ pub(crate) fn exact_same_turn_score_window_with_search_hash(
     .same_turn_score_window_value
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_opportunity_turn_tactical_projection_with_search_hash(
     game: &MonsGame,
@@ -1475,18 +1154,15 @@ fn exact_opportunity_turn_tactical_projection_with_search_hash(
     )
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn can_attack_opponent_drainer_this_turn(game: &MonsGame, color: Color) -> bool {
     exact_turn_summary(game, color).can_attack_opponent_drainer
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn exact_opportunity_context(game: &MonsGame, color: Color) -> ExactOpportunityContext {
     let key = exact_search_state_hash(game);
     exact_opportunity_context_with_search_hash(game, color, key)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn exact_opportunity_context_with_search_hash(
     game: &MonsGame,
     color: Color,
@@ -1557,7 +1233,6 @@ pub(crate) fn exact_opportunity_context_with_search_hash(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn exact_own_drainer_safety_score_with_hash(
     board: &Board,
     board_hash: u64,
@@ -1627,7 +1302,6 @@ pub(crate) fn exact_own_drainer_safety_score_with_hash(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn can_attack_target_on_board(
     board: &Board,
     attacker_color: Color,
@@ -1794,8 +1468,6 @@ pub(crate) fn attack_reach_summary_for_targets_with_hash(
     can_use_action: bool,
     targets: &[Location],
 ) -> AttackReachSummary {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.attack_reach_summary_builds += 1);
-
     let mut summary = AttackReachSummary::default();
     if remaining_moves < 0 || !can_use_action || targets.is_empty() || checkpoint() {
         return summary;
@@ -1919,7 +1591,6 @@ pub(crate) fn can_attack_target_on_board_with_hash(
     remaining_moves: i32,
     can_use_action: bool,
 ) -> bool {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.attack_reach_calls += 1);
     if remaining_moves < 0 || !can_use_action || board.item(target).is_none() || checkpoint() {
         return false;
     }
@@ -1935,7 +1606,6 @@ pub(crate) fn can_attack_target_on_board_with_hash(
     if let Some(cached) =
         EXACT_ATTACK_REACH_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics!(|diagnostics| diagnostics.attack_reach_cache_hits += 1);
         return cached;
     }
 
@@ -2256,7 +1926,6 @@ fn exact_search_state_hash(game: &MonsGame) -> u64 {
     exact_search_mix_u64(state)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_walk_destination_plausible(board: &Board, actor: Location, destination: Location) -> bool {
     let Some(actor_mon) = board.item(actor).and_then(|item| item.mon()).copied() else {
@@ -2347,7 +2016,6 @@ fn exact_search_mix_u64(mut value: u64) -> u64 {
     value ^ (value >> 31)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_secure_board_entry_hash(index: usize, item: Item) -> u64 {
     let entry = ((index as u64)
@@ -2357,12 +2025,6 @@ fn exact_secure_board_entry_hash(index: usize, item: Item) -> u64 {
     exact_search_mix_u64(entry)
 }
 
-#[cfg(test)]
-fn exact_secure_board_hash(board: &Board) -> u64 {
-    exact_secure_board_state(board).0
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_secure_board_state(board: &Board) -> (u64, u8, u8) {
     let mut state = 0xa0761d6478bd642fu64 ^ exact_secure_board_variant_hash(board.variant());
     let mut white_regular = 0u8;
@@ -2383,13 +2045,11 @@ fn exact_secure_board_state(board: &Board) -> (u64, u8, u8) {
     (state, white_regular, black_regular)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_secure_board_variant_hash(variant: GameVariant) -> u64 {
     exact_search_mix_u64((variant.id() as i64 as u64).wrapping_add(0x13198a2e03707344))
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_adjust_regular_mana_counts(white: &mut u8, black: &mut u8, mana: Mana, delta: i8) {
     let count = match mana {
@@ -2405,13 +2065,11 @@ fn exact_adjust_regular_mana_counts(white: &mut u8, black: &mut u8, mana: Mana, 
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_secure_mana_state_key(game: &MonsGame) -> ExactSecureManaStateKey {
     exact_secure_mana_state_key_from_board(&game.board, game.active_color, game.mons_moves_count)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_secure_mana_state_key_from_board(
     board: &Board,
@@ -2521,7 +2179,6 @@ pub(crate) fn drainer_immediate_threats_with_hash(
     location: Location,
     _board_hash: u64,
 ) -> (i32, i32) {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.drainer_immediate_threat_calls += 1);
     if checkpoint() {
         return (1, 1);
     }
@@ -2630,7 +2287,6 @@ pub(crate) fn is_drainer_under_immediate_threat(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn is_drainer_under_walk_threat(
     board: &Board,
     color: Color,
@@ -2779,7 +2435,6 @@ fn is_drainer_under_walk_threat_uncached(
     false
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn is_drainer_exactly_safe_next_turn_on_board(
     board: &Board,
     color: Color,
@@ -2793,7 +2448,6 @@ pub(crate) fn is_drainer_exactly_safe_next_turn_on_board(
     )
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn is_drainer_exactly_safe_next_turn_on_board_with_hash(
     board: &Board,
     board_hash: u64,
@@ -2827,47 +2481,15 @@ fn exact_is_location_guarded_by_angel(board: &Board, color: Color, location: Loc
         .is_some_and(|angel_location| angel_location.distance(&location) == 1)
 }
 
-#[cfg(test)]
-fn build_exact_state_analysis(game: &MonsGame) -> ExactStateAnalysis {
-    if checkpoint_with_reserve(20.0) {
-        return ExactStateAnalysis::default();
-    }
-    let active_color = game.active_color;
-    let active_summary =
-        build_color_summary(game, active_color, ExactColorSummaryMode::ActiveTactical);
-    if checkpoint_with_reserve(20.0) {
-        return ExactStateAnalysis::default();
-    }
-    let passive_summary = build_color_summary(
-        game,
-        active_color.other(),
-        ExactColorSummaryMode::PassiveStrategic,
-    );
-    if checkpoint_with_reserve(20.0) {
-        return ExactStateAnalysis::default();
-    }
-    if active_color == Color::White {
-        ExactStateAnalysis {
-            white: active_summary,
-            black: passive_summary,
-        }
-    } else {
-        ExactStateAnalysis {
-            white: passive_summary,
-            black: active_summary,
-        }
-    }
-}
-
 fn build_exact_strategic_analysis(game: &MonsGame) -> ExactStrategicAnalysis {
     if checkpoint_with_reserve(20.0) {
         return ExactStrategicAnalysis::default();
     }
-    let white = build_color_summary(game, Color::White, ExactColorSummaryMode::PassiveStrategic);
+    let white = build_color_summary(game, Color::White);
     if checkpoint_with_reserve(20.0) {
         return ExactStrategicAnalysis::default();
     }
-    let black = build_color_summary(game, Color::Black, ExactColorSummaryMode::PassiveStrategic);
+    let black = build_color_summary(game, Color::Black);
     if checkpoint_with_reserve(20.0) {
         ExactStrategicAnalysis::default()
     } else {
@@ -2875,22 +2497,10 @@ fn build_exact_strategic_analysis(game: &MonsGame) -> ExactStrategicAnalysis {
     }
 }
 
-fn build_color_summary(
-    game: &MonsGame,
-    color: Color,
-    mode: ExactColorSummaryMode,
-) -> ExactColorSummary {
+fn build_color_summary(game: &MonsGame, color: Color) -> ExactColorSummary {
     if checkpoint_with_reserve(20.0) {
         return ExactColorSummary::default();
     }
-    update_exact_query_diagnostics!(|diagnostics| match mode {
-        #[cfg(test)]
-        ExactColorSummaryMode::ActiveTactical => diagnostics.active_tactical_summary_builds += 1,
-        ExactColorSummaryMode::PassiveStrategic => {
-            diagnostics.passive_strategic_summary_builds += 1
-        }
-    });
-
     let (full_turn_moves, can_use_action) = if game.active_color == color {
         (
             (Config::MONS_MOVES_PER_TURN - game.mons_moves_count).max(0),
@@ -2923,19 +2533,11 @@ fn build_color_summary(
     }
 
     let best_drainer_pickup = find_awake_drainer(&game.board, color).and_then(|location| {
-        exact_best_drainer_pickup_path_filtered_with_hash(
-            &game.board,
-            color,
-            location,
-            None,
-            ExactPickupFilter::Any,
-            board_hash,
-        )
+        exact_best_drainer_pickup_path_with_hash(&game.board, color, location, None, board_hash)
     });
     if checkpoint_with_reserve(20.0) {
         return ExactColorSummary::default();
     }
-    #[cfg(any(target_arch = "wasm32", test))]
     let best_drainer_to_mana_steps = find_awake_drainer(&game.board, color)
         .and_then(|location| exact_drainer_to_any_mana_steps(&game.board, color, location));
 
@@ -2978,22 +2580,7 @@ fn build_color_summary(
             immediate_scores.push(path.mana_value);
         }
     }
-    let spirit = match mode {
-        #[cfg(test)]
-        ExactColorSummaryMode::ActiveTactical => {
-            let spirit = exact_spirit_summary(&game.board, color, full_turn_moves, can_use_action);
-            if spirit.same_turn_score {
-                immediate_scores.push(spirit.same_turn_score_value.max(1));
-            }
-            if spirit.same_turn_opponent_mana_score {
-                immediate_scores.push(spirit.same_turn_opponent_mana_score_value.max(1));
-            }
-            spirit
-        }
-        ExactColorSummaryMode::PassiveStrategic => {
-            exact_passive_spirit_summary(&game.board, color, full_turn_moves, can_use_action)
-        }
-    };
+    let spirit = exact_passive_spirit_summary(&game.board, color, full_turn_moves, can_use_action);
     if checkpoint_with_reserve(20.0) {
         return ExactColorSummary::default();
     }
@@ -3007,20 +2594,16 @@ fn build_color_summary(
         score_path_window,
         immediate_window,
         best_drainer_pickup,
-        #[cfg(any(target_arch = "wasm32", test))]
         best_carrier_steps,
-        #[cfg(any(target_arch = "wasm32", test))]
         best_drainer_to_mana_steps,
         spirit,
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
     if checkpoint_with_reserve(20.0) {
         return ExactTurnSummary::default();
     }
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_turn_summary_builds += 1);
 
     let color = game.active_color;
     let remaining_moves = (Config::MONS_MOVES_PER_TURN - game.mons_moves_count).max(0);
@@ -3072,8 +2655,6 @@ fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
         spirit_assisted_supermana_progress: tactical_spirit.supermana_progress,
         spirit_assisted_opponent_mana_progress: tactical_spirit.opponent_mana_progress,
         spirit_assisted_score: tactical_spirit.same_turn_score,
-        #[cfg(test)]
-        spirit_assisted_score_value: tactical_spirit.same_turn_score_value,
         spirit_assisted_denial: tactical_spirit.same_turn_opponent_mana_score,
         same_turn_score_window_value,
         score_path_best_steps: exact_best_score_steps_on_board(&game.board, color),
@@ -3085,7 +2666,6 @@ fn build_exact_turn_summary(game: &MonsGame) -> ExactTurnSummary {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn build_exact_turn_tactical_projection(game: &MonsGame, flags: u8) -> ExactTurnTacticalProjection {
     if checkpoint_with_reserve(20.0) {
         return ExactTurnTacticalProjection::default();
@@ -3298,7 +2878,6 @@ where
     None
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn actor_payload_after_move_with_hash(
     board: &Board,
     _board_hash: u64,
@@ -3308,7 +2887,6 @@ fn actor_payload_after_move_with_hash(
     destination: Location,
     allow_pick_bomb: bool,
 ) -> Option<ExactActorPayload> {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.actor_payload_after_move_calls += 1);
     actor_payload_after_move_compute(
         board,
         mon_kind,
@@ -3446,7 +3024,6 @@ fn exact_distance_to_any_pool_steps_lower_bound(location: Location) -> i32 {
     i32::max(i32::min(i, max_index - i), i32::min(j, max_index - j))
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_drainer_pickup_steps_lower_bound(
     board: &Board,
     color: Color,
@@ -3476,7 +3053,6 @@ fn exact_drainer_pickup_steps_lower_bound(
         .min()
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[allow(clippy::too_many_arguments)]
 fn exact_drainer_pickup_remaining_steps_lower_bound(
     board: &Board,
@@ -3512,28 +3088,25 @@ fn exact_drainer_pickup_remaining_steps_lower_bound(
 }
 
 #[inline]
-fn exact_filtered_drainer_pickup_remaining_steps_lower_bound(
+fn exact_any_drainer_pickup_remaining_steps_lower_bound(
     board: &Board,
     location: Location,
     payload: ExactActorPayload,
-    mana_filter: ExactPickupFilter,
 ) -> Option<i32> {
     match payload {
         ExactActorPayload::None => board
             .occupied()
             .filter_map(|(mana_location, item)| {
-                let Item::Mana { mana } = item else {
+                let Item::Mana { .. } = item else {
                     return None;
                 };
-                mana_filter.matches(*mana).then_some(
+                Some(
                     location.distance(&mana_location)
                         + exact_distance_to_any_pool_steps_lower_bound(mana_location),
                 )
             })
             .min(),
-        ExactActorPayload::Mana(mana) => mana_filter
-            .matches(mana)
-            .then_some(exact_distance_to_any_pool_steps_lower_bound(location)),
+        ExactActorPayload::Mana(_) => Some(exact_distance_to_any_pool_steps_lower_bound(location)),
         ExactActorPayload::Bomb => None,
     }
 }
@@ -3840,12 +3413,6 @@ fn exact_carrier_steps_to_any_pool_with_hash_bounded(
     result
 }
 
-#[cfg(test)]
-fn exact_carrier_steps_to_any_pool(board: &Board, start: Location, mana: Mana) -> Option<i32> {
-    exact_carrier_steps_to_any_pool_with_hash(board, start, mana, exact_board_hash(board))
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct ExactDrainerPickupWindow {
     any: Option<ExactDrainerPickupPath>,
@@ -3896,7 +3463,6 @@ fn exact_pickup_path_future_can_beat_best(
         || (future_metric == best_metric && best.mana_value < max_mana_value)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[allow(clippy::too_many_arguments)]
 fn exact_update_drainer_pickup_window_candidate(
     board: &Board,
@@ -3943,7 +3509,6 @@ fn exact_update_drainer_pickup_window_candidate(
     score_done && denial_done
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[allow(clippy::too_many_arguments)]
 fn exact_drainer_pickup_window_small_budget_with_hash(
     board: &Board,
@@ -4025,7 +3590,6 @@ fn exact_drainer_pickup_window_small_budget_with_hash(
     best
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[allow(clippy::too_many_arguments)]
 fn exact_drainer_pickup_window_uncached_with_hash(
     board: &Board,
@@ -4038,8 +3602,6 @@ fn exact_drainer_pickup_window_uncached_with_hash(
     opponent_mana: Mana,
     _board_hash: u64,
 ) -> ExactDrainerPickupWindow {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_calls += 1);
-
     if (!need_score && !need_denial) || checkpoint() {
         return ExactDrainerPickupWindow::default();
     }
@@ -4102,7 +3664,6 @@ fn exact_drainer_pickup_window_uncached_with_hash(
     best
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[allow(clippy::too_many_arguments)]
 fn exact_drainer_pickup_window_with_hash_min_any_score(
     board: &Board,
@@ -4260,41 +3821,14 @@ fn exact_drainer_pickup_window_with_hash_min_any_score(
     }
 }
 
-#[cfg(test)]
-#[allow(clippy::too_many_arguments)]
-fn exact_drainer_pickup_window_with_hash(
-    board: &Board,
-    color: Color,
-    start: Location,
-    max_steps: Option<i32>,
-    need_score: bool,
-    need_denial: bool,
-    opponent_mana: Mana,
-    board_hash: u64,
-) -> ExactDrainerPickupWindow {
-    exact_drainer_pickup_window_with_hash_min_any_score(
-        board,
-        color,
-        start,
-        max_steps,
-        1,
-        need_score,
-        need_denial,
-        opponent_mana,
-        board_hash,
-    )
-}
-
 #[inline]
-fn exact_best_drainer_pickup_path_filtered_with_hash(
+fn exact_best_drainer_pickup_path_with_hash(
     board: &Board,
     color: Color,
     start: Location,
     max_steps: Option<i32>,
-    mana_filter: ExactPickupFilter,
     board_hash: u64,
 ) -> Option<ExactDrainerPickupPath> {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_calls += 1);
     if checkpoint() {
         return None;
     }
@@ -4303,24 +3837,16 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
         color,
         start,
         max_steps,
-        filter: mana_filter,
     };
     if let Some(cached) =
         EXACT_PICKUP_PATH_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_cache_hits += 1);
         return cached;
     }
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.pickup_path_cache_misses += 1);
 
     if max_steps.is_some_and(|limit| {
-        exact_filtered_drainer_pickup_remaining_steps_lower_bound(
-            board,
-            start,
-            ExactActorPayload::None,
-            mana_filter,
-        )
-        .is_some_and(|lower_bound| lower_bound > limit)
+        exact_any_drainer_pickup_remaining_steps_lower_bound(board, start, ExactActorPayload::None)
+            .is_some_and(|lower_bound| lower_bound > limit)
     }) {
         if cache_write_allowed() {
             EXACT_PICKUP_PATH_CACHE.with(|cache| {
@@ -4343,7 +3869,7 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
     queue.push_back(start_state);
     seen.insert(start, ExactActorPayload::None);
     let mut best: Option<ExactDrainerPickupPath> = None;
-    let max_mana_value = exact_pickup_filter_max_mana_value(mana_filter, color);
+    let max_mana_value = Mana::Supermana.score(color);
 
     while let Some((location, payload, steps)) = queue.pop_front() {
         if checkpoint() {
@@ -4358,9 +3884,7 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
             }
         }
         if let ExactActorPayload::Mana(mana) = payload {
-            if mana_filter.matches(mana)
-                && matches!(board.square(location), Square::ManaPool { .. })
-            {
+            if matches!(board.square(location), Square::ManaPool { .. }) {
                 let candidate = ExactDrainerPickupPath {
                     path_steps: steps.saturating_sub(1),
                     total_moves: steps,
@@ -4373,12 +3897,9 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
             }
         }
         if max_steps.is_some() || best.is_some() {
-            if let Some(lower_bound) = exact_filtered_drainer_pickup_remaining_steps_lower_bound(
-                board,
-                location,
-                payload,
-                mana_filter,
-            ) {
+            if let Some(lower_bound) =
+                exact_any_drainer_pickup_remaining_steps_lower_bound(board, location, payload)
+            {
                 if max_steps.is_some_and(|limit| steps.saturating_add(lower_bound) > limit) {
                     continue;
                 }
@@ -4421,24 +3942,6 @@ fn exact_best_drainer_pickup_path_filtered_with_hash(
     }
 }
 
-#[cfg(test)]
-fn exact_best_drainer_pickup_path_filtered(
-    board: &Board,
-    color: Color,
-    start: Location,
-    max_steps: Option<i32>,
-    mana_filter: ExactPickupFilter,
-) -> Option<ExactDrainerPickupPath> {
-    exact_best_drainer_pickup_path_filtered_with_hash(
-        board,
-        color,
-        start,
-        max_steps,
-        mana_filter,
-        exact_board_hash(board),
-    )
-}
-
 fn find_awake_drainer(board: &Board, color: Color) -> Option<Location> {
     board.occupied().find_map(|(location, item)| {
         let mon = item.mon()?;
@@ -4447,7 +3950,6 @@ fn find_awake_drainer(board: &Board, color: Color) -> Option<Location> {
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_drainer_to_any_mana_steps(board: &Board, color: Color, start: Location) -> Option<i32> {
     if checkpoint() {
         return None;
@@ -4491,7 +3993,6 @@ fn exact_drainer_to_any_mana_steps(board: &Board, color: Color, start: Location)
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_distance_to_wanted_mana_steps_lower_bound(
     board: &Board,
@@ -4507,7 +4008,6 @@ fn exact_distance_to_wanted_mana_steps_lower_bound(
         .min()
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_secure_specific_mana_steps_this_turn(
     game: &MonsGame,
     color: Color,
@@ -4521,7 +4021,6 @@ fn exact_secure_specific_mana_steps_this_turn(
     exact_secure_specific_mana_steps_on_board(&game.board, color, wanted, remaining_moves)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn can_secure_specific_mana_on_board(
     board: &Board,
     color: Color,
@@ -4531,7 +4030,6 @@ fn can_secure_specific_mana_on_board(
     exact_secure_specific_mana_steps_on_board(board, color, wanted, remaining_moves).is_some()
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn exact_secure_specific_mana_steps_on_board(
     board: &Board,
     color: Color,
@@ -4564,11 +4062,6 @@ pub(crate) fn exact_secure_specific_mana_steps_on_board(
     if let Some(cached) =
         EXACT_SECURE_MANA_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics!(|diagnostics| {
-            diagnostics.exact_secure_mana_calls += 1;
-            diagnostics.exact_secure_mana_cache_hits += 1;
-            diagnostics.exact_secure_mana_board_cache_hits += 1;
-        });
         return cached;
     }
 
@@ -4589,14 +4082,12 @@ pub(crate) fn exact_secure_specific_mana_steps_on_board(
     exact_secure_specific_mana_steps_in_game_with_key(&game, color, wanted, state)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_secure_specific_mana_steps_in_game_with_key(
     game: &MonsGame,
     color: Color,
     wanted: Mana,
     state: ExactSecureManaStateKey,
 ) -> Option<i32> {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_secure_mana_calls += 1);
     if checkpoint() {
         return None;
     }
@@ -4612,7 +4103,6 @@ fn exact_secure_specific_mana_steps_in_game_with_key(
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_secure_specific_mana_steps_in_game_with_key_mut(
     game: &mut MonsGame,
     color: Color,
@@ -4634,7 +4124,6 @@ fn exact_secure_specific_mana_steps_in_game_with_key_mut(
     )
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_secure_specific_mana_steps_in_game_with_key_at_mut(
     game: &mut MonsGame,
     color: Color,
@@ -4652,7 +4141,6 @@ fn exact_secure_specific_mana_steps_in_game_with_key_at_mut(
         wanted,
     };
     if let Some(cached) = cache.entries.get(&key).copied() {
-        update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_secure_mana_cache_hits += 1);
         return cached;
     }
 
@@ -4683,7 +4171,6 @@ fn exact_secure_specific_mana_steps_in_game_with_key_at_mut(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_secure_specific_mana_steps_in_game_uncached_at_mut(
     game: &mut MonsGame,
     color: Color,
@@ -4781,7 +4268,6 @@ fn exact_secure_specific_mana_steps_in_game_uncached_at_mut(
     best
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn exact_secure_specific_mana_path_from(
     game: &MonsGame,
     color: Color,
@@ -4803,7 +4289,6 @@ pub(crate) fn exact_secure_specific_mana_path_from(
     )
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_secure_specific_mana_path_from_uncached(
     game: &MonsGame,
     color: Color,
@@ -4903,7 +4388,6 @@ fn exact_secure_specific_mana_path_from_uncached(
     result
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone)]
 struct ExactSecureDrainerWalkTransition {
     after: MonsGame,
@@ -4911,7 +4395,6 @@ struct ExactSecureDrainerWalkTransition {
     scored_mana: Option<Mana>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy)]
 struct ExactSecureGameSnapshot {
     white_score: i32,
@@ -4925,7 +4408,6 @@ struct ExactSecureGameSnapshot {
     turn_number: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 impl ExactSecureGameSnapshot {
     #[inline]
     fn capture(game: &MonsGame) -> Self {
@@ -4943,14 +4425,12 @@ impl ExactSecureGameSnapshot {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy)]
 struct ExactSecureTouchedItem {
     location: Location,
     before: Option<Item>,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy)]
 struct ExactSecureTouchedItems {
     items: [Option<ExactSecureTouchedItem>; EXACT_SECURE_TOUCHED_ITEMS_CAPACITY],
@@ -4958,7 +4438,6 @@ struct ExactSecureTouchedItems {
     seen_mask: u128,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 impl ExactSecureTouchedItems {
     #[inline]
     fn new() -> Self {
@@ -4986,14 +4465,12 @@ impl ExactSecureTouchedItems {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy)]
 struct ExactSecureDrainerWalkUndo {
     snapshot: ExactSecureGameSnapshot,
     touched_items: ExactSecureTouchedItems,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone, Copy)]
 struct ExactSecureDrainerWalkMutation {
     after_key: ExactSecureManaStateKey,
@@ -5001,7 +4478,6 @@ struct ExactSecureDrainerWalkMutation {
     undo: ExactSecureDrainerWalkUndo,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_secure_board_hash_after_touched_items(
     before_hash: u64,
@@ -5022,7 +4498,6 @@ fn exact_secure_board_hash_after_touched_items(
     after_hash
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[inline]
 fn exact_undo_secure_drainer_walk(game: &mut MonsGame, undo: ExactSecureDrainerWalkUndo) {
     game.white_score = undo.snapshot.white_score;
@@ -5044,16 +4519,12 @@ fn exact_undo_secure_drainer_walk(game: &mut MonsGame, undo: ExactSecureDrainerW
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_apply_secure_drainer_walk_in_place(
     game: &mut MonsGame,
     state_key: ExactSecureManaStateKey,
     from: Location,
     to: Location,
 ) -> Option<ExactSecureDrainerWalkMutation> {
-    update_exact_query_diagnostics!(|diagnostics| {
-        diagnostics.exact_secure_drainer_walk_apply_calls += 1
-    });
     if checkpoint() || !exact_walk_destination_plausible(&game.board, from, to) {
         return None;
     }
@@ -5245,7 +4716,6 @@ fn exact_apply_secure_drainer_walk_in_place(
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_apply_secure_drainer_walk(
     game: &MonsGame,
     state_key: ExactSecureManaStateKey,
@@ -5261,7 +4731,6 @@ fn exact_apply_secure_drainer_walk(
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn can_attack_opponent_drainer_exact_with_hash(
     game: &MonsGame,
     color: Color,
@@ -5303,50 +4772,6 @@ fn demon_has_line_attack(board: &Board, from: Location, target: Location) -> boo
         )
 }
 
-#[cfg(test)]
-fn exact_spirit_summary(
-    board: &Board,
-    color: Color,
-    remaining_mon_moves: i32,
-    can_use_action: bool,
-) -> ExactSpiritSummary {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_spirit_summary_calls += 1);
-    if remaining_mon_moves < 0 || checkpoint() {
-        return ExactSpiritSummary::default();
-    }
-    let key = ExactSpiritSummaryKey {
-        board_hash: exact_board_hash(board),
-        color,
-        remaining_mon_moves,
-        can_use_action,
-    };
-    if let Some(cached) =
-        EXACT_SPIRIT_SUMMARY_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
-    {
-        update_exact_query_diagnostics!(|diagnostics| {
-            diagnostics.exact_spirit_summary_cache_hits += 1
-        });
-        return cached;
-    }
-
-    let summary = exact_spirit_summary_uncached(board, color, remaining_mon_moves, can_use_action);
-    if cache_write_allowed() {
-        EXACT_SPIRIT_SUMMARY_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.entries.len() >= EXACT_SPIRIT_SUMMARY_CACHE_MAX_ENTRIES
-                && !cache.entries.contains_key(&key)
-            {
-                cache.entries.clear();
-            }
-            cache.entries.insert(key, summary);
-        });
-        summary
-    } else {
-        ExactSpiritSummary::default()
-    }
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_tactical_spirit_summary(
     board: &Board,
     color: Color,
@@ -5354,7 +4779,6 @@ fn exact_tactical_spirit_summary(
     can_use_action: bool,
     fields: u8,
 ) -> ExactSpiritSummary {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.tactical_spirit_summary_calls += 1);
     if remaining_mon_moves < 0 || fields == 0 || checkpoint() {
         return ExactSpiritSummary::default();
     }
@@ -5368,9 +4792,6 @@ fn exact_tactical_spirit_summary(
     if let Some(cached) =
         EXACT_SPIRIT_TACTICAL_SUMMARY_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
     {
-        update_exact_query_diagnostics!(|diagnostics| {
-            diagnostics.tactical_spirit_summary_cache_hits += 1;
-        });
         return cached;
     }
     if let Some(cached) = EXACT_SPIRIT_TACTICAL_SUMMARY_CACHE.with(|cache| {
@@ -5392,9 +4813,6 @@ fn exact_tactical_spirit_summary(
         }
         None
     }) {
-        update_exact_query_diagnostics!(|diagnostics| {
-            diagnostics.tactical_spirit_summary_cache_hits += 1;
-        });
         return cached;
     }
 
@@ -5428,7 +4846,6 @@ fn exact_passive_spirit_summary(
     remaining_mon_moves: i32,
     can_use_action: bool,
 ) -> ExactSpiritSummary {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.passive_spirit_summary_calls += 1);
     if remaining_mon_moves < 0 || !can_use_action || checkpoint() {
         return ExactSpiritSummary::default();
     }
@@ -5535,7 +4952,6 @@ fn exact_passive_spirit_summary(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_tactical_spirit_summary_uncached(
     board: &Board,
     color: Color,
@@ -5790,9 +5206,6 @@ fn exact_tactical_spirit_summary_uncached(
                             if let Some(cached) = after_window_cache.get(&key).copied() {
                                 cached
                             } else {
-                                update_exact_query_diagnostics!(|diagnostics| {
-                                    diagnostics.tactical_spirit_after_window_calls += 1;
-                                });
                                 let window = if min_score > 1 {
                                     exact_best_immediate_tactical_window_on_board_with_hash_min_score(
                                         &action_board,
@@ -5922,236 +5335,6 @@ fn exact_tactical_spirit_summary_uncached(
         ExactSpiritSummary::default()
     } else {
         best
-    }
-}
-
-#[cfg(test)]
-fn exact_spirit_summary_uncached(
-    board: &Board,
-    color: Color,
-    remaining_mon_moves: i32,
-    can_use_action: bool,
-) -> ExactSpiritSummary {
-    if !can_use_action || checkpoint() {
-        return ExactSpiritSummary::default();
-    }
-    let before_summary = exact_followup_summary(board, color, remaining_mon_moves);
-    if checkpoint() {
-        return ExactSpiritSummary::default();
-    }
-    let before_best_steps = before_summary.best_score_steps;
-    let opponent_before = before_summary.opponent_best_score_steps;
-    let before_same_turn_score = before_summary.immediate_score;
-    let before_same_turn_opponent_score = before_summary.immediate_opponent_mana_score;
-    let mut best = ExactSpiritSummary::default();
-
-    for (location, item) in board.occupied() {
-        if checkpoint() {
-            return ExactSpiritSummary::default();
-        }
-        let Some(mon) = item.mon() else {
-            continue;
-        };
-        if mon.color != color || mon.kind != MonKind::Spirit || mon.is_fainted() {
-            continue;
-        }
-
-        for (spirit_pos, spirit_steps) in
-            reachable_spirit_positions(board, location, color, remaining_mon_moves)
-        {
-            if checkpoint() {
-                return ExactSpiritSummary::default();
-            }
-            if matches!(board.square(spirit_pos), Square::MonBase { .. }) {
-                continue;
-            }
-            let mut action_board = board.clone();
-            if spirit_pos != location {
-                action_board.remove_item(location);
-                action_board.put(*item, spirit_pos);
-            }
-            let remaining_after_action = remaining_mon_moves.saturating_sub(spirit_steps);
-            for &target in spirit_pos.reachable_by_spirit_action_ref() {
-                if checkpoint() {
-                    return ExactSpiritSummary::default();
-                }
-                let Some(target_item) = action_board.item(target).copied() else {
-                    continue;
-                };
-                if !spirit_target_allowed(target_item) {
-                    continue;
-                }
-                for &dest in target.nearby_locations_ref() {
-                    if checkpoint() {
-                        return ExactSpiritSummary::default();
-                    }
-                    if !spirit_destination_allowed(&action_board, target, target_item, dest) {
-                        continue;
-                    }
-                    let (undo, score_delta, opponent_mana_score_delta) =
-                        apply_spirit_move_preview_in_place(
-                            &mut action_board,
-                            target,
-                            target_item,
-                            dest,
-                            color,
-                        );
-                    let after_summary =
-                        exact_followup_summary(&action_board, color, remaining_after_action);
-                    if checkpoint() {
-                        undo_spirit_move_preview(&mut action_board, undo);
-                        return ExactSpiritSummary::default();
-                    }
-                    let after_best_steps = after_summary.best_score_steps;
-                    let after_opponent_steps = after_summary.opponent_best_score_steps;
-                    let after_same_turn_score = score_delta.max(after_summary.immediate_score);
-                    let after_same_turn_opponent_score =
-                        opponent_mana_score_delta.max(after_summary.immediate_opponent_mana_score);
-                    let supermana_progress_enabled = after_summary.secure_supermana
-                        || matches!(
-                            target_item,
-                            Item::Mana {
-                                mana: Mana::Supermana,
-                            }
-                        ) && score_delta > 0;
-                    let opponent_progress_enabled =
-                        after_summary.secure_opponent_mana || opponent_mana_score_delta > 0;
-                    let own_gain = best_step_improvement(before_best_steps, after_best_steps);
-                    let deny_gain = best_step_worsening(opponent_before, after_opponent_steps);
-                    let same_turn_score_enabled =
-                        score_delta > 0 || after_same_turn_score > before_same_turn_score;
-                    let same_turn_opponent_score_enabled = opponent_mana_score_delta > 0
-                        || after_same_turn_opponent_score > before_same_turn_opponent_score;
-                    let score_gain = if same_turn_score_enabled {
-                        after_same_turn_score
-                            .saturating_sub(before_same_turn_score)
-                            .max(score_delta)
-                    } else {
-                        0
-                    };
-                    let opponent_score_gain = if same_turn_opponent_score_enabled {
-                        after_same_turn_opponent_score
-                            .saturating_sub(before_same_turn_opponent_score)
-                            .max(opponent_mana_score_delta)
-                    } else {
-                        0
-                    };
-                    let setup_gain = own_gain.saturating_add(deny_gain);
-                    let utility =
-                        exact_spirit_utility_score(score_gain, opponent_score_gain, setup_gain);
-
-                    if same_turn_score_enabled {
-                        best.same_turn_score = true;
-                        best.same_turn_score_value =
-                            best.same_turn_score_value.max(after_same_turn_score);
-                    }
-                    if supermana_progress_enabled {
-                        best.supermana_progress = true;
-                    }
-                    if same_turn_opponent_score_enabled {
-                        best.same_turn_opponent_mana_score = true;
-                        best.same_turn_opponent_mana_score_value = best
-                            .same_turn_opponent_mana_score_value
-                            .max(after_same_turn_opponent_score);
-                    }
-                    if opponent_progress_enabled {
-                        best.opponent_mana_progress = true;
-                    }
-
-                    if utility > best.utility {
-                        best.utility = utility;
-                        best.next_turn_setup_gain = setup_gain;
-                    } else if utility == best.utility {
-                        best.next_turn_setup_gain = best.next_turn_setup_gain.max(setup_gain);
-                    }
-                    undo_spirit_move_preview(&mut action_board, undo);
-                    if checkpoint() {
-                        return ExactSpiritSummary::default();
-                    }
-                }
-            }
-        }
-    }
-
-    if checkpoint() {
-        ExactSpiritSummary::default()
-    } else {
-        best
-    }
-}
-
-#[cfg(test)]
-fn exact_followup_summary(
-    board: &Board,
-    color: Color,
-    remaining_moves: i32,
-) -> ExactFollowupSummary {
-    update_exact_query_diagnostics!(|diagnostics| diagnostics.exact_followup_summary_calls += 1);
-    if remaining_moves < 0 || checkpoint() {
-        return ExactFollowupSummary::default();
-    }
-
-    let board_hash = exact_board_hash(board);
-    let key = ExactFollowupSummaryKey {
-        board_hash,
-        color,
-        remaining_moves,
-    };
-    if let Some(cached) =
-        EXACT_FOLLOWUP_SUMMARY_CACHE.with(|cache| cache.borrow().entries.get(&key).copied())
-    {
-        update_exact_query_diagnostics!(|diagnostics| {
-            diagnostics.exact_followup_summary_cache_hits += 1
-        });
-        return cached;
-    }
-
-    let summary = ExactFollowupSummary {
-        best_score_steps: exact_best_score_steps_on_board_with_hash(board, color, board_hash),
-        opponent_best_score_steps: exact_best_score_steps_on_board_with_hash(
-            board,
-            color.other(),
-            board_hash,
-        ),
-        immediate_score: exact_best_immediate_score_on_board_with_hash(
-            board,
-            color,
-            remaining_moves,
-            board_hash,
-        ),
-        immediate_opponent_mana_score: exact_best_immediate_opponent_mana_score_on_board_with_hash(
-            board,
-            color,
-            remaining_moves,
-            board_hash,
-        ),
-        secure_supermana: can_secure_specific_mana_on_board(
-            board,
-            color,
-            Mana::Supermana,
-            remaining_moves,
-        ),
-        secure_opponent_mana: can_secure_specific_mana_on_board(
-            board,
-            color,
-            Mana::Regular(color.other()),
-            remaining_moves,
-        ),
-    };
-
-    if cache_write_allowed() {
-        EXACT_FOLLOWUP_SUMMARY_CACHE.with(|cache| {
-            let mut cache = cache.borrow_mut();
-            if cache.entries.len() >= EXACT_FOLLOWUP_SUMMARY_CACHE_MAX_ENTRIES
-                && !cache.entries.contains_key(&key)
-            {
-                cache.entries.clear();
-            }
-            cache.entries.insert(key, summary);
-        });
-        summary
-    } else {
-        ExactFollowupSummary::default()
     }
 }
 
@@ -6318,7 +5501,6 @@ fn spirit_destination_allowed(
 }
 
 #[derive(Debug, Clone, Copy)]
-#[cfg(any(target_arch = "wasm32", test))]
 struct SpiritPreviewUndo {
     from: Location,
     from_item: Option<Item>,
@@ -6327,14 +5509,12 @@ struct SpiritPreviewUndo {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[cfg(any(target_arch = "wasm32", test))]
 struct ExactTouchedBoardItem {
     location: Location,
     before: Option<Item>,
 }
 
 #[inline]
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_board_hash_after_touched_items(
     before_hash: u64,
     board: &Board,
@@ -6353,7 +5533,6 @@ fn exact_board_hash_after_touched_items(
     after_hash
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn apply_spirit_move_preview_known_items_in_place(
     board: &mut Board,
     from: Location,
@@ -6423,7 +5602,6 @@ fn apply_spirit_move_preview_known_items_in_place(
     (undo, score_delta, opponent_mana_score_delta)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn apply_spirit_move_preview_in_place(
     board: &mut Board,
     from: Location,
@@ -6441,7 +5619,6 @@ fn apply_spirit_move_preview_in_place(
     )
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn undo_spirit_move_preview(board: &mut Board, undo: SpiritPreviewUndo) {
     if let Some(item) = undo.from_item {
         board.put(item, undo.from);
@@ -6455,56 +5632,10 @@ fn undo_spirit_move_preview(board: &mut Board, undo: SpiritPreviewUndo) {
     }
 }
 
-#[cfg(test)]
-fn apply_spirit_move_preview(
-    board: &Board,
-    from: Location,
-    target_item: Item,
-    to: Location,
-    perspective: Color,
-) -> (Board, i32, i32) {
-    let mut board = board.clone();
-    let (_, score_delta, opponent_mana_score_delta) =
-        apply_spirit_move_preview_in_place(&mut board, from, target_item, to, perspective);
-    (board, score_delta, opponent_mana_score_delta)
-}
-
-#[cfg(test)]
-fn best_step_improvement(before: Option<i32>, after: Option<i32>) -> i32 {
-    match (before, after) {
-        (Some(before), Some(after)) if after < before => before - after,
-        (None, Some(_)) => 2,
-        _ => 0,
-    }
-}
-
-#[cfg(test)]
-fn best_step_worsening(before: Option<i32>, after: Option<i32>) -> i32 {
-    match (before, after) {
-        (Some(before), Some(after)) if after > before => after - before,
-        (Some(_), None) => 2,
-        _ => 0,
-    }
-}
-
-#[cfg(test)]
-fn exact_spirit_utility_score(score_delta: i32, opponent_score_delta: i32, setup_gain: i32) -> i32 {
-    let score_bonus = if opponent_score_delta > 0 {
-        5 + opponent_score_delta
-    } else if score_delta > 0 {
-        4 + score_delta
-    } else {
-        0
-    };
-    score_bonus.max((1 + setup_gain).min(EXACT_SPIRIT_UTILITY_CAP))
-}
-
-#[cfg(any(target_arch = "wasm32", test))]
 pub(crate) fn exact_best_score_steps_on_board(board: &Board, color: Color) -> Option<i32> {
     exact_best_score_steps_on_board_with_hash(board, color, exact_board_hash(board))
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_best_score_steps_on_board_with_hash(
     board: &Board,
     color: Color,
@@ -6529,13 +5660,8 @@ fn exact_best_score_steps_on_board_with_hash(
             Item::Mon { mon } | Item::MonWithConsumable { mon, .. }
                 if mon.color == color && mon.kind == MonKind::Drainer && !mon.is_fainted() =>
             {
-                if let Some(path) = exact_best_drainer_pickup_path_filtered_with_hash(
-                    board,
-                    color,
-                    location,
-                    None,
-                    ExactPickupFilter::Any,
-                    board_hash,
+                if let Some(path) = exact_best_drainer_pickup_path_with_hash(
+                    board, color, location, None, board_hash,
                 ) {
                     best = Some(best.map_or(path.total_moves, |current: i32| {
                         current.min(path.total_moves)
@@ -6553,17 +5679,14 @@ fn exact_best_score_steps_on_board_with_hash(
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-#[cfg(any(target_arch = "wasm32", test))]
 struct ExactImmediateTacticalWindow {
     best_score: i32,
     best_opponent_mana_score: i32,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 type ExactImmediateTacticalCounts = ExactZeroMoveTacticalCounts;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-#[cfg(any(target_arch = "wasm32", test))]
 struct ExactZeroMoveTacticalCounts {
     score_one: u32,
     score_two: u32,
@@ -6571,14 +5694,12 @@ struct ExactZeroMoveTacticalCounts {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg(any(target_arch = "wasm32", test))]
 struct ExactBudgetOneTacticalSummary {
     counts: ExactImmediateTacticalCounts,
     by_location: ExactHashMap<Location, ExactImmediateTacticalCounts>,
 }
 
 #[inline]
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_immediate_tactical_counts_for_mana(
     mana: Mana,
     color: Color,
@@ -6598,7 +5719,6 @@ fn exact_immediate_tactical_counts_for_mana(
 }
 
 #[inline]
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_zero_move_tactical_counts_for_item(
     board: &Board,
     location: Location,
@@ -6618,7 +5738,6 @@ fn exact_zero_move_tactical_counts_for_item(
     exact_immediate_tactical_counts_for_mana(mana, color)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_zero_move_tactical_counts(board: &Board, color: Color) -> ExactZeroMoveTacticalCounts {
     if checkpoint() {
         return ExactZeroMoveTacticalCounts::default();
@@ -6638,7 +5757,6 @@ fn exact_zero_move_tactical_counts(board: &Board, color: Color) -> ExactZeroMove
 }
 
 #[inline]
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_zero_move_tactical_window_from_counts(
     counts: ExactZeroMoveTacticalCounts,
     min_score: u8,
@@ -6665,7 +5783,6 @@ fn exact_zero_move_tactical_window_from_counts(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_zero_move_tactical_counts_after_touched_items(
     base: ExactZeroMoveTacticalCounts,
     board: &Board,
@@ -6697,7 +5814,6 @@ fn exact_zero_move_tactical_counts_after_touched_items(
 }
 
 #[inline]
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_budget_one_tactical_counts_for_location(
     board: &Board,
     color: Color,
@@ -6729,7 +5845,6 @@ fn exact_budget_one_tactical_counts_for_location(
 }
 
 #[inline]
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_budget_one_drainer_tactical_counts(
     board: &Board,
     color: Color,
@@ -6786,7 +5901,6 @@ fn exact_budget_one_drainer_tactical_counts(
     counts
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_budget_one_tactical_summary(
     board: &Board,
     color: Color,
@@ -6817,14 +5931,12 @@ fn exact_budget_one_tactical_summary(
 }
 
 #[inline]
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_push_unique_location(locations: &mut Vec<Location>, location: Location) {
     if !locations.contains(&location) {
         locations.push(location);
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_budget_one_tactical_counts_after_touched_locations(
     base: &ExactBudgetOneTacticalSummary,
     board: &Board,
@@ -6864,7 +5976,6 @@ fn exact_budget_one_tactical_counts_after_touched_locations(
     counts
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_mark_locations_within_mon_budget(
     mask: &mut ExactLocationSeen,
     start: Location,
@@ -6898,7 +6009,6 @@ fn exact_mark_locations_within_mon_budget(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_immediate_tactical_reach_mask(
     board: &Board,
     color: Color,
@@ -6935,7 +6045,6 @@ fn exact_immediate_tactical_reach_mask(
     mask
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_zero_move_immediate_tactical_window_on_board_with_hash(
     board: &Board,
     color: Color,
@@ -6974,7 +6083,6 @@ fn exact_zero_move_immediate_tactical_window_on_board_with_hash(
     best
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_best_immediate_tactical_window_on_board_with_hash(
     board: &Board,
     color: Color,
@@ -6994,7 +6102,6 @@ fn exact_best_immediate_tactical_window_on_board_with_hash(
     )
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
     board: &Board,
     color: Color,
@@ -7004,9 +6111,6 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
     need_denial: bool,
     board_hash: u64,
 ) -> ExactImmediateTacticalWindow {
-    update_exact_query_diagnostics!(|diagnostics| {
-        diagnostics.immediate_tactical_window_queries += 1;
-    });
     if move_budget < 0 || (!need_score && !need_denial) || checkpoint() {
         return ExactImmediateTacticalWindow::default();
     }
@@ -7106,7 +6210,6 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_min_score(
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_best_immediate_tactical_window_on_board_with_hash_uncached(
     board: &Board,
     color: Color,
@@ -7216,7 +6319,6 @@ fn exact_best_immediate_tactical_window_on_board_with_hash_uncached(
     best
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_best_immediate_score_on_board(board: &Board, color: Color, move_budget: i32) -> i32 {
     exact_best_immediate_score_on_board_with_hash(
         board,
@@ -7226,7 +6328,6 @@ fn exact_best_immediate_score_on_board(board: &Board, color: Color, move_budget:
     )
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn exact_best_immediate_score_on_board_with_hash(
     board: &Board,
     color: Color,
@@ -7260,12 +6361,11 @@ fn exact_best_immediate_score_on_board_with_hash(
             Item::Mon { mon } | Item::MonWithConsumable { mon, .. }
                 if mon.color == color && mon.kind == MonKind::Drainer && !mon.is_fainted() =>
             {
-                if let Some(path) = exact_best_drainer_pickup_path_filtered_with_hash(
+                if let Some(path) = exact_best_drainer_pickup_path_with_hash(
                     board,
                     color,
                     location,
                     Some(move_budget),
-                    ExactPickupFilter::Any,
                     board_hash,
                 ) {
                     best = best.max(path.mana_value);
@@ -7283,5051 +6383,4 @@ fn exact_best_immediate_score_on_board_with_hash(
         }
     }
     best
-}
-
-#[cfg(test)]
-fn exact_best_immediate_opponent_mana_score_on_board(
-    board: &Board,
-    color: Color,
-    move_budget: i32,
-) -> i32 {
-    exact_best_immediate_opponent_mana_score_on_board_with_hash(
-        board,
-        color,
-        move_budget,
-        exact_board_hash(board),
-    )
-}
-
-#[cfg(test)]
-fn exact_best_immediate_opponent_mana_score_on_board_with_hash(
-    board: &Board,
-    color: Color,
-    move_budget: i32,
-    board_hash: u64,
-) -> i32 {
-    if move_budget < 0 || checkpoint() {
-        return 0;
-    }
-
-    let mut best = 0;
-    let opponent_mana = Mana::Regular(color.other());
-    let max_opponent_score = opponent_mana.score(color);
-    for (location, item) in board.occupied() {
-        if checkpoint() {
-            return 0;
-        }
-        match item {
-            Item::MonWithMana { mon, mana }
-                if mon.color == color && !mon.is_fainted() && *mana == opponent_mana =>
-            {
-                if exact_carrier_steps_to_any_pool_with_hash_bounded(
-                    board,
-                    location,
-                    *mana,
-                    move_budget,
-                    board_hash,
-                )
-                .is_some()
-                {
-                    best = best.max(mana.score(color));
-                }
-            }
-            Item::Mon { mon } | Item::MonWithConsumable { mon, .. }
-                if mon.color == color && mon.kind == MonKind::Drainer && !mon.is_fainted() =>
-            {
-                if let Some(path) = exact_best_drainer_pickup_path_filtered_with_hash(
-                    board,
-                    color,
-                    location,
-                    Some(move_budget),
-                    ExactPickupFilter::Wanted(opponent_mana),
-                    board_hash,
-                ) {
-                    best = best.max(path.mana_value);
-                }
-            }
-            _ => {}
-        }
-
-        if checkpoint() {
-            return 0;
-        }
-
-        if best >= max_opponent_score {
-            return best;
-        }
-    }
-    best
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::automove_deadline::{
-        set_test_now_ms, with_deadline_if_absent, with_test_clock,
-    };
-
-    fn game_with_items(items: Vec<(Location, Item)>, active_color: Color) -> MonsGame {
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        game.replace_board_items(items);
-        game.active_color = active_color;
-        game.actions_used_count = 0;
-        game.mana_moves_count = 0;
-        game.mons_moves_count = 0;
-        game.turn_number = 2;
-        game.white_score = 0;
-        game.black_score = 0;
-        game.white_potions_count = 0;
-        game.black_potions_count = 0;
-        game
-    }
-
-    fn game_with_items_and_variant(
-        items: Vec<(Location, Item)>,
-        active_color: Color,
-        variant: GameVariant,
-    ) -> MonsGame {
-        let mut game = MonsGame::new(false, variant);
-        game.replace_board_items(items);
-        game.active_color = active_color;
-        game.actions_used_count = 0;
-        game.mana_moves_count = 0;
-        game.mons_moves_count = 0;
-        game.turn_number = 2;
-        game.white_score = 0;
-        game.black_score = 0;
-        game.white_potions_count = 0;
-        game.black_potions_count = 0;
-        game
-    }
-
-    fn find_mana_pool(board: &Board, color: Color) -> Location {
-        (0..Config::BOARD_SIZE)
-            .flat_map(|i| (0..Config::BOARD_SIZE).map(move |j| Location::new(i, j)))
-            .find(|location| {
-                matches!(
-                    board.square(*location),
-                    Square::ManaPool { color: pool_color } if pool_color == color
-                )
-            })
-            .expect("mana pool should exist")
-    }
-
-    #[test]
-    fn exact_strategic_analysis_deadline_returns_default_without_cache_write() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(Vec::new(), Color::White);
-
-        with_test_clock(0.0, || {
-            with_deadline_if_absent(10.0, || {
-                let analysis = exact_strategic_analysis(&game);
-                assert!(analysis.white.score_path_window.best_steps.is_none());
-                assert!(analysis.black.score_path_window.best_steps.is_none());
-                assert!(
-                    EXACT_STRATEGIC_ANALYSIS_CACHE.with(|cache| cache.borrow().entries.is_empty())
-                );
-            });
-        });
-
-        let _ = exact_strategic_analysis(&game);
-        assert_eq!(
-            EXACT_STRATEGIC_ANALYSIS_CACHE.with(|cache| cache.borrow().entries.len()),
-            1
-        );
-    }
-
-    #[test]
-    fn exact_carrier_deadline_does_not_cache_cancelled_none() {
-        clear_exact_state_analysis_cache();
-        let mut game = game_with_items(Vec::new(), Color::White);
-        let pool = find_mana_pool(&game.board, Color::White);
-        game.replace_board_items(vec![(
-            pool,
-            Item::MonWithMana {
-                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                mana: Mana::Supermana,
-            },
-        )]);
-        let board_hash = exact_board_hash(&game.board);
-
-        with_test_clock(0.0, || {
-            with_deadline_if_absent(1.0, || {
-                set_test_now_ms(2.0);
-                assert_eq!(
-                    exact_carrier_steps_to_any_pool_with_hash(
-                        &game.board,
-                        pool,
-                        Mana::Supermana,
-                        board_hash,
-                    ),
-                    None
-                );
-                assert_eq!(
-                    exact_carrier_steps_to_any_pool_with_hash_bounded(
-                        &game.board,
-                        pool,
-                        Mana::Supermana,
-                        1,
-                        board_hash,
-                    ),
-                    None
-                );
-                assert!(EXACT_CARRIER_STEPS_CACHE.with(|cache| cache.borrow().entries.is_empty()));
-            });
-        });
-
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash(
-                &game.board,
-                pool,
-                Mana::Supermana,
-                board_hash,
-            ),
-            Some(0)
-        );
-        assert_eq!(
-            EXACT_CARRIER_STEPS_CACHE.with(|cache| cache.borrow().entries.len()),
-            1
-        );
-    }
-
-    #[test]
-    fn exact_public_threat_predicates_are_conservative_after_deadline() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(Vec::new(), Color::White);
-        let location = Location::new(6, 5);
-
-        with_test_clock(0.0, || {
-            with_deadline_if_absent(1.0, || {
-                set_test_now_ms(2.0);
-                assert_eq!(
-                    drainer_immediate_threats(&game.board, Color::White, location),
-                    (1, 1)
-                );
-                assert_eq!(
-                    drainer_immediate_threats_with_hash(
-                        &game.board,
-                        Color::White,
-                        location,
-                        exact_board_hash(&game.board),
-                    ),
-                    (1, 1)
-                );
-                assert!(is_drainer_under_immediate_threat(
-                    &game.board,
-                    Color::White,
-                    location,
-                    false,
-                ));
-                assert!(is_drainer_under_walk_threat(
-                    &game.board,
-                    Color::White,
-                    location,
-                    false,
-                ));
-                assert!(is_drainer_under_walk_threat_with_hash(
-                    &game.board,
-                    exact_board_hash(&game.board),
-                    Color::White,
-                    location,
-                    false,
-                ));
-            });
-        });
-    }
-
-    fn exact_carrier_steps_generic_baseline(
-        board: &Board,
-        start: Location,
-        mana: Mana,
-        max_steps: Option<i32>,
-    ) -> Option<i32> {
-        exact_shortest_payload_state(
-            board,
-            start,
-            MonKind::Drainer,
-            Color::White,
-            ExactActorPayload::Mana(mana),
-            false,
-            max_steps,
-            |location, payload| {
-                matches!(payload, ExactActorPayload::Mana(_))
-                    && matches!(board.square(location), Square::ManaPool { .. })
-            },
-        )
-        .map(|result| result.steps)
-    }
-
-    fn can_attack_target_on_board_uncached_baseline(
-        board: &Board,
-        attacker_color: Color,
-        target_color: Color,
-        target: Location,
-        remaining_moves: i32,
-    ) -> bool {
-        let target_guarded = exact_is_location_guarded_by_angel(board, target_color, target);
-        let mut actor_move_memo = ExactActorMoveMemo::new(exact_board_hash(board));
-
-        for (start, item) in board.occupied() {
-            let mon = match item {
-                Item::Mon { mon }
-                | Item::MonWithMana { mon, .. }
-                | Item::MonWithConsumable { mon, .. } => mon,
-                Item::Mana { .. } | Item::Consumable { .. } => continue,
-            };
-            if mon.color != attacker_color || mon.is_fainted() {
-                continue;
-            }
-            let allow_pick_bomb = !matches!(item, Item::MonWithMana { .. });
-            let start_payload = match item {
-                Item::MonWithConsumable {
-                    consumable: Consumable::Bomb,
-                    ..
-                } => ExactActorPayload::Bomb,
-                _ => ExactActorPayload::None,
-            };
-            let mut queue = VecDeque::with_capacity(EXACT_BFS_CAPACITY);
-            let mut seen = ExactPayloadSeen::new();
-            queue.push_back((start, start_payload, 0));
-            seen.insert(start, start_payload);
-
-            while let Some((location, payload, steps)) = queue.pop_front() {
-                if steps > remaining_moves {
-                    continue;
-                }
-                if payload == ExactActorPayload::Bomb
-                    && board.item(target).is_some()
-                    && location.distance(&target) <= 3
-                {
-                    return true;
-                }
-                if !matches!(board.square(location), Square::MonBase { .. }) && !target_guarded {
-                    if mon.kind == MonKind::Mystic
-                        && (location.i - target.i).abs() == 2
-                        && (location.j - target.j).abs() == 2
-                    {
-                        return true;
-                    }
-                    if mon.kind == MonKind::Demon && demon_has_line_attack(board, location, target)
-                    {
-                        return true;
-                    }
-                }
-                if steps == remaining_moves {
-                    continue;
-                }
-                for &next in location.nearby_locations_ref() {
-                    if let Some(next_payload) = actor_move_memo.payload_after_move(
-                        board,
-                        mon.kind,
-                        mon.color,
-                        payload,
-                        next,
-                        allow_pick_bomb,
-                    ) {
-                        if seen.insert(next, next_payload) {
-                            queue.push_back((next, next_payload, steps + 1));
-                        }
-                    }
-                }
-            }
-        }
-
-        false
-    }
-
-    fn drainer_immediate_threats_uncached_baseline(
-        board: &Board,
-        color: Color,
-        location: Location,
-    ) -> (i32, i32) {
-        let mut action_threats = 0;
-        let mut bomb_threats = 0;
-        for (threat_location, item) in board.occupied() {
-            let mon = match item {
-                Item::Mon { mon }
-                | Item::MonWithMana { mon, .. }
-                | Item::MonWithConsumable { mon, .. } => mon,
-                Item::Mana { .. } | Item::Consumable { .. } => continue,
-            };
-            if mon.color == color || mon.is_fainted() {
-                continue;
-            }
-            let on_own_base = matches!(board.square(threat_location), Square::MonBase { .. });
-            if !on_own_base
-                && ((mon.kind == MonKind::Mystic
-                    && (threat_location.i - location.i).abs() == 2
-                    && (threat_location.j - location.j).abs() == 2)
-                    || (mon.kind == MonKind::Demon
-                        && demon_has_line_attack(board, threat_location, location)))
-            {
-                action_threats += 1;
-            }
-            if matches!(
-                item,
-                Item::MonWithConsumable {
-                    consumable: Consumable::Bomb,
-                    ..
-                }
-            ) && !on_own_base
-                && threat_location.distance(&location) <= 3
-            {
-                bomb_threats += 1;
-            }
-        }
-        (action_threats, bomb_threats)
-    }
-
-    fn assert_secure_drainer_walk_matches_process_input(
-        game: &MonsGame,
-        from: Location,
-        to: Location,
-    ) {
-        let helper =
-            exact_apply_secure_drainer_walk(game, exact_secure_mana_state_key(game), from, to);
-        let mut slow = game.clone_for_simulation();
-        let inputs = [Input::Location(from), Input::Location(to)];
-        match slow.process_input_slice(inputs.as_slice(), false, false) {
-            Output::Events(events) => {
-                let helper = helper.expect("helper should match legal drainer walk");
-                let scored_mana = events.iter().find_map(|event| match event {
-                    Event::ManaScored { mana, .. } => Some(*mana),
-                    Event::MonMove { .. }
-                    | Event::ManaMove { .. }
-                    | Event::MysticAction { .. }
-                    | Event::DemonAction { .. }
-                    | Event::DemonAdditionalStep { .. }
-                    | Event::SpiritTargetMove { .. }
-                    | Event::PickupBomb { .. }
-                    | Event::PickupPotion { .. }
-                    | Event::PickupMana { .. }
-                    | Event::MonFainted { .. }
-                    | Event::ManaDropped { .. }
-                    | Event::SupermanaBackToBase { .. }
-                    | Event::BombAttack { .. }
-                    | Event::BombExplosion { .. }
-                    | Event::MonAwake { .. }
-                    | Event::GameOver { .. }
-                    | Event::NextTurn { .. }
-                    | Event::Takeback
-                    | Event::UsePotion { .. } => None,
-                });
-                assert_eq!(helper.scored_mana, scored_mana);
-                assert_eq!(
-                    MonsGameModel::search_state_hash(&helper.after),
-                    MonsGameModel::search_state_hash(&slow)
-                );
-                assert_eq!(
-                    helper.after_key.board_hash,
-                    exact_secure_board_hash(&helper.after.board)
-                );
-                assert_eq!(helper.after_key.active_color, helper.after.active_color);
-                assert_eq!(
-                    helper.after_key.mons_moves_count,
-                    helper.after.mons_moves_count
-                );
-            }
-            Output::InvalidInput
-            | Output::LocationsToStartFrom(_)
-            | Output::NextInputOptions(_) => {
-                assert!(helper.is_none());
-            }
-        }
-    }
-
-    #[test]
-    fn exact_pickup_path_finds_same_turn_supermana_score() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(8, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let summary = exact_state_analysis(&game).white;
-        let best = summary.best_drainer_pickup.expect("pickup path");
-        assert_eq!(best.mana, Mana::Regular(Color::White));
-        assert_eq!(best.mana_value, 1);
-        assert!(best.total_moves <= Config::MONS_MOVES_PER_TURN);
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_safe_supermana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.safe_supermana_progress);
-        assert_eq!(turn.safe_supermana_progress_steps, Some(1));
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_two_step_safe_supermana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.safe_supermana_progress);
-        assert_eq!(turn.safe_supermana_progress_steps, Some(2));
-    }
-
-    #[test]
-    fn exact_secure_specific_mana_path_reconstructs_safe_supermana_pickup() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        assert_eq!(
-            exact_secure_specific_mana_path_from(
-                &game,
-                Color::White,
-                Location::new(6, 5),
-                Mana::Supermana,
-            ),
-            Some(vec![Location::new(5, 5)])
-        );
-    }
-
-    #[test]
-    fn exact_secure_drainer_walk_matches_process_input_for_pickup() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        assert_secure_drainer_walk_matches_process_input(
-            &game,
-            Location::new(6, 5),
-            Location::new(5, 5),
-        );
-    }
-
-    #[test]
-    fn exact_secure_drainer_walk_matches_process_input_for_score() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        assert_secure_drainer_walk_matches_process_input(
-            &game,
-            Location::new(9, 1),
-            Location::new(10, 0),
-        );
-    }
-
-    #[test]
-    fn exact_secure_drainer_walk_matches_process_input_for_invalid_consumable_pickup() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Consumable {
-                        consumable: Consumable::BombOrPotion,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        assert_secure_drainer_walk_matches_process_input(
-            &game,
-            Location::new(6, 5),
-            Location::new(5, 5),
-        );
-    }
-
-    #[test]
-    fn exact_secure_drainer_walk_tracks_next_turn_state_key() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 1),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let transition = exact_apply_secure_drainer_walk(
-            &game,
-            exact_secure_mana_state_key(&game),
-            Location::new(9, 1),
-            Location::new(10, 0),
-        )
-        .expect("score move should be legal");
-
-        assert_eq!(transition.scored_mana, Some(Mana::Regular(Color::White)));
-        assert_eq!(transition.after.active_color, Color::Black);
-        assert_eq!(transition.after.mons_moves_count, 0);
-        assert_eq!(
-            transition.after_key.board_hash,
-            exact_secure_board_hash(&transition.after.board)
-        );
-        assert_eq!(
-            transition.after_key.active_color,
-            transition.after.active_color
-        );
-        assert_eq!(
-            transition.after_key.mons_moves_count,
-            transition.after.mons_moves_count
-        );
-    }
-
-    #[test]
-    fn exact_attack_cache_preserves_repeated_mystic_reach_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let first = can_attack_target_on_board(
-            &board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        );
-        let second = can_attack_target_on_board(
-            &board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        );
-        clear_exact_state_analysis_cache();
-        let third = can_attack_target_on_board(
-            &board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        );
-
-        assert!(first);
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-    }
-
-    #[test]
-    fn can_attack_target_on_board_with_hash_matches_current_helper() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            can_attack_target_on_board(
-                &board,
-                Color::Black,
-                Color::White,
-                Location::new(6, 5),
-                2,
-                true
-            ),
-            can_attack_target_on_board_with_hash(
-                &board,
-                board_hash,
-                Color::Black,
-                Color::White,
-                Location::new(6, 5),
-                2,
-                true,
-            )
-        );
-    }
-
-    #[test]
-    fn exact_attack_plausibility_matches_curated_edges() {
-        let mystic_setup = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        assert!(exact_attack_target_plausible_on_board(
-            &mystic_setup,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        ));
-        assert!(can_attack_target_on_board(
-            &mystic_setup,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        ));
-
-        let guarded_mystic = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        assert!(!exact_attack_target_plausible_on_board(
-            &guarded_mystic,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            Config::MONS_MOVES_PER_TURN,
-            true,
-        ));
-        assert!(!can_attack_target_on_board(
-            &guarded_mystic,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            Config::MONS_MOVES_PER_TURN,
-            true,
-        ));
-    }
-
-    #[test]
-    fn attack_reach_summary_matches_current_helpers_and_immediate_threats() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 1),
-                    },
-                ),
-                (
-                    Location::new(8, 8),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(1, 1),
-                    Item::Consumable {
-                        consumable: Consumable::Potion,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let summary =
-            attack_reach_summary_with_hash(&board, board_hash, Color::Black, Color::White, 0, true);
-
-        assert_eq!(
-            summary.immediate_threats(Location::new(6, 5)),
-            drainer_immediate_threats_with_hash(
-                &board,
-                Color::White,
-                Location::new(6, 5),
-                board_hash,
-            )
-        );
-        for target in [
-            Location::new(6, 5),
-            Location::new(6, 4),
-            Location::new(4, 5),
-        ] {
-            assert_eq!(
-                summary.can_attack_target(target),
-                can_attack_target_on_board_with_hash(
-                    &board,
-                    board_hash,
-                    Color::Black,
-                    Color::White,
-                    target,
-                    0,
-                    true,
-                ),
-                "target {target:?} should match summary parity",
-            );
-        }
-    }
-
-    #[test]
-    fn attack_reach_summary_matches_moving_attack_queries() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(1, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let summary =
-            attack_reach_summary_with_hash(&board, board_hash, Color::Black, Color::White, 2, true);
-
-        for target in [Location::new(6, 5), Location::new(4, 5)] {
-            assert_eq!(
-                summary.can_attack_target(target),
-                can_attack_target_on_board_with_hash(
-                    &board,
-                    board_hash,
-                    Color::Black,
-                    Color::White,
-                    target,
-                    2,
-                    true,
-                ),
-                "target {target:?} should match moving attack parity",
-            );
-        }
-    }
-
-    #[test]
-    fn exact_attack_target_skips_irrelevant_drainer_before_payload_bfs() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(2, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let optimized = can_attack_target_on_board_with_hash(
-            &board,
-            board_hash,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-            true,
-        );
-        let optimized_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let baseline = can_attack_target_on_board_uncached_baseline(
-            &board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            2,
-        );
-        let baseline_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        assert_eq!(optimized, baseline);
-        assert!(optimized);
-        assert!(optimized_calls < baseline_calls);
-    }
-
-    #[test]
-    fn exact_attack_target_prunes_states_beyond_remaining_budget() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let optimized = can_attack_target_on_board_with_hash(
-            &board,
-            board_hash,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            4,
-            true,
-        );
-        let optimized_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let baseline = can_attack_target_on_board_uncached_baseline(
-            &board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            4,
-        );
-        let baseline_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        assert_eq!(optimized, baseline);
-        assert!(optimized);
-        assert!(optimized_calls < baseline_calls);
-    }
-
-    #[test]
-    fn exact_attack_target_blocked_action_sources_return_false_without_payload_bfs() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Demon, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Demon, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Demon, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Demon, Color::White, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let optimized = can_attack_target_on_board_with_hash(
-            &board,
-            board_hash,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            4,
-            true,
-        );
-        let optimized_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let baseline = can_attack_target_on_board_uncached_baseline(
-            &board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            4,
-        );
-        let baseline_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        assert_eq!(optimized, baseline);
-        assert!(!optimized);
-        assert_eq!(optimized_calls, 0);
-        assert!(baseline_calls > optimized_calls);
-    }
-
-    #[test]
-    fn exact_carrier_steps_cache_preserves_repeated_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let first = exact_carrier_steps_to_any_pool(&board, Location::new(8, 5), Mana::Supermana);
-        let second = exact_carrier_steps_to_any_pool(&board, Location::new(8, 5), Mana::Supermana);
-        clear_exact_state_analysis_cache();
-        let third = exact_carrier_steps_to_any_pool(&board, Location::new(8, 5), Mana::Supermana);
-
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-    }
-
-    #[test]
-    fn exact_carrier_steps_zero_budget_matches_generic_baseline() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let mut board = Board::new();
-        let white_pool = find_mana_pool(&board, Color::White);
-        board.put(
-            Item::MonWithMana {
-                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                mana: Mana::Supermana,
-            },
-            white_pool,
-        );
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash_bounded(
-                &board,
-                white_pool,
-                Mana::Supermana,
-                0,
-                board_hash,
-            ),
-            exact_carrier_steps_generic_baseline(&board, white_pool, Mana::Supermana, Some(0))
-        );
-        assert_eq!(
-            exact_query_diagnostics_snapshot().actor_payload_after_move_calls,
-            0
-        );
-    }
-
-    #[test]
-    fn exact_distance_to_any_pool_steps_lower_bound_matches_pool_scan() {
-        for i in 0..Config::BOARD_SIZE {
-            for j in 0..Config::BOARD_SIZE {
-                let location = Location::new(i, j);
-                let expected = Config::squares_ref()
-                    .iter()
-                    .filter_map(|(pool_location, square)| {
-                        matches!(square, Square::ManaPool { .. })
-                            .then_some(location.distance(pool_location))
-                    })
-                    .min()
-                    .expect("at least one mana pool");
-                assert_eq!(
-                    exact_distance_to_any_pool_steps_lower_bound(location),
-                    expected
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn exact_carrier_steps_far_budget_returns_none_without_payload_bfs() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![(
-                Location::new(5, 5),
-                Item::MonWithMana {
-                    mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    mana: Mana::Supermana,
-                },
-            )],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash_bounded(
-                &board,
-                Location::new(5, 5),
-                Mana::Supermana,
-                1,
-                board_hash,
-            ),
-            None
-        );
-        assert_eq!(
-            exact_query_diagnostics_snapshot().actor_payload_after_move_calls,
-            0
-        );
-    }
-
-    #[test]
-    fn exact_carrier_steps_bounded_prunes_states_beyond_remaining_budget() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![(
-                Location::new(5, 5),
-                Item::MonWithMana {
-                    mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    mana: Mana::Supermana,
-                },
-            )],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let optimized = exact_carrier_steps_to_any_pool_with_hash_bounded(
-            &board,
-            Location::new(5, 5),
-            Mana::Supermana,
-            5,
-            board_hash,
-        );
-        let optimized_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let baseline = exact_carrier_steps_generic_baseline(
-            &board,
-            Location::new(5, 5),
-            Mana::Supermana,
-            Some(5),
-        );
-        let baseline_calls = exact_query_diagnostics_snapshot().actor_payload_after_move_calls;
-
-        assert_eq!(optimized, baseline);
-        assert!(optimized.is_some());
-        assert!(optimized_calls < baseline_calls);
-    }
-
-    #[test]
-    fn exact_carrier_steps_bounded_matches_generic_baseline() {
-        clear_exact_state_analysis_cache();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash_bounded(
-                &board,
-                Location::new(8, 5),
-                Mana::Supermana,
-                2,
-                board_hash,
-            ),
-            exact_carrier_steps_generic_baseline(
-                &board,
-                Location::new(8, 5),
-                Mana::Supermana,
-                Some(2),
-            )
-        );
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash_bounded(
-                &board,
-                Location::new(8, 5),
-                Mana::Supermana,
-                3,
-                board_hash,
-            ),
-            exact_carrier_steps_generic_baseline(
-                &board,
-                Location::new(8, 5),
-                Mana::Supermana,
-                Some(3),
-            )
-        );
-    }
-
-    #[test]
-    fn exact_carrier_steps_handles_mana_swap_before_pool() {
-        clear_exact_state_analysis_cache();
-
-        let mut board = Board::new();
-        let white_pool = find_mana_pool(&board, Color::White);
-        let middle = white_pool
-            .nearby_locations_ref()
-            .iter()
-            .copied()
-            .find(|location| !matches!(board.square(*location), Square::MonBase { .. }))
-            .expect("pool should have a traversable neighbor");
-        let start = middle
-            .nearby_locations_ref()
-            .iter()
-            .copied()
-            .find(|location| {
-                *location != white_pool
-                    && !location.nearby_locations_ref().contains(&white_pool)
-                    && square_allows_mana_carrier(
-                        board.square(*location),
-                        Mana::Regular(Color::White),
-                    )
-            })
-            .expect("middle should have a two-step carrier predecessor");
-
-        for &location in white_pool.nearby_locations_ref() {
-            if location != middle {
-                board.put(
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::Black, 0),
-                    },
-                    location,
-                );
-            }
-        }
-        for &location in middle.nearby_locations_ref() {
-            if location != start && location != white_pool {
-                board.put(
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::Black, 0),
-                    },
-                    location,
-                );
-            }
-        }
-        board.put(
-            Item::Mana {
-                mana: Mana::Regular(Color::Black),
-            },
-            middle,
-        );
-        board.put(
-            Item::MonWithMana {
-                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                mana: Mana::Regular(Color::White),
-            },
-            start,
-        );
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash(
-                &board,
-                start,
-                Mana::Regular(Color::White),
-                board_hash
-            ),
-            exact_carrier_steps_generic_baseline(&board, start, Mana::Regular(Color::White), None,)
-        );
-    }
-
-    #[test]
-    fn exact_carrier_steps_bounded_query_does_not_cache_false_none() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let full = exact_carrier_steps_to_any_pool_with_hash(
-            &board,
-            Location::new(8, 5),
-            Mana::Supermana,
-            board_hash,
-        )
-        .expect("carrier should be able to reach a pool");
-        assert!(full > 0);
-
-        clear_exact_state_analysis_cache();
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash_bounded(
-                &board,
-                Location::new(8, 5),
-                Mana::Supermana,
-                full - 1,
-                board_hash,
-            ),
-            None
-        );
-        assert_eq!(
-            exact_carrier_steps_to_any_pool_with_hash(
-                &board,
-                Location::new(8, 5),
-                Mana::Supermana,
-                board_hash,
-            ),
-            Some(full)
-        );
-    }
-
-    #[test]
-    fn exact_drainer_to_mana_cache_preserves_repeated_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let first = exact_drainer_to_any_mana_steps(&board, Color::White, Location::new(8, 5));
-        let second = exact_drainer_to_any_mana_steps(&board, Color::White, Location::new(8, 5));
-        clear_exact_state_analysis_cache();
-        let third = exact_drainer_to_any_mana_steps(&board, Color::White, Location::new(8, 5));
-
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-    }
-
-    #[test]
-    fn exact_walk_threat_cache_preserves_repeated_bomb_walk_threat_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let first = is_drainer_under_walk_threat(&board, Color::White, Location::new(6, 5), false);
-        let second = is_drainer_under_walk_threat(&board, Color::White, Location::new(6, 5), false);
-        clear_exact_state_analysis_cache();
-        let third = is_drainer_under_walk_threat(&board, Color::White, Location::new(6, 5), false);
-
-        assert!(first);
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-    }
-
-    #[test]
-    fn walk_threat_with_hash_matches_current_helper() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            is_drainer_under_walk_threat(&board, Color::White, Location::new(6, 5), false),
-            is_drainer_under_walk_threat_with_hash(
-                &board,
-                board_hash,
-                Color::White,
-                Location::new(6, 5),
-                false,
-            )
-        );
-    }
-
-    #[test]
-    fn drainer_immediate_threats_with_hash_matches_current_helper() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            drainer_immediate_threats(&board, Color::White, Location::new(6, 5)),
-            drainer_immediate_threats_with_hash(
-                &board,
-                Color::White,
-                Location::new(6, 5),
-                board_hash
-            )
-        );
-    }
-
-    #[test]
-    fn exact_drainer_immediate_threats_local_geometry_matches_full_scan() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-                (
-                    Location::new(8, 8),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 0),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-                (
-                    Location::new(6, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        assert_eq!(
-            drainer_immediate_threats_uncached(&board, Color::White, Location::new(6, 5)),
-            drainer_immediate_threats_uncached_baseline(&board, Color::White, Location::new(6, 5),)
-        );
-    }
-
-    #[test]
-    fn exact_actor_move_memo_reuses_same_board_lookup() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let mut memo = ExactActorMoveMemo::new(exact_board_hash(&board));
-
-        let first = memo.payload_after_move(
-            &board,
-            MonKind::Drainer,
-            Color::White,
-            ExactActorPayload::None,
-            Location::new(6, 5),
-            false,
-        );
-        let second = memo.payload_after_move(
-            &board,
-            MonKind::Drainer,
-            Color::White,
-            ExactActorPayload::None,
-            Location::new(6, 5),
-            false,
-        );
-        let diagnostics = exact_query_diagnostics_snapshot();
-
-        assert_eq!(first, second);
-        assert_eq!(diagnostics.actor_payload_after_move_calls, 1);
-    }
-
-    #[test]
-    fn exact_drainer_move_memo_reuses_same_board_lookup() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let mut memo = ExactDrainerMoveMemo::new();
-
-        let first = memo.payload_after_move(
-            &board,
-            Color::White,
-            ExactActorPayload::None,
-            Location::new(6, 5),
-        );
-        let second = memo.payload_after_move(
-            &board,
-            Color::White,
-            ExactActorPayload::None,
-            Location::new(6, 5),
-        );
-        let diagnostics = exact_query_diagnostics_snapshot();
-
-        assert_eq!(first, second);
-        assert_eq!(diagnostics.actor_payload_after_move_calls, 1);
-    }
-
-    #[test]
-    fn exact_drainer_safety_helper_matches_cached_components() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let angel_nearby =
-            exact_is_location_guarded_by_angel(&board, Color::White, Location::new(6, 5));
-        let expected = !can_attack_target_on_board(
-            &board,
-            Color::Black,
-            Color::White,
-            Location::new(6, 5),
-            Config::MONS_MOVES_PER_TURN,
-            true,
-        ) && !is_drainer_under_walk_threat(
-            &board,
-            Color::White,
-            Location::new(6, 5),
-            angel_nearby,
-        );
-
-        assert_eq!(
-            is_drainer_exactly_safe_next_turn_on_board(&board, Color::White, Location::new(6, 5)),
-            expected
-        );
-    }
-
-    #[test]
-    fn exact_drainer_safety_score_reuses_same_board_lookup() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(2, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let first = exact_own_drainer_safety_score_with_hash(&board, board_hash, Color::White);
-        let first_diagnostics = exact_query_diagnostics_snapshot();
-        let second = exact_own_drainer_safety_score_with_hash(&board, board_hash, Color::White);
-        let second_diagnostics = exact_query_diagnostics_snapshot();
-
-        assert_eq!(first, second);
-        assert_eq!(
-            first_diagnostics.drainer_immediate_threat_calls,
-            second_diagnostics.drainer_immediate_threat_calls
-        );
-        assert_eq!(
-            first_diagnostics.attack_reach_calls,
-            second_diagnostics.attack_reach_calls
-        );
-    }
-
-    #[test]
-    fn exact_drainer_safety_score_positive_matches_exact_safe_boolean() {
-        clear_exact_state_analysis_cache();
-
-        for board in [
-            game_with_items(
-                vec![(
-                    Location::new(6, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                )],
-                Color::White,
-            )
-            .board,
-            game_with_items(
-                vec![
-                    (
-                        Location::new(6, 5),
-                        Item::MonWithMana {
-                            mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                            mana: Mana::Supermana,
-                        },
-                    ),
-                    (
-                        Location::new(2, 7),
-                        Item::Mon {
-                            mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                        },
-                    ),
-                ],
-                Color::White,
-            )
-            .board,
-        ] {
-            let board_hash = exact_board_hash(&board);
-
-            assert_eq!(
-                exact_own_drainer_safety_score_with_hash(&board, board_hash, Color::White) > 0,
-                is_drainer_exactly_safe_next_turn_on_board(
-                    &board,
-                    Color::White,
-                    Location::new(6, 5)
-                ),
-            );
-        }
-    }
-
-    #[test]
-    fn exact_search_state_hash_matches_model_search_state_hash() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 4),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(7, 6),
-                    Item::MonWithConsumable {
-                        mon: Mon::new(MonKind::Demon, Color::Black, 1),
-                        consumable: Consumable::Bomb,
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Consumable {
-                        consumable: Consumable::Potion,
-                    },
-                ),
-            ],
-            Color::Black,
-        );
-        game.white_score = 1;
-        game.black_score = 2;
-        game.turn_number = 7;
-        game.actions_used_count = 1;
-        game.mana_moves_count = 1;
-        game.mons_moves_count = 2;
-        game.white_potions_count = 1;
-        game.black_potions_count = 0;
-
-        assert_eq!(
-            exact_search_state_hash(&game),
-            MonsGameModel::search_state_hash(&game)
-        );
-    }
-
-    #[test]
-    fn exact_angel_guard_helper_matches_model_helper() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(1, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Angel, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        assert_eq!(
-            exact_is_location_guarded_by_angel(&board, Color::White, Location::new(6, 5)),
-            MonsGameModel::is_location_guarded_by_angel(&board, Color::White, Location::new(6, 5))
-        );
-        assert_eq!(
-            exact_is_location_guarded_by_angel(&board, Color::White, Location::new(7, 5)),
-            MonsGameModel::is_location_guarded_by_angel(&board, Color::White, Location::new(7, 5))
-        );
-        assert_eq!(
-            exact_is_location_guarded_by_angel(&board, Color::Black, Location::new(1, 2)),
-            MonsGameModel::is_location_guarded_by_angel(&board, Color::Black, Location::new(1, 2))
-        );
-    }
-
-    #[test]
-    fn exact_followup_summary_matches_component_queries() {
-        clear_exact_state_analysis_cache();
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 2),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let summary = exact_followup_summary(&game.board, Color::White, 1);
-        assert_eq!(
-            summary.best_score_steps,
-            exact_best_score_steps_on_board(&game.board, Color::White)
-        );
-        assert_eq!(
-            summary.opponent_best_score_steps,
-            exact_best_score_steps_on_board(&game.board, Color::Black)
-        );
-        assert_eq!(
-            summary.immediate_score,
-            exact_best_immediate_score_on_board(&game.board, Color::White, 1)
-        );
-        assert_eq!(
-            summary.immediate_opponent_mana_score,
-            exact_best_immediate_opponent_mana_score_on_board(&game.board, Color::White, 1)
-        );
-        assert_eq!(
-            summary.secure_supermana,
-            can_secure_specific_mana_on_board(&game.board, Color::White, Mana::Supermana, 1)
-        );
-        assert_eq!(
-            summary.secure_opponent_mana,
-            can_secure_specific_mana_on_board(
-                &game.board,
-                Color::White,
-                Mana::Regular(Color::Black),
-                1,
-            )
-        );
-    }
-
-    #[test]
-    fn exact_followup_summary_cache_preserves_repeated_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let first = exact_followup_summary(&board, Color::White, 2);
-        let second = exact_followup_summary(&board, Color::White, 2);
-        clear_exact_state_analysis_cache();
-        let third = exact_followup_summary(&board, Color::White, 2);
-
-        assert_eq!(first.best_score_steps, second.best_score_steps);
-        assert_eq!(
-            first.opponent_best_score_steps,
-            second.opponent_best_score_steps
-        );
-        assert_eq!(first.immediate_score, second.immediate_score);
-        assert_eq!(
-            first.immediate_opponent_mana_score,
-            second.immediate_opponent_mana_score
-        );
-        assert_eq!(first.secure_supermana, second.secure_supermana);
-        assert_eq!(first.secure_opponent_mana, second.secure_opponent_mana);
-        assert_eq!(first.best_score_steps, third.best_score_steps);
-        assert_eq!(first.immediate_score, third.immediate_score);
-        assert_eq!(first.secure_opponent_mana, third.secure_opponent_mana);
-    }
-
-    #[test]
-    fn exact_pickup_path_cache_preserves_repeated_filtered_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let filter = ExactPickupFilter::Wanted(Mana::Regular(Color::Black));
-        let first = exact_best_drainer_pickup_path_filtered(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(2),
-            filter,
-        );
-        let second = exact_best_drainer_pickup_path_filtered(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(2),
-            filter,
-        );
-        clear_exact_state_analysis_cache();
-        let third = exact_best_drainer_pickup_path_filtered(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(2),
-            filter,
-        );
-
-        assert_eq!(
-            first.map(|path| path.total_moves),
-            second.map(|path| path.total_moves)
-        );
-        assert_eq!(first.map(|path| path.mana), second.map(|path| path.mana));
-        assert_eq!(
-            first.map(|path| path.total_moves),
-            third.map(|path| path.total_moves)
-        );
-        assert_eq!(
-            first.map(|path| path.mana_value),
-            third.map(|path| path.mana_value)
-        );
-    }
-
-    #[test]
-    fn exact_filtered_pickup_path_far_budget_returns_none_without_payload_expansion() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 0),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        assert_eq!(
-            exact_best_drainer_pickup_path_filtered_with_hash(
-                &board,
-                Color::White,
-                Location::new(8, 4),
-                Some(2),
-                ExactPickupFilter::Wanted(Mana::Regular(Color::Black)),
-                exact_board_hash(&board),
-            ),
-            None
-        );
-        assert_eq!(
-            exact_query_diagnostics_snapshot().actor_payload_after_move_calls,
-            0
-        );
-    }
-
-    #[test]
-    fn exact_filtered_pickup_path_matches_window_queries() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let start = Location::new(8, 4);
-        let board_hash = exact_board_hash(&board);
-        let opponent_mana = Mana::Regular(Color::Black);
-
-        let any = exact_best_drainer_pickup_path_filtered_with_hash(
-            &board,
-            Color::White,
-            start,
-            Some(3),
-            ExactPickupFilter::Any,
-            board_hash,
-        );
-        let any_window = exact_drainer_pickup_window_with_hash_min_any_score(
-            &board,
-            Color::White,
-            start,
-            Some(3),
-            1,
-            true,
-            false,
-            opponent_mana,
-            board_hash,
-        )
-        .any;
-        assert_eq!(any, any_window);
-
-        let wanted = exact_best_drainer_pickup_path_filtered_with_hash(
-            &board,
-            Color::White,
-            start,
-            Some(3),
-            ExactPickupFilter::Wanted(opponent_mana),
-            board_hash,
-        );
-        let wanted_window = exact_drainer_pickup_window_with_hash_min_any_score(
-            &board,
-            Color::White,
-            start,
-            Some(3),
-            0,
-            false,
-            true,
-            opponent_mana,
-            board_hash,
-        )
-        .opponent;
-        assert_eq!(wanted, wanted_window);
-    }
-
-    #[test]
-    fn exact_drainer_pickup_window_superset_cache_answers_subset_query() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let full = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(3),
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-        clear_exact_query_diagnostics();
-        let score_only = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(3),
-            true,
-            false,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-
-        assert_eq!(score_only.any, full.any);
-        assert_eq!(score_only.opponent, None);
-        assert_eq!(exact_query_diagnostics_snapshot().pickup_path_calls, 0);
-    }
-
-    #[test]
-    fn exact_drainer_pickup_window_cache_preserves_repeated_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let key = ExactDrainerPickupWindowQueryKey {
-            board_hash,
-            color: Color::White,
-            start: Location::new(8, 4),
-            max_steps: None,
-            min_any_score: 1,
-            need_score: true,
-            need_denial: true,
-            opponent_mana: Mana::Regular(Color::Black),
-        };
-
-        let first = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            None,
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-        let first_cache_len =
-            EXACT_DRAINER_PICKUP_WINDOW_CACHE.with(|cache| cache.borrow().entries.len());
-        let second = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            None,
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-        let second_cache_len =
-            EXACT_DRAINER_PICKUP_WINDOW_CACHE.with(|cache| cache.borrow().entries.len());
-        clear_exact_state_analysis_cache();
-        let third = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            None,
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-        assert_eq!(first_cache_len, 1);
-        assert_eq!(second_cache_len, 1);
-        assert!(EXACT_DRAINER_PICKUP_WINDOW_CACHE
-            .with(|cache| { cache.borrow().entries.contains_key(&key) }));
-    }
-
-    #[test]
-    fn exact_immediate_tactical_window_cache_preserves_repeated_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let key = ExactImmediateTacticalWindowQueryKey {
-            board_hash,
-            color: Color::White,
-            move_budget: 3,
-            min_score: 1,
-            need_score: true,
-            need_denial: true,
-        };
-
-        let first = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            3,
-            true,
-            true,
-            board_hash,
-        );
-        let first_cache_len =
-            EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE.with(|cache| cache.borrow().entries.len());
-        let second = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            3,
-            true,
-            true,
-            board_hash,
-        );
-        let second_cache_len =
-            EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE.with(|cache| cache.borrow().entries.len());
-        clear_exact_state_analysis_cache();
-        let third = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            3,
-            true,
-            true,
-            board_hash,
-        );
-
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-        assert_eq!(first_cache_len, 1);
-        assert_eq!(second_cache_len, 1);
-        assert!(EXACT_IMMEDIATE_TACTICAL_WINDOW_CACHE
-            .with(|cache| { cache.borrow().entries.contains_key(&key) }));
-    }
-
-    #[test]
-    fn exact_immediate_tactical_window_superset_cache_answers_subset_query() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let full = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            3,
-            true,
-            true,
-            board_hash,
-        );
-        clear_exact_query_diagnostics();
-        let score_only = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            3,
-            true,
-            false,
-            board_hash,
-        );
-
-        assert_eq!(score_only.best_score, full.best_score);
-        assert_eq!(score_only.best_opponent_mana_score, 0);
-        assert_eq!(exact_query_diagnostics_snapshot().pickup_path_calls, 0);
-    }
-
-    #[test]
-    fn exact_secure_mana_cache_preserves_repeated_supermana_result() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let first = exact_secure_specific_mana_steps_on_board(
-            &game.board,
-            Color::White,
-            Mana::Supermana,
-            5,
-        );
-        let second = exact_secure_specific_mana_steps_on_board(
-            &game.board,
-            Color::White,
-            Mana::Supermana,
-            5,
-        );
-        clear_exact_state_analysis_cache();
-        let third = exact_secure_specific_mana_steps_on_board(
-            &game.board,
-            Color::White,
-            Mana::Supermana,
-            5,
-        );
-
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-    }
-
-    #[test]
-    fn exact_secure_mana_on_board_hits_cache_before_game_build() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let first =
-            exact_secure_specific_mana_steps_on_board(&board, Color::White, Mana::Supermana, 5);
-        let first_diagnostics = exact_query_diagnostics_snapshot();
-        let second =
-            exact_secure_specific_mana_steps_on_board(&board, Color::White, Mana::Supermana, 5);
-        let second_diagnostics = exact_query_diagnostics_snapshot();
-
-        assert_eq!(first, Some(1));
-        assert_eq!(second, first);
-        assert_eq!(first_diagnostics.exact_secure_mana_board_cache_hits, 0);
-        assert_eq!(second_diagnostics.exact_secure_mana_board_cache_hits, 1);
-        assert_eq!(
-            second_diagnostics.exact_secure_drainer_walk_apply_calls,
-            first_diagnostics.exact_secure_drainer_walk_apply_calls,
-        );
-    }
-
-    #[test]
-    fn exact_secure_mana_steps_find_shortest_supermana_score_path() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        assert_eq!(
-            exact_secure_specific_mana_steps_on_board(&board, Color::White, Mana::Supermana, 5),
-            Some(1)
-        );
-    }
-
-    #[test]
-    fn exact_secure_mana_steps_allow_last_move_supermana_pickup() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        assert_eq!(
-            exact_secure_specific_mana_steps_on_board(&board, Color::White, Mana::Supermana, 1),
-            Some(1)
-        );
-    }
-
-    #[test]
-    fn exact_secure_specific_mana_steps_far_target_returns_none_without_walk_mutation() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(10, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        assert_eq!(
-            exact_secure_specific_mana_steps_on_board(&board, Color::White, Mana::Supermana, 3),
-            None
-        );
-        assert_eq!(
-            exact_query_diagnostics_snapshot().exact_secure_drainer_walk_apply_calls,
-            0
-        );
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_safe_opponent_mana_progress_steps() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.safe_opponent_mana_progress);
-        assert_eq!(turn.safe_opponent_mana_progress_steps, Some(1));
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_two_step_safe_opponent_mana_progress() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.safe_opponent_mana_progress);
-        assert_eq!(turn.safe_opponent_mana_progress_steps, Some(2));
-    }
-
-    #[test]
-    fn exact_secure_specific_mana_path_reconstructs_safe_opponent_mana_pickup() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        assert_eq!(
-            exact_secure_specific_mana_path_from(
-                &game,
-                Color::White,
-                Location::new(6, 5),
-                Mana::Regular(Color::Black),
-            ),
-            Some(vec![Location::new(5, 4)])
-        );
-    }
-
-    #[test]
-    fn exact_turn_summary_rejects_exact_vulnerable_supermana_progress() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        assert!(!exact_turn_summary(&game, Color::White).safe_supermana_progress);
-    }
-
-    #[test]
-    fn exact_turn_summary_rejects_exact_vulnerable_opponent_mana_progress() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(9, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(4, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        assert!(!exact_turn_summary(&game, Color::White).safe_opponent_mana_progress);
-    }
-
-    #[test]
-    fn exact_turn_summary_rejects_spirit_assisted_supermana_progress_without_safe_followup() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 2),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(5, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(!turn.safe_supermana_progress);
-        assert!(!turn.spirit_assisted_supermana_progress);
-        assert!(!turn.spirit_assisted_score);
-    }
-
-    #[test]
-    fn exact_turn_summary_rejects_spirit_assisted_opponent_mana_progress_without_safe_followup() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 2),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(5, 3),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 1;
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(!turn.safe_opponent_mana_progress);
-        assert!(!turn.spirit_assisted_opponent_mana_progress);
-        assert!(!turn.spirit_assisted_denial);
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_two_step_spirit_assisted_supermana_progress() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 2;
-
-        let (after_board, score_delta, opponent_score_delta) = apply_spirit_move_preview(
-            &game.board,
-            Location::new(7, 1),
-            Item::Mana {
-                mana: Mana::Supermana,
-            },
-            Location::new(8, 2),
-            Color::White,
-        );
-        let after_summary = exact_followup_summary(&after_board, Color::White, 2);
-        assert_eq!(score_delta, 0);
-        assert_eq!(opponent_score_delta, 0);
-        assert!(after_summary.secure_supermana);
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(!turn.safe_supermana_progress);
-        assert!(turn.spirit_assisted_supermana_progress);
-        assert!(!turn.spirit_assisted_score);
-    }
-
-    #[test]
-    fn apply_spirit_move_preview_in_place_matches_wrapper_and_undo() {
-        let mut scoring_board = Board::new();
-        let white_pool = (0..Config::BOARD_SIZE)
-            .flat_map(|i| (0..Config::BOARD_SIZE).map(move |j| Location::new(i, j)))
-            .find(|location| {
-                matches!(
-                    scoring_board.square(*location),
-                    Square::ManaPool {
-                        color: Color::White,
-                    }
-                )
-            })
-            .expect("white pool should exist");
-        scoring_board.put(
-            Item::MonWithMana {
-                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                mana: Mana::Supermana,
-            },
-            white_pool.nearby_locations_ref()[0],
-        );
-
-        let cases = vec![
-            (
-                game_with_items(
-                    vec![
-                        (
-                            Location::new(7, 1),
-                            Item::Mana {
-                                mana: Mana::Supermana,
-                            },
-                        ),
-                        (
-                            Location::new(8, 1),
-                            Item::Mon {
-                                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                            },
-                        ),
-                    ],
-                    Color::White,
-                )
-                .board,
-                Location::new(7, 1),
-                Item::Mana {
-                    mana: Mana::Supermana,
-                },
-                Location::new(8, 1),
-                Color::White,
-            ),
-            (
-                game_with_items(
-                    vec![
-                        (
-                            Location::new(7, 1),
-                            Item::MonWithMana {
-                                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                                mana: Mana::Regular(Color::White),
-                            },
-                        ),
-                        (
-                            Location::new(8, 1),
-                            Item::Mana {
-                                mana: Mana::Supermana,
-                            },
-                        ),
-                    ],
-                    Color::White,
-                )
-                .board,
-                Location::new(7, 1),
-                Item::MonWithMana {
-                    mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    mana: Mana::Regular(Color::White),
-                },
-                Location::new(8, 1),
-                Color::White,
-            ),
-            (
-                scoring_board.clone(),
-                white_pool.nearby_locations_ref()[0],
-                Item::MonWithMana {
-                    mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    mana: Mana::Supermana,
-                },
-                white_pool,
-                Color::White,
-            ),
-        ];
-
-        for (board, from, item, to, color) in cases {
-            let original = board.clone();
-            let (expected_board, expected_score, expected_opponent_score) =
-                apply_spirit_move_preview(&board, from, item, to, color);
-            let mut in_place_board = board.clone();
-            let mut known_items_board = board.clone();
-            let destination_item = known_items_board.item(to).copied();
-            let (undo, score, opponent_score) =
-                apply_spirit_move_preview_in_place(&mut in_place_board, from, item, to, color);
-            let (known_items_undo, known_items_score, known_items_opponent_score) =
-                apply_spirit_move_preview_known_items_in_place(
-                    &mut known_items_board,
-                    from,
-                    item,
-                    to,
-                    destination_item,
-                    color,
-                );
-
-            assert_eq!(in_place_board, expected_board);
-            assert_eq!(score, expected_score);
-            assert_eq!(opponent_score, expected_opponent_score);
-            assert_eq!(known_items_board, expected_board);
-            assert_eq!(known_items_score, expected_score);
-            assert_eq!(known_items_opponent_score, expected_opponent_score);
-
-            undo_spirit_move_preview(&mut in_place_board, undo);
-            undo_spirit_move_preview(&mut known_items_board, known_items_undo);
-            assert_eq!(in_place_board, original);
-            assert_eq!(known_items_board, original);
-        }
-    }
-
-    #[test]
-    fn exact_board_hash_after_touched_items_matches_full_hash_for_spirit_preview() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let before_hash = exact_board_hash(&board);
-        let mut preview_board = board.clone();
-        let destination_item = preview_board.item(Location::new(8, 1)).copied();
-        let (undo, _, _) = apply_spirit_move_preview_known_items_in_place(
-            &mut preview_board,
-            Location::new(7, 1),
-            Item::MonWithMana {
-                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                mana: Mana::Regular(Color::White),
-            },
-            Location::new(8, 1),
-            destination_item,
-            Color::White,
-        );
-
-        let incremental_hash = exact_board_hash_after_touched_items(
-            before_hash,
-            &preview_board,
-            &[
-                ExactTouchedBoardItem {
-                    location: undo.from,
-                    before: undo.from_item,
-                },
-                ExactTouchedBoardItem {
-                    location: undo.to,
-                    before: undo.to_item,
-                },
-            ],
-        );
-
-        assert_eq!(incremental_hash, exact_board_hash(&preview_board));
-    }
-
-    #[test]
-    fn exact_board_hashes_distinguish_same_items_across_variants() {
-        let items = vec![
-            (
-                Location::new(5, 5),
-                Item::Mon {
-                    mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                },
-            ),
-            (
-                Location::new(5, 6),
-                Item::Mana {
-                    mana: Mana::Supermana,
-                },
-            ),
-        ]
-        .into_iter()
-        .collect::<std::collections::HashMap<_, _>>();
-        let classic = Board::new_with_items_and_variant(items.clone(), GameVariant::Classic);
-        let swapped = Board::new_with_items_and_variant(items, GameVariant::SwappedManaRows);
-
-        assert_ne!(exact_board_hash(&classic), exact_board_hash(&swapped));
-        assert_ne!(
-            exact_secure_board_hash(&classic),
-            exact_secure_board_hash(&swapped)
-        );
-    }
-
-    #[test]
-    fn exact_secure_drainer_walk_matches_process_input_for_swapped_variant() {
-        let game = game_with_items_and_variant(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-            GameVariant::SwappedManaRows,
-        );
-
-        assert_secure_drainer_walk_matches_process_input(
-            &game,
-            Location::new(7, 1),
-            Location::new(8, 1),
-        );
-    }
-
-    #[test]
-    fn exact_zero_move_tactical_counts_after_touched_items_matches_full_window() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let base_counts = exact_zero_move_tactical_counts(&board, Color::White);
-        let mut preview_board = board.clone();
-        let destination_item = preview_board.item(Location::new(8, 1)).copied();
-        let (undo, _, _) = apply_spirit_move_preview_known_items_in_place(
-            &mut preview_board,
-            Location::new(7, 1),
-            Item::MonWithMana {
-                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                mana: Mana::Regular(Color::White),
-            },
-            Location::new(8, 1),
-            destination_item,
-            Color::White,
-        );
-
-        let counts = exact_zero_move_tactical_counts_after_touched_items(
-            base_counts,
-            &preview_board,
-            Color::White,
-            &[
-                ExactTouchedBoardItem {
-                    location: undo.from,
-                    before: undo.from_item,
-                },
-                ExactTouchedBoardItem {
-                    location: undo.to,
-                    before: undo.to_item,
-                },
-            ],
-        );
-
-        assert_eq!(
-            exact_zero_move_tactical_window_from_counts(counts, 1, true, true),
-            exact_zero_move_immediate_tactical_window_on_board_with_hash(
-                &preview_board,
-                Color::White,
-                true,
-                true,
-                exact_board_hash(&preview_board),
-            )
-        );
-        assert_eq!(
-            exact_zero_move_tactical_window_from_counts(counts, 2, true, true),
-            exact_immediate_tactical_window_for_min_score(
-                exact_zero_move_immediate_tactical_window_on_board_with_hash(
-                    &preview_board,
-                    Color::White,
-                    true,
-                    true,
-                    exact_board_hash(&preview_board),
-                ),
-                2,
-            )
-        );
-    }
-
-    #[test]
-    fn exact_budget_one_tactical_counts_after_touched_locations_matches_full_window() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::MonWithMana {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-                (
-                    Location::new(1, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let base_summary = exact_budget_one_tactical_summary(&board, Color::White, board_hash);
-        let mut preview_board = board.clone();
-        let destination_item = preview_board.item(Location::new(8, 2)).copied();
-        let (undo, _, _) = apply_spirit_move_preview_known_items_in_place(
-            &mut preview_board,
-            Location::new(8, 1),
-            Item::Mana {
-                mana: Mana::Regular(Color::White),
-            },
-            Location::new(8, 2),
-            destination_item,
-            Color::White,
-        );
-        let preview_hash = exact_board_hash_after_touched_items(
-            board_hash,
-            &preview_board,
-            &[
-                ExactTouchedBoardItem {
-                    location: undo.from,
-                    before: undo.from_item,
-                },
-                ExactTouchedBoardItem {
-                    location: undo.to,
-                    before: undo.to_item,
-                },
-            ],
-        );
-        let counts = exact_budget_one_tactical_counts_after_touched_locations(
-            &base_summary,
-            &preview_board,
-            Color::White,
-            preview_hash,
-            &[undo.from, undo.to],
-        );
-
-        assert_eq!(
-            exact_zero_move_tactical_window_from_counts(counts, 1, true, true),
-            exact_best_immediate_tactical_window_on_board_with_hash(
-                &preview_board,
-                Color::White,
-                1,
-                true,
-                true,
-                preview_hash,
-            )
-        );
-        assert_eq!(
-            exact_zero_move_tactical_window_from_counts(counts, 2, true, true),
-            exact_best_immediate_tactical_window_on_board_with_hash_min_score(
-                &preview_board,
-                Color::White,
-                1,
-                2,
-                true,
-                true,
-                preview_hash,
-            )
-        );
-    }
-
-    #[test]
-    fn exact_budget_one_drainer_tactical_counts_match_pickup_window() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 6),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(6, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let pickup = exact_drainer_pickup_window_with_hash_min_any_score(
-            &board,
-            Color::White,
-            Location::new(5, 5),
-            Some(1),
-            1,
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-        let mut expected = pickup
-            .any
-            .map_or_else(ExactImmediateTacticalCounts::default, |path| {
-                exact_immediate_tactical_counts_for_mana(path.mana, Color::White)
-            });
-        if pickup.opponent.is_some() {
-            expected.score_one = 0;
-            expected.score_two = 1;
-            expected.opponent_two = 1;
-        }
-
-        assert_eq!(
-            exact_budget_one_drainer_tactical_counts(
-                &board,
-                Color::White,
-                Location::new(5, 5),
-                board_hash,
-            ),
-            expected,
-        );
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_two_step_spirit_assisted_opponent_mana_progress() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(10, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 2;
-
-        let (after_board, score_delta, opponent_score_delta) = apply_spirit_move_preview(
-            &game.board,
-            Location::new(7, 1),
-            Item::Mana {
-                mana: Mana::Regular(Color::Black),
-            },
-            Location::new(8, 2),
-            Color::White,
-        );
-        let after_summary = exact_followup_summary(&after_board, Color::White, 2);
-        assert_eq!(score_delta, 0);
-        assert_eq!(opponent_score_delta, 0);
-        assert!(after_summary.secure_opponent_mana);
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(!turn.safe_opponent_mana_progress);
-        assert!(turn.spirit_assisted_opponent_mana_progress);
-        assert!(!turn.spirit_assisted_denial);
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_two_step_spirit_assisted_supermana_score() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 2;
-
-        assert_eq!(
-            exact_best_immediate_score_on_board(&game.board, Color::White, 2),
-            0
-        );
-
-        let (after_board, score_delta, opponent_score_delta) = apply_spirit_move_preview(
-            &game.board,
-            Location::new(7, 1),
-            Item::Mana {
-                mana: Mana::Supermana,
-            },
-            Location::new(8, 1),
-            Color::White,
-        );
-        let after_summary = exact_followup_summary(&after_board, Color::White, 2);
-        assert_eq!(score_delta, 0);
-        assert_eq!(opponent_score_delta, 0);
-        assert_eq!(
-            after_summary.immediate_score,
-            Mana::Supermana.score(Color::White)
-        );
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.spirit_assisted_score);
-        assert!(!turn.spirit_assisted_denial);
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_two_step_spirit_assisted_opponent_mana_score() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 2;
-
-        assert_eq!(
-            exact_best_immediate_opponent_mana_score_on_board(&game.board, Color::White, 2),
-            0
-        );
-
-        let (after_board, score_delta, opponent_score_delta) = apply_spirit_move_preview(
-            &game.board,
-            Location::new(7, 1),
-            Item::Mana {
-                mana: Mana::Regular(Color::Black),
-            },
-            Location::new(8, 1),
-            Color::White,
-        );
-        let after_summary = exact_followup_summary(&after_board, Color::White, 2);
-        assert_eq!(score_delta, 0);
-        assert_eq!(opponent_score_delta, 0);
-        assert_eq!(
-            after_summary.immediate_opponent_mana_score,
-            Mana::Regular(Color::Black).score(Color::White)
-        );
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.spirit_assisted_score);
-        assert!(turn.spirit_assisted_denial);
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_move_then_spirit_assisted_supermana_score() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 2;
-
-        assert_eq!(
-            exact_best_immediate_score_on_board(&game.board, Color::White, 2),
-            0
-        );
-
-        let mut action_board = game.board.clone();
-        action_board.remove_item(Location::new(5, 1));
-        action_board.put(
-            Item::Mon {
-                mon: Mon::new(MonKind::Spirit, Color::White, 0),
-            },
-            Location::new(6, 1),
-        );
-
-        let (after_board, score_delta, opponent_score_delta) = apply_spirit_move_preview(
-            &action_board,
-            Location::new(8, 1),
-            Item::Mana {
-                mana: Mana::Supermana,
-            },
-            Location::new(9, 0),
-            Color::White,
-        );
-        let after_summary = exact_followup_summary(&after_board, Color::White, 1);
-        assert_eq!(score_delta, 0);
-        assert_eq!(opponent_score_delta, 0);
-        assert_eq!(
-            after_summary.immediate_score,
-            Mana::Supermana.score(Color::White)
-        );
-
-        let spirit = exact_state_analysis(&game).white.spirit;
-        assert!(spirit.same_turn_score);
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.spirit_assisted_score);
-        assert!(!turn.spirit_assisted_denial);
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_move_then_spirit_assisted_opponent_mana_score() {
-        let mut game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        game.mons_moves_count = Config::MONS_MOVES_PER_TURN - 2;
-
-        assert_eq!(
-            exact_best_immediate_opponent_mana_score_on_board(&game.board, Color::White, 2),
-            0
-        );
-
-        let mut action_board = game.board.clone();
-        action_board.remove_item(Location::new(5, 1));
-        action_board.put(
-            Item::Mon {
-                mon: Mon::new(MonKind::Spirit, Color::White, 0),
-            },
-            Location::new(6, 1),
-        );
-
-        let (after_board, score_delta, opponent_score_delta) = apply_spirit_move_preview(
-            &action_board,
-            Location::new(8, 1),
-            Item::Mana {
-                mana: Mana::Regular(Color::Black),
-            },
-            Location::new(9, 0),
-            Color::White,
-        );
-        let after_summary = exact_followup_summary(&after_board, Color::White, 1);
-        assert_eq!(score_delta, 0);
-        assert_eq!(opponent_score_delta, 0);
-        assert_eq!(
-            after_summary.immediate_opponent_mana_score,
-            Mana::Regular(Color::Black).score(Color::White)
-        );
-
-        let spirit = exact_state_analysis(&game).white.spirit;
-        assert!(spirit.same_turn_score);
-        assert!(spirit.same_turn_opponent_mana_score);
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.spirit_assisted_score);
-        assert!(turn.spirit_assisted_denial);
-    }
-
-    #[test]
-    fn exact_spirit_summary_detects_same_turn_opponent_mana_score() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let spirit = exact_state_analysis(&game).white.spirit;
-        assert!(spirit.same_turn_score);
-        assert!(spirit.same_turn_opponent_mana_score);
-        assert_eq!(spirit.same_turn_opponent_mana_score_value, 2);
-    }
-
-    #[test]
-    fn exact_spirit_summary_detects_same_turn_setup_into_drainer_score() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let spirit = exact_state_analysis(&game).white.spirit;
-        assert!(spirit.same_turn_score);
-        assert!(spirit.same_turn_opponent_mana_score);
-    }
-
-    #[test]
-    fn exact_spirit_summary_detects_bridge_move_into_drainer_score() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(4, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(4, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 0),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        assert_eq!(
-            exact_best_immediate_score_on_board(
-                &game.board,
-                Color::White,
-                Config::MONS_MOVES_PER_TURN,
-            ),
-            0
-        );
-
-        clear_exact_state_analysis_cache();
-        assert!(exact_turn_summary(&game, Color::White).spirit_assisted_score);
-        let spirit =
-            exact_spirit_summary(&game.board, Color::White, Config::MONS_MOVES_PER_TURN, true);
-        assert!(spirit.same_turn_score);
-        assert_eq!(spirit.same_turn_score_value, 2);
-        assert!(spirit.same_turn_opponent_mana_score);
-        assert_eq!(spirit.same_turn_opponent_mana_score_value, 2);
-    }
-
-    #[test]
-    fn exact_spirit_summary_cache_preserves_repeated_result() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let first = exact_spirit_summary(&board, Color::White, Config::MONS_MOVES_PER_TURN, true);
-        let second = exact_spirit_summary(&board, Color::White, Config::MONS_MOVES_PER_TURN, true);
-        clear_exact_state_analysis_cache();
-        let third = exact_spirit_summary(&board, Color::White, Config::MONS_MOVES_PER_TURN, true);
-
-        assert_eq!(first.utility, second.utility);
-        assert_eq!(first.same_turn_score, second.same_turn_score);
-        assert_eq!(
-            first.same_turn_opponent_mana_score,
-            second.same_turn_opponent_mana_score
-        );
-        assert_eq!(first.next_turn_setup_gain, second.next_turn_setup_gain);
-        assert_eq!(first.utility, third.utility);
-        assert_eq!(first.same_turn_score_value, third.same_turn_score_value);
-        assert_eq!(
-            first.same_turn_opponent_mana_score_value,
-            third.same_turn_opponent_mana_score_value
-        );
-    }
-
-    #[test]
-    fn exact_tactical_spirit_summary_superset_cache_answers_subset_query() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let full = exact_tactical_spirit_summary(
-            &board,
-            Color::White,
-            Config::MONS_MOVES_PER_TURN,
-            true,
-            EXACT_TACTICAL_SPIRIT_ALL_FIELDS,
-        );
-        clear_exact_query_diagnostics();
-        let score_only = exact_tactical_spirit_summary(
-            &board,
-            Color::White,
-            Config::MONS_MOVES_PER_TURN,
-            true,
-            EXACT_TACTICAL_SPIRIT_NEED_SCORE,
-        );
-
-        assert!(score_only.same_turn_score);
-        assert_eq!(score_only.same_turn_score_value, full.same_turn_score_value);
-        assert!(!score_only.same_turn_opponent_mana_score);
-        assert_eq!(score_only.same_turn_opponent_mana_score_value, 0);
-        assert!(!score_only.supermana_progress);
-        assert!(!score_only.opponent_mana_progress);
-        assert_eq!(
-            exact_query_diagnostics_snapshot().tactical_spirit_summary_cache_hits,
-            1
-        );
-        assert_eq!(
-            exact_query_diagnostics_snapshot().immediate_tactical_window_queries,
-            0
-        );
-    }
-
-    #[test]
-    fn exact_immediate_tactical_window_far_preview_matches_base_window() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(0, 0),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(10, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let move_budget = 2;
-        let reach_mask = exact_immediate_tactical_reach_mask(&board, Color::White, move_budget);
-        assert!(!reach_mask.contains(Location::new(7, 1)));
-        assert!(!reach_mask.contains(Location::new(8, 2)));
-
-        let base = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            move_budget,
-            true,
-            true,
-            exact_board_hash(&board),
-        );
-        let (after_board, _, _) = apply_spirit_move_preview(
-            &board,
-            Location::new(7, 1),
-            Item::Mana {
-                mana: Mana::Regular(Color::Black),
-            },
-            Location::new(8, 2),
-            Color::White,
-        );
-        let after = exact_best_immediate_tactical_window_on_board_with_hash(
-            &after_board,
-            Color::White,
-            move_budget,
-            true,
-            true,
-            exact_board_hash(&after_board),
-        );
-
-        assert_eq!(after, base);
-    }
-
-    #[test]
-    fn exact_tactical_spirit_summary_reuses_base_after_window_for_far_previews() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let spirit = Location::new(5, 1);
-        let mut items = vec![
-            (
-                spirit,
-                Item::Mon {
-                    mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                },
-            ),
-            (
-                Location::new(0, 0),
-                Item::Mon {
-                    mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                },
-            ),
-            (
-                Location::new(7, 1),
-                Item::Mana {
-                    mana: Mana::Regular(Color::Black),
-                },
-            ),
-            (
-                Location::new(10, 10),
-                Item::Mon {
-                    mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                },
-            ),
-        ];
-        for &neighbor in spirit.nearby_locations_ref() {
-            items.push((
-                neighbor,
-                Item::Mon {
-                    mon: Mon::new(MonKind::Angel, Color::Black, 0),
-                },
-            ));
-        }
-        let board = game_with_items(items, Color::White).board;
-
-        let summary = exact_tactical_spirit_summary(
-            &board,
-            Color::White,
-            2,
-            true,
-            EXACT_TACTICAL_SPIRIT_NEED_SCORE,
-        );
-        let diagnostics = exact_query_diagnostics_snapshot();
-
-        assert!(!summary.same_turn_score);
-        assert_eq!(summary.same_turn_score_value, 0);
-        assert_eq!(diagnostics.tactical_spirit_after_window_calls, 1);
-    }
-
-    #[test]
-    fn exact_spirit_reach_cache_preserves_repeated_positions() {
-        clear_exact_state_analysis_cache();
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 1),
-                    Item::Consumable {
-                        consumable: Consumable::BombOrPotion,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-
-        let first = reachable_spirit_positions(&board, Location::new(7, 1), Color::White, 3);
-        let second = reachable_spirit_positions(&board, Location::new(7, 1), Color::White, 3);
-        clear_exact_state_analysis_cache();
-        let third = reachable_spirit_positions(&board, Location::new(7, 1), Color::White, 3);
-
-        assert_eq!(first, second);
-        assert_eq!(first, third);
-    }
-
-    #[test]
-    fn exact_turn_summary_uses_spirit_denial_for_safe_opponent_progress() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        let turn = exact_turn_summary(&game, Color::White);
-        assert!(turn.safe_opponent_mana_progress);
-        assert!(turn.spirit_assisted_denial);
-    }
-
-    #[test]
-    fn exact_turn_tactical_projection_matches_supermana_turn_summary_fields() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(6, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(5, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        let turn = exact_turn_summary(&game, Color::White);
-        let projection = exact_turn_tactical_projection(
-            &game,
-            Color::White,
-            EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS | EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW,
-        );
-
-        assert_eq!(
-            projection.safe_supermana_progress,
-            turn.safe_supermana_progress
-        );
-        assert_eq!(
-            projection.safe_supermana_progress_steps,
-            turn.safe_supermana_progress_steps
-        );
-        assert_eq!(
-            projection.same_turn_score_window_value,
-            turn.same_turn_score_window_value
-        );
-        assert!(!projection.safe_opponent_mana_progress);
-        assert_eq!(projection.safe_opponent_mana_progress_steps, None);
-    }
-
-    #[test]
-    fn exact_turn_tactical_projection_skips_spirit_progress_queries_for_score_only_projection() {
-        clear_exact_state_analysis_cache();
-
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let turn = exact_turn_summary(&game, Color::White);
-        let remaining_moves = (Config::MONS_MOVES_PER_TURN - game.mons_moves_count).max(0);
-        let expected_score_window =
-            exact_best_immediate_score_on_board(&game.board, Color::White, remaining_moves)
-                .max(turn.spirit_assisted_score_value);
-        clear_exact_query_diagnostics();
-
-        let projection = exact_turn_tactical_projection(
-            &game,
-            Color::White,
-            EXACT_TURN_TACTICAL_NEED_SPIRIT_SCORE | EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW,
-        );
-        let diagnostics = exact_query_diagnostics_snapshot();
-
-        assert!(diagnostics.tactical_spirit_summary_calls > 0);
-        assert_eq!(
-            diagnostics.exact_secure_mana_calls, 0,
-            "score-only tactical projection should not pay spirit progress secure-mana queries"
-        );
-        assert_eq!(projection.spirit_assisted_score, turn.spirit_assisted_score);
-        assert_eq!(
-            projection.spirit_assisted_score_value,
-            turn.spirit_assisted_score_value
-        );
-        assert!(!projection.spirit_assisted_denial);
-        assert_eq!(projection.spirit_assisted_denial_value, 0);
-        assert_eq!(
-            projection.same_turn_score_window_value,
-            expected_score_window
-        );
-    }
-    #[test]
-    fn exact_turn_tactical_projection_matches_denial_only_spirit_fields() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        let turn = exact_turn_summary(&game, Color::White);
-        let projection = exact_turn_tactical_projection(
-            &game,
-            Color::White,
-            EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS
-                | EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL,
-        );
-
-        assert_eq!(
-            projection.safe_opponent_mana_progress,
-            turn.safe_opponent_mana_progress
-        );
-        assert_eq!(
-            projection.safe_opponent_mana_progress_steps,
-            turn.safe_opponent_mana_progress_steps
-        );
-        assert_eq!(
-            projection.spirit_assisted_denial,
-            turn.spirit_assisted_denial
-        );
-        assert!(!projection.spirit_assisted_score);
-        assert_eq!(projection.spirit_assisted_score_value, 0);
-        assert_eq!(projection.same_turn_score_window_value, 0);
-    }
-    #[test]
-    fn exact_turn_tactical_projection_matches_spirit_turn_summary_fields() {
-        clear_exact_state_analysis_cache();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        let turn = exact_turn_summary(&game, Color::White);
-        let projection = exact_turn_tactical_projection(
-            &game,
-            Color::White,
-            EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS
-                | EXACT_TURN_TACTICAL_NEED_SPIRIT_SCORE
-                | EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL
-                | EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW,
-        );
-
-        assert_eq!(
-            projection.safe_opponent_mana_progress,
-            turn.safe_opponent_mana_progress
-        );
-        assert_eq!(
-            projection.safe_opponent_mana_progress_steps,
-            turn.safe_opponent_mana_progress_steps
-        );
-        assert_eq!(
-            projection.spirit_assisted_denial,
-            turn.spirit_assisted_denial
-        );
-        assert_eq!(projection.spirit_assisted_score, turn.spirit_assisted_score);
-        assert_eq!(
-            projection.spirit_assisted_score_value,
-            turn.spirit_assisted_score_value
-        );
-        assert_eq!(
-            projection.same_turn_score_window_value,
-            turn.same_turn_score_window_value
-        );
-    }
-
-    #[test]
-    fn exact_turn_tactical_projection_superset_cache_answers_subset_query() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Spirit, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        let state_hash = exact_search_state_hash(&game);
-
-        let full = exact_turn_tactical_projection_with_search_hash(
-            &game,
-            Color::White,
-            state_hash,
-            EXACT_TURN_TACTICAL_ALL_FLAGS,
-        );
-        assert!(full.spirit_assisted_denial);
-        assert!(full.safe_opponent_mana_progress);
-
-        clear_exact_query_diagnostics();
-        let opponent_only = exact_turn_tactical_projection_with_search_hash(
-            &game,
-            Color::White,
-            state_hash,
-            EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS,
-        );
-
-        assert!(!opponent_only.safe_opponent_mana_progress);
-        assert_eq!(opponent_only.safe_opponent_mana_progress_steps, None);
-        assert!(!opponent_only.spirit_assisted_score);
-        assert_eq!(opponent_only.spirit_assisted_score_value, 0);
-        assert!(!opponent_only.spirit_assisted_denial);
-        assert_eq!(opponent_only.spirit_assisted_denial_value, 0);
-        assert_eq!(opponent_only.same_turn_score_window_value, 0);
-        assert_eq!(
-            exact_query_diagnostics_snapshot().tactical_spirit_summary_calls,
-            0
-        );
-        assert_eq!(
-            exact_query_diagnostics_snapshot().exact_secure_mana_calls,
-            0
-        );
-    }
-
-    #[test]
-    fn exact_state_analysis_uses_full_spirit_only_for_active_color_on_opening_black_turn() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        for step in [
-            "l10,3;l9,2",
-            "l9,2;l8,1",
-            "l8,1;l7,0",
-            "l7,0;l6,0",
-            "l6,0;l5,0;mp",
-        ] {
-            assert!(matches!(
-                game.process_input(Input::array_from_fen(step), false, false),
-                Output::Events(_)
-            ));
-        }
-        assert_eq!(game.active_color, Color::Black);
-        assert_eq!(game.turn_number, 2);
-
-        let _ = exact_state_analysis(&game);
-        let diagnostics = exact_query_diagnostics_snapshot();
-        assert_eq!(diagnostics.active_tactical_summary_builds, 1);
-        assert_eq!(diagnostics.passive_strategic_summary_builds, 1);
-        assert_eq!(diagnostics.exact_spirit_summary_calls, 1);
-        assert_eq!(diagnostics.passive_spirit_summary_calls, 1);
-        assert!(
-            diagnostics.exact_followup_summary_calls > 0,
-            "active tactical summary should still use full exact followup analysis"
-        );
-    }
-
-    #[test]
-    fn exact_turn_summary_avoids_full_followup_on_opening_black_turn() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let mut game = MonsGame::new(false, GameVariant::Classic);
-        for step in [
-            "l10,3;l9,2",
-            "l9,2;l8,1",
-            "l8,1;l7,0",
-            "l7,0;l6,0",
-            "l6,0;l5,0;mp",
-        ] {
-            assert!(matches!(
-                game.process_input(Input::array_from_fen(step), false, false),
-                Output::Events(_)
-            ));
-        }
-        assert_eq!(game.active_color, Color::Black);
-        assert_eq!(game.turn_number, 2);
-
-        let _ = exact_turn_summary(&game, Color::Black);
-        let diagnostics = exact_query_diagnostics_snapshot();
-        assert_eq!(diagnostics.exact_turn_summary_builds, 1);
-        assert_eq!(diagnostics.exact_spirit_summary_calls, 0);
-        assert!(diagnostics.tactical_spirit_summary_calls > 0);
-        assert_eq!(diagnostics.exact_followup_summary_calls, 0);
-        assert_eq!(diagnostics.passive_spirit_summary_calls, 0);
-    }
-
-    #[test]
-    fn exact_turn_summary_detects_same_turn_drainer_attack() {
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 7),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-        assert!(exact_turn_summary(&game, Color::White).can_attack_opponent_drainer);
-    }
-
-    #[test]
-    fn exact_opportunity_context_avoids_full_turn_summary_build() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let game = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        );
-
-        let context = exact_opportunity_context(&game, Color::White);
-        let diagnostics = exact_query_diagnostics_snapshot();
-
-        assert_eq!(diagnostics.exact_turn_summary_builds, 0);
-        assert_eq!(context.delta.safe_supermana_progress_steps, Some(1));
-        assert!(!context.opponent_can_win_immediately);
-    }
-
-    #[test]
-    fn exact_drainer_pickup_window_zero_steps_returns_default_without_bfs() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(7, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(8, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        assert_eq!(
-            exact_drainer_pickup_window_with_hash(
-                &board,
-                Color::White,
-                Location::new(7, 5),
-                Some(0),
-                true,
-                true,
-                Mana::Regular(Color::Black),
-                board_hash,
-            ),
-            ExactDrainerPickupWindow::default(),
-        );
-        assert_eq!(exact_query_diagnostics_snapshot().pickup_path_calls, 0);
-    }
-
-    #[test]
-    fn exact_drainer_pickup_window_two_steps_matches_uncached_without_bfs() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(7, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::White),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let fast = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(2),
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-
-        assert_eq!(exact_query_diagnostics_snapshot().pickup_path_calls, 0);
-
-        let uncached = exact_drainer_pickup_window_uncached_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(2),
-            1,
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-
-        assert_eq!(fast, uncached);
-    }
-
-    #[test]
-    fn exact_drainer_pickup_window_far_budget_returns_default_without_payload_bfs() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(5, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(0, 0),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(0, 10),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-
-        let window = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(5, 5),
-            Some(2),
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-
-        assert_eq!(window, ExactDrainerPickupWindow::default());
-        assert_eq!(exact_query_diagnostics_snapshot().pickup_path_calls, 0);
-        assert_eq!(
-            exact_query_diagnostics_snapshot().actor_payload_after_move_calls,
-            0
-        );
-    }
-
-    #[test]
-    fn exact_drainer_pickup_window_three_steps_matches_uncached_without_bfs() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 4),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(6, 4),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(7, 5),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-                (
-                    Location::new(0, 5),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let fast = exact_drainer_pickup_window_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(3),
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-
-        assert_eq!(exact_query_diagnostics_snapshot().pickup_path_calls, 0);
-
-        let uncached = exact_drainer_pickup_window_uncached_with_hash(
-            &board,
-            Color::White,
-            Location::new(8, 4),
-            Some(3),
-            1,
-            true,
-            true,
-            Mana::Regular(Color::Black),
-            board_hash,
-        );
-
-        assert_eq!(fast, uncached);
-    }
-
-    #[test]
-    fn exact_immediate_tactical_window_zero_budget_skips_drainer_queries() {
-        clear_exact_state_analysis_cache();
-        clear_exact_query_diagnostics();
-
-        let mut board = Board::new();
-        let white_pool = (0..Config::BOARD_SIZE)
-            .flat_map(|i| (0..Config::BOARD_SIZE).map(move |j| Location::new(i, j)))
-            .find(|location| {
-                matches!(
-                    board.square(*location),
-                    Square::ManaPool {
-                        color: Color::White,
-                    }
-                )
-            })
-            .expect("white pool should exist");
-        board.put(
-            Item::MonWithMana {
-                mon: Mon::new(MonKind::Mystic, Color::White, 0),
-                mana: Mana::Supermana,
-            },
-            white_pool,
-        );
-        board.put(
-            Item::Mon {
-                mon: Mon::new(MonKind::Drainer, Color::White, 0),
-            },
-            white_pool.nearby_locations_ref()[0],
-        );
-        board.put(
-            Item::Mana {
-                mana: Mana::Regular(Color::Black),
-            },
-            white_pool.nearby_locations_ref()[1],
-        );
-        let board_hash = exact_board_hash(&board);
-
-        let window = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            0,
-            true,
-            true,
-            board_hash,
-        );
-
-        assert_eq!(window.best_score, Mana::Supermana.score(Color::White));
-        assert_eq!(window.best_opponent_mana_score, 0);
-        assert_eq!(exact_query_diagnostics_snapshot().pickup_path_calls, 0);
-    }
-
-    #[test]
-    fn exact_immediate_tactical_window_matches_score_and_denial_helpers() {
-        let board = game_with_items(
-            vec![
-                (
-                    Location::new(8, 1),
-                    Item::Mon {
-                        mon: Mon::new(MonKind::Drainer, Color::White, 0),
-                    },
-                ),
-                (
-                    Location::new(9, 1),
-                    Item::Mana {
-                        mana: Mana::Regular(Color::Black),
-                    },
-                ),
-                (
-                    Location::new(8, 2),
-                    Item::Mana {
-                        mana: Mana::Supermana,
-                    },
-                ),
-            ],
-            Color::White,
-        )
-        .board;
-        let board_hash = exact_board_hash(&board);
-        let window = exact_best_immediate_tactical_window_on_board_with_hash(
-            &board,
-            Color::White,
-            Config::MONS_MOVES_PER_TURN,
-            true,
-            true,
-            board_hash,
-        );
-
-        assert_eq!(
-            window.best_score,
-            exact_best_immediate_score_on_board_with_hash(
-                &board,
-                Color::White,
-                Config::MONS_MOVES_PER_TURN,
-                board_hash,
-            )
-        );
-        assert_eq!(
-            window.best_opponent_mana_score,
-            exact_best_immediate_opponent_mana_score_on_board_with_hash(
-                &board,
-                Color::White,
-                Config::MONS_MOVES_PER_TURN,
-                board_hash,
-            )
-        );
-    }
 }

@@ -1,7 +1,7 @@
 use crate::*;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum Square {
+pub(crate) enum Square {
     Regular,
     ConsumableBase,
     SupermanaBase,

@@ -2,8 +2,8 @@ use crate::models::location::BOARD_CELLS;
 use crate::*;
 
 #[derive(Clone)]
-pub struct Board {
-    pub items: [Option<Item>; BOARD_CELLS],
+pub(crate) struct Board {
+    pub(crate) items: [Option<Item>; BOARD_CELLS],
     variant: GameVariant,
 }
 
@@ -45,33 +45,6 @@ impl Board {
         Self::from_items_array(Config::initial_items_array_for_variant(variant), variant)
     }
 
-    fn items_array_from_iter<I>(items: I) -> [Option<Item>; BOARD_CELLS]
-    where
-        I: IntoIterator<Item = (Location, Item)>,
-    {
-        let mut arr = [None; BOARD_CELLS];
-        for (location, item) in items {
-            arr[location.index()] = Some(item);
-        }
-        arr
-    }
-
-    /// Creates a board in the default variant.
-    /// Use `new_with_items_and_variant` when the board is not Classic.
-    pub fn new_with_items<I>(items: I) -> Self
-    where
-        I: IntoIterator<Item = (Location, Item)>,
-    {
-        Self::new_with_items_and_variant(items, GameVariant::DEFAULT)
-    }
-
-    pub fn new_with_items_and_variant<I>(items: I, variant: GameVariant) -> Self
-    where
-        I: IntoIterator<Item = (Location, Item)>,
-    {
-        Self::from_items_array(Self::items_array_from_iter(items), variant)
-    }
-
     pub(crate) fn from_items_array(
         items: [Option<Item>; BOARD_CELLS],
         variant: GameVariant,
@@ -110,6 +83,7 @@ impl Board {
         self.variant
     }
 
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn all_mons_bases(&self) -> Vec<Location> {
         Config::MONS_BASE_LOCATIONS.to_vec()
     }
@@ -193,6 +167,7 @@ impl Board {
 
     /// Iterate over occupied cells: yields (Location, &Item)
     #[inline]
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn occupied(&self) -> impl Iterator<Item = (Location, &Item)> {
         self.items
             .iter()

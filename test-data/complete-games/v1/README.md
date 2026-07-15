@@ -47,23 +47,10 @@ The integrity checker validates the canonical JSONL shape and input-token gramma
 does not replay games against the current engine, so this historical corpus is not a
 rules regression contract.
 
-## Future automove research
-
-Replay inputs in order and retain the game and turn grouping when deriving positions.
-Useful discovery measurements include human-action recall in a bounded root pool,
-mandatory-family coverage, root-cap pressure, and positions where public automove
-disagrees with the observed action. Split train, discovery, and validation data by a
-stable hash of the whole game to prevent adjacent positions from leaking across sets.
-
-The corpus can identify mechanisms and witnesses, but it cannot replace public causal
-reach, independently cold timing below 700 ms, seeded duels, or balanced all-variant
-confirmation required by `HOW_TO_ITERATE_ON_AUTOMOVE.md`.
-
 ## Validation
 
 From the repository root:
 
 ```sh
 node ./scripts/check-complete-games.cjs
-./scripts/check-automove-hygiene.sh
 ```

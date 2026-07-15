@@ -1,7 +1,7 @@
 use crate::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum Output {
+pub(crate) enum Output {
     InvalidInput,
     LocationsToStartFrom(Vec<Location>),
     NextInputOptions(Vec<NextInput>),

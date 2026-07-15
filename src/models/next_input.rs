@@ -15,10 +15,10 @@ pub enum NextInputKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct NextInput {
-    pub input: Input,
-    pub kind: NextInputKind,
-    pub actor_mon_item: Option<Item>,
+pub(crate) struct NextInput {
+    pub(crate) input: Input,
+    pub(crate) kind: NextInputKind,
+    pub(crate) actor_mon_item: Option<Item>,
 }
 
 impl NextInput {

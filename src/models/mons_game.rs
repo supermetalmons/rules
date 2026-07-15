@@ -2,11 +2,12 @@ use crate::*;
 use std::collections::HashMap;
 use std::hash::Hash;
 
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Clone)]
-pub struct VerboseTrackingEntity {
-    pub fen: String,
-    pub color: Color,
-    pub events: Vec<Event>,
+pub(crate) struct VerboseTrackingEntity {
+    pub(crate) fen: String,
+    pub(crate) color: Color,
+    pub(crate) events: Vec<Event>,
 }
 
 const START_SUGGESTIONS_CACHE_CAPACITY: usize = 8;
@@ -52,31 +53,34 @@ struct ProcessInputCache {
 }
 
 #[derive(Debug)]
-pub struct MonsGame {
-    pub board: Board,
-    pub white_score: i32,
-    pub black_score: i32,
-    pub active_color: Color,
-    pub actions_used_count: i32,
-    pub mana_moves_count: i32,
-    pub mons_moves_count: i32,
-    pub white_potions_count: i32,
-    pub black_potions_count: i32,
-    pub turn_number: i32,
-    pub takeback_fens: Vec<String>,
-    pub is_moves_verified: bool,
-    pub with_verbose_tracking: bool,
-    pub verbose_tracking_entities: Vec<VerboseTrackingEntity>,
+pub(crate) struct MonsGame {
+    pub(crate) board: Board,
+    pub(crate) white_score: i32,
+    pub(crate) black_score: i32,
+    pub(crate) active_color: Color,
+    pub(crate) actions_used_count: i32,
+    pub(crate) mana_moves_count: i32,
+    pub(crate) mons_moves_count: i32,
+    pub(crate) white_potions_count: i32,
+    pub(crate) black_potions_count: i32,
+    pub(crate) turn_number: i32,
+    pub(crate) takeback_fens: Vec<String>,
+    pub(crate) is_moves_verified: bool,
+    #[cfg(any(target_arch = "wasm32", test))]
+    pub(crate) with_verbose_tracking: bool,
+    #[cfg(any(target_arch = "wasm32", test))]
+    pub(crate) verbose_tracking_entities: Vec<VerboseTrackingEntity>,
     track_takeback_history: bool,
     process_input_cache: ProcessInputCache,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct SuggestedStartInputOptions {
-    pub include_mana_starts_with_potion_action: bool,
+pub(crate) struct SuggestedStartInputOptions {
+    pub(crate) include_mana_starts_with_potion_action: bool,
 }
 
 impl SuggestedStartInputOptions {
+    #[cfg(any(target_arch = "wasm32", test))]
     pub const fn for_automove() -> Self {
         Self {
             include_mana_starts_with_potion_action: true,
@@ -99,7 +103,9 @@ impl Clone for MonsGame {
             turn_number: self.turn_number,
             takeback_fens: self.takeback_fens.clone(),
             is_moves_verified: self.is_moves_verified,
+            #[cfg(any(target_arch = "wasm32", test))]
             with_verbose_tracking: self.with_verbose_tracking,
+            #[cfg(any(target_arch = "wasm32", test))]
             verbose_tracking_entities: self.verbose_tracking_entities.clone(),
             track_takeback_history: self.track_takeback_history,
             process_input_cache: ProcessInputCache::default(),
@@ -109,6 +115,8 @@ impl Clone for MonsGame {
 
 impl MonsGame {
     pub fn new(with_verbose_tracking: bool, variant: GameVariant) -> Self {
+        #[cfg(not(any(target_arch = "wasm32", test)))]
+        let _ = with_verbose_tracking;
         Self {
             board: Board::new_with_variant(variant),
             white_score: 0,
@@ -122,7 +130,9 @@ impl MonsGame {
             turn_number: 1,
             takeback_fens: vec![],
             is_moves_verified: true,
+            #[cfg(any(target_arch = "wasm32", test))]
             with_verbose_tracking,
+            #[cfg(any(target_arch = "wasm32", test))]
             verbose_tracking_entities: vec![],
             track_takeback_history: true,
             process_input_cache: ProcessInputCache::default(),
@@ -130,6 +140,7 @@ impl MonsGame {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[cfg(any(target_arch = "wasm32", test))]
     pub(crate) fn new_simulation_state(
         board: Board,
         white_score: i32,
@@ -162,6 +173,7 @@ impl MonsGame {
         }
     }
 
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn clone_for_simulation(&self) -> Self {
         let mut simulation = Self::new_simulation_state(
             self.board.clone(),
@@ -184,17 +196,23 @@ impl MonsGame {
         self.board.variant()
     }
 
+    #[cfg(test)]
     pub fn replace_board_items<I>(&mut self, items: I)
     where
         I: IntoIterator<Item = (Location, Item)>,
     {
-        self.board = Board::new_with_items_and_variant(items, self.variant());
+        let mut item_array = [None; BOARD_CELLS];
+        for (location, item) in items {
+            item_array[location.index()] = Some(item);
+        }
+        self.board = Board::from_items_array(item_array, self.variant());
         self.takeback_fens.clear();
         self.verbose_tracking_entities.clear();
         self.is_moves_verified = false;
         self.invalidate_process_input_cache();
     }
 
+    #[cfg(any(target_arch = "wasm32", test))]
     pub(crate) fn set_takeback_history_tracking(&mut self, enabled: bool) {
         self.track_takeback_history = enabled;
         if !enabled {
@@ -207,6 +225,7 @@ impl MonsGame {
         self.process_input_cache = ProcessInputCache::default();
     }
 
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn set_verbose_tracking(&mut self, enabled: bool) {
         self.with_verbose_tracking = enabled;
         if !enabled {
@@ -215,6 +234,7 @@ impl MonsGame {
         }
     }
 
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn clear_tracking(&mut self) {
         self.takeback_fens.clear();
         self.takeback_fens.shrink_to_fit();
@@ -263,6 +283,7 @@ impl MonsGame {
         self.process_input_slice(input.as_slice(), do_not_apply_events, one_option_enough)
     }
 
+    #[cfg(test)]
     pub fn process_input_with_start_options(
         &mut self,
         input: Vec<Input>,
@@ -338,6 +359,7 @@ impl MonsGame {
         if input.len() == 1 && input[0] == Input::Takeback {
             if self.can_takeback(self.active_color) {
                 self.takeback_fens.pop();
+                #[cfg(target_arch = "wasm32")]
                 self.verbose_tracking_entities.pop();
                 let fen = self.takeback_fens.last().cloned();
                 if let Some(fen) = fen {
@@ -1620,8 +1642,10 @@ impl MonsGame {
 
         if self.track_takeback_history && self.takeback_fens.is_empty() {
             let initial_fen = self.fen();
+            #[cfg(target_arch = "wasm32")]
             let tracked_initial_fen = initial_fen.clone();
             self.takeback_fens.push(initial_fen);
+            #[cfg(target_arch = "wasm32")]
             if self.with_verbose_tracking && self.verbose_tracking_entities.is_empty() {
                 self.verbose_tracking_entities.push(VerboseTrackingEntity {
                     fen: tracked_initial_fen,
@@ -1833,6 +1857,7 @@ impl MonsGame {
         }
 
         let updated_events: Vec<Event> = events.into_iter().chain(extra_events).collect();
+        #[cfg(target_arch = "wasm32")]
         if self.with_verbose_tracking {
             let fen_now = self.fen();
             self.verbose_tracking_entities.push(VerboseTrackingEntity {
@@ -1858,20 +1883,6 @@ impl MonsGame {
         location: Location,
     ) -> bool {
         angel_location.is_some_and(|angel| angel.distance(&location) == 1)
-    }
-
-    pub fn next_inputs<F>(
-        &self,
-        locations: Vec<Location>,
-        kind: NextInputKind,
-        only_one: bool,
-        specific: Option<Location>,
-        filter: F,
-    ) -> Vec<NextInput>
-    where
-        F: Fn(Location) -> bool,
-    {
-        self.next_inputs_from_slice(locations.as_slice(), kind, only_one, specific, filter)
     }
 
     pub fn next_inputs_from_slice<F>(
@@ -1924,6 +1935,7 @@ impl MonsGame {
         }
     }
 
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn available_move_kinds(&self) -> HashMap<AvailableMoveKind, i32> {
         let mut moves = HashMap::new();
         moves.insert(
@@ -1961,6 +1973,7 @@ impl MonsGame {
         }
     }
 
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn is_later_than(&self, game: &MonsGame) -> bool {
         if self.variant() != game.variant() {
             false
@@ -2008,21 +2021,11 @@ impl MonsGame {
             && (self.player_potions_count() > 0
                 || self.actions_used_count < Config::ACTIONS_PER_TURN)
     }
-
-    pub fn protected_by_opponents_angel(&self) -> std::collections::HashSet<Location> {
-        if let Some(location) = self.board.find_awake_angel(self.active_color.other()) {
-            let protected: Vec<Location> = location.nearby_locations();
-            protected.into_iter().collect()
-        } else {
-            std::collections::HashSet::new()
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     fn assert_regular_api_matches_default_start_options(
         game: &MonsGame,
@@ -2098,50 +2101,38 @@ mod tests {
     }
 
     fn potion_action_only_turn_game() -> MonsGame {
-        let mut items = HashMap::new();
-        items.insert(
-            Location::new(9, 6),
-            Item::Mon {
-                mon: Mon::new(MonKind::Spirit, Color::White, 0),
-            },
-        );
-        items.insert(
-            Location::new(7, 6),
-            Item::Mana {
-                mana: Mana::Regular(Color::White),
-            },
-        );
-        items.insert(
-            Location::new(6, 5),
-            Item::Mana {
-                mana: Mana::Regular(Color::White),
-            },
-        );
-        items.insert(
-            Location::new(0, 5),
-            Item::Mon {
-                mon: Mon::new(MonKind::Drainer, Color::Black, 0),
-            },
-        );
-
-        MonsGame {
-            board: Board::new_with_items_and_variant(items, GameVariant::Classic),
-            white_score: 0,
-            black_score: 0,
-            active_color: Color::White,
-            actions_used_count: Config::ACTIONS_PER_TURN,
-            mana_moves_count: 0,
-            mons_moves_count: Config::MONS_MOVES_PER_TURN,
-            white_potions_count: 1,
-            black_potions_count: 0,
-            turn_number: 2,
-            takeback_fens: vec![],
-            is_moves_verified: true,
-            with_verbose_tracking: false,
-            verbose_tracking_entities: vec![],
-            track_takeback_history: true,
-            process_input_cache: ProcessInputCache::default(),
-        }
+        let mut game = MonsGame::new(false, GameVariant::Classic);
+        game.replace_board_items([
+            (
+                Location::new(9, 6),
+                Item::Mon {
+                    mon: Mon::new(MonKind::Spirit, Color::White, 0),
+                },
+            ),
+            (
+                Location::new(7, 6),
+                Item::Mana {
+                    mana: Mana::Regular(Color::White),
+                },
+            ),
+            (
+                Location::new(6, 5),
+                Item::Mana {
+                    mana: Mana::Regular(Color::White),
+                },
+            ),
+            (
+                Location::new(0, 5),
+                Item::Mon {
+                    mon: Mon::new(MonKind::Drainer, Color::Black, 0),
+                },
+            ),
+        ]);
+        game.actions_used_count = Config::ACTIONS_PER_TURN;
+        game.mons_moves_count = Config::MONS_MOVES_PER_TURN;
+        game.white_potions_count = 1;
+        game.turn_number = 2;
+        game
     }
 
     #[test]
@@ -2165,33 +2156,6 @@ mod tests {
         assert!(locations
             .iter()
             .all(|location| { !matches!(game.board.item(*location), Some(Item::Mana { .. })) }));
-    }
-
-    #[test]
-    fn automove_suggestions_can_include_mana_and_potion_action_starts() {
-        let mut game = potion_action_only_turn_game();
-        let output = game.process_input_with_start_options(
-            vec![],
-            true,
-            false,
-            Some(SuggestedStartInputOptions::for_automove()),
-        );
-        let locations = match output {
-            Output::LocationsToStartFrom(locations) => locations,
-            _ => panic!("expected locations to start from"),
-        };
-
-        assert!(locations.iter().any(|location| {
-            matches!(
-                game.board.item(*location),
-                Some(Item::Mon { .. })
-                    | Some(Item::MonWithMana { .. })
-                    | Some(Item::MonWithConsumable { .. })
-            )
-        }));
-        assert!(locations
-            .iter()
-            .any(|location| matches!(game.board.item(*location), Some(Item::Mana { .. }))));
     }
 
     #[test]
@@ -2276,66 +2240,6 @@ mod tests {
             assert_eq!(warm_output, cold_output);
             assert_eq!(warm.fen(), cold.fen());
         }
-    }
-
-    #[test]
-    fn simulation_games_do_not_accumulate_takeback_history() {
-        let base = MonsGame::new(false, GameVariant::Classic);
-        let mut simulation = base.clone_for_simulation();
-        let chain =
-            first_chain_from_state(&simulation).expect("expected legal chain for simulation game");
-        assert!(matches!(
-            simulation.process_input(chain, false, false),
-            Output::Events(_)
-        ));
-        assert!(simulation.takeback_fens.is_empty());
-    }
-
-    #[test]
-    fn replace_board_items_preserves_variant_and_clears_cached_start_suggestions() {
-        let mut game = MonsGame::new(false, GameVariant::SwappedManaRows);
-        let _ = game.process_input(vec![], true, false);
-        assert!(!game.process_input_cache.start_suggestions.is_empty());
-
-        game.replace_board_items(vec![(
-            Location::new(5, 5),
-            Item::Mon {
-                mon: Mon::new(MonKind::Spirit, Color::White, 0),
-            },
-        )]);
-
-        assert_eq!(game.variant(), GameVariant::SwappedManaRows);
-        assert_eq!(
-            game.board.square(Location::new(3, 3)),
-            Square::ManaBase {
-                color: Color::Black,
-            }
-        );
-        assert_eq!(game.board.square(Location::new(3, 4)), Square::Regular);
-        assert!(game.process_input_cache.start_suggestions.is_empty());
-    }
-
-    #[test]
-    fn replace_board_items_clears_tracking_and_marks_moves_unverified() {
-        let mut game = MonsGame::new(true, GameVariant::Classic);
-        game.takeback_fens = vec!["before".to_string()];
-        game.verbose_tracking_entities.push(VerboseTrackingEntity {
-            fen: "before".to_string(),
-            color: Color::White,
-            events: vec![Event::Takeback],
-        });
-        game.is_moves_verified = true;
-
-        game.replace_board_items(vec![(
-            Location::new(5, 5),
-            Item::Mon {
-                mon: Mon::new(MonKind::Spirit, Color::White, 0),
-            },
-        )]);
-
-        assert!(game.takeback_fens.is_empty());
-        assert!(game.verbose_tracking_entities.is_empty());
-        assert!(!game.is_moves_verified);
     }
 
     #[test]

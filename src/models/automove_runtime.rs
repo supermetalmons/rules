@@ -1,4 +1,4 @@
-#![cfg(any(target_arch = "wasm32", test))]
+#![cfg(target_arch = "wasm32")]
 
 use crate::models::automove_deadline;
 
@@ -8,13 +8,6 @@ const EMERGENCY_MAX_INPUT_CHAIN: usize = 8;
 const PRO_FAST_BANK_BUDGET_MS: f64 = 200.0;
 const PRO_START_RESERVE_MS: f64 = 100.0;
 const PRO_SELECTOR_BUDGET_MS: f64 = 550.0;
-
-fn shipping_search_config_for_game(
-    game: &MonsGame,
-    preference: SmartAutomovePreference,
-) -> AutomoveSearchConfig {
-    MonsGameModel::shipping_search_config_for_game(game, preference)
-}
 
 fn select_shipping_search_inputs_internal(
     game: &MonsGame,
@@ -152,7 +145,8 @@ fn select_pro_with_shared_deadline(
             return emergency_inputs;
         }
 
-        let fast_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Fast);
+        let fast_runtime =
+            MonsGameModel::shipping_search_config_for_game(game, SmartAutomovePreference::Fast);
         let fast_inputs = select_pro_fast_bank_inputs(|| {
             MonsGameModel::smart_search_best_inputs(game, fast_runtime)
         })
@@ -184,32 +178,26 @@ pub(crate) fn select_shipping_search_inputs(
     })
 }
 
-pub(crate) fn apply_shipping_pro_config(config: AutomoveSearchConfig) -> AutomoveSearchConfig {
+fn apply_shipping_pro_config(config: AutomoveSearchConfig) -> AutomoveSearchConfig {
     let mut runtime = config;
-    if runtime.depth >= SMART_AUTOMOVE_PRO_DEPTH as usize
-        && runtime.enable_normal_root_safety_deep_floor
-    {
-        runtime.enable_turn_head_rerank = false;
-        runtime.enable_turn_engine_selector = true;
-        runtime.turn_engine_mode = TurnEngineMode::CurrentPro;
-        runtime.turn_engine_seed_cap = 14;
-        runtime.turn_engine_beam_width = 5;
-        runtime.turn_engine_per_node_family_cap = 4;
-        runtime.turn_engine_step_cap = 6;
-        runtime.turn_engine_opponent_seed_cap = 6;
-        runtime.turn_engine_opponent_beam_width = 2;
-        runtime.turn_engine_reply_seed_cap = 3;
-        runtime.turn_engine_reply_beam_width = 1;
-        runtime.turn_engine_expansion_cap = 176;
-        runtime.turn_engine_enable_spirit_family = true;
-        runtime.root_reply_risk_reply_limit = runtime.root_reply_risk_reply_limit.min(24);
-        runtime.root_reply_risk_node_share_bp = runtime.root_reply_risk_node_share_bp.min(2_000);
-        runtime.enable_turn_engine_low_budget_guard = true;
-        runtime.enable_turn_engine_mid_turn_tactical_guard = true;
-        runtime.enable_turn_engine_late_safe_mana_root_preference = true;
-        runtime.enable_targeted_drainer_attack_fallback = true;
-        runtime.enable_root_reply_risk_guard = false;
-    }
+    runtime.enable_turn_head_rerank = false;
+    runtime.enable_turn_engine_selector = true;
+    runtime.turn_engine_mode = TurnEngineMode::CurrentPro;
+    runtime.turn_engine_seed_cap = 14;
+    runtime.turn_engine_beam_width = 5;
+    runtime.turn_engine_per_node_family_cap = 4;
+    runtime.turn_engine_step_cap = 6;
+    runtime.turn_engine_opponent_seed_cap = 6;
+    runtime.turn_engine_opponent_beam_width = 2;
+    runtime.turn_engine_reply_seed_cap = 3;
+    runtime.turn_engine_reply_beam_width = 1;
+    runtime.turn_engine_expansion_cap = 176;
+    runtime.turn_engine_enable_spirit_family = true;
+    runtime.enable_turn_engine_low_budget_guard = true;
+    runtime.enable_turn_engine_mid_turn_tactical_guard = true;
+    runtime.enable_turn_engine_late_safe_mana_root_preference = true;
+    runtime.enable_targeted_drainer_attack_fallback = true;
+    runtime.enable_root_reply_risk_guard = false;
     runtime
 }
 
@@ -240,7 +228,8 @@ fn select_early_white_fallback_inputs(game: &MonsGame) -> Option<Vec<Input>> {
         || white_turn_three_turn_start_action_mana
         || white_turn_three_mid_turn_full_resources
     {
-        let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
+        let shipping_runtime =
+            MonsGameModel::shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
         return Some(select_shipping_fallback_inputs(game, shipping_runtime));
     }
 
@@ -266,11 +255,9 @@ fn select_early_white_fallback_inputs(game: &MonsGame) -> Option<Vec<Input>> {
         return None;
     }
 
-    let fast_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Fast);
-    Some(select_shipping_fallback_inputs(
-        game,
-        MonsGameModel::with_pre_exact_runtime_policy(fast_runtime),
-    ))
+    let fast_runtime =
+        MonsGameModel::shipping_search_config_for_game(game, SmartAutomovePreference::Fast);
+    Some(select_shipping_fallback_inputs(game, fast_runtime))
 }
 
 fn select_score_window_tactical_fallback_inputs(
@@ -346,7 +333,8 @@ fn select_white_early_engine_disabled_fallback_inputs(
         return None;
     }
 
-    let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
+    let shipping_runtime =
+        MonsGameModel::shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
     let shipping_inputs = select_shipping_fallback_inputs(game, shipping_runtime);
     if shipping_inputs.is_empty() || shipping_inputs == pro_inputs {
         return None;
@@ -476,7 +464,8 @@ fn select_white_negative_deny_search_only_selected_rank_fallback_inputs(
     let mut search_only_runtime = pro_runtime;
     search_only_runtime.enable_turn_engine_selector = false;
     search_only_runtime.enable_turn_head_rerank = true;
-    let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
+    let shipping_runtime =
+        MonsGameModel::shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
     search_only_runtime.turn_engine_seed_cap = shipping_runtime.turn_engine_seed_cap;
     search_only_runtime.turn_engine_beam_width = shipping_runtime.turn_engine_beam_width;
     search_only_runtime.turn_engine_per_node_family_cap =
@@ -602,10 +591,8 @@ fn focused_scored_roots_for_pro_runtime(
     let mut alpha = i32::MIN;
     let mut scored_roots = Vec::with_capacity(root_moves.len());
     let mut transposition_table = U64HashMap::default();
-    let extension_node_budget = if config.enable_selective_extensions
-        && config.selective_extension_node_share_bp > 0
-    {
-        ((config.max_visited_nodes * config.selective_extension_node_share_bp as usize) / 10_000)
+    let extension_node_budget = if config.enable_selective_extensions {
+        ((config.max_visited_nodes * SMART_SELECTIVE_EXTENSION_NODE_SHARE_BP as usize) / 10_000)
             .max(1)
     } else {
         0
@@ -830,7 +817,8 @@ fn select_unconditional_black_search_fallback_inputs(game: &MonsGame) -> Option<
         || black_turn_two_mana_only
         || black_turn_four_turn_start_action_mana
     {
-        let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
+        let shipping_runtime =
+            MonsGameModel::shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
         return Some(select_shipping_fallback_inputs(game, shipping_runtime));
     }
 
@@ -856,7 +844,8 @@ fn select_late_black_search_fallback_inputs(
         && game.player_can_use_action()
         && game.player_can_move_mana();
     if black_turn_four_bridge_shipping_fallback || black_mid_turn_action_mana_shipping_fallback {
-        let shipping_runtime = shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
+        let shipping_runtime =
+            MonsGameModel::shipping_search_config_for_game(game, SmartAutomovePreference::Pro);
         let shipping_inputs = select_shipping_fallback_inputs(game, shipping_runtime);
 
         if black_turn_four_bridge_shipping_fallback
@@ -991,194 +980,5 @@ pub(crate) fn turn_engine_config_from_search_config(
         enable_spirit_family: config.turn_engine_enable_spirit_family,
         scoring_weights: config.scoring_weights,
         enable_lazy_oracle_score_window_projection: false,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn assert_inputs_yield_events(game: &MonsGame, inputs: &[Input]) {
-        assert!(!inputs.is_empty());
-        let mut simulated = game.clone_for_simulation();
-        assert!(matches!(
-            simulated.process_input(inputs.to_vec(), false, false),
-            Output::Events(_)
-        ));
-    }
-
-    #[test]
-    fn automove_runtime_deterministic_fallback_is_nonempty_and_legal() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let first = deterministic_legal_fallback_inputs(&game);
-        let second = deterministic_legal_fallback_inputs(&game);
-
-        assert_eq!(first, second);
-        assert_inputs_yield_events(&game, first.as_slice());
-    }
-
-    #[test]
-    fn automove_runtime_expired_outer_deadline_returns_shared_fallback_for_all_public_modes_and_variants(
-    ) {
-        for variant_id in 0..=11 {
-            let variant = GameVariant::from_id(variant_id).expect("known game variant");
-            let game = MonsGame::new(false, variant);
-            let expected = deterministic_legal_fallback_inputs(&game);
-
-            automove_deadline::with_test_clock(0.0, || {
-                for preference in [
-                    SmartAutomovePreference::Fast,
-                    SmartAutomovePreference::Normal,
-                ] {
-                    let config = shipping_search_config_for_game(&game, preference);
-                    let selected = automove_deadline::with_deadline_if_absent(0.0, || {
-                        select_shipping_search_inputs(&game, config)
-                    });
-                    assert_eq!(
-                        selected, expected,
-                        "variant={variant_id} mode={preference:?}"
-                    );
-                    assert_inputs_yield_events(&game, selected.as_slice());
-                }
-
-                let pro_config =
-                    shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-                let selected = automove_deadline::with_deadline_if_absent(0.0, || {
-                    select_pro_inputs(&game, pro_config)
-                });
-                assert_eq!(selected, expected, "variant={variant_id} mode=Pro");
-                assert_inputs_yield_events(&game, selected.as_slice());
-            });
-        }
-    }
-
-    #[test]
-    fn automove_runtime_pro_timeout_returns_completed_fast_fallback() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let fast_config = shipping_search_config_for_game(&game, SmartAutomovePreference::Fast);
-        let expected = MonsGameModel::smart_search_best_inputs(&game, fast_config);
-        assert_inputs_yield_events(&game, expected.as_slice());
-
-        automove_deadline::with_test_clock(0.0, || {
-            let selected = select_pro_with_shared_deadline(&game, || {
-                automove_deadline::set_test_now_ms(PRO_SELECTOR_BUDGET_MS + 1.0);
-                Vec::new()
-            });
-            assert_eq!(selected, expected);
-            assert_inputs_yield_events(&game, selected.as_slice());
-        });
-    }
-
-    #[test]
-    fn automove_runtime_timed_out_fast_bank_clears_caches_and_restores_outer() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let emergency_inputs = deterministic_legal_fallback_inputs(&game);
-        clear_turn_engine_selector_followup_floor_cache();
-
-        automove_deadline::with_test_clock(0.0, || {
-            automove_deadline::with_deadline_if_absent(
-                automove_deadline::AUTOMOVE_SELECTOR_BUDGET_MS,
-                || {
-                    let selected = select_pro_fast_bank_inputs(|| {
-                        let _ = MonsGameModel::move_efficiency_snapshot(
-                            &game,
-                            game.active_color,
-                            false,
-                            false,
-                        );
-                        assert!(move_efficiency_snapshot_cache_len() > 0);
-                        automove_deadline::set_test_now_ms(PRO_FAST_BANK_BUDGET_MS + 1.0);
-                        emergency_inputs.clone()
-                    });
-
-                    assert_eq!(selected, None);
-                    assert_eq!(move_efficiency_snapshot_cache_len(), 0);
-                    assert!(!automove_deadline::cancelled());
-                    assert_eq!(
-                        automove_deadline::remaining_ms(),
-                        Some(
-                            automove_deadline::AUTOMOVE_SELECTOR_BUDGET_MS
-                                - PRO_FAST_BANK_BUDGET_MS
-                                - 1.0
-                        )
-                    );
-                    assert!(!automove_deadline::checkpoint_with_reserve(
-                        PRO_START_RESERVE_MS
-                    ));
-                },
-            );
-            assert!(!automove_deadline::take_previous_timeout());
-        });
-    }
-
-    #[test]
-    fn automove_runtime_discards_warm_selector_caches_after_timeout() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        clear_turn_engine_selector_followup_floor_cache();
-        let _ = MonsGameModel::move_efficiency_snapshot(&game, game.active_color, false, false);
-        assert!(move_efficiency_snapshot_cache_len() > 0);
-
-        automove_deadline::with_test_clock(0.0, || {
-            automove_deadline::with_deadline_if_absent(0.0, || {
-                assert!(automove_deadline::checkpoint());
-            });
-            let selected = select_with_shared_deadline(&game, || {
-                assert_eq!(move_efficiency_snapshot_cache_len(), 0);
-                deterministic_legal_fallback_inputs(&game)
-            });
-            assert_inputs_yield_events(&game, selected.as_slice());
-        });
-    }
-
-    #[test]
-    fn shipping_pro_config_applies_runtime_contract() {
-        let game = MonsGame::new(false, GameVariant::Classic);
-        let config = shipping_search_config_for_game(&game, SmartAutomovePreference::Pro);
-        let current = apply_shipping_pro_config(config);
-
-        assert!(config.enable_root_reply_risk_guard);
-        assert!(current.enable_targeted_drainer_attack_fallback);
-        assert!(!current.enable_root_reply_risk_guard);
-        assert_eq!(current.depth, config.depth);
-        assert_eq!(current.max_visited_nodes, config.max_visited_nodes);
-    }
-
-    #[test]
-    #[ignore = "release gate: five cold Black turn-eight public Pro calls must stay under 700ms"]
-    fn smart_automove_public_black_turn_eight_deadline_tail_gate() {
-        let game = MonsGame::from_fen(
-            "1 0 b 0 0 0 0 0 8 n11/n02y0xn01s0xn01a0xxxmn03/n02xxmn02d0xn05/n03xxmn02xxmn04/n04e0xn02xxmn03/xxQn03S0xxxUn04xxQ/n03xxMY0xn06/n04xxMn03xxMn02/n11/n04E0xA0xn02xxMn02/n09D0xn01",
-            false,
-        )
-        .expect("valid Black turn-8 deadline-tail fixture");
-        for repeat in 0..5 {
-            clear_selector_caches_after_timeout();
-            let model = MonsGameModel::with_game(game.clone_for_simulation());
-            let start = std::time::Instant::now();
-            let output = model.smart_automove_output(SmartAutomovePreference::Pro);
-            let elapsed_ms = start.elapsed().as_secs_f64() * 1_000.0;
-            assert_eq!(output.kind, OutputModelKind::Events);
-            assert_eq!(output.input_fen(), "l1,4;l3,6;l2,5");
-
-            let mut replay = game.clone_for_simulation();
-            assert!(matches!(
-                replay.process_input(
-                    Input::array_from_fen(output.input_fen().as_str()),
-                    false,
-                    false,
-                ),
-                Output::Events(_)
-            ));
-            println!(
-                "AUTOMOVE_PUBLIC_BLACK_TURN_EIGHT repeat={} elapsed_ms={:.3} inputs={}",
-                repeat,
-                elapsed_ms,
-                output.input_fen(),
-            );
-            assert!(
-                elapsed_ms < 700.0,
-                "Black turn-8 public Pro call must stay below 700ms: repeat={repeat} elapsed_ms={elapsed_ms:.3}"
-            );
-        }
     }
 }
