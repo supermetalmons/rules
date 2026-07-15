@@ -47,29 +47,7 @@ run_step "complete games corpus"
 node ./scripts/check-complete-games.cjs
 
 run_step "source hygiene"
-if rg -n 'automove_experiments|smart_automove_pool_tests' src; then
-  echo "retired experiment harness reference remains"
-  exit 1
-fi
-if rg -n -U '#\[[[:space:]]*(allow|cfg_attr)[[:space:]]*\([^]]*\bdead_code\b[^]]*\)[[:space:]]*\]' src; then
-  echo "dead-code suppression remains"
-  exit 1
-fi
-
-# Candidate-specific tests are allowed; environment-parameterized model/lib mechanisms are not.
-# Command-line binaries are outside the automove mechanism boundary.
-model_source_files=()
-while IFS= read -r source_file; do
-  model_source_files+=("${source_file}")
-done < <(
-  find src -type f -name '*.rs' ! -path 'src/bin/*' -print | LC_ALL=C sort
-)
-if [ "${#model_source_files[@]}" -gt 0 ] && \
-  rg -n 'std::env|env::(var|var_os)[[:space:]]*\(|option_env![[:space:]]*\(' \
-    "${model_source_files[@]}"; then
-  echo "automove runtime environment switch remains"
-  exit 1
-fi
+node ./scripts/check-source-hygiene.cjs
 
 empty_source_dirs="$(find src -type d -empty -print | LC_ALL=C sort)"
 if [ -n "${empty_source_dirs}" ]; then
