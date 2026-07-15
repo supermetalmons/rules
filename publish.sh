@@ -68,13 +68,8 @@ wasm-pack build --profile wasm-release --target web --out-dir pkg/web --out-name
 echo "Building node Wasm package..."
 wasm-pack build --profile wasm-release --target nodejs --out-dir pkg/node --out-name mons-rust
 
-node -e '
-const fs = require("node:fs");
-const file = process.argv[1];
-const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
-manifest.name = "mons-web";
-fs.writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`);
-' pkg/web/package.json
+node ./scripts/prepare-release-npm-package.cjs pkg/web mons-web
+node ./scripts/prepare-release-npm-package.cjs pkg/node mons-rust
 
 echo "Checking release package surface..."
 ./scripts/assert-release-package-surface.sh pkg/web pkg/node
