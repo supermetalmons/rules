@@ -1,21 +1,20 @@
 # Automove: One Active Hypothesis
 
-Baseline: current public Pro; every cold complete public call must be `<700ms`.
+## Actor-consistent child-efficiency snapshots
 
-## Bounded/lazy root generation
+ID: `child-ordering-actor-snapshot-v1`.
 
-ID: `bounded-lazy-root-v1`.
+At opponent nodes, child ordering subtracts an opponent after snapshot from a root-side
+before snapshot. Build both for `actor_color`. Keep weights, flags, bonuses, classes,
+comparison, caps, and order. Maximizing nodes and work are unchanged.
 
-Before exact or turn-engine work, admit roots to one fixed-cap pool. In the harness,
-freeze the cap, mandatory-family list/order, one reserved slot per present family,
-deterministic within-family/overflow order, and fixed-cap dedup storage. Fill the rest
-in stable order; downstream sees only admitted roots. Kill if the present
-mandatory-family count exceeds the cap. Never sweep it.
+Split SHA-256(ID+NUL+raw JSON): Train `00..7f`, unopened Validation `80..bf`, sealed
+`c0..ff`. Replay final Train actions only to reach handoff nodes, never as labels.
+Enumerate the lexical 132-transition production prefix; applicable means mixed versus
+corrected efficiency crosses zero. Freeze pre-action states, one/game,
+64 total and 32/prior color.
 
-Keep discovery, sampled-gate, and all-variant confirmation offsets mutually disjoint.
-First prove public reach, all-variant legal replay, bounded-work counters, and two cold
-calls per witness below `700ms`; only then duel shipping Pro, Normal, and Fast.
-
-Kill on absent reach, hidden work, family loss, unstable overflow, or a cold call
-`>=700ms`. Do not revive node/depth/tactical-pool budgets, selector stitching, or a
-current-corpus evaluator.
+Compare public Disabled/Commit Fast, Normal, and Pro twice. Require exact delta/mirror/
+maximizing parity, unchanged caps/Pro fixture, legal reach every mode/color, and cold
+calls `<700ms`. Then require `>=7/12`, confidence `>=.60` per mode, and fresh
+all-variant confirmation. Kill; never rescue.
