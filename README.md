@@ -12,9 +12,11 @@ the Rust crate is an internal build artifact and is not a supported package surf
 
 ## Validation
 
-Run `./scripts/run-rules-tests.sh` with no options to replay the pinned compressed
-10,000-case rules corpus. The command validates the corpus before streaming it and
-does not unpack or rewrite the fixture.
+Run `./scripts/run-rules-tests.sh` with no options to replay the deterministic
+compressed stream of 699,994 canonical unique rules transitions recovered from
+699,999 historical raw fixtures. The command validates and streams the corpus without
+unpacking or rewriting it. The source covers Classic only; variants 1 through 11
+remain covered by focused Rust tests.
 
 Run `node ./scripts/check-complete-games.cjs` to validate the immutable public corpus
 of 1,527 complete real-player games.

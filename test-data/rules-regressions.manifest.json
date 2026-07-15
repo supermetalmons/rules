@@ -1,170 +1,172 @@
 {
-  "schemaVersion": 1,
-  "selectionVersion": "rules-regressions-v1",
+  "schemaVersion": 2,
+  "corpusVersion": "rules-regressions-full-v1",
   "source": {
     "commit": "5c79f22441a83e66b3a9875f0bf7354aee6f98a0",
     "archives": [
       {
         "path": "rules-tests-chunks/chunk-00001.tar.gz",
         "sha256": "6b3be00538dccb5e98f6ea0784f3f310a3a9c34795eec458645c50f3461ecb31",
-        "validCaseCount": 100000
+        "fixtureCount": 100000,
+        "appleDoubleCount": 100000,
+        "paxHeaderCount": 100000
       },
       {
         "path": "rules-tests-chunks/chunk-00002.tar.gz",
         "sha256": "3364787cdbbc2334ca7b02105d580c62133a682f3de672ea0c11f01dd7fdbb41",
-        "validCaseCount": 100000
+        "fixtureCount": 100000,
+        "appleDoubleCount": 100000,
+        "paxHeaderCount": 100000
       },
       {
         "path": "rules-tests-chunks/chunk-00003.tar.gz",
         "sha256": "194f590a7eebf1720b7fb80072282e91ecf92fe21db602625e84857a4fab06ee",
-        "validCaseCount": 100000
+        "fixtureCount": 100000,
+        "appleDoubleCount": 100000,
+        "paxHeaderCount": 100000
       },
       {
         "path": "rules-tests-chunks/chunk-00004.tar.gz",
         "sha256": "9528778d416b5c08279f34017f2174124a0c65da14cfbcb6ada12cb6b5dbac42",
-        "validCaseCount": 100000
+        "fixtureCount": 100000,
+        "appleDoubleCount": 100000,
+        "paxHeaderCount": 100000
       },
       {
         "path": "rules-tests-chunks/chunk-00005.tar.gz",
         "sha256": "48191a5684142463b8289cb8973fec92cb8692d8f76e93abf92a6c69942474af",
-        "validCaseCount": 100000
+        "fixtureCount": 100000,
+        "appleDoubleCount": 100000,
+        "paxHeaderCount": 100000
       },
       {
         "path": "rules-tests-chunks/chunk-00006.tar.gz",
         "sha256": "3c6cb6437a1c76aa5df670d251fbfa95da77d77424c5e667cf092bf8b20c381e",
-        "validCaseCount": 100000
+        "fixtureCount": 100000,
+        "appleDoubleCount": 100000,
+        "paxHeaderCount": 100000
       },
       {
         "path": "rules-tests-chunks/chunk-00007.tar.gz",
         "sha256": "daf951a55942bfa36818bd415f0246dbf53e4a34bfa4262ee862a919c6b7a1bf",
-        "validCaseCount": 99999
+        "fixtureCount": 99999,
+        "appleDoubleCount": 99999,
+        "paxHeaderCount": 99999
       }
     ],
-    "caseCount": 699999,
-    "uniqueCanonicalTransitions": 699994,
-    "baseline": {
-      "passed": 699999,
-      "failed": 0
+    "memberAudit": {
+      "fixturePathPattern": "rules-tests/[0-9]+",
+      "fixtureCount": 699999,
+      "fixtureJsonBytes": 274372809,
+      "ignoredAppleDoubleCount": 699999,
+      "ignoredPaxHeaderCount": 699999,
+      "unexpectedMemberCount": 0
     }
   },
-  "selection": {
-    "policy": [
-      "Retain every InvalidInput output, modifier input, and input sequence of length at least three.",
-      "Retain every case containing an event kind with source frequency at most 1000 or a next-input kind with source frequency at most 500.",
-      "Greedily add lowest-FNV candidates until every observed coverage value is represented.",
-      "Fill to 10000 by round-robin lowest-FNV selection across (output kind, active color, score pair, turn bucket) strata; break ties lexicographically."
+  "canonicalization": {
+    "format": "compact UTF-8 JSON Lines",
+    "fieldOrder": [
+      "fenAfter",
+      "fenBefore",
+      "inputFen",
+      "outputFen"
     ],
-    "selectedCaseCount": 10000,
-    "uniqueFnv1a64Ids": 10000,
-    "uniqueTransitions": 10000,
-    "mandatoryCaseCount": 4685,
-    "greedyCoverageAdditions": 18,
-    "roundRobinAdditions": 5297,
-    "rareEventOccurrenceThreshold": 1000,
-    "rareNextInputOccurrenceThreshold": 500,
-    "rareEventKinds": {
-      "ba": 10,
-      "da": 134,
-      "das": 20,
-      "go": 964,
-      "ma": 115,
-      "md": 295,
-      "mf": 259,
-      "pb": 12,
-      "pp": 15,
-      "sb": 8,
-      "up": 14
+    "lineEnding": "LF",
+    "ordering": "strict bytewise ascending (LC_ALL=C)",
+    "legacyEscapedSlashRecordsNormalized": 10000,
+    "rawFixtureCount": 699999,
+    "canonicalTransitionCount": 699994,
+    "canonicalDuplicateCount": 5,
+    "duplicateRawIdPairs": [
+      [
+        "16366646300174623791",
+        "17526557331065902015"
+      ],
+      [
+        "17514043398572608075",
+        "17945617246001319879"
+      ],
+      [
+        "17033601397408846118",
+        "4110695395768576788"
+      ],
+      [
+        "17477011250244622299",
+        "4276189234051357579"
+      ],
+      [
+        "16928469117946288666",
+        "5196103459120274044"
+      ]
+    ],
+    "fnv1a64": {
+      "input": "canonical line bytes excluding LF",
+      "uniqueIdCount": 699994,
+      "collisionCount": 0
+    }
+  },
+  "predecessor": {
+    "corpusVersion": "rules-regressions-v1",
+    "caseCount": 10000,
+    "artifact": {
+      "uncompressedBytes": 4032569,
+      "uncompressedSha256": "5c3e3a5034d187ee0daf528bc0fb5bedeb3a27a864d8e7f6ce0aa0880fd02afc",
+      "compressedBytes": 654974,
+      "compressedSha256": "4f96c9a638ff81ef1c07bd63f7d528a70676281bd18cabc20eef86b42dbb68dc"
     },
-    "rareNextInputKinds": {
-      "ba": 21,
-      "da": 283,
-      "das": 136,
-      "ma": 247,
-      "sc": 36
+    "subsetProof": {
+      "containedTransitions": 10000,
+      "directByteMatches": 8923,
+      "normalizedMatches": 1077,
+      "missingTransitions": 0
     }
   },
   "artifact": {
     "path": "test-data/rules-regressions.jsonl.gz",
+    "caseCount": 699994,
+    "format": "canonical JSON Lines",
+    "ordering": "strict bytewise ascending",
     "compression": "gzip -n -9",
-    "uncompressedBytes": 4032569,
-    "uncompressedSha256": "5c3e3a5034d187ee0daf528bc0fb5bedeb3a27a864d8e7f6ce0aa0880fd02afc",
-    "compressedBytes": 654974,
-    "compressedSha256": "4f96c9a638ff81ef1c07bd63f7d528a70676281bd18cabc20eef86b42dbb68dc"
+    "uncompressedBytes": 274843626,
+    "uncompressedSha256": "4b5b092987eafe9dad6b2f265b194fcb0f95380f120a6a217d3f5795a1f70f81",
+    "compressedBytes": 27021978,
+    "compressedSha256": "02942e8107a3de160cfa1bf99dc6d1bcc070c94ba4aca650cb0c67530ee2e280"
   },
+  "baselineResults": [
+    {
+      "commit": "5c79f22441a83e66b3a9875f0bf7354aee6f98a0",
+      "fixtureCount": 699999,
+      "passed": 699999,
+      "failed": 0
+    },
+    {
+      "commit": "ad4aaa1ddfd7fdecf53cae60e8aa7a695087db1d",
+      "fixtureCount": 699994,
+      "passed": 699994,
+      "failed": 0
+    }
+  ],
   "coverage": {
+    "basis": "699999 raw source fixtures before canonical duplicate removal",
     "distinctValueCounts": {
-      "output_kind": {
-        "source": 4,
-        "selected": 4
-      },
-      "output_cardinality": {
-        "source": 27,
-        "selected": 27
-      },
-      "event_kind": {
-        "source": 18,
-        "selected": 18
-      },
-      "next_input_kind": {
-        "source": 9,
-        "selected": 9
-      },
-      "input_kind": {
-        "source": 3,
-        "selected": 3
-      },
-      "input_length": {
-        "source": 5,
-        "selected": 5
-      },
-      "color": {
-        "source": 2,
-        "selected": 2
-      },
-      "score_pair": {
-        "source": 28,
-        "selected": 28
-      },
-      "item_kind": {
-        "source": 5,
-        "selected": 5
-      },
-      "mon_kind": {
-        "source": 5,
-        "selected": 5
-      },
-      "mana_kind": {
-        "source": 3,
-        "selected": 3
-      },
-      "source_square": {
-        "source": 6,
-        "selected": 6
-      },
-      "target_square": {
-        "source": 6,
-        "selected": 6
-      },
-      "direction": {
-        "source": 9,
-        "selected": 9
-      },
-      "distance": {
-        "source": 11,
-        "selected": 11
-      },
-      "geometry": {
-        "source": 254,
-        "selected": 254
-      },
-      "turn_bucket": {
-        "source": 4,
-        "selected": 4
-      },
-      "variant": {
-        "source": 1,
-        "selected": 1
-      }
+      "output_kind": 4,
+      "output_cardinality": 27,
+      "event_kind": 18,
+      "next_input_kind": 9,
+      "input_kind": 3,
+      "input_length": 5,
+      "color": 2,
+      "score_pair": 28,
+      "item_kind": 5,
+      "mon_kind": 5,
+      "mana_kind": 3,
+      "source_square": 6,
+      "target_square": 6,
+      "direction": 9,
+      "distance": 11,
+      "geometry": 254,
+      "turn_bucket": 4,
+      "variant": 1
     },
     "sourceCaseFrequencies": {
       "output_kind": {
@@ -346,188 +348,6 @@
       },
       "variant": {
         "0": 699999
-      }
-    },
-    "selectedCaseFrequencies": {
-      "output_kind": {
-        "events": 5938,
-        "invalid": 17,
-        "locations": 1799,
-        "next": 2246
-      },
-      "output_cardinality": {
-        "events:1": 2672,
-        "events:2": 1820,
-        "events:3": 1374,
-        "events:4": 67,
-        "events:5": 5,
-        "invalid:0": 17,
-        "locations:1": 15,
-        "locations:2": 3,
-        "locations:3": 2,
-        "locations:4": 147,
-        "locations:5": 1631,
-        "locations:6": 1,
-        "next:1": 237,
-        "next:10": 19,
-        "next:11": 10,
-        "next:12": 5,
-        "next:13": 1,
-        "next:14": 1,
-        "next:15": 1,
-        "next:2": 89,
-        "next:3": 121,
-        "next:4": 169,
-        "next:5": 281,
-        "next:6": 311,
-        "next:7": 478,
-        "next:8": 433,
-        "next:9": 90
-      },
-      "event_kind": {
-        "ba": 10,
-        "da": 134,
-        "das": 20,
-        "go": 964,
-        "ma": 115,
-        "maw": 158,
-        "md": 295,
-        "mf": 259,
-        "mm": 934,
-        "mma": 2010,
-        "ms": 992,
-        "nt": 1764,
-        "pb": 12,
-        "pm": 288,
-        "pp": 15,
-        "sb": 8,
-        "stm": 2735,
-        "up": 14
-      },
-      "next_input_kind": {
-        "ba": 14,
-        "da": 278,
-        "das": 21,
-        "ma": 238,
-        "mm": 1480,
-        "mma": 213,
-        "sc": 18,
-        "stc": 296,
-        "stm": 182
-      },
-      "input_kind": {
-        "empty": 1802,
-        "location": 8198,
-        "modifier": 22
-      },
-      "input_length": {
-        "0": 1802,
-        "1": 2034,
-        "2": 3387,
-        "3": 2775,
-        "4": 2
-      },
-      "color": {
-        "b": 4970,
-        "w": 5030
-      },
-      "score_pair": {
-        "0:0": 2054,
-        "0:1": 556,
-        "0:2": 407,
-        "0:3": 507,
-        "0:4": 332,
-        "1:0": 387,
-        "1:1": 392,
-        "1:2": 230,
-        "1:3": 355,
-        "1:4": 260,
-        "1:5": 1,
-        "2:0": 219,
-        "2:1": 263,
-        "2:2": 318,
-        "2:3": 234,
-        "2:4": 322,
-        "2:6": 1,
-        "3:0": 242,
-        "3:1": 248,
-        "3:2": 436,
-        "3:3": 280,
-        "3:4": 442,
-        "4:0": 167,
-        "4:1": 268,
-        "4:2": 316,
-        "4:3": 368,
-        "4:4": 394,
-        "4:5": 1
-      },
-      "item_kind": {
-        "consumable": 2123,
-        "mana": 10000,
-        "mon": 10000,
-        "mon_with_consumable": 160,
-        "mon_with_mana": 8357
-      },
-      "mon_kind": {
-        "angel": 10000,
-        "demon": 10000,
-        "drainer": 10000,
-        "mystic": 10000,
-        "spirit": 10000
-      },
-      "mana_kind": {
-        "regular_black": 9917,
-        "regular_white": 9924,
-        "supermana": 9455
-      },
-      "source_square": {
-        "consumable_base": 107,
-        "mana_base": 1273,
-        "mana_pool": 92,
-        "mon_base": 150,
-        "regular": 7397,
-        "supermana_base": 30
-      },
-      "target_square": {
-        "consumable_base": 257,
-        "mana_base": 1795,
-        "mana_pool": 1214,
-        "mon_base": 497,
-        "regular": 6857,
-        "supermana_base": 64
-      },
-      "direction": {
-        "-1,-1": 2609,
-        "-1,0": 2521,
-        "-1,1": 2676,
-        "0,-1": 2490,
-        "0,0": 5,
-        "0,1": 2546,
-        "1,-1": 2661,
-        "1,0": 2572,
-        "1,1": 2692
-      },
-      "distance": {
-        "0": 5,
-        "1": 7640,
-        "10": 4,
-        "2": 4007,
-        "3": 69,
-        "4": 39,
-        "5": 37,
-        "6": 34,
-        "7": 26,
-        "8": 20,
-        "9": 9
-      },
-      "turn_bucket": {
-        "1-2": 209,
-        "10+": 9242,
-        "3-5": 251,
-        "6-9": 298
-      },
-      "variant": {
-        "0": 10000
       }
     },
     "sourceEventOccurrences": {

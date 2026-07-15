@@ -1,9 +1,9 @@
 use mons_rust::replay_rules_transition;
-use std::collections::{HashMap, HashSet};
 use std::io::{self, BufRead, BufReader};
 use std::process;
 
-const EXPECTED_CASE_COUNT: usize = 10_000;
+const EXPECTED_CASE_COUNT: usize = 699_994;
+const PROGRESS_INTERVAL: usize = 100_000;
 
 #[derive(Debug)]
 struct RuleTestCase {
@@ -29,8 +29,7 @@ fn run() -> Result<(), String> {
 
     let stdin = io::stdin();
     let reader = BufReader::new(stdin.lock());
-    let mut seen_ids = HashMap::with_capacity(EXPECTED_CASE_COUNT);
-    let mut seen_transitions = HashSet::with_capacity(EXPECTED_CASE_COUNT);
+    let mut previous_raw: Option<String> = None;
     let mut count = 0usize;
 
     for line in reader.lines() {
@@ -47,15 +46,20 @@ fn run() -> Result<(), String> {
         }
 
         let id = fnv1a_hash(raw.as_bytes());
-        if !seen_transitions.insert(raw.clone()) {
-            return Err(format!(
-                "duplicate transition at fixture line {count} (FNV-1a ID {id})"
-            ));
-        }
-        if let Some(previous) = seen_ids.insert(id, raw.clone()) {
-            return Err(format!(
-                "FNV-1a collision at fixture line {count} (ID {id}):\nprevious: {previous}\ncurrent:  {raw}"
-            ));
+        if let Some(previous) = previous_raw.as_deref() {
+            match raw.as_bytes().cmp(previous.as_bytes()) {
+                std::cmp::Ordering::Less => {
+                    return Err(format!(
+                        "out-of-order transition at fixture line {count} (FNV-1a ID {id}):\nprevious: {previous}\ncurrent:  {raw}"
+                    ));
+                }
+                std::cmp::Ordering::Equal => {
+                    return Err(format!(
+                        "duplicate transition at fixture line {count} (FNV-1a ID {id})"
+                    ));
+                }
+                std::cmp::Ordering::Greater => {}
+            }
         }
 
         let case = RuleTestCase::from_json(raw.as_str()).map_err(|error| {
@@ -68,6 +72,11 @@ fn run() -> Result<(), String> {
         }
 
         check_case(count, id, &case)?;
+        previous_raw = Some(raw);
+
+        if count.is_multiple_of(PROGRESS_INTERVAL) {
+            eprintln!("progress: {count}/{EXPECTED_CASE_COUNT} canonical rules transitions passed");
+        }
     }
 
     if count != EXPECTED_CASE_COUNT {
