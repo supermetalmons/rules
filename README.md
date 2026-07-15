@@ -46,8 +46,9 @@ only a prefix.
 
 ## Publishing
 
-- Set the release version in `Cargo.toml` and regenerate `Cargo.lock`, then commit the
-  complete release change set. Publishing requires a clean worktree.
+- Run `./scripts/bump.sh` for a patch release, or pass `minor`, `major`, or an explicit
+  `X.Y.Z` version. Then commit the complete release change set; publishing requires a
+  clean worktree.
 - Run `./publish.sh --check-only` for the complete rules, Rust, release-gate, Wasm,
   public-surface, cold-route, and npm-size validation without publishing.
 - Run `./publish.sh` only after the check-only path passes and the release commit is clean.
