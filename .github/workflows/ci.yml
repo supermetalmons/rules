@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - mons-npm-publish-lock
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - run: npm ci --engine-strict
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run assert:pure
+      - run: npm test
+      - run: npm run test:automove-parity
+      - run: ./scripts/run-rules-tests.sh
+      - run: node ./scripts/check-complete-games.cjs
+      - run: npm run test:complete-games
+      - run: npm run build
+      - run: node ./scripts/assert-release-npm-package.cjs pkg/web web
+      - run: node ./scripts/assert-release-npm-package.cjs pkg/node node

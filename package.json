@@ -1,0 +1,35 @@
+{
+  "name": "mons-typescript-workspace",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
+  },
+  "scripts": {
+    "assert:pure": "node ./scripts/assert-pure-typescript-repository.mjs",
+    "benchmark:automove": "npm run build:packages && node ./scripts/benchmark-automove.cjs",
+    "build": "npm run build:types && npm run build:packages",
+    "build:packages": "node ./scripts/build-npm-packages.mjs",
+    "build:types": "tsc -p tsconfig.build.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "test": "vitest run --exclude tests/automove/parity-corpus.test.ts",
+    "test:automove-parity": "vitest run tests/automove/parity-corpus.test.ts",
+    "test:complete-games": "node ./scripts/run-complete-games.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "22.20.1",
+    "esbuild": "0.28.1",
+    "eslint": "9.39.5",
+    "globals": "17.7.0",
+    "prettier": "3.9.5",
+    "semver": "7.8.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.64.0",
+    "vitest": "4.1.10"
+  }
+}

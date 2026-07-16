@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "55c9e97f8643e3edba7249a1daff1f2b83fccad9",
+  "informationalOnly": true,
+  "cooperativeBudgetMs": 650,
+  "releaseCeilingMs": 700,
+  "observedAt": "2026-07-15T11:55:33.166Z",
+  "fixedReleaseFixture": [
+    {
+      "preference": "fast",
+      "inputFen": "l10,6;l9,6",
+      "elapsedMs": 25.092,
+      "sourceUnchanged": true
+    },
+    {
+      "preference": "normal",
+      "inputFen": "l10,6;l9,6",
+      "elapsedMs": 51.398,
+      "sourceUnchanged": true
+    },
+    {
+      "preference": "pro",
+      "inputFen": "l10,5;l9,4",
+      "elapsedMs": 295.938,
+      "sourceUnchanged": true
+    }
+  ],
+  "classicOpening": [
+    {
+      "preference": "fast",
+      "inputFen": "l10,5;l9,4",
+      "elapsedMs": 6.051,
+      "sourceUnchanged": true
+    },
+    {
+      "preference": "normal",
+      "inputFen": "l10,5;l9,4",
+      "elapsedMs": 40.131,
+      "sourceUnchanged": true
+    },
+    {
+      "preference": "pro",
+      "inputFen": "l10,7;l9,8",
+      "elapsedMs": 258.252,
+      "sourceUnchanged": true
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+CONFIG Fast 2 480 168 28 40 10 3
+ROOT initial Fast l10,5;l9,4 1381 34 0 0 0 0 0 0
+ROOT initial Fast l10,5;l9,5 1298 34 0 0 0 0 0 0
+ROOT initial Fast l10,6;l9,5 1127 90 0 0 0 0 0 0
+ROOT initial Fast l10,6;l9,6 1055 90 0 0 0 0 0 0
+ROOT initial Fast l10,6;l9,7 983 90 0 0 0 0 0 0
+ROOT initial Fast l10,5;l9,6 824 34 0 0 0 0 0 0
+ROOT initial Fast l10,3;l9,4 807 -40 0 0 0 0 0 0
+ROOT initial Fast l10,7;l9,8 807 -40 0 0 0 0 0 0
+ROOT initial Fast l10,7;l10,8 803 -40 0 0 0 0 0 0
+ROOT initial Fast l10,3;l9,2 735 -40 0 0 0 0 0 0
+ROOT initial Fast l10,3;l9,3 735 -40 0 0 0 0 0 0
+ROOT initial Fast l10,7;l9,6 735 -40 0 0 0 0 0 0
+SEARCH_SCORE initial l10,5;l9,4 1424 11
+SEARCH_SCORE initial l10,5;l9,5 1341 22
+SEARCH_SCORE initial l10,6;l9,5 1424 33
+SEARCH_SCORE initial l10,6;l9,6 1424 44
+SEARCH_SCORE initial l10,6;l9,7 1269 55
+SEARCH_SCORE initial l10,5;l9,6 970 66
+SEARCH_SCORE initial l10,3;l9,4 1178 77
+SEARCH_SCORE initial l10,7;l9,8 1178 88
+SEARCH_SCORE initial l10,7;l10,8 1172 99
+SEARCH_SCORE initial l10,3;l9,2 1106 110
+SEARCH_SCORE initial l10,3;l9,3 1178 121
+SEARCH_SCORE initial l10,7;l9,6 1106 132
+SELECT initial Fast l10,5;l9,4
+CONFIG Normal 3 9958 240 40 40 10 3
+ROOT initial Normal l10,5;l9,4 1381 34 0 0 0 0 0 0
+ROOT initial Normal l10,5;l9,5 1298 34 0 0 0 0 0 0
+ROOT initial Normal l10,6;l9,5 1127 90 0 0 0 0 0 0
+ROOT initial Normal l10,6;l9,6 1055 90 0 0 0 0 0 0
+ROOT initial Normal l10,6;l9,7 983 90 0 0 0 0 0 0
+ROOT initial Normal l10,5;l9,6 824 34 0 0 0 0 0 0
+ROOT initial Normal l10,3;l9,4 807 -40 0 0 0 0 0 0
+ROOT initial Normal l10,7;l9,8 807 -40 0 0 0 0 0 0
+ROOT initial Normal l10,7;l10,8 803 -40 0 0 0 0 0 0
+ROOT initial Normal l10,3;l9,2 735 -40 0 0 0 0 0 0
+ROOT initial Normal l10,3;l9,3 735 -40 0 0 0 0 0 0
+ROOT initial Normal l10,7;l9,6 735 -40 0 0 0 0 0 0
+CONFIG Pro 4 15774 204 16 72 11 2
+ROOT initial Pro l10,5;l9,4 1390 34 0 0 0 0 0 0
+ROOT initial Pro l10,5;l9,5 1294 34 0 0 0 0 0 0
+ROOT initial Pro l10,5;l9,6 989 34 0 0 0 0 0 0
+ROOT initial Pro l10,6;l9,5 1503 90 0 0 0 0 0 0
+ROOT initial Pro l10,6;l9,6 1417 90 0 0 0 0 0 0
+ROOT initial Pro l10,6;l9,7 1331 90 0 0 0 0 0 0
+ROOT initial Pro l10,3;l9,4 1077 -40 0 0 0 0 0 0
+ROOT initial Pro l10,7;l9,8 1077 -40 0 0 0 0 0 0
+ROOT initial Pro l10,7;l10,8 1071 -40 0 0 0 0 0 0
+ROOT initial Pro l10,3;l9,2 991 -40 0 0 0 0 0 0
+ROOT initial Pro l10,3;l9,3 991 -40 0 0 0 0 0 0
+ROOT initial Pro l10,7;l9,6 991 -40 0 0 0 0 0 0
+CONFIG Fast 2 480 168 28 40 10 3
+ROOT release Fast l10,6;l9,5 1100 90 0 0 0 0 0 0
+ROOT release Fast l10,6;l9,6 1100 90 0 0 0 0 0 0
+ROOT release Fast l10,5;l9,4 1098 34 0 0 0 0 0 0
+ROOT release Fast l10,6;l9,7 1028 90 0 0 0 0 0 0
+ROOT release Fast l10,5;l9,5 1015 34 0 0 0 0 0 0
+ROOT release Fast l10,7;l9,8 852 -40 0 0 0 0 0 0
+ROOT release Fast l10,7;l10,8 848 -40 0 0 0 0 0 0
+ROOT release Fast l10,7;l9,6 780 -40 0 0 0 0 0 0
+ROOT release Fast l10,7;l9,7 780 -40 0 0 0 0 0 0
+ROOT release Fast l10,4;l9,4 774 -40 0 0 0 0 0 0
+ROOT release Fast l10,2;l9,1 735 -40 0 0 0 0 0 0
+ROOT release Fast l10,2;l9,2 735 -40 0 0 0 0 0 0
+SEARCH_SCORE release l10,6;l9,5 1397 11
+SEARCH_SCORE release l10,6;l9,6 1469 22
+SEARCH_SCORE release l10,5;l9,4 1469 33
+SEARCH_SCORE release l10,6;l9,7 1314 44
+SEARCH_SCORE release l10,5;l9,5 1386 55
+SEARCH_SCORE release l10,7;l9,8 1223 66
+SEARCH_SCORE release l10,7;l10,8 1217 77
+SEARCH_SCORE release l10,7;l9,6 1149 88
+SEARCH_SCORE release l10,7;l9,7 1151 99
+SEARCH_SCORE release l10,4;l9,4 1145 110
+SEARCH_SCORE release l10,2;l9,1 1106 121
+SEARCH_SCORE release l10,2;l9,2 1106 132
+SELECT release Fast l10,6;l9,6
+CONFIG Normal 3 9958 240 40 40 10 3
+ROOT release Normal l10,6;l9,5 1100 90 0 0 0 0 0 0
+ROOT release Normal l10,6;l9,6 1100 90 0 0 0 0 0 0
+ROOT release Normal l10,5;l9,4 1098 34 0 0 0 0 0 0
+ROOT release Normal l10,6;l9,7 1028 90 0 0 0 0 0 0
+ROOT release Normal l10,5;l9,5 1015 34 0 0 0 0 0 0
+ROOT release Normal l10,7;l9,8 852 -40 0 0 0 0 0 0
+ROOT release Normal l10,7;l10,8 848 -40 0 0 0 0 0 0
+ROOT release Normal l10,7;l9,6 780 -40 0 0 0 0 0 0
+ROOT release Normal l10,7;l9,7 780 -40 0 0 0 0 0 0
+ROOT release Normal l10,4;l9,4 774 -40 0 0 0 0 0 0
+ROOT release Normal l10,2;l9,1 735 -40 0 0 0 0 0 0
+ROOT release Normal l10,2;l9,2 735 -40 0 0 0 0 0 0
+CONFIG Pro 4 15774 204 16 72 11 2
+ROOT release Pro l10,6;l9,5 1462 90 0 0 0 0 0 0
+ROOT release Pro l10,6;l9,6 1462 90 0 0 0 0 0 0
+ROOT release Pro l10,6;l9,7 1376 90 0 0 0 0 0 0
+ROOT release Pro l10,5;l9,4 1187 34 0 0 0 0 0 0
+ROOT release Pro l10,7;l9,8 1122 -40 0 0 0 0 0 0
+ROOT release Pro l10,7;l10,8 1116 -40 0 0 0 0 0 0
+ROOT release Pro l10,5;l9,5 1091 34 0 0 0 0 0 0
+ROOT release Pro l10,7;l9,6 1036 -40 0 0 0 0 0 0
+ROOT release Pro l10,7;l9,7 1036 -40 0 0 0 0 0 0
+ROOT release Pro l10,4;l9,4 1028 -40 0 0 0 0 0 0
+ROOT release Pro l10,2;l9,1 991 -40 0 0 0 0 0 0
+ROOT release Pro l10,2;l9,2 991 -40 0 0 0 0 0 0
+CONFIG Fast 2 480 168 28 40 10 3
+ROOT tactical Fast l6,6;l7,7 83 -40 0 0 1 0 0 0
+ROOT tactical Fast l6,6;l6,7 67 -40 0 0 1 0 0 0
+ROOT tactical Fast l6,6;l7,6 67 -40 0 0 1 0 0 0
+ROOT tactical Fast l6,6;l5,7 56 -40 0 0 1 0 0 0
+ROOT tactical Fast l6,6;l7,5 56 -40 0 0 1 0 0 0
+ROOT tactical Fast l6,6;l5,6 20 -40 0 0 1 0 0 0
+ROOT tactical Fast l6,6;l6,5 20 -40 0 0 1 0 0 0
+ROOT tactical Fast l5,5;l4,5 -589 -40 0 0 1 0 0 0
+ROOT tactical Fast l5,5;l4,6 -589 -40 0 0 1 0 0 0
+ROOT tactical Fast l5,5;l5,4 -589 -40 0 0 1 0 0 0
+ROOT tactical Fast l5,5;l5,6 -589 -40 0 0 1 0 0 0
+ROOT tactical Fast l5,5;l6,4 -589 -40 0 0 1 0 0 0
+SEARCH_SCORE tactical l6,6;l7,7 128 11
+SEARCH_SCORE tactical l6,6;l6,7 102 22
+SEARCH_SCORE tactical l6,6;l7,6 102 33
+SEARCH_SCORE tactical l6,6;l5,7 86 44
+SEARCH_SCORE tactical l6,6;l7,5 86 55
+SEARCH_SCORE tactical l6,6;l5,6 67 66
+SEARCH_SCORE tactical l6,6;l6,5 67 77
+SEARCH_SCORE tactical l5,5;l4,5 83 88
+SEARCH_SCORE tactical l5,5;l4,6 998 99
+SEARCH_SCORE tactical l5,5;l5,4 83 110
+SEARCH_SCORE tactical l5,5;l5,6 83 121
+SEARCH_SCORE tactical l5,5;l6,4 998 132
+SELECT tactical Fast l5,5;l4,6
+CONFIG Normal 3 9958 240 40 40 10 3
+ROOT tactical Normal l6,6;l7,7 83 -40 0 0 1 0 0 0
+ROOT tactical Normal l6,6;l6,7 67 -40 0 0 1 0 0 0
+ROOT tactical Normal l6,6;l7,6 67 -40 0 0 1 0 0 0
+ROOT tactical Normal l6,6;l5,7 56 -40 0 0 1 0 0 0
+ROOT tactical Normal l6,6;l7,5 56 -40 0 0 1 0 0 0
+ROOT tactical Normal l6,6;l5,6 20 -40 0 0 1 0 0 0
+ROOT tactical Normal l6,6;l6,5 20 -40 0 0 1 0 0 0
+ROOT tactical Normal l5,5;l4,5 -189 -40 0 0 1 0 0 0
+ROOT tactical Normal l5,5;l4,6 -189 -40 0 0 1 0 0 0
+ROOT tactical Normal l5,5;l5,4 -189 -40 0 0 1 0 0 0
+ROOT tactical Normal l5,5;l5,6 -189 -40 0 0 1 0 0 0
+ROOT tactical Normal l5,5;l6,4 -189 -40 0 0 1 0 0 0
+CONFIG Pro 4 15774 204 16 72 11 2
+ROOT tactical Pro l6,6;l7,7 19 -40 0 0 1 0 0 0
+ROOT tactical Pro l6,6;l6,7 5 -40 0 0 1 0 0 0
+ROOT tactical Pro l6,6;l7,6 5 -40 0 0 1 0 0 0
+ROOT tactical Pro l6,6;l5,7 -5 -40 0 0 1 0 0 0
+ROOT tactical Pro l6,6;l7,5 -5 -40 0 0 1 0 0 0
+ROOT tactical Pro l6,6;l5,6 -79 -40 0 0 1 0 0 0
+ROOT tactical Pro l6,6;l6,5 -79 -40 0 0 1 0 0 0
+ROOT tactical Pro l5,5;l4,5 -1324 -40 0 0 1 0 0 0
+ROOT tactical Pro l5,5;l4,6 -1324 -40 0 0 1 0 0 0
+ROOT tactical Pro l5,5;l5,4 -1324 -40 0 0 1 0 0 0
+ROOT tactical Pro l5,5;l5,6 -1324 -40 0 0 1 0 0 0
+ROOT tactical Pro l5,5;l6,4 -1324 -40 0 0 1 0 0 0

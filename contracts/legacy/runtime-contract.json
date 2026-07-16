@@ -1,0 +1,7243 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "55c9e97f8643e3edba7249a1daff1f2b83fccad9",
+  "packageVersion": "0.1.135",
+  "undefinedSentinel": "__undefined__",
+  "provenance": {
+    "packageName": "mons-rust",
+    "moduleSha256": "e956a1b6b781cc45b884a48301e59615f108e39345bf31d869361e5bf4db67e1",
+    "wasmSha256": "af183654445af137017f19c0216902fa0ef7e68f0bf8b4f2991abcd31eab703e",
+    "declarationSha256": "ceddf9d8fa1445f94e6b72d363cc843ac312b3dfdd48e755403cfd7035c3928b",
+    "semanticHighLevelDeclarationSha256": "68e0712dd6eff91e02a6a8ab0ea1e0437b4198d4ab1f48836af491a047d43b86"
+  },
+  "moduleContract": {
+    "highLevelNamedExports": [
+      "AvailableMoveKind",
+      "Color",
+      "Consumable",
+      "EventModel",
+      "EventModelKind",
+      "GameVariant",
+      "ItemModel",
+      "ItemModelKind",
+      "Location",
+      "ManaKind",
+      "ManaModel",
+      "Modifier",
+      "Mon",
+      "MonKind",
+      "MonsGameModel",
+      "NextInputKind",
+      "NextInputModel",
+      "OutputModel",
+      "OutputModelKind",
+      "SquareModel",
+      "SquareModelKind",
+      "VerboseTrackingEntityModel",
+      "winner"
+    ],
+    "allHighLevelExportsPresent": true,
+    "highLevelExportDescriptors": {
+      "AvailableMoveKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "Color": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "Consumable": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "EventModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "EventModel",
+          "length": 0
+        }
+      },
+      "EventModelKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "GameVariant": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "ItemModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "ItemModel",
+          "length": 0
+        }
+      },
+      "ItemModelKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "Location": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "Location",
+          "length": 2
+        }
+      },
+      "ManaKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "ManaModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "ManaModel",
+          "length": 0
+        }
+      },
+      "Modifier": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "Mon": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "Mon",
+          "length": 0
+        }
+      },
+      "MonKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "MonsGameModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "MonsGameModel",
+          "length": 0
+        }
+      },
+      "NextInputKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "NextInputModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "NextInputModel",
+          "length": 0
+        }
+      },
+      "OutputModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "OutputModel",
+          "length": 0
+        }
+      },
+      "OutputModelKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "SquareModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "SquareModel",
+          "length": 0
+        }
+      },
+      "SquareModelKind": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "object",
+          "tag": "[object Object]"
+        }
+      },
+      "VerboseTrackingEntityModel": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "VerboseTrackingEntityModel",
+          "length": 0
+        }
+      },
+      "winner": {
+        "configurable": true,
+        "enumerable": true,
+        "kind": "data",
+        "writable": true,
+        "value": {
+          "type": "function",
+          "name": "",
+          "length": 4
+        }
+      }
+    },
+    "winnerFunction": {
+      "type": "function",
+      "name": "",
+      "length": 4
+    }
+  },
+  "enums": {
+    "AvailableMoveKind": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "MonMove",
+        "ManaMove",
+        "Action",
+        "Potion"
+      ],
+      "entries": [
+        [
+          "0",
+          "MonMove"
+        ],
+        [
+          "1",
+          "ManaMove"
+        ],
+        [
+          "2",
+          "Action"
+        ],
+        [
+          "3",
+          "Potion"
+        ],
+        [
+          "MonMove",
+          0
+        ],
+        [
+          "ManaMove",
+          1
+        ],
+        [
+          "Action",
+          2
+        ],
+        [
+          "Potion",
+          3
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonMove"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ManaMove"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Action"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Potion"
+        },
+        "MonMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "ManaMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "Action": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "Potion": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        }
+      }
+    },
+    "Color": {
+      "keys": [
+        "0",
+        "1",
+        "White",
+        "Black"
+      ],
+      "entries": [
+        [
+          "0",
+          "White"
+        ],
+        [
+          "1",
+          "Black"
+        ],
+        [
+          "White",
+          0
+        ],
+        [
+          "Black",
+          1
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "White"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Black"
+        },
+        "White": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "Black": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        }
+      }
+    },
+    "Consumable": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "Potion",
+        "Bomb",
+        "BombOrPotion"
+      ],
+      "entries": [
+        [
+          "0",
+          "Potion"
+        ],
+        [
+          "1",
+          "Bomb"
+        ],
+        [
+          "2",
+          "BombOrPotion"
+        ],
+        [
+          "Potion",
+          0
+        ],
+        [
+          "Bomb",
+          1
+        ],
+        [
+          "BombOrPotion",
+          2
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Potion"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Bomb"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "BombOrPotion"
+        },
+        "Potion": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "Bomb": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "BombOrPotion": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        }
+      }
+    },
+    "EventModelKind": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "MonMove",
+        "ManaMove",
+        "ManaScored",
+        "MysticAction",
+        "DemonAction",
+        "DemonAdditionalStep",
+        "SpiritTargetMove",
+        "PickupBomb",
+        "PickupPotion",
+        "PickupMana",
+        "MonFainted",
+        "ManaDropped",
+        "SupermanaBackToBase",
+        "BombAttack",
+        "MonAwake",
+        "BombExplosion",
+        "NextTurn",
+        "GameOver",
+        "Takeback",
+        "UsePotion"
+      ],
+      "entries": [
+        [
+          "0",
+          "MonMove"
+        ],
+        [
+          "1",
+          "ManaMove"
+        ],
+        [
+          "2",
+          "ManaScored"
+        ],
+        [
+          "3",
+          "MysticAction"
+        ],
+        [
+          "4",
+          "DemonAction"
+        ],
+        [
+          "5",
+          "DemonAdditionalStep"
+        ],
+        [
+          "6",
+          "SpiritTargetMove"
+        ],
+        [
+          "7",
+          "PickupBomb"
+        ],
+        [
+          "8",
+          "PickupPotion"
+        ],
+        [
+          "9",
+          "PickupMana"
+        ],
+        [
+          "10",
+          "MonFainted"
+        ],
+        [
+          "11",
+          "ManaDropped"
+        ],
+        [
+          "12",
+          "SupermanaBackToBase"
+        ],
+        [
+          "13",
+          "BombAttack"
+        ],
+        [
+          "14",
+          "MonAwake"
+        ],
+        [
+          "15",
+          "BombExplosion"
+        ],
+        [
+          "16",
+          "NextTurn"
+        ],
+        [
+          "17",
+          "GameOver"
+        ],
+        [
+          "18",
+          "Takeback"
+        ],
+        [
+          "19",
+          "UsePotion"
+        ],
+        [
+          "MonMove",
+          0
+        ],
+        [
+          "ManaMove",
+          1
+        ],
+        [
+          "ManaScored",
+          2
+        ],
+        [
+          "MysticAction",
+          3
+        ],
+        [
+          "DemonAction",
+          4
+        ],
+        [
+          "DemonAdditionalStep",
+          5
+        ],
+        [
+          "SpiritTargetMove",
+          6
+        ],
+        [
+          "PickupBomb",
+          7
+        ],
+        [
+          "PickupPotion",
+          8
+        ],
+        [
+          "PickupMana",
+          9
+        ],
+        [
+          "MonFainted",
+          10
+        ],
+        [
+          "ManaDropped",
+          11
+        ],
+        [
+          "SupermanaBackToBase",
+          12
+        ],
+        [
+          "BombAttack",
+          13
+        ],
+        [
+          "MonAwake",
+          14
+        ],
+        [
+          "BombExplosion",
+          15
+        ],
+        [
+          "NextTurn",
+          16
+        ],
+        [
+          "GameOver",
+          17
+        ],
+        [
+          "Takeback",
+          18
+        ],
+        [
+          "UsePotion",
+          19
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonMove"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ManaMove"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ManaScored"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MysticAction"
+        },
+        "4": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "DemonAction"
+        },
+        "5": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "DemonAdditionalStep"
+        },
+        "6": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SpiritTargetMove"
+        },
+        "7": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "PickupBomb"
+        },
+        "8": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "PickupPotion"
+        },
+        "9": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "PickupMana"
+        },
+        "10": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonFainted"
+        },
+        "11": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ManaDropped"
+        },
+        "12": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SupermanaBackToBase"
+        },
+        "13": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "BombAttack"
+        },
+        "14": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonAwake"
+        },
+        "15": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "BombExplosion"
+        },
+        "16": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "NextTurn"
+        },
+        "17": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "GameOver"
+        },
+        "18": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Takeback"
+        },
+        "19": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "UsePotion"
+        },
+        "MonMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "ManaMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "ManaScored": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "MysticAction": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        },
+        "DemonAction": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 4
+        },
+        "DemonAdditionalStep": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 5
+        },
+        "SpiritTargetMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 6
+        },
+        "PickupBomb": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 7
+        },
+        "PickupPotion": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 8
+        },
+        "PickupMana": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 9
+        },
+        "MonFainted": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 10
+        },
+        "ManaDropped": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 11
+        },
+        "SupermanaBackToBase": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 12
+        },
+        "BombAttack": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 13
+        },
+        "MonAwake": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 14
+        },
+        "BombExplosion": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 15
+        },
+        "NextTurn": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 16
+        },
+        "GameOver": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 17
+        },
+        "Takeback": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 18
+        },
+        "UsePotion": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 19
+        }
+      }
+    },
+    "GameVariant": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "Classic",
+        "SwappedManaRows",
+        "OffsetArcManaRows",
+        "CenterSpokeManaRows",
+        "AlternatingManaRows",
+        "InnerWedgeManaRows",
+        "OuterWedgeManaRows",
+        "BentCenterManaRows",
+        "OuterEdgeManaRows",
+        "SplitFlankManaRows",
+        "ForwardBridgeManaRows",
+        "CornerChainManaRows"
+      ],
+      "entries": [
+        [
+          "0",
+          "Classic"
+        ],
+        [
+          "1",
+          "SwappedManaRows"
+        ],
+        [
+          "2",
+          "OffsetArcManaRows"
+        ],
+        [
+          "3",
+          "CenterSpokeManaRows"
+        ],
+        [
+          "4",
+          "AlternatingManaRows"
+        ],
+        [
+          "5",
+          "InnerWedgeManaRows"
+        ],
+        [
+          "6",
+          "OuterWedgeManaRows"
+        ],
+        [
+          "7",
+          "BentCenterManaRows"
+        ],
+        [
+          "8",
+          "OuterEdgeManaRows"
+        ],
+        [
+          "9",
+          "SplitFlankManaRows"
+        ],
+        [
+          "10",
+          "ForwardBridgeManaRows"
+        ],
+        [
+          "11",
+          "CornerChainManaRows"
+        ],
+        [
+          "Classic",
+          0
+        ],
+        [
+          "SwappedManaRows",
+          1
+        ],
+        [
+          "OffsetArcManaRows",
+          2
+        ],
+        [
+          "CenterSpokeManaRows",
+          3
+        ],
+        [
+          "AlternatingManaRows",
+          4
+        ],
+        [
+          "InnerWedgeManaRows",
+          5
+        ],
+        [
+          "OuterWedgeManaRows",
+          6
+        ],
+        [
+          "BentCenterManaRows",
+          7
+        ],
+        [
+          "OuterEdgeManaRows",
+          8
+        ],
+        [
+          "SplitFlankManaRows",
+          9
+        ],
+        [
+          "ForwardBridgeManaRows",
+          10
+        ],
+        [
+          "CornerChainManaRows",
+          11
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Classic"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SwappedManaRows"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "OffsetArcManaRows"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "CenterSpokeManaRows"
+        },
+        "4": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "AlternatingManaRows"
+        },
+        "5": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "InnerWedgeManaRows"
+        },
+        "6": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "OuterWedgeManaRows"
+        },
+        "7": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "BentCenterManaRows"
+        },
+        "8": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "OuterEdgeManaRows"
+        },
+        "9": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SplitFlankManaRows"
+        },
+        "10": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ForwardBridgeManaRows"
+        },
+        "11": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "CornerChainManaRows"
+        },
+        "Classic": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "SwappedManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "OffsetArcManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "CenterSpokeManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        },
+        "AlternatingManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 4
+        },
+        "InnerWedgeManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 5
+        },
+        "OuterWedgeManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 6
+        },
+        "BentCenterManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 7
+        },
+        "OuterEdgeManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 8
+        },
+        "SplitFlankManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 9
+        },
+        "ForwardBridgeManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 10
+        },
+        "CornerChainManaRows": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 11
+        }
+      }
+    },
+    "ItemModelKind": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "Mon",
+        "Mana",
+        "MonWithMana",
+        "MonWithConsumable",
+        "Consumable"
+      ],
+      "entries": [
+        [
+          "0",
+          "Mon"
+        ],
+        [
+          "1",
+          "Mana"
+        ],
+        [
+          "2",
+          "MonWithMana"
+        ],
+        [
+          "3",
+          "MonWithConsumable"
+        ],
+        [
+          "4",
+          "Consumable"
+        ],
+        [
+          "Mon",
+          0
+        ],
+        [
+          "Mana",
+          1
+        ],
+        [
+          "MonWithMana",
+          2
+        ],
+        [
+          "MonWithConsumable",
+          3
+        ],
+        [
+          "Consumable",
+          4
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Mon"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Mana"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonWithMana"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonWithConsumable"
+        },
+        "4": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Consumable"
+        },
+        "Mon": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "Mana": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "MonWithMana": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "MonWithConsumable": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        },
+        "Consumable": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 4
+        }
+      }
+    },
+    "ManaKind": {
+      "keys": [
+        "0",
+        "1",
+        "Regular",
+        "Supermana"
+      ],
+      "entries": [
+        [
+          "0",
+          "Regular"
+        ],
+        [
+          "1",
+          "Supermana"
+        ],
+        [
+          "Regular",
+          0
+        ],
+        [
+          "Supermana",
+          1
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Regular"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Supermana"
+        },
+        "Regular": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "Supermana": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        }
+      }
+    },
+    "Modifier": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "SelectPotion",
+        "SelectBomb",
+        "Cancel"
+      ],
+      "entries": [
+        [
+          "0",
+          "SelectPotion"
+        ],
+        [
+          "1",
+          "SelectBomb"
+        ],
+        [
+          "2",
+          "Cancel"
+        ],
+        [
+          "SelectPotion",
+          0
+        ],
+        [
+          "SelectBomb",
+          1
+        ],
+        [
+          "Cancel",
+          2
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SelectPotion"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SelectBomb"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Cancel"
+        },
+        "SelectPotion": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "SelectBomb": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "Cancel": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        }
+      }
+    },
+    "MonKind": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "Demon",
+        "Drainer",
+        "Angel",
+        "Spirit",
+        "Mystic"
+      ],
+      "entries": [
+        [
+          "0",
+          "Demon"
+        ],
+        [
+          "1",
+          "Drainer"
+        ],
+        [
+          "2",
+          "Angel"
+        ],
+        [
+          "3",
+          "Spirit"
+        ],
+        [
+          "4",
+          "Mystic"
+        ],
+        [
+          "Demon",
+          0
+        ],
+        [
+          "Drainer",
+          1
+        ],
+        [
+          "Angel",
+          2
+        ],
+        [
+          "Spirit",
+          3
+        ],
+        [
+          "Mystic",
+          4
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Demon"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Drainer"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Angel"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Spirit"
+        },
+        "4": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Mystic"
+        },
+        "Demon": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "Drainer": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "Angel": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "Spirit": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        },
+        "Mystic": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 4
+        }
+      }
+    },
+    "NextInputKind": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "MonMove",
+        "ManaMove",
+        "MysticAction",
+        "DemonAction",
+        "DemonAdditionalStep",
+        "SpiritTargetCapture",
+        "SpiritTargetMove",
+        "SelectConsumable",
+        "BombAttack"
+      ],
+      "entries": [
+        [
+          "0",
+          "MonMove"
+        ],
+        [
+          "1",
+          "ManaMove"
+        ],
+        [
+          "2",
+          "MysticAction"
+        ],
+        [
+          "3",
+          "DemonAction"
+        ],
+        [
+          "4",
+          "DemonAdditionalStep"
+        ],
+        [
+          "5",
+          "SpiritTargetCapture"
+        ],
+        [
+          "6",
+          "SpiritTargetMove"
+        ],
+        [
+          "7",
+          "SelectConsumable"
+        ],
+        [
+          "8",
+          "BombAttack"
+        ],
+        [
+          "MonMove",
+          0
+        ],
+        [
+          "ManaMove",
+          1
+        ],
+        [
+          "MysticAction",
+          2
+        ],
+        [
+          "DemonAction",
+          3
+        ],
+        [
+          "DemonAdditionalStep",
+          4
+        ],
+        [
+          "SpiritTargetCapture",
+          5
+        ],
+        [
+          "SpiritTargetMove",
+          6
+        ],
+        [
+          "SelectConsumable",
+          7
+        ],
+        [
+          "BombAttack",
+          8
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonMove"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ManaMove"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MysticAction"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "DemonAction"
+        },
+        "4": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "DemonAdditionalStep"
+        },
+        "5": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SpiritTargetCapture"
+        },
+        "6": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SpiritTargetMove"
+        },
+        "7": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SelectConsumable"
+        },
+        "8": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "BombAttack"
+        },
+        "MonMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "ManaMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "MysticAction": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "DemonAction": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        },
+        "DemonAdditionalStep": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 4
+        },
+        "SpiritTargetCapture": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 5
+        },
+        "SpiritTargetMove": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 6
+        },
+        "SelectConsumable": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 7
+        },
+        "BombAttack": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 8
+        }
+      }
+    },
+    "OutputModelKind": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "InvalidInput",
+        "LocationsToStartFrom",
+        "NextInputOptions",
+        "Events"
+      ],
+      "entries": [
+        [
+          "0",
+          "InvalidInput"
+        ],
+        [
+          "1",
+          "LocationsToStartFrom"
+        ],
+        [
+          "2",
+          "NextInputOptions"
+        ],
+        [
+          "3",
+          "Events"
+        ],
+        [
+          "InvalidInput",
+          0
+        ],
+        [
+          "LocationsToStartFrom",
+          1
+        ],
+        [
+          "NextInputOptions",
+          2
+        ],
+        [
+          "Events",
+          3
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "InvalidInput"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "LocationsToStartFrom"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "NextInputOptions"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Events"
+        },
+        "InvalidInput": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "LocationsToStartFrom": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "NextInputOptions": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "Events": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        }
+      }
+    },
+    "SquareModelKind": {
+      "keys": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "Regular",
+        "ConsumableBase",
+        "SupermanaBase",
+        "ManaBase",
+        "ManaPool",
+        "MonBase"
+      ],
+      "entries": [
+        [
+          "0",
+          "Regular"
+        ],
+        [
+          "1",
+          "ConsumableBase"
+        ],
+        [
+          "2",
+          "SupermanaBase"
+        ],
+        [
+          "3",
+          "ManaBase"
+        ],
+        [
+          "4",
+          "ManaPool"
+        ],
+        [
+          "5",
+          "MonBase"
+        ],
+        [
+          "Regular",
+          0
+        ],
+        [
+          "ConsumableBase",
+          1
+        ],
+        [
+          "SupermanaBase",
+          2
+        ],
+        [
+          "ManaBase",
+          3
+        ],
+        [
+          "ManaPool",
+          4
+        ],
+        [
+          "MonBase",
+          5
+        ]
+      ],
+      "frozen": true,
+      "sealed": true,
+      "extensible": false,
+      "nullPrototype": false,
+      "descriptors": {
+        "0": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "Regular"
+        },
+        "1": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ConsumableBase"
+        },
+        "2": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "SupermanaBase"
+        },
+        "3": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ManaBase"
+        },
+        "4": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "ManaPool"
+        },
+        "5": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": "MonBase"
+        },
+        "Regular": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 0
+        },
+        "ConsumableBase": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 1
+        },
+        "SupermanaBase": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 2
+        },
+        "ManaBase": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 3
+        },
+        "ManaPool": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 4
+        },
+        "MonBase": {
+          "configurable": false,
+          "enumerable": true,
+          "kind": "data",
+          "writable": false,
+          "value": 5
+        }
+      }
+    }
+  },
+  "classes": {
+    "EventModel": {
+      "name": "EventModel",
+      "length": 0,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "kind",
+        "item",
+        "mon",
+        "mana",
+        "loc1",
+        "loc2",
+        "color"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set kind",
+            "length": 1
+          }
+        },
+        "item": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get item",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set item",
+            "length": 1
+          }
+        },
+        "mon": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get mon",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set mon",
+            "length": 1
+          }
+        },
+        "mana": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get mana",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set mana",
+            "length": 1
+          }
+        },
+        "loc1": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get loc1",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set loc1",
+            "length": 1
+          }
+        },
+        "loc2": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get loc2",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set loc2",
+            "length": 1
+          }
+        },
+        "color": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get color",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set color",
+            "length": 1
+          }
+        }
+      }
+    },
+    "ItemModel": {
+      "name": "ItemModel",
+      "length": 0,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "kind",
+        "mon",
+        "mana",
+        "consumable"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set kind",
+            "length": 1
+          }
+        },
+        "mon": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get mon",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set mon",
+            "length": 1
+          }
+        },
+        "mana": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get mana",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set mana",
+            "length": 1
+          }
+        },
+        "consumable": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get consumable",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set consumable",
+            "length": 1
+          }
+        }
+      }
+    },
+    "Location": {
+      "name": "Location",
+      "length": 2,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "i",
+        "j"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "i": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get i",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set i",
+            "length": 1
+          }
+        },
+        "j": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get j",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set j",
+            "length": 1
+          }
+        }
+      }
+    },
+    "ManaModel": {
+      "name": "ManaModel",
+      "length": 0,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "kind",
+        "color"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set kind",
+            "length": 1
+          }
+        },
+        "color": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get color",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set color",
+            "length": 1
+          }
+        }
+      }
+    },
+    "Mon": {
+      "name": "Mon",
+      "length": 0,
+      "staticKeys": [
+        "new"
+      ],
+      "staticDescriptors": {
+        "new": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "new",
+            "length": 3
+          }
+        }
+      },
+      "prototypeKeys": [
+        "free",
+        "kind",
+        "color",
+        "cooldown",
+        "is_fainted",
+        "decrease_cooldown",
+        "faint"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set kind",
+            "length": 1
+          }
+        },
+        "color": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get color",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set color",
+            "length": 1
+          }
+        },
+        "cooldown": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get cooldown",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set cooldown",
+            "length": 1
+          }
+        },
+        "is_fainted": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "is_fainted",
+            "length": 0
+          }
+        },
+        "decrease_cooldown": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "decrease_cooldown",
+            "length": 0
+          }
+        },
+        "faint": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "faint",
+            "length": 0
+          }
+        }
+      }
+    },
+    "MonsGameModel": {
+      "name": "MonsGameModel",
+      "length": 0,
+      "staticKeys": [
+        "newForSimulation",
+        "fromFenForSimulation",
+        "new",
+        "from_fen"
+      ],
+      "staticDescriptors": {
+        "newForSimulation": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "newForSimulation",
+            "length": 1
+          }
+        },
+        "fromFenForSimulation": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "fromFenForSimulation",
+            "length": 1
+          }
+        },
+        "new": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "new",
+            "length": 1
+          }
+        },
+        "from_fen": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "from_fen",
+            "length": 1
+          }
+        }
+      },
+      "prototypeKeys": [
+        "free",
+        "black_score",
+        "remove_item",
+        "turn_number",
+        "white_score",
+        "active_color",
+        "can_takeback",
+        "verify_moves",
+        "winner_color",
+        "is_later_than",
+        "process_input",
+        "takeback_fens",
+        "clearTracking",
+        "smartAutomove",
+        "is_moves_verified",
+        "process_input_fen",
+        "without_last_turn",
+        "available_move_kinds",
+        "setVerboseTracking",
+        "locations_with_content",
+        "verbose_tracking_entities",
+        "inactive_player_items_counters",
+        "fen",
+        "item",
+        "square",
+        "automove",
+        "takeback"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "black_score": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "black_score",
+            "length": 0
+          }
+        },
+        "remove_item": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "remove_item",
+            "length": 1
+          }
+        },
+        "turn_number": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "turn_number",
+            "length": 0
+          }
+        },
+        "white_score": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "white_score",
+            "length": 0
+          }
+        },
+        "active_color": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "active_color",
+            "length": 0
+          }
+        },
+        "can_takeback": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "can_takeback",
+            "length": 1
+          }
+        },
+        "verify_moves": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "verify_moves",
+            "length": 2
+          }
+        },
+        "winner_color": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "winner_color",
+            "length": 0
+          }
+        },
+        "is_later_than": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "is_later_than",
+            "length": 1
+          }
+        },
+        "process_input": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "process_input",
+            "length": 2
+          }
+        },
+        "takeback_fens": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "takeback_fens",
+            "length": 0
+          }
+        },
+        "clearTracking": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "clearTracking",
+            "length": 0
+          }
+        },
+        "smartAutomove": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "smartAutomove",
+            "length": 1
+          }
+        },
+        "is_moves_verified": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "is_moves_verified",
+            "length": 0
+          }
+        },
+        "process_input_fen": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "process_input_fen",
+            "length": 1
+          }
+        },
+        "without_last_turn": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "without_last_turn",
+            "length": 1
+          }
+        },
+        "available_move_kinds": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "available_move_kinds",
+            "length": 0
+          }
+        },
+        "setVerboseTracking": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "setVerboseTracking",
+            "length": 1
+          }
+        },
+        "locations_with_content": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "locations_with_content",
+            "length": 0
+          }
+        },
+        "verbose_tracking_entities": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "verbose_tracking_entities",
+            "length": 0
+          }
+        },
+        "inactive_player_items_counters": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "inactive_player_items_counters",
+            "length": 0
+          }
+        },
+        "fen": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "fen",
+            "length": 0
+          }
+        },
+        "item": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "item",
+            "length": 1
+          }
+        },
+        "square": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "square",
+            "length": 1
+          }
+        },
+        "automove": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "automove",
+            "length": 0
+          }
+        },
+        "takeback": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "takeback",
+            "length": 0
+          }
+        }
+      }
+    },
+    "NextInputModel": {
+      "name": "NextInputModel",
+      "length": 0,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "location",
+        "modifier",
+        "kind",
+        "actor_mon_item"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "location": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get location",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set location",
+            "length": 1
+          }
+        },
+        "modifier": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get modifier",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set modifier",
+            "length": 1
+          }
+        },
+        "kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set kind",
+            "length": 1
+          }
+        },
+        "actor_mon_item": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get actor_mon_item",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set actor_mon_item",
+            "length": 1
+          }
+        }
+      }
+    },
+    "OutputModel": {
+      "name": "OutputModel",
+      "length": 0,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "next_inputs",
+        "events",
+        "input_fen",
+        "locations",
+        "kind"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "next_inputs": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "next_inputs",
+            "length": 0
+          }
+        },
+        "events": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "events",
+            "length": 0
+          }
+        },
+        "input_fen": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "input_fen",
+            "length": 0
+          }
+        },
+        "locations": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "locations",
+            "length": 0
+          }
+        },
+        "kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set kind",
+            "length": 1
+          }
+        }
+      }
+    },
+    "SquareModel": {
+      "name": "SquareModel",
+      "length": 0,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "kind",
+        "color",
+        "mon_kind"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set kind",
+            "length": 1
+          }
+        },
+        "color": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get color",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set color",
+            "length": 1
+          }
+        },
+        "mon_kind": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "accessor",
+          "get": {
+            "type": "function",
+            "name": "get mon_kind",
+            "length": 0
+          },
+          "set": {
+            "type": "function",
+            "name": "set mon_kind",
+            "length": 1
+          }
+        }
+      }
+    },
+    "VerboseTrackingEntityModel": {
+      "name": "VerboseTrackingEntityModel",
+      "length": 0,
+      "staticKeys": [],
+      "staticDescriptors": {},
+      "prototypeKeys": [
+        "free",
+        "events_fen",
+        "fen",
+        "color",
+        "events"
+      ],
+      "prototypeDescriptors": {
+        "free": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "free",
+            "length": 0
+          }
+        },
+        "events_fen": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "events_fen",
+            "length": 0
+          }
+        },
+        "fen": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "fen",
+            "length": 0
+          }
+        },
+        "color": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "color",
+            "length": 0
+          }
+        },
+        "events": {
+          "configurable": true,
+          "enumerable": false,
+          "kind": "data",
+          "writable": true,
+          "value": {
+            "type": "function",
+            "name": "events",
+            "length": 0
+          }
+        }
+      }
+    }
+  },
+  "initialVariants": [
+    {
+      "variant": 0,
+      "name": "Classic",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,0::,3:1:,0::,0::,0::,0::/0::,0::,0::,3:1:,0::,3:1:,0::,3:1:,0::,0::,0::/1::,0::,0::,0::,0::,2::,0::,0::,0::,0::,1::/0::,0::,0::,3:0:,0::,3:0:,0::,3:0:,0::,0::,0::/0::,0::,0::,0::,3:0:,0::,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 1,
+      "name": "SwappedManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n03xxmn01xxmn01xxmn03/n04xxmn01xxmn04/xxQn04xxUn04xxQ/n04xxMn01xxMn04/n03xxMn01xxMn01xxMn03/n11/n11/n03E0xA0xD0xS0xY0xn03 1",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,3:1:,0::,3:1:,0::,3:1:,0::,0::,0::/0::,0::,0::,0::,3:1:,0::,3:1:,0::,0::,0::,0::/1::,0::,0::,0::,0::,2::,0::,0::,0::,0::,1::/0::,0::,0::,0::,3:0:,0::,3:0:,0::,0::,0::,0::/0::,0::,0::,3:0:,0::,3:0:,0::,3:0:,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 2,
+      "name": "OffsetArcManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n02xxmn02xxmn02xxmn02/xxQn04xxUn04xxQ/n02xxMn02xxMn02xxMn02/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03 2",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,0::,3:1:,0::,0::,0::,0::/0::,0::,3:1:,0::,0::,3:1:,0::,0::,3:1:,0::,0::/1::,0::,0::,0::,0::,2::,0::,0::,0::,0::,1::/0::,0::,3:0:,0::,0::,3:0:,0::,0::,3:0:,0::,0::/0::,0::,0::,0::,3:0:,0::,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 3,
+      "name": "CenterSpokeManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n05xxmn05/n02xxmn01xxmn01xxmn01xxmn02/xxQn04xxUn04xxQ/n02xxMn01xxMn01xxMn01xxMn02/n05xxMn05/n11/n11/n03E0xA0xD0xS0xY0xn03 3",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,3:1:,0::,0::,0::,0::,0::/0::,0::,3:1:,0::,3:1:,0::,3:1:,0::,3:1:,0::,0::/1::,0::,0::,0::,0::,2::,0::,0::,0::,0::,1::/0::,0::,3:0:,0::,3:0:,0::,3:0:,0::,3:0:,0::,0::/0::,0::,0::,0::,0::,3:0:,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 4,
+      "name": "AlternatingManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n11/n01xxmn01xxmn01xxmn01xxmn01xxmn01/xxQn04xxUn04xxQ/n01xxMn01xxMn01xxMn01xxMn01xxMn01/n11/n11/n11/n03E0xA0xD0xS0xY0xn03 4",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,3:1:,0::,3:1:,0::,3:1:,0::,3:1:,0::,3:1:,0::/1::,0::,0::,0::,0::,2::,0::,0::,0::,0::,1::/0::,3:0:,0::,3:0:,0::,3:0:,0::,3:0:,0::,3:0:,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 5,
+      "name": "InnerWedgeManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n04xxmxxmxxmn04/xxQn04xxUn04xxQ/n04xxMxxMxxMn04/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03 5",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,0::,3:1:,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,3:1:,3:1:,0::,0::,0::,0::/1::,0::,0::,0::,0::,2::,0::,0::,0::,0::,1::/0::,0::,0::,0::,3:0:,3:0:,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,3:0:,0::,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 6,
+      "name": "OuterWedgeManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmxxmxxmn04/n03xxmn03xxmn03/xxQn04xxUn04xxQ/n03xxMn03xxMn03/n04xxMxxMxxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03 6",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,3:1:,3:1:,0::,0::,0::,0::/0::,0::,0::,3:1:,0::,0::,0::,3:1:,0::,0::,0::/1::,0::,0::,0::,0::,2::,0::,0::,0::,0::,1::/0::,0::,0::,3:0:,0::,0::,0::,3:0:,0::,0::,0::/0::,0::,0::,0::,3:0:,3:0:,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 7,
+      "name": "BentCenterManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n05xxmn05/n04xxmxxmxxmn04/xxQn02xxmn01xxUn01xxMn02xxQ/n04xxMxxMxxMn04/n05xxMn05/n11/n11/n03E0xA0xD0xS0xY0xn03 7",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,3:1:,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,3:1:,3:1:,0::,0::,0::,0::/1::,0::,0::,3:1:,0::,2::,0::,3:0:,0::,0::,1::/0::,0::,0::,0::,3:0:,3:0:,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,0::,3:0:,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 8,
+      "name": "OuterEdgeManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n11/xxmxxmn07xxmxxm/xxQxxmn03xxUn03xxMxxQ/xxMxxMn07xxMxxM/n11/n11/n11/n03E0xA0xD0xS0xY0xn03 8",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          6,
+          10
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/3:1:,3:1:,0::,0::,0::,0::,0::,0::,0::,3:1:,3:1:/1::,3:1:,0::,0::,0::,2::,0::,0::,0::,3:0:,1::/3:0:,3:0:,0::,0::,0::,0::,0::,0::,0::,3:0:,3:0:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 9,
+      "name": "SplitFlankManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n02xxmxxmn07/xxQn01xxmn02xxUn02xxMn01xxQ/n07xxMxxMn02/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03 9",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          8
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,0::,3:1:,0::,0::,0::,0::/0::,0::,3:1:,3:1:,0::,0::,0::,0::,0::,0::,0::/1::,0::,3:1:,0::,0::,2::,0::,0::,3:0:,0::,1::/0::,0::,0::,0::,0::,0::,0::,3:0:,3:0:,0::,0::/0::,0::,0::,0::,3:0:,0::,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 10,
+      "name": "ForwardBridgeManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn05/xxQn03xxmxxUxxMn03xxQ/n05xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03 10",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:1:,0::,3:1:,0::,0::,0::,0::/0::,0::,0::,3:1:,0::,3:1:,0::,0::,0::,0::,0::/1::,0::,0::,0::,3:1:,2::,3:0:,0::,0::,0::,1::/0::,0::,0::,0::,0::,3:0:,0::,3:0:,0::,0::,0::/0::,0::,0::,0::,3:0:,0::,3:0:,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    },
+    {
+      "variant": 11,
+      "name": "CornerChainManaRows",
+      "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n05xxmxxmn04/n06xxmxxmn03/xxQn02xxMn01xxUn01xxmn02xxQ/n03xxMxxMn06/n04xxMxxMn05/n11/n11/n03E0xA0xD0xS0xY0xn03 11",
+      "activeColor": 0,
+      "turnNumber": 1,
+      "whiteScore": 0,
+      "blackScore": 0,
+      "availableMoveKinds": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "inactivePlayerItemsCounters": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "locationsWithContent": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "squareLayout": "4:1:,0::,0::,5:1:4,5:1:3,5:1:1,5:1:2,5:1:0,0::,0::,4:1:/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,3:1:,3:1:,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,3:1:,3:1:,0::,0::,0::/1::,0::,0::,3:0:,0::,2::,0::,3:1:,0::,0::,1::/0::,0::,0::,3:0:,3:0:,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,3:0:,3:0:,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/0::,0::,0::,0::,0::,0::,0::,0::,0::,0::,0::/4:0:,0::,0::,5:0:0,5:0:2,5:0:1,5:0:3,5:0:4,0::,0::,4:0:"
+    }
+  ],
+  "initialRoutes": {
+    "noInput": {
+      "kind": 1,
+      "inputFen": "",
+      "locations": [
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ]
+      ],
+      "nextInputs": [],
+      "events": []
+    },
+    "starts": [
+      {
+        "start": [
+          10,
+          3
+        ],
+        "output": {
+          "kind": 2,
+          "inputFen": "l10,3",
+          "locations": [],
+          "nextInputs": [
+            {
+              "kind": 0,
+              "location": [
+                9,
+                2
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                3
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                4
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                10,
+                2
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            }
+          ],
+          "events": []
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "start": [
+          10,
+          4
+        ],
+        "output": {
+          "kind": 2,
+          "inputFen": "l10,4",
+          "locations": [],
+          "nextInputs": [
+            {
+              "kind": 0,
+              "location": [
+                9,
+                3
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                4
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                5
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            }
+          ],
+          "events": []
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "start": [
+          10,
+          5
+        ],
+        "output": {
+          "kind": 2,
+          "inputFen": "l10,5",
+          "locations": [],
+          "nextInputs": [
+            {
+              "kind": 0,
+              "location": [
+                9,
+                4
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                5
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                6
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            }
+          ],
+          "events": []
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "start": [
+          10,
+          6
+        ],
+        "output": {
+          "kind": 2,
+          "inputFen": "l10,6",
+          "locations": [],
+          "nextInputs": [
+            {
+              "kind": 0,
+              "location": [
+                9,
+                5
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                6
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                7
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            }
+          ],
+          "events": []
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "start": [
+          10,
+          7
+        ],
+        "output": {
+          "kind": 2,
+          "inputFen": "l10,7",
+          "locations": [],
+          "nextInputs": [
+            {
+              "kind": 0,
+              "location": [
+                9,
+                6
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                7
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                8
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                10,
+                8
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            }
+          ],
+          "events": []
+        },
+        "sourceUnchanged": true
+      }
+    ]
+  },
+  "valueModels": {
+    "itemKinds": [
+      {
+        "at": [
+          0,
+          0
+        ],
+        "item": {
+          "kind": 0,
+          "mon": {
+            "kind": 0,
+            "color": 0,
+            "cooldown": 0,
+            "isFainted": false
+          },
+          "mana": "__undefined__",
+          "consumable": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          0,
+          1
+        ],
+        "item": {
+          "kind": 1,
+          "mon": "__undefined__",
+          "mana": {
+            "kind": 0,
+            "color": 0
+          },
+          "consumable": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          0,
+          2
+        ],
+        "item": {
+          "kind": 2,
+          "mon": {
+            "kind": 0,
+            "color": 0,
+            "cooldown": 0,
+            "isFainted": false
+          },
+          "mana": {
+            "kind": 0,
+            "color": 0
+          },
+          "consumable": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          0,
+          3
+        ],
+        "item": {
+          "kind": 3,
+          "mon": {
+            "kind": 0,
+            "color": 0,
+            "cooldown": 0,
+            "isFainted": false
+          },
+          "mana": "__undefined__",
+          "consumable": 0
+        }
+      },
+      {
+        "at": [
+          0,
+          4
+        ],
+        "item": {
+          "kind": 4,
+          "mon": "__undefined__",
+          "mana": "__undefined__",
+          "consumable": 0
+        }
+      }
+    ],
+    "supermana": {
+      "kind": 1,
+      "mon": "__undefined__",
+      "mana": {
+        "kind": 1,
+        "color": 0
+      },
+      "consumable": "__undefined__"
+    },
+    "squareShapes": [
+      {
+        "at": [
+          0,
+          0
+        ],
+        "square": {
+          "kind": 4,
+          "color": 1,
+          "monKind": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          0,
+          1
+        ],
+        "square": {
+          "kind": 0,
+          "color": "__undefined__",
+          "monKind": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          0,
+          3
+        ],
+        "square": {
+          "kind": 5,
+          "color": 1,
+          "monKind": 4
+        }
+      },
+      {
+        "at": [
+          0,
+          4
+        ],
+        "square": {
+          "kind": 5,
+          "color": 1,
+          "monKind": 3
+        }
+      },
+      {
+        "at": [
+          0,
+          5
+        ],
+        "square": {
+          "kind": 5,
+          "color": 1,
+          "monKind": 1
+        }
+      },
+      {
+        "at": [
+          0,
+          6
+        ],
+        "square": {
+          "kind": 5,
+          "color": 1,
+          "monKind": 2
+        }
+      },
+      {
+        "at": [
+          0,
+          7
+        ],
+        "square": {
+          "kind": 5,
+          "color": 1,
+          "monKind": 0
+        }
+      },
+      {
+        "at": [
+          3,
+          4
+        ],
+        "square": {
+          "kind": 3,
+          "color": 1,
+          "monKind": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          5,
+          0
+        ],
+        "square": {
+          "kind": 1,
+          "color": "__undefined__",
+          "monKind": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          5,
+          5
+        ],
+        "square": {
+          "kind": 2,
+          "color": "__undefined__",
+          "monKind": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          6,
+          3
+        ],
+        "square": {
+          "kind": 3,
+          "color": 0,
+          "monKind": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          10,
+          0
+        ],
+        "square": {
+          "kind": 4,
+          "color": 0,
+          "monKind": "__undefined__"
+        }
+      },
+      {
+        "at": [
+          10,
+          3
+        ],
+        "square": {
+          "kind": 5,
+          "color": 0,
+          "monKind": 0
+        }
+      },
+      {
+        "at": [
+          10,
+          4
+        ],
+        "square": {
+          "kind": 5,
+          "color": 0,
+          "monKind": 2
+        }
+      },
+      {
+        "at": [
+          10,
+          5
+        ],
+        "square": {
+          "kind": 5,
+          "color": 0,
+          "monKind": 1
+        }
+      },
+      {
+        "at": [
+          10,
+          6
+        ],
+        "square": {
+          "kind": 5,
+          "color": 0,
+          "monKind": 3
+        }
+      },
+      {
+        "at": [
+          10,
+          7
+        ],
+        "square": {
+          "kind": 5,
+          "color": 0,
+          "monKind": 4
+        }
+      }
+    ],
+    "locationCoercions": [
+      {
+        "label": "positive-fraction",
+        "value": [
+          1,
+          1
+        ]
+      },
+      {
+        "label": "negative-fraction",
+        "value": [
+          -1,
+          -1
+        ]
+      },
+      {
+        "label": "nan",
+        "value": [
+          0,
+          0
+        ]
+      },
+      {
+        "label": "positive-infinity",
+        "value": [
+          0,
+          0
+        ]
+      },
+      {
+        "label": "negative-infinity",
+        "value": [
+          0,
+          0
+        ]
+      },
+      {
+        "label": "i32-overflow",
+        "value": [
+          -2147483648,
+          -2147483648
+        ]
+      },
+      {
+        "label": "u32-plus-one",
+        "value": [
+          1,
+          1
+        ]
+      },
+      {
+        "label": "negative-u32-minus-one",
+        "value": [
+          -1,
+          -1
+        ]
+      }
+    ],
+    "locationPropertyWrites": [
+      1,
+      -1
+    ],
+    "monCoercions": [
+      {
+        "label": "positive-fraction",
+        "mon": {
+          "kind": 0,
+          "color": 0,
+          "cooldown": 1,
+          "isFainted": true
+        }
+      },
+      {
+        "label": "negative-fraction",
+        "mon": {
+          "kind": 0,
+          "color": 0,
+          "cooldown": -1,
+          "isFainted": false
+        }
+      },
+      {
+        "label": "nan",
+        "mon": {
+          "kind": 0,
+          "color": 0,
+          "cooldown": 0,
+          "isFainted": false
+        }
+      },
+      {
+        "label": "positive-infinity",
+        "mon": {
+          "kind": 0,
+          "color": 0,
+          "cooldown": 0,
+          "isFainted": false
+        }
+      },
+      {
+        "label": "i32-overflow",
+        "mon": {
+          "kind": 0,
+          "color": 0,
+          "cooldown": -2147483648,
+          "isFainted": false
+        }
+      },
+      {
+        "label": "u32-plus-one",
+        "mon": {
+          "kind": 0,
+          "color": 0,
+          "cooldown": 1,
+          "isFainted": true
+        }
+      }
+    ],
+    "monLifecycle": [
+      {
+        "kind": 3,
+        "color": 1,
+        "cooldown": 0,
+        "isFainted": false
+      },
+      {
+        "kind": 3,
+        "color": 1,
+        "cooldown": 2,
+        "isFainted": true
+      },
+      {
+        "kind": 3,
+        "color": 1,
+        "cooldown": 1,
+        "isFainted": true
+      },
+      {
+        "kind": 3,
+        "color": 1,
+        "cooldown": 0,
+        "isFainted": false
+      }
+    ],
+    "removeItem": {
+      "before": {
+        "kind": 0,
+        "mon": {
+          "kind": 0,
+          "color": 0,
+          "cooldown": 0,
+          "isFainted": false
+        },
+        "mana": "__undefined__",
+        "consumable": "__undefined__"
+      },
+      "after": "__undefined__"
+    }
+  },
+  "copySemantics": {
+    "itemWrappersFresh": true,
+    "nestedMonWrappersFresh": true,
+    "itemMutationDoesNotReachGame": {
+      "kind": 0,
+      "mon": {
+        "kind": 0,
+        "color": 0,
+        "cooldown": 0,
+        "isFainted": false
+      },
+      "mana": "__undefined__",
+      "consumable": "__undefined__"
+    },
+    "locationsArraysFresh": true,
+    "locationsValuesFresh": true,
+    "locationMutationDoesNotReachOutput": [
+      10,
+      3
+    ],
+    "nextInputArraysFresh": true,
+    "nextInputValuesFresh": true,
+    "nextLocationMutationDoesNotReachOutput": [
+      9,
+      2
+    ],
+    "eventArraysFresh": true,
+    "eventValuesFresh": true,
+    "eventLocationMutationDoesNotReachOutput": [
+      10,
+      3
+    ],
+    "counters": {
+      "first": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          99,
+          0,
+          0,
+          0
+        ]
+      },
+      "second": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      "arraysFresh": true,
+      "mutationDoesNotReachGame": {
+        "constructor": "Int32Array",
+        "tag": "[object Int32Array]",
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "focusedRules": {
+    "curatedTransitions": [
+      {
+        "label": "bomb-explosion",
+        "fenBefore": "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n04Y0xn06/n11/n06e0Bn04/n11/n11/n11/n11",
+        "inputFen": "l4,4;l6,6",
+        "output": {
+          "kind": 3,
+          "inputFen": "l4,4;l6,6",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 3,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 4,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                4,
+                4
+              ],
+              "loc2": [
+                6,
+                6
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 10,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 0,
+                "color": 1,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                6,
+                6
+              ],
+              "loc2": [
+                0,
+                7
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 15,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                6,
+                6
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 w 1 0 0 0 0 2 n07e2xn03/n11/n11/n11/n04Y0xn06/n11/n11/n11/n11/n11/n11"
+      },
+      {
+        "label": "mana-scored",
+        "fenBefore": "0 0 b 0 0 4 0 0 126 n11/n05y0xn03s0xn01/n01E0xn09/n04xxme0xn03a0xn01/n04xxMn01Y0xxxUn03/n11/xxMn10/n07xxmn03/n02A0xn03xxMn04/n01d0mxxMxxmn03xxmD0Mn02/n02S0xn08",
+        "inputFen": "l9,1;l10,0",
+        "output": {
+          "kind": 3,
+          "inputFen": "l9,1;l10,0",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 2,
+                "mon": {
+                  "kind": 1,
+                  "color": 1,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": {
+                  "kind": 0,
+                  "color": 1
+                },
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                9,
+                1
+              ],
+              "loc2": [
+                10,
+                0
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 2,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": {
+                "kind": 0,
+                "color": 1
+              },
+              "loc1": [
+                10,
+                0
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 1 b 0 0 5 0 0 126 n11/n05y0xn03s0xn01/n01E0xn09/n04xxme0xn03a0xn01/n04xxMn01Y0xxxUn03/n11/xxMn10/n07xxmn03/n02A0xn03xxMn04/n02xxMxxmn03xxmD0Mn02/d0xn01S0xn08"
+      },
+      {
+        "label": "demon-additional-step",
+        "fenBefore": "0 0 b 0 0 2 0 0 94 n11/n11/n09xxma0x/n02xxMn01xxmy0xn01s0xn03/n02xxMn01xxMn06/n01E0xn03d0Un05/n05xxmn05/xxmn03A0xe0xn01D0Mn03/n01xxmn02S0xn01xxMn04/n03Y0xn07/n11",
+        "inputFen": "l7,5;l7,7;l7,8",
+        "output": {
+          "kind": 3,
+          "inputFen": "l7,5;l7,7;l7,8",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 4,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 0,
+                "color": 1,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                7,
+                5
+              ],
+              "loc2": [
+                7,
+                7
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 10,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 1,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                7,
+                7
+              ],
+              "loc2": [
+                10,
+                5
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 11,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": {
+                "kind": 0,
+                "color": 0
+              },
+              "loc1": [
+                7,
+                7
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            },
+            {
+              "kind": 5,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 0,
+                "color": 1,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                7,
+                7
+              ],
+              "loc2": [
+                7,
+                8
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 1 0 2 0 0 94 n11/n11/n09xxma0x/n02xxMn01xxmy0xn01s0xn03/n02xxMn01xxMn06/n01E0xn03d0Un05/n05xxmn05/xxmn03A0xn02xxMe0xn02/n01xxmn02S0xn01xxMn04/n03Y0xn07/n05D2xn05"
+      },
+      {
+        "label": "spirit-target-move",
+        "fenBefore": "0 0 b 0 0 0 0 0 102 n05d0xn02e0xn01a0x/n01xxmxxMn08/n04s0xn06/n01A0xn02xxMn06/n05xxMn02xxmn02/n04xxmn06/n04xxUn04xxMxxm/xxMn07E0xn02/n05y0xn05/n05D0mn01Y0xS0xn02/n11",
+        "inputFen": "l2,4;l1,2;l0,1",
+        "output": {
+          "kind": 3,
+          "inputFen": "l2,4;l1,2;l0,1",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 6,
+              "item": {
+                "kind": 1,
+                "mon": "__undefined__",
+                "mana": {
+                  "kind": 0,
+                  "color": 0
+                },
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                1,
+                2
+              ],
+              "loc2": [
+                0,
+                1
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 1 0 0 0 0 102 n01xxMn03d0xn02e0xn01a0x/n01xxmn09/n04s0xn06/n01A0xn02xxMn06/n05xxMn02xxmn02/n04xxmn06/n04xxUn04xxMxxm/xxMn07E0xn02/n05y0xn05/n05D0mn01Y0xS0xn02/n11"
+      },
+      {
+        "label": "pickup-bomb",
+        "fenBefore": "0 0 b 0 0 0 0 0 42 n11/n11/n05y0xn05/s0xn06xxmn01xxmn01/xxQn02xxmn01xxUn05/n06xxMn02e0xxxQ/E0xn02xxMn01xxmn01xxMn03/n02A0xn07Y0x/n06a0xn01D0Mn02/n02d0mn04xxMn03/n06S0xn04",
+        "inputFen": "l3,0;l4,0;mb",
+        "output": {
+          "kind": 3,
+          "inputFen": "l3,0;l4,0;mb",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 3,
+                  "color": 1,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                3,
+                0
+              ],
+              "loc2": [
+                4,
+                0
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 7,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 3,
+                "color": 1,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                4,
+                0
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 0 0 1 0 0 42 n11/n11/n05y0xn05/n07xxmn01xxmn01/s0Bn02xxmn01xxUn05/n06xxMn02e0xxxQ/E0xn02xxMn01xxmn01xxMn03/n02A0xn07Y0x/n06a0xn01D0Mn02/n02d0mn04xxMn03/n06S0xn04"
+      },
+      {
+        "label": "pickup-potion",
+        "fenBefore": "0 0 b 0 0 0 0 0 46 n11/n06e0xn04/n03s0xa0xn01xxUn04/n06d0Mn04/n06xxME0xn02y0x/xxQn01xxmn03xxmn02xxmxxQ/n01xxMn01xxMn07/n06xxMn04/n02S0xn08/n02xxmD0xn03xxmn03/A0xn06Y0xn03",
+        "inputFen": "l4,10;l5,10;mp",
+        "output": {
+          "kind": 3,
+          "inputFen": "l4,10;l5,10;mp",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 4,
+                  "color": 1,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                4,
+                10
+              ],
+              "loc2": [
+                5,
+                10
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 8,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 4,
+                  "color": 1,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                5,
+                10
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 0 0 1 0 1 46 n11/n06e0xn04/n03s0xa0xn01xxUn04/n06d0Mn04/n06xxME0xn03/xxQn01xxmn03xxmn02xxmy0x/n01xxMn01xxMn07/n06xxMn04/n02S0xn08/n02xxmD0xn03xxmn03/A0xn06Y0xn03"
+      },
+      {
+        "label": "pickup-mana-next-turn",
+        "fenBefore": "0 0 w 0 0 5 0 0 9 n01y0xn09/n01a0xn03d0xn01e0xn03/s0xn04xxmn05/n04xxmn06/n05xxmn01xxmn03/xxQn03xxmxxUn02xxMn01xxQ/n03xxMn01xxMn05/n04xxMY0xn01xxMn03/n04D0xn06/n04A0xn06/n02E0xn05S0xn02",
+        "inputFen": "l7,4;l8,4",
+        "output": {
+          "kind": 3,
+          "inputFen": "l7,4;l8,4",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 1,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": {
+                "kind": 0,
+                "color": 0
+              },
+              "loc1": [
+                7,
+                4
+              ],
+              "loc2": [
+                8,
+                4
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 9,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 1,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": {
+                "kind": 0,
+                "color": 0
+              },
+              "loc1": [
+                8,
+                4
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            },
+            {
+              "kind": 16,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": "__undefined__",
+              "loc2": "__undefined__",
+              "color": 1
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 0 0 0 0 0 10 n01y0xn09/n01a0xn03d0xn01e0xn03/s0xn04xxmn05/n04xxmn06/n05xxmn01xxmn03/xxQn03xxmxxUn02xxMn01xxQ/n03xxMn01xxMn05/n05Y0xn01xxMn03/n04D0Mn06/n04A0xn06/n02E0xn05S0xn02"
+      },
+      {
+        "label": "supermana-back-to-base",
+        "fenBefore": "0 0 b 0 0 5 0 0 92 y0xn08s0xn01/n04d0mn06/n06xxmn04/n04xxmn04xxMxxM/n05a0xn02xxQn01xxm/n01xxQn09/S0xn02A0xxxmn02xxMn03/n01xxMn03D0Un01xxMn03/n06Y0xn04/E0xn04e0xn05/n11",
+        "inputFen": "l9,5;l7,5",
+        "output": {
+          "kind": 3,
+          "inputFen": "l9,5;l7,5",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 4,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 0,
+                "color": 1,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                9,
+                5
+              ],
+              "loc2": [
+                7,
+                5
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 10,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 1,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                7,
+                5
+              ],
+              "loc2": [
+                10,
+                5
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 12,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                7,
+                5
+              ],
+              "loc2": [
+                5,
+                5
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 1 0 5 0 0 92 y0xn08s0xn01/n04d0mn06/n06xxmn04/n04xxmn04xxMxxM/n05a0xn02xxQn01xxm/n01xxQn03xxUn05/S0xn02A0xxxmn02xxMn03/n01xxMn03e0xn01xxMn03/n06Y0xn04/E0xn10/n05D2xn05"
+      },
+      {
+        "label": "bomb-attack",
+        "fenBefore": "0 0 b 0 0 0 0 0 8 n05d0xa0xn04/n03s0xn07/n03xxmn07/n06xxmn04/n02y0xn02xxmn01D0mn03/xxQn02xxmE0xxxUn01xxMn02e0B/n03xxMn01xxMn05/n11/n03xxMn01xxMn05/n11/n04A0xn01S0xY0xn03",
+        "inputFen": "l5,10;l4,7",
+        "output": {
+          "kind": 3,
+          "inputFen": "l5,10;l4,7",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 13,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 0,
+                "color": 1,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                5,
+                10
+              ],
+              "loc2": [
+                4,
+                7
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 10,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 1,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                4,
+                7
+              ],
+              "loc2": [
+                10,
+                5
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 11,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": {
+                "kind": 0,
+                "color": 1
+              },
+              "loc1": [
+                4,
+                7
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 0 0 0 0 0 8 n05d0xa0xn04/n03s0xn07/n03xxmn07/n06xxmn04/n02y0xn02xxmn01xxmn03/xxQn02xxmE0xxxUn01xxMn02e0x/n03xxMn01xxMn05/n11/n03xxMn01xxMn05/n11/n04A0xD2xS0xY0xn03"
+      },
+      {
+        "label": "mon-awake",
+        "fenBefore": "0 0 w 1 0 5 0 0 9 n01y0xn04a1xn04/n05d0xn05/n03s0xxxmn01e0xn04/n06xxmn03xxm/n06xxmn04/xxQn03xxmxxUn05/n03xxMxxMn02xxMS0xn02/n04xxMn02xxMn03/n02D0xn08/n05A0xn02Y0xn02/n03E0xn07",
+        "inputFen": "l7,7;l7,6",
+        "output": {
+          "kind": 3,
+          "inputFen": "l7,7;l7,6",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 1,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": {
+                "kind": 0,
+                "color": 0
+              },
+              "loc1": [
+                7,
+                7
+              ],
+              "loc2": [
+                7,
+                6
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 16,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": "__undefined__",
+              "loc2": "__undefined__",
+              "color": 1
+            },
+            {
+              "kind": 14,
+              "item": "__undefined__",
+              "mon": {
+                "kind": 2,
+                "color": 1,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "loc1": [
+                0,
+                6
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 0 0 0 0 0 10 n01y0xn04a0xn04/n05d0xn05/n03s0xxxmn01e0xn04/n06xxmn03xxm/n06xxmn04/xxQn03xxmxxUn05/n03xxMxxMn02xxMS0xn02/n04xxMn01xxMn04/n02D0xn08/n05A0xn02Y0xn02/n03E0xn07"
+      },
+      {
+        "label": "game-over",
+        "fenBefore": "0 3 b 0 0 0 0 0 290 n06a0xn04/n11/n03e0xn07/n01xxMs0xn05xxMn02/E0xn10/n02A0xn04xxmn03/xxUxxmn05S0xn03/n02D0Mn08/n03Y0xn07/n04xxMn06/n01d0Mn08y0x",
+        "inputFen": "l10,1;l10,0",
+        "output": {
+          "kind": 3,
+          "inputFen": "l10,1;l10,0",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 2,
+                "mon": {
+                  "kind": 1,
+                  "color": 1,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": {
+                  "kind": 0,
+                  "color": 0
+                },
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                10,
+                1
+              ],
+              "loc2": [
+                10,
+                0
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 2,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": {
+                "kind": 0,
+                "color": 0
+              },
+              "loc1": [
+                10,
+                0
+              ],
+              "loc2": "__undefined__",
+              "color": "__undefined__"
+            },
+            {
+              "kind": 17,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": "__undefined__",
+              "loc2": "__undefined__",
+              "color": 1
+            }
+          ]
+        },
+        "fenAfter": "0 5 b 0 0 1 0 0 290 n06a0xn04/n11/n03e0xn07/n01xxMs0xn05xxMn02/E0xn10/n02A0xn04xxmn03/xxUxxmn05S0xn03/n02D0Mn08/n03Y0xn07/n04xxMn06/d0xn09y0x"
+      },
+      {
+        "label": "use-potion",
+        "fenBefore": "0 0 b 1 0 5 0 1 42 n11/n11/n11/n05y0xn01xxmn01xxmn01/s0xn02xxmn01xxUn05/n06xxMn04/E0xn02xxMn01xxmn01xxMn03/n10e0x/n06a0xn01D0Mn02/n02d0mn04xxMn03/n04A2xn01S0xY2xn03",
+        "inputFen": "l4,0;l6,0;l7,0",
+        "output": {
+          "kind": 3,
+          "inputFen": "l4,0;l6,0;l7,0",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 6,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 0,
+                  "color": 0,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                6,
+                0
+              ],
+              "loc2": [
+                7,
+                0
+              ],
+              "color": "__undefined__"
+            },
+            {
+              "kind": 19,
+              "item": "__undefined__",
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                4,
+                0
+              ],
+              "loc2": [
+                7,
+                0
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "fenAfter": "0 0 b 1 0 5 0 0 42 n11/n11/n11/n05y0xn01xxmn01xxmn01/s0xn02xxmn01xxUn05/n06xxMn04/n03xxMn01xxmn01xxMn03/E0xn09e0x/n06a0xn01D0Mn02/n02d0mn04xxMn03/n04A2xn01S0xY2xn03"
+      }
+    ],
+    "takeback": {
+      "fenBefore": "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xn07/n11/n11/n11/n11/n11",
+      "move": {
+        "kind": 3,
+        "inputFen": "l5,3;l5,4",
+        "locations": [],
+        "nextInputs": [],
+        "events": [
+          {
+            "kind": 0,
+            "item": {
+              "kind": 0,
+              "mon": {
+                "kind": 1,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "consumable": "__undefined__"
+            },
+            "mon": "__undefined__",
+            "mana": "__undefined__",
+            "loc1": [
+              5,
+              3
+            ],
+            "loc2": [
+              5,
+              4
+            ],
+            "color": "__undefined__"
+          }
+        ]
+      },
+      "historyBefore": [
+        "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xn07/n11/n11/n11/n11/n11",
+        "0 0 w 0 0 1 0 0 2 n11/n11/n11/n11/n11/n04D0xn06/n11/n11/n11/n11/n11"
+      ],
+      "canTakebackWhiteBefore": true,
+      "withoutLastTurnFen": "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xn07/n11/n11/n11/n11/n11",
+      "withoutLastTurnHistory": [
+        "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xn07/n11/n11/n11/n11/n11",
+        "0 0 w 0 0 1 0 0 2 n11/n11/n11/n11/n11/n04D0xn06/n11/n11/n11/n11/n11"
+      ],
+      "output": {
+        "kind": 3,
+        "inputFen": "z",
+        "locations": [],
+        "nextInputs": [],
+        "events": [
+          {
+            "kind": 18,
+            "item": "__undefined__",
+            "mon": "__undefined__",
+            "mana": "__undefined__",
+            "loc1": "__undefined__",
+            "loc2": "__undefined__",
+            "color": "__undefined__"
+          }
+        ]
+      },
+      "fenAfter": "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xn07/n11/n11/n11/n11/n11",
+      "historyAfter": [
+        "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xn07/n11/n11/n11/n11/n11"
+      ]
+    },
+    "cancel": {
+      "fenBefore": "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xxxQn06/n11/n11/n11/n11/n11",
+      "prompt": {
+        "kind": 2,
+        "inputFen": "l5,3;l5,4",
+        "locations": [],
+        "nextInputs": [
+          {
+            "kind": 7,
+            "location": "__undefined__",
+            "modifier": 1,
+            "actorMonItem": {
+              "kind": 0,
+              "mon": {
+                "kind": 1,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "consumable": "__undefined__"
+            }
+          },
+          {
+            "kind": 7,
+            "location": "__undefined__",
+            "modifier": 0,
+            "actorMonItem": {
+              "kind": 0,
+              "mon": {
+                "kind": 1,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "consumable": "__undefined__"
+            }
+          }
+        ],
+        "events": []
+      },
+      "output": {
+        "kind": 0,
+        "inputFen": "l5,3;l5,4;mc",
+        "locations": [],
+        "nextInputs": [],
+        "events": []
+      },
+      "fenAfter": "0 0 w 0 0 0 0 0 2 n11/n11/n11/n11/n11/n03D0xxxQn06/n11/n11/n11/n11/n11",
+      "nonMutating": true
+    }
+  },
+  "tracking": {
+    "entities": [
+      {
+        "fen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03",
+        "color": 0,
+        "eventsFen": "",
+        "events": []
+      },
+      {
+        "fen": "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n02E0xn08/n04A0xD0xS0xY0xn03",
+        "color": 0,
+        "eventsFen": "mm E0x 10,3 9,2",
+        "events": [
+          {
+            "kind": 0,
+            "item": {
+              "kind": 0,
+              "mon": {
+                "kind": 0,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "consumable": "__undefined__"
+            },
+            "mon": "__undefined__",
+            "mana": "__undefined__",
+            "loc1": [
+              10,
+              3
+            ],
+            "loc2": [
+              9,
+              2
+            ],
+            "color": "__undefined__"
+          }
+        ]
+      }
+    ],
+    "arraysFresh": true,
+    "entityWrappersFresh": true,
+    "countAfterClear": 0
+  },
+  "verification": {
+    "newGameInitiallyVerified": true,
+    "fromFenInitiallyVerified": false,
+    "verifyEmptyMovesResult": true,
+    "verifiedAfterSuccess": true,
+    "failedVerificationDoesNotMutateNewGameFlag": {
+      "result": false,
+      "verified": true
+    }
+  },
+  "parsing": {
+    "fen": [
+      {
+        "label": "empty",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "extra-whitespace",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "explicit-classic-variant",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "leading-plus-i32",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "leading-zero-i32",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "negative-zero-i32",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "i32-max",
+        "accepted": true,
+        "normalized": "2147483647 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "i32-min",
+        "accepted": true,
+        "normalized": "-2147483648 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "i32-overflow",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "decimal-i32",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "exponent-i32",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "invalid-color",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "invalid-variant",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "too-many-fields",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "too-few-fields",
+        "accepted": false,
+        "normalized": "__undefined__"
+      },
+      {
+        "label": "board-large-empty-run-is-accepted",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "board-invalid-empty-run-is-accepted",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "board-invalid-item-is-accepted",
+        "accepted": true,
+        "normalized": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "board-wrong-row-count",
+        "accepted": false,
+        "normalized": "__undefined__"
+      }
+    ],
+    "inputFen": [
+      {
+        "label": "empty",
+        "raw": "",
+        "output": {
+          "kind": 1,
+          "inputFen": "",
+          "locations": [
+            [
+              10,
+              3
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              10,
+              7
+            ]
+          ],
+          "nextInputs": [],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "garbage-is-filtered",
+        "raw": "garbage",
+        "output": {
+          "kind": 1,
+          "inputFen": "garbage",
+          "locations": [
+            [
+              10,
+              3
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              10,
+              7
+            ]
+          ],
+          "nextInputs": [],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "plus-and-leading-zero-location",
+        "raw": "l+10,03",
+        "output": {
+          "kind": 2,
+          "inputFen": "l+10,03",
+          "locations": [],
+          "nextInputs": [
+            {
+              "kind": 0,
+              "location": [
+                9,
+                2
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                3
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                9,
+                4
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            },
+            {
+              "kind": 0,
+              "location": [
+                10,
+                2
+              ],
+              "modifier": "__undefined__",
+              "actorMonItem": "__undefined__"
+            }
+          ],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "invalid-segment-is-filtered",
+        "raw": "l10,3;bad;l9,2",
+        "output": {
+          "kind": 3,
+          "inputFen": "l10,3;bad;l9,2",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 0,
+                  "color": 0,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                10,
+                3
+              ],
+              "loc2": [
+                9,
+                2
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "stateChanged": true,
+        "fenAfter": "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n02E0xn08/n04A0xD0xS0xY0xn03"
+      },
+      {
+        "label": "empty-segments-are-filtered",
+        "raw": ";l10,3;;l9,2;",
+        "output": {
+          "kind": 3,
+          "inputFen": ";l10,3;;l9,2;",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 0,
+                  "color": 0,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                10,
+                3
+              ],
+              "loc2": [
+                9,
+                2
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "stateChanged": true,
+        "fenAfter": "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n02E0xn08/n04A0xD0xS0xY0xn03"
+      },
+      {
+        "label": "takeback-prefix-is-permissive",
+        "raw": "zjunk",
+        "output": {
+          "kind": 0,
+          "inputFen": "zjunk",
+          "locations": [],
+          "nextInputs": [],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "overflow-location-is-filtered",
+        "raw": "l2147483648,3",
+        "output": {
+          "kind": 1,
+          "inputFen": "l2147483648,3",
+          "locations": [
+            [
+              10,
+              3
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              10,
+              7
+            ]
+          ],
+          "nextInputs": [],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "decimal-location-is-filtered",
+        "raw": "l1.0,3",
+        "output": {
+          "kind": 1,
+          "inputFen": "l1.0,3",
+          "locations": [
+            [
+              10,
+              3
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              10,
+              7
+            ]
+          ],
+          "nextInputs": [],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "location-suffix-is-invalid",
+        "raw": "l10,3extra",
+        "output": {
+          "kind": 1,
+          "inputFen": "l10,3extra",
+          "locations": [
+            [
+              10,
+              3
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              10,
+              7
+            ]
+          ],
+          "nextInputs": [],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      },
+      {
+        "label": "modifier-suffix-is-invalid",
+        "raw": "mcjunk",
+        "output": {
+          "kind": 1,
+          "inputFen": "mcjunk",
+          "locations": [
+            [
+              10,
+              3
+            ],
+            [
+              10,
+              4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              10,
+              7
+            ]
+          ],
+          "nextInputs": [],
+          "events": []
+        },
+        "stateChanged": false,
+        "fenAfter": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03"
+      }
+    ]
+  },
+  "comparisons": {
+    "initialIsLaterThanInvalid": true,
+    "initialIsLaterThanSame": false,
+    "initialIsLaterThanTurnZero": true,
+    "classicIsLaterThanOtherVariant": false
+  },
+  "winners": {
+    "validNonTerminal": "",
+    "bothInvalid": "x",
+    "whiteInvalid": "b",
+    "blackInvalid": "w",
+    "variantMismatch": "x",
+    "terminalWinnerColor": 0,
+    "nonTerminalWinnerColor": "__undefined__"
+  },
+  "automove": {
+    "fixedClockNowMs": 0,
+    "releaseFixtureFen": "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n02E0xn01A0xD0xS0xY0xn03",
+    "preferenceNormalization": [
+      {
+        "preference": "fast",
+        "output": {
+          "kind": 3,
+          "inputFen": "l10,6;l9,6",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 3,
+                  "color": 0,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                10,
+                6
+              ],
+              "loc2": [
+                9,
+                6
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "preference": "FAST",
+        "output": {
+          "kind": 3,
+          "inputFen": "l10,6;l9,6",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 3,
+                  "color": 0,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                10,
+                6
+              ],
+              "loc2": [
+                9,
+                6
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "preference": " normal ",
+        "output": {
+          "kind": 3,
+          "inputFen": "l10,6;l9,6",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 3,
+                  "color": 0,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                10,
+                6
+              ],
+              "loc2": [
+                9,
+                6
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "preference": "Pro",
+        "output": {
+          "kind": 3,
+          "inputFen": "l10,5;l9,4",
+          "locations": [],
+          "nextInputs": [],
+          "events": [
+            {
+              "kind": 0,
+              "item": {
+                "kind": 0,
+                "mon": {
+                  "kind": 1,
+                  "color": 0,
+                  "cooldown": 0,
+                  "isFainted": false
+                },
+                "mana": "__undefined__",
+                "consumable": "__undefined__"
+              },
+              "mon": "__undefined__",
+              "mana": "__undefined__",
+              "loc1": [
+                10,
+                5
+              ],
+              "loc2": [
+                9,
+                4
+              ],
+              "color": "__undefined__"
+            }
+          ]
+        },
+        "sourceUnchanged": true
+      }
+    ],
+    "openingModes": [
+      {
+        "preference": "fast",
+        "inputFen": "l10,5;l9,4"
+      },
+      {
+        "preference": "normal",
+        "inputFen": "l10,5;l9,4"
+      },
+      {
+        "preference": "pro",
+        "inputFen": "l10,7;l9,8"
+      }
+    ],
+    "invalidPreference": {
+      "didThrow": true,
+      "type": "string",
+      "tag": "[object String]",
+      "value": "invalid smart automove mode; expected 'fast', 'normal', or 'pro'"
+    },
+    "deterministicRandomFillZero": {
+      "output": {
+        "kind": 3,
+        "inputFen": "l10,3;l9,2",
+        "locations": [],
+        "nextInputs": [],
+        "events": [
+          {
+            "kind": 0,
+            "item": {
+              "kind": 0,
+              "mon": {
+                "kind": 0,
+                "color": 0,
+                "cooldown": 0,
+                "isFainted": false
+              },
+              "mana": "__undefined__",
+              "consumable": "__undefined__"
+            },
+            "mon": "__undefined__",
+            "mana": "__undefined__",
+            "loc1": [
+              10,
+              3
+            ],
+            "loc2": [
+              9,
+              2
+            ],
+            "color": "__undefined__"
+          }
+        ]
+      },
+      "fenBefore": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03",
+      "fenAfter": "0 0 w 0 0 1 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n02E0xn08/n04A0xD0xS0xY0xn03",
+      "sourceMutated": true
+    }
+  },
+  "acceptedDifferences": {
+    "lifetime": {
+      "legacySecondFree": {
+        "didThrow": true,
+        "type": "object",
+        "tag": "[object Error]",
+        "value": "Error: null pointer passed to rust"
+      },
+      "pureTypeScriptTarget": "free() is an idempotent no-op"
+    }
+  }
+}

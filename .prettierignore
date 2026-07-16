@@ -1,0 +1,7 @@
+node_modules/
+pkg/
+target/
+test-data/
+contracts/legacy/*.json
+contracts/legacy/*.d.ts
+Cargo.lock

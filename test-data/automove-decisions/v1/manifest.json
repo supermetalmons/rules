@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "v1",
+  "baselineCommit": "55c9e97f8643e3edba7249a1daff1f2b83fccad9",
+  "baselinePackage": {
+    "name": "mons-rust",
+    "version": "0.1.135"
+  },
+  "fixedClockNowMs": 0,
+  "corpusFile": "decisions.jsonl",
+  "corpusSha256": "0ca2d5e5c619f24da155da5b70c20707f963a47235e74a0857eed128ab429f67",
+  "corpusBytes": 21897,
+  "orderedIdsSha256": "3c3e6062268009985d9c947fb05cea4586af8b81909a68025dd364ef15564ad6",
+  "stateCount": 13,
+  "decisionCount": 39,
+  "internalObservations": {
+    "file": "internal-selector-observations.txt",
+    "sha256": "f6e52b3e4cf112e6e36f36776e7d587f491b46d169ff0df9fa1070651a04e324",
+    "bytes": 7169,
+    "lineCount": 156,
+    "configCount": 9,
+    "rootCount": 108,
+    "searchScoreCount": 36,
+    "selectionCount": 3,
+    "scenarioOrder": [
+      "initial",
+      "release",
+      "tactical"
+    ]
+  },
+  "preferenceOrder": [
+    "fast",
+    "normal",
+    "pro"
+  ],
+  "variantOrder": [
+    "Classic",
+    "SwappedManaRows",
+    "OffsetArcManaRows",
+    "CenterSpokeManaRows",
+    "AlternatingManaRows",
+    "InnerWedgeManaRows",
+    "OuterWedgeManaRows",
+    "BentCenterManaRows",
+    "OuterEdgeManaRows",
+    "SplitFlankManaRows",
+    "ForwardBridgeManaRows",
+    "CornerChainManaRows"
+  ],
+  "selection": {
+    "initialVariantStates": 12,
+    "retainedReleaseAndCuratedStates": 1,
+    "classicRecord0FirstThreeTurns": false,
+    "nonClassicFirstRecordMidpointAndLate": false
+  }
+}

@@ -44,7 +44,9 @@ function fail(message) {
 
 function assertEqual(actual, expected, label) {
   if (actual !== expected) {
-    fail(`${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    fail(
+      `${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
+    );
   }
 }
 
@@ -92,7 +94,9 @@ function parseOptions(argv) {
       }
       corpusRoot = path.resolve(argv[index]);
     } else if (argument === "--help" || argument === "-h") {
-      console.log("usage: node scripts/check-complete-games.cjs [--root <corpus-directory>]");
+      console.log(
+        "usage: node scripts/check-complete-games.cjs [--root <corpus-directory>]",
+      );
       process.exit(0);
     } else {
       fail(`unknown argument: ${argument}`);
@@ -118,8 +122,16 @@ function validateManifest(manifest) {
     "manifest",
   );
   assertEqual(manifest.schemaVersion, 1, "manifest.schemaVersion");
-  assertEqual(manifest.corpusVersion, "complete-games-v1", "manifest.corpusVersion");
-  assertEqual(typeof manifest.description, "string", "manifest.description type");
+  assertEqual(
+    manifest.corpusVersion,
+    "complete-games-v1",
+    "manifest.corpusVersion",
+  );
+  assertEqual(
+    typeof manifest.description,
+    "string",
+    "manifest.description type",
+  );
   assertEqual(manifest.license, "CC0-1.0", "manifest.license");
 
   assertExactKeys(
@@ -127,8 +139,16 @@ function validateManifest(manifest) {
     ["kind", "sourceIdsIncluded", "directIdentifiersIncluded"],
     "manifest.source",
   );
-  assertEqual(manifest.source.kind, "real-player-complete-games", "manifest.source.kind");
-  assertEqual(manifest.source.sourceIdsIncluded, false, "manifest.source.sourceIdsIncluded");
+  assertEqual(
+    manifest.source.kind,
+    "real-player-complete-games",
+    "manifest.source.kind",
+  );
+  assertEqual(
+    manifest.source.sourceIdsIncluded,
+    false,
+    "manifest.source.sourceIdsIncluded",
+  );
   assertEqual(
     manifest.source.directIdentifiersIncluded,
     false,
@@ -149,9 +169,21 @@ function validateManifest(manifest) {
   );
   assertEqual(manifest.format.kind, "jsonl", "manifest.format.kind");
   assertEqual(manifest.format.encoding, "UTF-8", "manifest.format.encoding");
-  assertEqual(manifest.format.canonicalJson, true, "manifest.format.canonicalJson");
-  assertEqual(manifest.format.trailingNewline, true, "manifest.format.trailingNewline");
-  assertEqual(manifest.format.lineOrderHasMeaning, false, "manifest.format.lineOrderHasMeaning");
+  assertEqual(
+    manifest.format.canonicalJson,
+    true,
+    "manifest.format.canonicalJson",
+  );
+  assertEqual(
+    manifest.format.trailingNewline,
+    true,
+    "manifest.format.trailingNewline",
+  );
+  assertEqual(
+    manifest.format.lineOrderHasMeaning,
+    false,
+    "manifest.format.lineOrderHasMeaning",
+  );
   assertEqual(
     manifest.format.duplicateRecordsAllowed,
     true,
@@ -183,7 +215,9 @@ function validateManifest(manifest) {
     Object.keys(APPROVED.variantGameCounts),
     "manifest.statistics.variantGameCounts",
   );
-  for (const [variant, expectedCount] of Object.entries(APPROVED.variantGameCounts)) {
+  for (const [variant, expectedCount] of Object.entries(
+    APPROVED.variantGameCounts,
+  )) {
     assertEqual(
       manifest.statistics.variantGameCounts[variant],
       expectedCount,
@@ -191,14 +225,26 @@ function validateManifest(manifest) {
     );
   }
 
-  assertExactKeys(manifest.artifact, ["path", "bytes", "sha256"], "manifest.artifact");
+  assertExactKeys(
+    manifest.artifact,
+    ["path", "bytes", "sha256"],
+    "manifest.artifact",
+  );
   assertEqual(
     manifest.artifact.path,
     "test-data/complete-games/v1/complete-games.jsonl",
     "manifest.artifact.path",
   );
-  assertEqual(manifest.artifact.bytes, APPROVED.bytes, "manifest.artifact.bytes");
-  assertEqual(manifest.artifact.sha256, APPROVED.sha256, "manifest.artifact.sha256");
+  assertEqual(
+    manifest.artifact.bytes,
+    APPROVED.bytes,
+    "manifest.artifact.bytes",
+  );
+  assertEqual(
+    manifest.artifact.sha256,
+    APPROVED.sha256,
+    "manifest.artifact.sha256",
+  );
 }
 
 function isCanonicalInputFen(inputFen) {
@@ -250,7 +296,11 @@ function validateCorpus(buffer) {
       fail(`line ${lineNumber} is not valid JSON: ${error.message}`);
     }
 
-    assertExactKeys(record, ["gameVariant", "turns"], `line ${lineNumber} record`);
+    assertExactKeys(
+      record,
+      ["gameVariant", "turns"],
+      `line ${lineNumber} record`,
+    );
     if (JSON.stringify(record) !== line) {
       fail(`line ${lineNumber} is not canonical compact JSON`);
     }
@@ -258,7 +308,9 @@ function validateCorpus(buffer) {
       fail(`line ${lineNumber} gameVariant must be a string`);
     }
     if (!Object.hasOwn(variantGameCounts, record.gameVariant)) {
-      fail(`line ${lineNumber} has unknown gameVariant ${JSON.stringify(record.gameVariant)}`);
+      fail(
+        `line ${lineNumber} has unknown gameVariant ${JSON.stringify(record.gameVariant)}`,
+      );
     }
     if (!Array.isArray(record.turns) || record.turns.length === 0) {
       fail(`line ${lineNumber} turns must be a non-empty array`);
@@ -269,7 +321,9 @@ function validateCorpus(buffer) {
 
     for (const [turnIndex, turn] of record.turns.entries()) {
       if (!Array.isArray(turn) || turn.length === 0) {
-        fail(`line ${lineNumber} turn ${turnIndex + 1} must be a non-empty array`);
+        fail(
+          `line ${lineNumber} turn ${turnIndex + 1} must be a non-empty array`,
+        );
       }
       inputCount += turn.length;
 
@@ -279,7 +333,9 @@ function validateCorpus(buffer) {
           fail(`${label} must be a non-empty string`);
         }
         if (!isCanonicalInputFen(inputFen)) {
-          fail(`${label} is not canonical input FEN: ${JSON.stringify(inputFen)}`);
+          fail(
+            `${label} is not canonical input FEN: ${JSON.stringify(inputFen)}`,
+          );
         }
       }
     }
@@ -288,8 +344,14 @@ function validateCorpus(buffer) {
   assertEqual(lines.length, APPROVED.recordCount, "corpus record count");
   assertEqual(turnCount, APPROVED.turnCount, "corpus turn count");
   assertEqual(inputCount, APPROVED.inputCount, "corpus input count");
-  for (const [variant, expectedCount] of Object.entries(APPROVED.variantGameCounts)) {
-    assertEqual(variantGameCounts[variant], expectedCount, `corpus ${variant} game count`);
+  for (const [variant, expectedCount] of Object.entries(
+    APPROVED.variantGameCounts,
+  )) {
+    assertEqual(
+      variantGameCounts[variant],
+      expectedCount,
+      `corpus ${variant} game count`,
+    );
   }
 }
 

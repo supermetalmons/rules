@@ -270,8 +270,23 @@ if [[ "${actual_compressed_sha}" != "${APPROVED_COMPRESSED_SHA256}" ]]; then
   exit 1
 fi
 
-# The raw metrics are pinned above and validated against the manifest. The exact
-# gzip hash plus the streamed replay make a separate decompression pass unnecessary.
+ESBUILD_BIN="${REPO_DIR}/node_modules/.bin/esbuild"
+TARGET_DIR="${REPO_DIR}/target/ts-regression"
+RUNNER_PATH="${TARGET_DIR}/rules-regressions.mjs"
 
-cd "${REPO_DIR}"
-gzip -dc "${CORPUS_PATH}" | cargo run --release --quiet --bin rules_tests
+if [[ ! -x "${ESBUILD_BIN}" ]]; then
+  echo "error: esbuild is unavailable; run npm ci first" >&2
+  exit 1
+fi
+
+mkdir -p "${TARGET_DIR}"
+"${ESBUILD_BIN}" \
+  "${REPO_DIR}/src/cli/rules-regressions.ts" \
+  --bundle \
+  --platform=node \
+  --format=esm \
+  --target=node22 \
+  --log-level=warning \
+  --outfile="${RUNNER_PATH}"
+
+MONS_RULES_CORPUS_PATH="${CORPUS_PATH}" node "${RUNNER_PATH}"
