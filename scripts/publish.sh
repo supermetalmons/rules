@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${script_dir}"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+cd "${repo_root}"
 
 check_only=false
 if [ "$#" -eq 1 ] && [ "$1" = "--check-only" ]; then
@@ -239,7 +240,9 @@ echo "Running the complete project validation..."
 npm run check
 
 echo "Running the npm publication dry run..."
-npm publish --dry-run --access public --tag latest
+# The package script is intentionally named "publish", which is also an npm
+# lifecycle hook. Skip lifecycle scripts here so npm does not re-enter this script.
+npm publish --dry-run --access public --tag latest --ignore-scripts
 
 if [ "${check_only}" = true ]; then
     echo "Release checks passed; --check-only skipped npm publish."
@@ -403,7 +406,7 @@ if ! require_release_newer_than_latest "${release_package_name}" "${release_dist
 fi
 echo "Publishing ${release_package_name}@${release_version} to latest..."
 release_publish_started=true
-npm publish --access public --tag latest
+npm publish --access public --tag latest --ignore-scripts
 
 trap - EXIT HUP INT TERM
 

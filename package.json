@@ -31,10 +31,12 @@
   },
   "scripts": {
     "build": "esbuild ./src/entrypoints/mons-rules.ts --bundle --format=esm --platform=browser --target=es2020 --minify --keep-names --legal-comments=none --outfile=./dist/mons-rules.js",
+    "bump": "npm version patch --no-git-tag-version",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && ./scripts/run-rules-tests.sh && npm run test:complete-games && npm run build && node ./scripts/check-package.mjs .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
+    "publish": "./scripts/publish.sh",
     "test": "vitest run",
     "test:complete-games": "node ./scripts/run-complete-games.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"

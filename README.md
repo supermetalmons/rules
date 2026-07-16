@@ -40,8 +40,11 @@ without replaying it. Run `npm run test:complete-games` for the full engine repl
 
 ## Release
 
-Run `./publish.sh --check-only` to validate an unpublished version and perform an npm
-dry run. Run `./publish.sh` from a clean worktree to publish that version to `latest`.
+Run `npm run bump` to increment the patch version in `package.json` and
+`package-lock.json`, then commit the release change. Run
+`npm run publish -- --check-only` to validate the unpublished version and perform an
+npm dry run. Run `npm run publish` from a clean worktree to publish that version to
+`latest`.
 
 A real publish uses the transient `mons-npm-publish-lock` tag on `origin`, or the
 shared remote named by `MONS_PUBLISH_LOCK_REMOTE`, to serialize releases across

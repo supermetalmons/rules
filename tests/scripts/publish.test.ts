@@ -81,14 +81,19 @@ function createPublishHarness(
   const releaseVersion = options.version ?? "0.2.0";
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "mons-publish-test-"));
   const binDir = path.join(root, "bin");
+  const scriptsDir = path.join(root, "scripts");
   const responseDir = path.join(root, "registry-responses");
   const logPath = path.join(root, "npm-calls.log");
   const gitLogPath = path.join(root, "git-calls.log");
   const lockDir = path.join(root, "remote-publish-lock");
 
   fs.mkdirSync(binDir);
+  fs.mkdirSync(scriptsDir);
   fs.mkdirSync(responseDir);
-  fs.copyFileSync(path.resolve("publish.sh"), path.join(root, "publish.sh"));
+  fs.copyFileSync(
+    path.resolve("scripts/publish.sh"),
+    path.join(scriptsDir, "publish.sh"),
+  );
   fs.writeFileSync(
     path.join(root, "package.json"),
     `${JSON.stringify({ name: "mons-rules", version: releaseVersion })}\n`,
@@ -234,7 +239,7 @@ if [ "\${1:-}" = "publish" ]; then
         exit 93
     fi
 fi
-if [ "$*" = "publish --access public --tag latest" ]; then
+if [ "$*" = "publish --access public --tag latest --ignore-scripts" ]; then
     if [ -n "\${PUBLISH_TEST_PUBLISH_GATE:-}" ]; then
         : > "\${PUBLISH_TEST_PUBLISH_GATE}.started"
         while [ ! -f "\${PUBLISH_TEST_PUBLISH_GATE}.release" ]; do
@@ -275,7 +280,7 @@ fi
     gitCalls: () =>
       fs.existsSync(gitLogPath) ? fs.readFileSync(gitLogPath, "utf8") : "",
     run: (args, whoamiStatus = 0) =>
-      spawnSync("/bin/bash", [path.join(root, "publish.sh"), ...args], {
+      spawnSync("/bin/bash", [path.join(scriptsDir, "publish.sh"), ...args], {
         cwd: root,
         encoding: "utf8",
         env: environment(whoamiStatus),
@@ -283,7 +288,7 @@ fi
     start: (args, environmentOverrides = {}) => {
       const child = spawn(
         "/bin/bash",
-        [path.join(root, "publish.sh"), ...args],
+        [path.join(scriptsDir, "publish.sh"), ...args],
         {
           cwd: root,
           env: environment(0, environmentOverrides),
@@ -313,7 +318,10 @@ fi
 function realPublishCalls(calls: string): string[] {
   return calls
     .split("\n")
-    .filter((call) => call === "publish --access public --tag latest");
+    .filter(
+      (call) =>
+        call === "publish --access public --tag latest --ignore-scripts",
+    );
 }
 
 async function waitForFile(filePath: string): Promise<void> {
@@ -326,7 +334,22 @@ async function waitForFile(filePath: string): Promise<void> {
   }
 }
 
-describe("publish.sh", () => {
+describe("release npm scripts", () => {
+  it("exposes bump and relocated publish commands", () => {
+    const manifest = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(manifest.scripts?.["bump"]).toBe(
+      "npm version patch --no-git-tag-version",
+    );
+    expect(manifest.scripts?.["publish"]).toBe("./scripts/publish.sh");
+    expect(fs.existsSync("publish.sh")).toBe(false);
+    expect(fs.existsSync("scripts/publish.sh")).toBe(true);
+  });
+});
+
+describe("scripts/publish.sh", () => {
   it("runs check-only registry, validation, and dry-run steps without npm credentials", () => {
     const harness = createPublishHarness();
     try {
@@ -339,7 +362,9 @@ describe("publish.sh", () => {
       expect(calls).toContain("view mons-rules dist-tags --json");
       expect(calls).toContain("run check");
       expect(
-        calls.match(/publish --dry-run --access public --tag latest/g),
+        calls.match(
+          /publish --dry-run --access public --tag latest --ignore-scripts/g,
+        ),
       ).toHaveLength(1);
       expect(harness.gitCalls()).not.toContain("commit-tree");
       expect(harness.gitCalls()).not.toContain(
