@@ -116,7 +116,7 @@ export class Board {
     this.occupiedEntries = undefined;
   }
 
-  /** Store a value-copy, mirroring Rust's Copy item argument. */
+  /** Store a value-copy so callers cannot mutate the board through an item. */
   public put(item: Item, at: Location): void {
     this.itemSlots[checkedWrappedLocationIndex(at)] = cloneItem(item);
     this.occupiedEntries = undefined;

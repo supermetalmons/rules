@@ -394,11 +394,6 @@ export function clearMoveEfficiencyCache(): void {
   moveEfficiencySnapshotCache.clear();
 }
 
-/** Internal observability for the cache-capacity regression test. */
-export function moveEfficiencyCacheSizeForTesting(): number {
-  return moveEfficiencySnapshotCache.size;
-}
-
 export function stepProgressDelta(
   beforeSteps: number,
   afterSteps: number,
@@ -541,7 +536,7 @@ export function manaHandoffPenalty(
 
 /**
  * Complete weighted snapshot delta. Passing a before-snapshot captured for a
- * different perspective intentionally preserves the legacy child-ordering quirk.
+ * different perspective intentionally preserves the established child order.
  */
 export function moveEfficiencyDeltaFromBeforeSnapshotWithAfterSnapshot(
   game: MonsGame,

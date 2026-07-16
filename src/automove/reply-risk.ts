@@ -1602,8 +1602,8 @@ function canChallengeSpiritPreferenceRootWithRecoveryProjection(
   );
 }
 
-/** Exact CurrentPro spirit/challenger projection shortlist used by the advisor. */
-export function turnEngineSpiritRootProjections(
+/** Build the spirit/challenger projection shortlist used by the advisor. */
+function buildSpiritRootProjections(
   evaluations: readonly ReplyRiskRootEvaluation[],
   candidateIndices: readonly number[],
   perspective: Color,
@@ -3867,12 +3867,12 @@ export function pickRootWithReplyRiskGuard(
       );
       continue;
     }
-    const canUseLegacyProjection =
+    const canUseFallbackProjection =
       config.enableTurnEngineSelector === true &&
       currentProEnabled(config) &&
       canTurnEngineProjectReplyRiskRoot(evaluation, perspective) &&
       !isPlainSpiritDevelopmentRoot(evaluation);
-    const projected = canUseLegacyProjection
+    const projected = canUseFallbackProjection
       ? config.projectedGameForReplyRisk?.(evaluation, index, perspective)
       : undefined;
     snapshots.set(
@@ -4084,7 +4084,7 @@ export const replyRiskAdvisorPolicy = Object.freeze({
   currentProWhiteTurnFourManaSiblingReentry,
   turnEngineRootUtility: turnEngineSelectedOverrideUtility,
   turnEngineRootPlanUtility,
-  turnEngineSpiritRootProjections,
+  buildSpiritRootProjections,
   spiritFollowupFloorScore,
   spiritFollowupFloorOrder,
   lateSafeManaRootOrder,

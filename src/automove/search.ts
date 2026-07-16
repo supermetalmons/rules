@@ -18,12 +18,10 @@ import {
   isOwnDrainerVulnerable,
   orderingEventBonus,
   rankRootCandidates,
-  searchConfigForPreference,
   terminalSearchScore,
   type MoveClassFlags,
   type RootCandidate,
   type SearchConfig,
-  type SearchPreference,
 } from "./root-candidates.js";
 import {
   clearMoveEfficiencyCache,
@@ -705,7 +703,7 @@ export function evaluateSearchScore(
 }
 
 /**
- * Run only the legacy two-pass root allocator. The scout uses the same shared
+ * Run only the two-pass root allocator. The scout uses the same shared
  * search context and cumulative node accounting as the full root search, but
  * this seam deliberately stops before the later scored-root loop.
  */
@@ -836,25 +834,6 @@ export function searchRootCandidates(
     cacheHits: context.stats.cacheHits,
     timedOut: cancelled(),
   };
-}
-
-export function selectSearchRoot(
-  game: MonsGame,
-  preference: SearchPreference,
-): SearchResult {
-  clearExactStateAnalysisCache();
-  return searchRootCandidates(
-    game,
-    game.activeColor,
-    searchConfigForPreference(game, preference),
-  );
-}
-
-export function selectSearchInputs(
-  game: MonsGame,
-  preference: SearchPreference,
-): readonly Input[] | undefined {
-  return selectSearchRoot(game, preference).best?.candidate.inputs;
 }
 
 export function clearSearchCaches(): void {

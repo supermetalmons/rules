@@ -1,7 +1,4 @@
 node_modules/
-pkg/
+dist/
 target/
 test-data/
-contracts/legacy/*.json
-contracts/legacy/*.d.ts
-Cargo.lock

@@ -235,34 +235,11 @@ if ! require_release_newer_than_latest "${release_package_name}" "${package_dist
     exit 1
 fi
 
-echo "Checking TypeScript formatting, lint, and types..."
-npm run format:check
-npm run lint
-npm run typecheck
-npm run assert:pure
-
-echo "Running focused tests..."
-npm test
-
-echo "Checking deterministic automove parity..."
-npm run test:automove-parity
-
-echo "Replaying the canonical rules corpus..."
-./scripts/run-rules-tests.sh
-
-echo "Checking and replaying the complete-games corpus..."
-node ./scripts/check-complete-games.cjs
-npm run test:complete-games
-
-echo "Building and checking the npm package for ${release_version}..."
-npm run build
-node ./scripts/assert-release-npm-package.cjs pkg/mons-rules
+echo "Running the complete project validation..."
+npm run check
 
 echo "Running the npm publication dry run..."
-(
-    cd pkg/mons-rules
-    npm publish --dry-run --access public --tag latest
-)
+npm publish --dry-run --access public --tag latest
 
 if [ "${check_only}" = true ]; then
     echo "Release checks passed; --check-only skipped npm publish."
@@ -426,10 +403,7 @@ if ! require_release_newer_than_latest "${release_package_name}" "${release_dist
 fi
 echo "Publishing ${release_package_name}@${release_version} to latest..."
 release_publish_started=true
-(
-    cd pkg/mons-rules
-    npm publish --access public --tag latest
-)
+npm publish --access public --tag latest
 
 trap - EXIT HUP INT TERM
 

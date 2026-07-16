@@ -47,12 +47,9 @@ import {
   type Location,
 } from "../engine/geometry.js";
 import {
-  mulU64,
   saturatingAddI32,
   saturatingSubI32,
   subI32,
-  xorU64,
-  type U64,
 } from "../engine/numerics.js";
 import {
   Hash64Set,
@@ -86,8 +83,6 @@ const MIX_ODD = hash64(0x94d0_49bb, 0x1331_11eb);
 const SPLITMIX_INCREMENT = hash64(0x9e37_79b9, 0x7f4a_7c15);
 const SPLITMIX_FIRST = hash64(0xbf58_476d, 0x1ce4_e5b9);
 const SPLITMIX_SECOND = hash64(0x94d0_49bb, 0x1331_11eb);
-const FNV_OFFSET = 0xcbf2_9ce4_8422_2325n;
-const FNV_PRIME = 0x0000_0100_0000_01b3n;
 
 export type ExactScorePathWindow = {
   readonly bestSteps: number | undefined;
@@ -322,15 +317,6 @@ export class AttackReachSummary {
       (this.#bombThreatCounts[slot] ?? 0) + 1,
     );
   }
-}
-
-/** Rust ExactFastHasher byte order, retained for deterministic cache/hash fixtures. */
-export function exactFnv1a64(bytes: Uint8Array, seed: U64 = 0n): U64 {
-  let hash = seed === 0n ? FNV_OFFSET : seed;
-  for (const byte of bytes) {
-    hash = mulU64(xorU64(hash, BigInt(byte)), FNV_PRIME);
-  }
-  return hash;
 }
 
 function exactHashColorBits(color: Color): number {
@@ -1245,25 +1231,6 @@ export function canAttackTargetOnBoardWithHash(
   if (!cacheWriteAllowed()) return false;
   if (tag !== undefined) exactAttackReachCache.set(boardHash, result, tag);
   return result;
-}
-
-export function canAttackTargetOnBoard(
-  board: Board,
-  attackerColor: Color,
-  targetColor: Color,
-  target: Location,
-  remainingMoves: number,
-  canUseAction: boolean,
-): boolean {
-  return canAttackTargetOnBoardWithHash(
-    board,
-    exactBoardHash(board),
-    attackerColor,
-    targetColor,
-    target,
-    remainingMoves,
-    canUseAction,
-  );
 }
 
 function shortestPayloadState(

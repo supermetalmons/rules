@@ -4,7 +4,7 @@
     "allowUnusedLabels": false,
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2023", "DOM", "DOM.Iterable", "WebWorker"],
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "moduleDetection": "force",
     "moduleResolution": "Bundler",
@@ -20,15 +20,9 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2023",
+    "types": ["node"],
     "useDefineForClassFields": true,
     "verbatimModuleSyntax": true
   },
-  "include": [
-    "eslint.config.js",
-    "vitest.config.ts",
-    "src/**/*.ts",
-    "tests/**/*.ts",
-    "scripts/**/*.ts",
-    "scripts/**/*.mts"
-  ]
+  "include": ["mons-rules.d.ts", "src/**/*.ts", "tests/**/*.ts"]
 }

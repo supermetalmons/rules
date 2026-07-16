@@ -1,11 +1,7 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "v1",
-  "baselineCommit": "55c9e97f8643e3edba7249a1daff1f2b83fccad9",
-  "baselinePackage": {
-    "name": "mons-rust",
-    "version": "0.1.135"
-  },
+  "corpusVersion": "automove-decisions-v1",
+  "description": "Deterministic public smartAutomove decisions and replay results.",
   "fixedClockNowMs": 0,
   "corpusFile": "decisions.jsonl",
   "corpusSha256": "0ca2d5e5c619f24da155da5b70c20707f963a47235e74a0857eed128ab429f67",
@@ -18,15 +14,7 @@
     "sha256": "f6e52b3e4cf112e6e36f36776e7d587f491b46d169ff0df9fa1070651a04e324",
     "bytes": 7169,
     "lineCount": 156,
-    "configCount": 9,
-    "rootCount": 108,
-    "searchScoreCount": 36,
-    "selectionCount": 3,
-    "scenarioOrder": [
-      "initial",
-      "release",
-      "tactical"
-    ]
+    "archivalOnly": true
   },
   "preferenceOrder": [
     "fast",
@@ -49,8 +37,6 @@
   ],
   "selection": {
     "initialVariantStates": 12,
-    "retainedReleaseAndCuratedStates": 1,
-    "classicRecord0FirstThreeTurns": false,
-    "nonClassicFirstRecordMidpointAndLate": false
+    "retainedRegressionStates": 1
   }
 }

@@ -1,5 +1,5 @@
 /target/
-/pkg/
+/dist/
 /node_modules/
 
 # macOS Finder metadata

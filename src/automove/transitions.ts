@@ -7,7 +7,6 @@ import {
 import { cloneInput, type Event, type Input } from "../engine/domain.js";
 import {
   BOARD_CELLS,
-  locationEquals,
   locationIndex,
   type Location,
 } from "../engine/geometry.js";
@@ -24,7 +23,7 @@ function compareNumber(left: number, right: number): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-/** Rust-derived `Ord` for Input: Takeback, Location(i,j), then Modifier. */
+/** Stable input order: Takeback, Location(i,j), then Modifier. */
 export function compareInputs(left: Input, right: Input): number {
   const tag = (value: Input): number => {
     switch (value.kind) {
@@ -339,12 +338,4 @@ export function isQuiescenceTacticalTransition(
       "supermana-back-to-base",
     ].includes(event.kind),
   );
-}
-
-export function firstInputStartsAt(
-  transition: LegalInputTransition,
-  at: Location,
-): boolean {
-  const first = transition.inputs[0];
-  return first?.kind === "location" && locationEquals(first.location, at);
 }

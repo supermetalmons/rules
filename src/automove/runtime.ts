@@ -70,72 +70,47 @@ import {
   applyInputsForSearchWithEvents,
   compareInputChains,
 } from "./transitions.js";
-import {
-  CRYPTO_RANDOM_SOURCE,
-  randomIndex,
-  type RandomSource,
-} from "./types.js";
 
 const MAX_INPUT_CHAIN = 8;
 const PRO_FAST_BANK_BUDGET_MS = 200;
 const PRO_START_RESERVE_MS = 100;
 const PRO_SELECTOR_BUDGET_MS = 550;
 
-export type AutomoveRuntimeRoute =
-  | "standard"
-  | "pro-fast-bank"
-  | "early-white-pro"
-  | "early-white-fast"
-  | "score-window"
-  | "black-unconditional"
-  | "pro-current"
-  | "white-engine-disabled"
-  | "white-nonnegative-deny"
-  | "white-negative-deny"
-  | "white-confirm-tiebreak"
-  | "white-confirm-better"
-  | "black-late";
-
 type RuntimeSelector = (
   game: MonsGame,
   config: AutomoveSearchExecutionConfig,
-  route: AutomoveRuntimeRoute,
 ) => readonly Input[];
 
-export type AutomoveRuntimeOptions = {
-  readonly randomSource?: RandomSource;
-  /** Test seam; production delegates to the shipping selector. */
-  readonly selector?: RuntimeSelector;
-  readonly clearTimeoutCaches?: () => void;
-  readonly clearFreshProCache?: () => void;
-  readonly opportunityContext?: (
+type RuntimeServices = {
+  readonly selector: RuntimeSelector;
+  readonly clearTimeoutCaches: () => void;
+  readonly clearFreshProCache: () => void;
+  readonly opportunityContext: (
     game: MonsGame,
     perspective: Color,
   ) => ExactOpportunityContext;
-  readonly ownDrainerUnsafe?: (game: MonsGame, perspective: Color) => boolean;
-  readonly rankedRoots?: (
+  readonly ownDrainerUnsafe: (game: MonsGame, perspective: Color) => boolean;
+  readonly rankedRoots: (
     game: MonsGame,
     perspective: Color,
     config: AutomoveSearchExecutionConfig,
   ) => readonly RootCandidate[];
-  readonly focusedRoots?: (
+  readonly focusedRoots: (
     game: MonsGame,
     config: AutomoveSearchExecutionConfig,
   ) => readonly RootEvaluation[];
-  readonly focusedCandidateRank?: (
+  readonly focusedCandidateRank: (
     game: MonsGame,
     config: AutomoveSearchExecutionConfig,
     inputs: readonly Input[],
   ) => number | undefined;
-  readonly selectedUtility?: (
+  readonly selectedUtility: (
     game: MonsGame,
     root: RootEvaluation,
     perspective: Color,
     config: AutomoveSearchExecutionConfig,
   ) => TurnEngineUtility;
 };
-
-type RuntimeServices = Required<AutomoveRuntimeOptions>;
 
 function defaultOwnDrainerUnsafe(game: MonsGame, perspective: Color): boolean {
   return (
@@ -144,62 +119,75 @@ function defaultOwnDrainerUnsafe(game: MonsGame, perspective: Color): boolean {
   );
 }
 
-function servicesFor(options: AutomoveRuntimeOptions): RuntimeServices {
-  return {
-    randomSource: options.randomSource ?? CRYPTO_RANDOM_SOURCE,
-    selector:
-      options.selector ??
-      ((game, config) => smartSearchBestInputs(game, config, true)),
-    clearTimeoutCaches:
-      options.clearTimeoutCaches ?? clearShippingSelectorCaches,
-    clearFreshProCache: options.clearFreshProCache ?? clearTurnEnginePlanCache,
-    opportunityContext: options.opportunityContext ?? exactOpportunityContext,
-    ownDrainerUnsafe: options.ownDrainerUnsafe ?? defaultOwnDrainerUnsafe,
-    rankedRoots:
-      options.rankedRoots ??
-      ((game, perspective, config) =>
-        rankRootCandidates(game, perspective, config)),
-    focusedRoots:
-      options.focusedRoots ??
-      ((game, config) => focusedScoredRootsForRuntime(game, config, true)),
-    focusedCandidateRank:
-      options.focusedCandidateRank ?? focusedCandidateRankForRuntimeInputs,
-    selectedUtility:
-      options.selectedUtility ??
-      ((game, root, perspective, config) => {
-        const engineConfig = turnEngineConfigFromSearchConfig(config);
-        const headUtility = turnEngineEvaluateStateUtility(
-          root.game,
-          game,
-          perspective,
-          engineConfig,
-        );
-        const family = rootFamily(root);
-        const plan: TurnPlan = {
-          actions: [],
-          compiledChunks: [root.inputs],
-          endGame: root.game.cloneForSimulation(),
-          utility: headUtility,
-          headUtility,
-          headFamily: family,
-          goalFamily: family,
-          packageMeta: {
-            scoreGain: 0,
-            denyGain: 0,
-            drainerSafetyDelta: 0,
-            spiritOnlySetup: false,
-            endsNonnegativeDrainerSafety: true,
-            opponentImmediateWindowAfter: 0,
-          },
-        };
-        return turnEngineEvaluatePlanWithReplies(
-          game,
-          plan,
-          perspective,
-          engineConfig,
-        );
-      }),
+function evaluateSelectedUtility(
+  game: MonsGame,
+  root: RootEvaluation,
+  perspective: Color,
+  config: AutomoveSearchExecutionConfig,
+): TurnEngineUtility {
+  const engineConfig = turnEngineConfigFromSearchConfig(config);
+  const headUtility = turnEngineEvaluateStateUtility(
+    root.game,
+    game,
+    perspective,
+    engineConfig,
+  );
+  const family = rootFamily(root);
+  const plan: TurnPlan = {
+    actions: [],
+    compiledChunks: [root.inputs],
+    endGame: root.game.cloneForSimulation(),
+    utility: headUtility,
+    headUtility,
+    headFamily: family,
+    goalFamily: family,
+    packageMeta: {
+      scoreGain: 0,
+      denyGain: 0,
+      drainerSafetyDelta: 0,
+      spiritOnlySetup: false,
+      endsNonnegativeDrainerSafety: true,
+      opponentImmediateWindowAfter: 0,
+    },
   };
+  return turnEngineEvaluatePlanWithReplies(
+    game,
+    plan,
+    perspective,
+    engineConfig,
+  );
+}
+
+const RUNTIME_SERVICES: RuntimeServices = Object.freeze({
+  selector: (game, config) => smartSearchBestInputs(game, config, true),
+  clearTimeoutCaches: clearShippingSelectorCaches,
+  clearFreshProCache: clearTurnEnginePlanCache,
+  opportunityContext: exactOpportunityContext,
+  ownDrainerUnsafe: defaultOwnDrainerUnsafe,
+  rankedRoots: (game, perspective, config) =>
+    rankRootCandidates(game, perspective, config),
+  focusedRoots: (game, config) =>
+    focusedScoredRootsForRuntime(game, config, true),
+  focusedCandidateRank: focusedCandidateRankForRuntimeInputs,
+  selectedUtility: evaluateSelectedUtility,
+});
+
+/** Uniform selection using Uint32 rejection sampling without modulo bias. */
+function randomIndex(length: number): number {
+  if (!Number.isSafeInteger(length) || length <= 0 || length > 0x1_0000_0000) {
+    throw new RangeError(
+      "random index requires a non-empty uint32-sized collection",
+    );
+  }
+
+  const range = 0x1_0000_0000;
+  const unbiasedUpperBound = range - (range % length);
+  const values = new Uint32Array(1);
+  for (;;) {
+    globalThis.crypto.getRandomValues(values);
+    const value = values[0] ?? 0;
+    if (value < unbiasedUpperBound) return value % length;
+  }
 }
 
 function nextInputsForPrompt(output: Output): Input[] | undefined {
@@ -217,10 +205,7 @@ function nextInputsForPrompt(output: Output): Input[] | undefined {
   }
 }
 
-export function randomAutomove(
-  game: MonsGame,
-  source: RandomSource = CRYPTO_RANDOM_SOURCE,
-): AutomoveFacadeResult {
+function randomAutomove(game: MonsGame): AutomoveFacadeResult {
   const inputs: Input[] = [];
   for (;;) {
     if (inputs.length > MAX_INPUT_CHAIN) {
@@ -242,7 +227,7 @@ export function randomAutomove(
     if (choices === undefined || choices.length === 0) {
       return { output: { kind: "invalid-input" }, inputFen: "" };
     }
-    const choice = choices[randomIndex(choices.length, source)];
+    const choice = choices[randomIndex(choices.length)];
     if (choice === undefined) {
       return { output: { kind: "invalid-input" }, inputFen: "" };
     }
@@ -250,7 +235,7 @@ export function randomAutomove(
   }
 }
 
-export function deterministicLegalFallbackInputs(game: MonsGame): Input[] {
+function deterministicLegalFallbackInputs(game: MonsGame): Input[] {
   const simulated = game.cloneForSimulation();
   const inputs: Input[] = [];
   for (;;) {
@@ -292,17 +277,13 @@ function deriveExecutionConfig(
 function selectShippingSearchInputsInternal(
   game: MonsGame,
   config: AutomoveSearchExecutionConfig,
-  route: AutomoveRuntimeRoute,
   services: RuntimeServices,
 ): Input[] {
   if (checkpoint()) return [];
-  const inputs = cloneInputs(services.selector(game, config, route));
+  const inputs = cloneInputs(services.selector(game, config));
   if (inputs.length > 0) return inputs;
   if (checkpoint()) return [];
-  const random = randomAutomove(
-    game.cloneForSimulation(),
-    services.randomSource,
-  );
+  const random = randomAutomove(game.cloneForSimulation());
   return random.output.kind === "events"
     ? parseInputArrayFen(random.inputFen)
     : [];
@@ -311,21 +292,19 @@ function selectShippingSearchInputsInternal(
 function selectShippingFallbackInputs(
   game: MonsGame,
   config: AutomoveSearchExecutionConfig,
-  route: AutomoveRuntimeRoute,
   services: RuntimeServices,
 ): Input[] {
-  return selectShippingSearchInputsInternal(game, config, route, services);
+  return selectShippingSearchInputsInternal(game, config, services);
 }
 
 function selectSearchInputsWithFreshProCache(
   game: MonsGame,
   config: AutomoveSearchExecutionConfig,
-  route: AutomoveRuntimeRoute,
   services: RuntimeServices,
 ): Input[] {
   if (checkpoint()) return [];
   if (config.enableTurnEngineSelector) services.clearFreshProCache();
-  return selectShippingSearchInputsInternal(game, config, route, services);
+  return selectShippingSearchInputsInternal(game, config, services);
 }
 
 function selectWithSharedDeadline(
@@ -369,7 +348,7 @@ function selectProWithSharedDeadline(
     const fastConfig = executionConfigForGame(game, "fast");
     const fast =
       selectProFastBankInputs(
-        () => cloneInputs(services.selector(game, fastConfig, "pro-fast-bank")),
+        () => cloneInputs(services.selector(game, fastConfig)),
         services,
       ) ?? [];
     const timeoutInputs = fast.length > 0 && !checkpoint() ? fast : emergency;
@@ -387,8 +366,7 @@ function selectShippingSearchInputs(
 ): Input[] {
   return selectWithSharedDeadline(
     game,
-    () =>
-      selectShippingSearchInputsInternal(game, config, "standard", services),
+    () => selectShippingSearchInputsInternal(game, config, services),
     services,
   );
 }
@@ -422,7 +400,6 @@ function selectEarlyWhiteFallbackInputs(
     return selectShippingFallbackInputs(
       game,
       executionConfigForGame(game, "pro"),
-      "early-white-pro",
       services,
     );
   }
@@ -445,7 +422,6 @@ function selectEarlyWhiteFallbackInputs(
   return selectShippingFallbackInputs(
     game,
     executionConfigForGame(game, "fast"),
-    "early-white-fast",
     services,
   );
 }
@@ -467,7 +443,6 @@ function selectScoreWindowTacticalFallbackInputs(
   return selectSearchInputsWithFreshProCache(
     game,
     deriveExecutionConfig(base, applyShippingProConfig(base)),
-    "score-window",
     services,
   );
 }
@@ -536,12 +511,7 @@ function selectWhiteEarlyEngineDisabledFallbackInputs(
   }
 
   const shipping = executionConfigForGame(game, "pro");
-  const inputs = selectShippingFallbackInputs(
-    game,
-    shipping,
-    "white-engine-disabled",
-    services,
-  );
+  const inputs = selectShippingFallbackInputs(game, shipping, services);
   if (inputs.length === 0 || inputChainsEqual(inputs, proInputs)) {
     return undefined;
   }
@@ -627,12 +597,7 @@ function selectWhiteNonnegativeDenyFallbackInputs(
     enableTurnHeadRerank: true,
     turnEngineMode: AUTOMOVE_TURN_ENGINE_MODE.ProV1,
   });
-  const inputs = selectShippingFallbackInputs(
-    game,
-    searchOnly,
-    "white-nonnegative-deny",
-    services,
-  );
+  const inputs = selectShippingFallbackInputs(game, searchOnly, services);
   return inputs.length === 0 || inputChainsEqual(inputs, proInputs)
     ? undefined
     : inputs;
@@ -680,12 +645,7 @@ function selectWhiteNegativeDenyFallbackInputs(
     turnEnginePerNodeFamilyCap: shipping.turnEnginePerNodeFamilyCap,
     turnEngineStepCap: shipping.turnEngineStepCap,
   });
-  const inputs = selectShippingFallbackInputs(
-    game,
-    searchOnly,
-    "white-negative-deny",
-    services,
-  );
+  const inputs = selectShippingFallbackInputs(game, searchOnly, services);
   if (inputs.length === 0 || inputChainsEqual(inputs, proInputs)) {
     return undefined;
   }
@@ -816,7 +776,6 @@ function selectWhiteConfirmProV1TiebreakInputs(
   const inputs = selectShippingFallbackInputs(
     game,
     searchOnlyProV1Config(competition.config),
-    "white-confirm-tiebreak",
     services,
   );
   if (inputs.length === 0 || inputChainsEqual(inputs, proInputs)) {
@@ -872,7 +831,6 @@ function selectWhiteConfirmProV1BetterInputs(
   const inputs = selectShippingFallbackInputs(
     game,
     searchOnlyProV1Config(competition.config),
-    "white-confirm-better",
     services,
   );
   if (inputs.length === 0 || inputChainsEqual(inputs, proInputs)) {
@@ -927,7 +885,6 @@ function selectUnconditionalBlackFallbackInputs(
     ? selectShippingFallbackInputs(
         game,
         executionConfigForGame(game, "pro"),
-        "black-unconditional",
         services,
       )
     : undefined;
@@ -955,7 +912,6 @@ function selectLateBlackFallbackInputs(
   const inputs = selectShippingFallbackInputs(
     game,
     executionConfigForGame(game, "pro"),
-    "black-late",
     services,
   );
   if (inputs.length === 0 || inputChainsEqual(inputs, proInputs)) {
@@ -993,7 +949,6 @@ function selectProInputsWithRuntime(
   const proInputs = selectSearchInputsWithFreshProCache(
     game,
     currentPro,
-    "pro-current",
     services,
   );
   if (checkpoint()) return [];
@@ -1035,13 +990,12 @@ function selectProInputs(
   );
 }
 
-export function smartAutomove(
+function smartAutomove(
   game: MonsGame,
   preference: SmartAutomovePreference,
-  options: AutomoveRuntimeOptions = {},
 ): AutomoveFacadeResult {
   const sourceFen = game.fen();
-  const services = servicesFor(options);
+  const services = RUNTIME_SERVICES;
   const base = executionConfigForGame(game, preference);
   const selected =
     preference === "pro"
@@ -1066,22 +1020,17 @@ export function smartAutomove(
       };
 }
 
-export function createMonsGameAutomoveDelegate(
-  options: AutomoveRuntimeOptions = {},
-): MonsGameAutomoveDelegate {
-  const source = options.randomSource ?? CRYPTO_RANDOM_SOURCE;
+function createMonsGameAutomoveDelegate(): MonsGameAutomoveDelegate {
   return {
     automove(game): AutomoveFacadeResult {
-      return randomAutomove(game, source);
+      return randomAutomove(game);
     },
     smartAutomove(game, preference): AutomoveFacadeResult {
-      return smartAutomove(game, preference, options);
+      return smartAutomove(game, preference);
     },
   };
 }
 
-export function installAutomoveRuntime(
-  options: AutomoveRuntimeOptions = {},
-): void {
-  setMonsGameAutomoveDelegate(createMonsGameAutomoveDelegate(options));
+export function installAutomoveRuntime(): void {
+  setMonsGameAutomoveDelegate(createMonsGameAutomoveDelegate());
 }

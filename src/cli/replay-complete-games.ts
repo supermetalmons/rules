@@ -132,20 +132,12 @@ function parseRecord(raw: string, line: number): CompleteGameRecord {
   return { gameVariant: variantValue, turns };
 }
 
-function replayGame(
-  record: CompleteGameRecord,
-  line: number,
-): {
-  readonly inputs: number;
-  readonly turns: number;
-} {
+function replayGame(record: CompleteGameRecord, line: number): void {
   const game = new MonsGame(false, VARIANT_BY_NAME[record.gameVariant]);
-  let inputCount = 0;
 
   for (const [turnIndex, turn] of record.turns.entries()) {
     const lastTurn = turnIndex === record.turns.length - 1;
     for (const [inputIndex, inputFen] of turn.entries()) {
-      inputCount += 1;
       const lastInput = inputIndex === turn.length - 1;
       const before = game.fen();
       const parsedInputs = parseInputArrayFen(inputFen);
@@ -189,11 +181,10 @@ function replayGame(
       }
     }
   }
-
-  return { inputs: inputCount, turns: record.turns.length };
 }
 
 function parseOptions(argv: readonly string[]): {
+  readonly checkOnly: boolean;
   readonly corpusRoot: string;
 } {
   const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
@@ -203,6 +194,7 @@ function parseOptions(argv: readonly string[]): {
     "complete-games",
     "v1",
   );
+  let checkOnly = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -213,20 +205,22 @@ function parseOptions(argv: readonly string[]): {
       }
       corpusRoot = path.resolve(value);
       index += 1;
+    } else if (argument === "--check-only") {
+      checkOnly = true;
     } else if (argument === "--help" || argument === "-h") {
       console.log(
-        "usage: node scripts/run-complete-games.mjs [--root <corpus-directory>]",
+        "usage: node scripts/run-complete-games.mjs [--check-only] [--root <corpus-directory>]",
       );
       process.exit(0);
     } else {
       fail(`unknown argument: ${String(argument)}`);
     }
   }
-  return { corpusRoot };
+  return { checkOnly, corpusRoot };
 }
 
 async function run(): Promise<void> {
-  const { corpusRoot } = parseOptions(process.argv.slice(2));
+  const { checkOnly, corpusRoot } = parseOptions(process.argv.slice(2));
   const corpusPath = path.join(corpusRoot, "complete-games.jsonl");
   const variantCounts = Object.fromEntries(
     Object.keys(VARIANT_BY_NAME).map((name) => [name, 0]),
@@ -250,11 +244,16 @@ async function run(): Promise<void> {
       const record = parseRecord(raw, line);
       gameCount += 1;
       variantCounts[record.gameVariant] += 1;
-      const replayed = replayGame(record, line);
-      turnCount += replayed.turns;
-      inputCount += replayed.inputs;
+      turnCount += record.turns.length;
+      inputCount += record.turns.reduce(
+        (total, turn) => total + turn.length,
+        0,
+      );
+      if (!checkOnly) {
+        replayGame(record, line);
+      }
 
-      if (gameCount % PROGRESS_INTERVAL === 0) {
+      if (!checkOnly && gameCount % PROGRESS_INTERVAL === 0) {
         console.error(
           `progress: ${gameCount}/${EXPECTED_GAME_COUNT} complete games replayed`,
         );
@@ -288,12 +287,13 @@ async function run(): Promise<void> {
     }
   }
 
+  const action = checkOnly ? "corpus check" : "replay";
   console.log(
-    `complete games replay passed: ${gameCount} games, ${turnCount} turns, ${inputCount} inputs across 12 variants`,
+    `complete games ${action} passed: ${gameCount} games, ${turnCount} turns, ${inputCount} inputs across 12 variants`,
   );
 }
 
 void run().catch((error: unknown) => {
-  console.error(`complete games replay failed: ${errorMessage(error)}`);
+  console.error(`complete games check failed: ${errorMessage(error)}`);
   process.exitCode = 1;
 });

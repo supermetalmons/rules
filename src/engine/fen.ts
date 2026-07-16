@@ -21,11 +21,11 @@ import {
 import { BOARD_CELLS, BOARD_SIZE, type Location } from "./geometry.js";
 import { parseI32Strict, toU32 } from "./numerics.js";
 import {
-  normalizeRustString,
-  rustUtf8ByteLength,
-  sliceRustStringByUtf8Bytes,
-  splitRustWhitespace,
-} from "./rust-string.js";
+  sliceByUtf8Bytes,
+  splitParserWhitespace,
+  toWellFormedString,
+  utf8ByteLength,
+} from "./text.js";
 
 /** The portion of game state serialized by the stable game FEN format. */
 export type GameFenState = {
@@ -41,7 +41,7 @@ export type GameFenState = {
   turnNumber: number;
 };
 
-/** Rust's `str::parse::<i32>()`, restricted to the ASCII grammar it accepts. */
+/** Parse a signed 32-bit integer using the engine's strict ASCII grammar. */
 export function parseI32(text: string): number | undefined {
   return parseI32Strict(text);
 }
@@ -81,8 +81,8 @@ export function monFen(mon: Mon): string {
 }
 
 export function parseMonFen(fen: string): Mon | undefined {
-  const normalized = normalizeRustString(fen);
-  if (rustUtf8ByteLength(normalized) !== 2) {
+  const normalized = toWellFormedString(fen);
+  if (utf8ByteLength(normalized) !== 2) {
     return undefined;
   }
 
@@ -181,13 +181,13 @@ export function itemFen(item: Item): string {
 }
 
 export function parseItemFen(fen: string): Item | undefined {
-  const normalized = normalizeRustString(fen);
-  if (rustUtf8ByteLength(normalized) !== 3) {
+  const normalized = toWellFormedString(fen);
+  if (utf8ByteLength(normalized) !== 3) {
     return undefined;
   }
 
-  const monCode = sliceRustStringByUtf8Bytes(normalized, 0, 2);
-  const contentCode = sliceRustStringByUtf8Bytes(normalized, 2, 3);
+  const monCode = sliceByUtf8Bytes(normalized, 0, 2);
+  const contentCode = sliceByUtf8Bytes(normalized, 2, 3);
   if (monCode === "xx") {
     const mana = parseManaFen(contentCode);
     if (mana !== undefined) {
@@ -259,7 +259,7 @@ export function boardFen(board: Board): string {
 }
 
 /**
- * Parses the legacy board grammar, including its intentionally permissive row
+ * Parses the established board grammar, including its intentionally permissive row
  * handling. Rows need not total eleven cells; invalid item triples merely
  * consume one cell, and an oversized run can place a later item in another row.
  */
@@ -267,7 +267,7 @@ export function parseBoardFen(
   fen: string,
   variant: GameVariant,
 ): Board | undefined {
-  const lines = normalizeRustString(fen).split("/");
+  const lines = toWellFormedString(fen).split("/");
   if (lines.length !== BOARD_SIZE) {
     return undefined;
   }
@@ -336,7 +336,7 @@ export function gameFen(game: GameFenState): string {
 }
 
 export function parseGameFen(fen: string): GameFenState | undefined {
-  const fields = splitRustWhitespace(fen);
+  const fields = splitParserWhitespace(fen);
   if (fields.length !== 10 && fields.length !== 11) {
     return undefined;
   }

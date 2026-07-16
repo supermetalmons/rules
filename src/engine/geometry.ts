@@ -33,10 +33,8 @@ export function locationIndex(value: Location): number {
 }
 
 /**
- * Reproduce Rust's wasm32 indexing expression for mutation-only board access.
- *
- * The legacy implementation multiplied and added as wrapping `i32`, then cast
- * the result to `usize`. Some component-invalid locations therefore alias a
+ * Apply the engine's wrapped signed 32-bit indexing expression for mutation-only
+ * board access. Some component-invalid locations therefore alias a
  * valid linear board slot. Read-only access intentionally continues to use
  * component validation instead.
  */
@@ -176,7 +174,7 @@ export function spiritReachableLocations(
   return cachedLocations(SPIRIT_REACHABILITY, origin);
 }
 
-/** Every board location in Rust array/iterator order (row-major). */
+/** Every board location in row-major array order. */
 export const ALL_LOCATIONS: readonly Location[] = Array.from(
   { length: BOARD_CELLS },
   (_, index) => fromLocationIndex(index),

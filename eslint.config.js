@@ -4,13 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: [
-      "contracts/legacy/**",
-      "pkg/**",
-      "target/**",
-      "test-data/**",
-      "node_modules/**",
-    ],
+    ignores: ["dist/**", "target/**", "test-data/**", "node_modules/**"],
   },
   {
     ...eslint.configs.recommended,
@@ -18,20 +12,19 @@ export default tseslint.config(
       globals: {
         ...globals.browser,
         ...globals.node,
-        ...globals.worker,
       },
     },
   },
   ...tseslint.configs.strictTypeChecked.map((config) => ({
     ...config,
-    files: ["**/*.ts", "**/*.mts"],
+    files: ["**/*.ts"],
   })),
   ...tseslint.configs.stylisticTypeChecked.map((config) => ({
     ...config,
-    files: ["**/*.ts", "**/*.mts"],
+    files: ["**/*.ts"],
   })),
   {
-    files: ["**/*.ts", "**/*.mts"],
+    files: ["**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -57,6 +50,12 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-return": "off",
+    },
+  },
+  {
+    files: ["mons-rules.d.ts"],
+    rules: {
+      "@typescript-eslint/no-misused-new": "off",
     },
   },
 );

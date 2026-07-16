@@ -80,15 +80,11 @@ export type SearchConfig = AutomoveSearchExecutionConfig;
 export type MoveClassFlags = SelectorMoveClassFlags;
 
 export type RootCandidate = SelectorScoredRootMove & {
-  /** Backward-compatible alias for the shared selector `rootRank`. */
-  readonly rank: number;
-  /** Backward-compatible alias for `interviewSoftPriority`. */
-  readonly softPriority: number;
   readonly events: readonly Event[];
   readonly stateHash: Hash64;
 };
 
-type RootCandidateDraft = Omit<RootCandidate, "rank" | "rootRank">;
+type RootCandidateDraft = Omit<RootCandidate, "rootRank">;
 
 function scoreForColor(game: MonsGame, color: Color): number {
   return color === Color.White ? game.whiteScore : game.blackScore;
@@ -1017,7 +1013,7 @@ function buildRootCandidate(
       Math.max(0, config.rootManaHandoffPenalty),
     ) > 0;
   const roundtrip = hasRoundtrip(transition.events);
-  const softPriority = rootSoftPriority(config, {
+  const interviewSoftPriority = rootSoftPriority(config, {
     supermanaProgress,
     opponentManaProgress,
     safeSupermanaProgressSteps,
@@ -1045,7 +1041,7 @@ function buildRootCandidate(
     heuristic,
     orderingEventBonus(before.activeColor, perspective, transition.events),
   );
-  heuristic = saturatingAddI32(heuristic, softPriority);
+  heuristic = saturatingAddI32(heuristic, interviewSoftPriority);
   const spentPotion = transition.events.some(
     (event) => event.kind === "use-potion",
   );
@@ -1094,13 +1090,12 @@ function buildRootCandidate(
     spiritOwnManaSetupNow,
     supermanaProgress,
     opponentManaProgress,
-    softPriority,
-    interviewSoftPriority: softPriority,
+    interviewSoftPriority,
     classes,
   };
 }
 
-/** Exact Rust `build_scored_root_move` seam for absent advisor engine heads. */
+/** Build a scored root candidate when the advisor has no engine head. */
 export function buildRootCandidateForInputs(
   game: MonsGame,
   perspective: Color,
@@ -1122,9 +1117,7 @@ export function buildRootCandidateForInputs(
     isOwnDrainerVulnerable(game, perspective),
     () => rootCandidateSourceSnapshot(game, perspective),
   );
-  return candidate === undefined
-    ? undefined
-    : { ...candidate, rank: 0, rootRank: 0 };
+  return candidate === undefined ? undefined : { ...candidate, rootRank: 0 };
 }
 
 function compareBooleanPreferred(left: boolean, right: boolean): number {
@@ -1852,7 +1845,6 @@ export function rankRootCandidates(
   }
   let ranked = drafts.map((candidate, rank): RootCandidate => ({
     ...candidate,
-    rank,
     rootRank: rank,
   }));
   ranked.sort(compareRootCandidates);
@@ -1904,7 +1896,7 @@ export function rankRootCandidates(
         );
         if (cancelled()) return [];
         if (draft !== undefined) {
-          ranked.push({ ...draft, rank: 0, rootRank: 0 });
+          ranked.push({ ...draft, rootRank: 0 });
         }
       }
       ranked.sort(compareRootCandidates);
@@ -1927,7 +1919,6 @@ export function rankRootCandidates(
   ranked = truncateWithClassCoverage(ranked, config.rootBranchLimit);
   ranked = ranked.map((candidate, rank) => ({
     ...candidate,
-    rank,
     rootRank: rank,
   }));
   if (game.fen() !== sourceFen) {

@@ -310,7 +310,7 @@ function buildInitialItems(
 const INITIAL_ITEMS_BY_VARIANT: readonly (readonly (Item | undefined)[])[] =
   ALL_GAME_VARIANTS.map(buildInitialItems);
 
-/** A value-copy of the initial Rust board array. */
+/** A value-copy of the initial board. */
 export function initialItemsForVariant(
   variant: GameVariant,
 ): (Item | undefined)[] {

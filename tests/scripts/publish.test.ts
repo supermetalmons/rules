@@ -81,23 +81,16 @@ function createPublishHarness(
   const releaseVersion = options.version ?? "0.2.0";
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "mons-publish-test-"));
   const binDir = path.join(root, "bin");
-  const scriptsDir = path.join(root, "scripts");
   const responseDir = path.join(root, "registry-responses");
   const logPath = path.join(root, "npm-calls.log");
   const gitLogPath = path.join(root, "git-calls.log");
   const lockDir = path.join(root, "remote-publish-lock");
 
   fs.mkdirSync(binDir);
-  fs.mkdirSync(scriptsDir);
   fs.mkdirSync(responseDir);
-  fs.mkdirSync(path.join(root, "pkg", "mons-rules"), { recursive: true });
   fs.copyFileSync(path.resolve("publish.sh"), path.join(root, "publish.sh"));
   fs.writeFileSync(
     path.join(root, "package.json"),
-    `${JSON.stringify({ version: releaseVersion })}\n`,
-  );
-  fs.writeFileSync(
-    path.join(root, "pkg", "mons-rules", "package.json"),
     `${JSON.stringify({ name: "mons-rules", version: releaseVersion })}\n`,
   );
 
@@ -121,17 +114,6 @@ function createPublishHarness(
     fs.writeFileSync(path.join(lockDir, "oid"), options.existingLockOid);
   }
 
-  for (const script of [
-    "assert-pure-typescript-repository.mjs",
-    "check-complete-games.cjs",
-    "assert-release-npm-package.cjs",
-  ]) {
-    fs.writeFileSync(path.join(scriptsDir, script), "");
-  }
-  writeExecutable(
-    path.join(scriptsDir, "run-rules-tests.sh"),
-    "#!/bin/bash\nexit 0\n",
-  );
   writeExecutable(
     path.join(binDir, "git"),
     `#!/bin/bash
@@ -275,7 +257,7 @@ fi
     PUBLISH_TEST_LOCK_DIR: lockDir,
     PUBLISH_TEST_LOCK_RELEASE_STATUS: String(options.lockReleaseStatus ?? 0),
     PUBLISH_TEST_LOG: logPath,
-    PUBLISH_TEST_PACKAGE_DIR: path.join(root, "pkg", "mons-rules"),
+    PUBLISH_TEST_PACKAGE_DIR: root,
     PUBLISH_TEST_RESPONSE_DIR: responseDir,
     PUBLISH_TEST_PUBLISH_STATUS: String(
       options.publishStatuses?.["mons-rules"] ?? 0,
@@ -355,8 +337,7 @@ describe("publish.sh", () => {
       expect(calls).not.toContain("whoami");
       expect(calls).toContain("view mons-rules versions --json");
       expect(calls).toContain("view mons-rules dist-tags --json");
-      expect(calls).toContain("run typecheck");
-      expect(calls).toContain("run build");
+      expect(calls).toContain("run check");
       expect(
         calls.match(/publish --dry-run --access public --tag latest/g),
       ).toHaveLength(1);
@@ -455,7 +436,7 @@ describe("publish.sh", () => {
       expect(result.stderr).toContain(
         `mons-rules@0.2.0 must be newer than its current latest version ${latest}.`,
       );
-      expect(harness.calls()).not.toContain("run typecheck");
+      expect(harness.calls()).not.toContain("run check");
     } finally {
       fs.rmSync(harness.root, { force: true, recursive: true });
     }
@@ -589,7 +570,7 @@ describe("publish.sh", () => {
         "Could not read published versions for mons-rules.",
       );
       expect(result.stderr).toContain("npm error code E500");
-      expect(harness.calls()).not.toContain("run typecheck");
+      expect(harness.calls()).not.toContain("run check");
     } finally {
       fs.rmSync(harness.root, { force: true, recursive: true });
     }

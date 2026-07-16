@@ -24,11 +24,11 @@ import {
 } from "../engine/geometry.js";
 import { toI32 } from "../engine/numerics.js";
 import {
-  assertWasmClass,
-  coerceOptionalWasmEnum,
-  coerceWasmEnum,
-  isWasmNullish,
-} from "./wasm-abi.js";
+  assertModelInstance,
+  coerceEnum,
+  coerceOptionalEnum,
+  isNullish,
+} from "./coercion.js";
 import { ModelStateMap } from "./model-state-map.js";
 
 export enum OutputModelKind {
@@ -127,7 +127,7 @@ export function locationModelFrom(value: EngineLocation): Location {
 }
 
 export function locationModelToEngine(value: Location): EngineLocation {
-  assertWasmClass(value, Location);
+  assertModelInstance(value, Location);
   return location(value.i, value.j);
 }
 
@@ -156,7 +156,7 @@ export class Mon {
   }
 
   public set kind(value: EngineMon["kind"]) {
-    monState(this).kind = coerceWasmEnum(value, MonKind.Mystic);
+    monState(this).kind = coerceEnum(value, MonKind.Mystic);
   }
 
   public get color(): Color {
@@ -164,7 +164,7 @@ export class Mon {
   }
 
   public set color(value: Color) {
-    monState(this).color = coerceWasmEnum(value, Color.Black);
+    monState(this).color = coerceEnum(value, Color.Black);
   }
 
   public get cooldown(): number {
@@ -184,8 +184,8 @@ export class Mon {
   }
 
   public static new(kind: MonKind, color: Color, cooldown: number): Mon {
-    const coercedKind = coerceWasmEnum(kind, MonKind.Mystic);
-    const coercedColor = coerceWasmEnum(color, Color.Black);
+    const coercedKind = coerceEnum(kind, MonKind.Mystic);
+    const coercedColor = coerceEnum(color, Color.Black);
     const result = new Mon();
     monStates.set(result, {
       kind: coercedKind,
@@ -207,7 +207,7 @@ export function monModelFrom(value: EngineMon): Mon {
 }
 
 export function monModelToEngine(value: Mon): EngineMon {
-  assertWasmClass(value, Mon);
+  assertModelInstance(value, Mon);
   return cloneMon(monState(value));
 }
 
@@ -238,7 +238,7 @@ export class ManaModel {
   }
 
   public set kind(value: ManaKind) {
-    manaModelState(this).kind = coerceWasmEnum(value, ManaKind.Supermana);
+    manaModelState(this).kind = coerceEnum(value, ManaKind.Supermana);
   }
 
   public get color(): Color {
@@ -246,7 +246,7 @@ export class ManaModel {
   }
 
   public set color(value: Color) {
-    manaModelState(this).color = coerceWasmEnum(value, Color.Black);
+    manaModelState(this).color = coerceEnum(value, Color.Black);
   }
 }
 
@@ -267,14 +267,8 @@ function manaModelFromState(value: ManaModelState): ManaModel {
 }
 
 function manaModelStateFromModel(value: ManaModel): ManaModelState {
-  assertWasmClass(value, ManaModel);
+  assertModelInstance(value, ManaModel);
   return cloneManaModelState(manaModelState(value));
-}
-
-function manaModelStateToEngine(value: ManaModelState): Mana {
-  return value.kind === ManaKind.Supermana
-    ? { kind: "supermana" }
-    : { kind: "regular", color: value.color };
 }
 
 export function manaModelFrom(value: Mana): ManaModel {
@@ -309,7 +303,7 @@ export class ItemModel {
   }
 
   public set kind(value: ItemModelKind) {
-    itemModelState(this).kind = coerceWasmEnum(value, ItemModelKind.Consumable);
+    itemModelState(this).kind = coerceEnum(value, ItemModelKind.Consumable);
   }
 
   public get mon(): Mon | undefined {
@@ -319,7 +313,7 @@ export class ItemModel {
 
   public set mon(value: Mon | undefined) {
     const state = itemModelState(this);
-    if (isWasmNullish(value)) {
+    if (isNullish(value)) {
       delete state.mon;
     } else {
       state.mon = monModelToEngine(value);
@@ -333,7 +327,7 @@ export class ItemModel {
 
   public set mana(value: ManaModel | undefined) {
     const state = itemModelState(this);
-    if (isWasmNullish(value)) {
+    if (isNullish(value)) {
       delete state.mana;
     } else {
       state.mana = manaModelStateFromModel(value);
@@ -346,17 +340,13 @@ export class ItemModel {
 
   public set consumable(value: Consumable | undefined) {
     const state = itemModelState(this);
-    const coerced = coerceOptionalWasmEnum(value, Consumable.BombOrPotion);
+    const coerced = coerceOptionalEnum(value, Consumable.BombOrPotion);
     if (coerced === undefined) {
       delete state.consumable;
     } else {
       state.consumable = coerced;
     }
   }
-}
-
-export function manaModelToEngine(value: ManaModel): Mana {
-  return manaModelStateToEngine(manaModelStateFromModel(value));
 }
 
 function cloneItemModelState(value: ItemModelState): ItemModelState {
@@ -406,49 +396,12 @@ function itemModelFromState(value: ItemModelState): ItemModel {
 }
 
 function itemModelStateFromModel(value: ItemModel): ItemModelState {
-  assertWasmClass(value, ItemModel);
+  assertModelInstance(value, ItemModel);
   return cloneItemModelState(itemModelState(value));
 }
 
 export function itemModelFrom(value: Item): ItemModel {
   return itemModelFromState(itemModelStateFromEngine(value));
-}
-
-export function itemModelToEngine(value: ItemModel): Item | undefined {
-  const state = itemModelStateFromModel(value);
-  switch (state.kind) {
-    case ItemModelKind.Mon:
-      return state.mon === undefined
-        ? undefined
-        : { kind: "mon", mon: cloneMon(state.mon) };
-    case ItemModelKind.Mana:
-      return state.mana === undefined
-        ? undefined
-        : {
-            kind: "mana",
-            mana: manaModelStateToEngine(state.mana),
-          };
-    case ItemModelKind.MonWithMana:
-      return state.mon === undefined || state.mana === undefined
-        ? undefined
-        : {
-            kind: "mon-with-mana",
-            mon: cloneMon(state.mon),
-            mana: manaModelStateToEngine(state.mana),
-          };
-    case ItemModelKind.MonWithConsumable:
-      return state.mon === undefined || state.consumable === undefined
-        ? undefined
-        : {
-            kind: "mon-with-consumable",
-            mon: cloneMon(state.mon),
-            consumable: state.consumable,
-          };
-    case ItemModelKind.Consumable:
-      return state.consumable === undefined
-        ? undefined
-        : { kind: "consumable", consumable: state.consumable };
-  }
 }
 
 type NextInputModelState = {
@@ -484,7 +437,7 @@ export class NextInputModel {
 
   public set location(value: Location | undefined) {
     const state = nextInputModelState(this);
-    if (isWasmNullish(value)) {
+    if (isNullish(value)) {
       delete state.location;
     } else {
       state.location = locationModelToEngine(value);
@@ -497,7 +450,7 @@ export class NextInputModel {
 
   public set modifier(value: Modifier | undefined) {
     const state = nextInputModelState(this);
-    const coerced = coerceOptionalWasmEnum(value, Modifier.Cancel);
+    const coerced = coerceOptionalEnum(value, Modifier.Cancel);
     if (coerced === undefined) {
       delete state.modifier;
     } else {
@@ -510,7 +463,7 @@ export class NextInputModel {
   }
 
   public set kind(value: NextInputKind) {
-    nextInputModelState(this).kind = coerceWasmEnum(
+    nextInputModelState(this).kind = coerceEnum(
       value,
       NextInputKind.BombAttack,
     );
@@ -523,7 +476,7 @@ export class NextInputModel {
 
   public set actor_mon_item(value: ItemModel | undefined) {
     const state = nextInputModelState(this);
-    if (isWasmNullish(value)) {
+    if (isNullish(value)) {
       delete state.actorMonItem;
     } else {
       state.actorMonItem = itemModelStateFromModel(value);
@@ -577,10 +530,7 @@ export class EventModel {
   }
 
   public set kind(value: EventModelKind) {
-    eventModelState(this).kind = coerceWasmEnum(
-      value,
-      EventModelKind.UsePotion,
-    );
+    eventModelState(this).kind = coerceEnum(value, EventModelKind.UsePotion);
   }
 
   public get item(): ItemModel | undefined {
@@ -590,7 +540,7 @@ export class EventModel {
 
   public set item(value: ItemModel | undefined) {
     const state = eventModelState(this);
-    if (isWasmNullish(value)) delete state.item;
+    if (isNullish(value)) delete state.item;
     else state.item = itemModelStateFromModel(value);
   }
 
@@ -601,7 +551,7 @@ export class EventModel {
 
   public set mon(value: Mon | undefined) {
     const state = eventModelState(this);
-    if (isWasmNullish(value)) delete state.mon;
+    if (isNullish(value)) delete state.mon;
     else state.mon = monModelToEngine(value);
   }
 
@@ -612,7 +562,7 @@ export class EventModel {
 
   public set mana(value: ManaModel | undefined) {
     const state = eventModelState(this);
-    if (isWasmNullish(value)) delete state.mana;
+    if (isNullish(value)) delete state.mana;
     else state.mana = manaModelStateFromModel(value);
   }
 
@@ -623,7 +573,7 @@ export class EventModel {
 
   public set loc1(value: Location | undefined) {
     const state = eventModelState(this);
-    if (isWasmNullish(value)) delete state.loc1;
+    if (isNullish(value)) delete state.loc1;
     else state.loc1 = locationModelToEngine(value);
   }
 
@@ -634,7 +584,7 @@ export class EventModel {
 
   public set loc2(value: Location | undefined) {
     const state = eventModelState(this);
-    if (isWasmNullish(value)) delete state.loc2;
+    if (isNullish(value)) delete state.loc2;
     else state.loc2 = locationModelToEngine(value);
   }
 
@@ -644,7 +594,7 @@ export class EventModel {
 
   public set color(value: Color | undefined) {
     const state = eventModelState(this);
-    const coerced = coerceOptionalWasmEnum(value, Color.Black);
+    const coerced = coerceOptionalEnum(value, Color.Black);
     if (coerced === undefined) delete state.color;
     else state.color = coerced;
   }
@@ -804,10 +754,7 @@ export class SquareModel {
   }
 
   public set kind(value: SquareModelKind) {
-    squareModelState(this).kind = coerceWasmEnum(
-      value,
-      SquareModelKind.MonBase,
-    );
+    squareModelState(this).kind = coerceEnum(value, SquareModelKind.MonBase);
   }
 
   public get color(): Color | undefined {
@@ -816,7 +763,7 @@ export class SquareModel {
 
   public set color(value: Color | undefined) {
     const state = squareModelState(this);
-    const coerced = coerceOptionalWasmEnum(value, Color.Black);
+    const coerced = coerceOptionalEnum(value, Color.Black);
     if (coerced === undefined) delete state.color;
     else state.color = coerced;
   }
@@ -827,7 +774,7 @@ export class SquareModel {
 
   public set mon_kind(value: MonKind | undefined) {
     const state = squareModelState(this);
-    const coerced = coerceOptionalWasmEnum(value, MonKind.Mystic);
+    const coerced = coerceOptionalEnum(value, MonKind.Mystic);
     if (coerced === undefined) delete state.monKind;
     else state.monKind = coerced;
   }
@@ -923,7 +870,7 @@ export class OutputModel {
   }
 
   public set kind(value: OutputModelKind) {
-    outputKinds.set(this, coerceWasmEnum(value, OutputModelKind.Events));
+    outputKinds.set(this, coerceEnum(value, OutputModelKind.Events));
   }
 }
 

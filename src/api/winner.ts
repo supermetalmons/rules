@@ -1,7 +1,7 @@
 import { Color } from "../engine/domain.js";
 import { colorFen, parseInputArrayFen } from "../engine/fen.js";
 import { MonsGame } from "../engine/game.js";
-import { normalizeRustString } from "../engine/rust-string.js";
+import { toWellFormedString } from "../engine/text.js";
 
 /** Validate two submitted end states and their independent move histories. */
 export function winner(
@@ -10,16 +10,16 @@ export function winner(
   flat_moves_string_w: string,
   flat_moves_string_b: string,
 ): string {
-  const rustFenW = normalizeRustString(fen_w);
-  const rustFenB = normalizeRustString(fen_b);
-  const rustMovesW = normalizeRustString(flat_moves_string_w);
-  const rustMovesB = normalizeRustString(flat_moves_string_b);
-  // Unlike verify_moves, the legacy winner route deliberately keeps one empty
+  const inputFenW = toWellFormedString(fen_w);
+  const inputFenB = toWellFormedString(fen_b);
+  const normalizedMovesW = toWellFormedString(flat_moves_string_w);
+  const normalizedMovesB = toWellFormedString(flat_moves_string_b);
+  // Unlike verify_moves, the winner route deliberately keeps one empty
   // move when passed an empty string.
-  const movesW = rustMovesW.split("-");
-  const movesB = rustMovesB.split("-");
-  const gameW = MonsGame.fromFen(rustFenW, false);
-  const gameB = MonsGame.fromFen(rustFenB, false);
+  const movesW = normalizedMovesW.split("-");
+  const movesB = normalizedMovesB.split("-");
+  const gameW = MonsGame.fromFen(inputFenW, false);
+  const gameB = MonsGame.fromFen(inputFenB, false);
 
   if (gameW === undefined || gameB === undefined) {
     if (gameW === undefined && gameB === undefined) {

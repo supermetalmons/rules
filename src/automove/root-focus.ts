@@ -31,7 +31,7 @@ export type RootFocusMoveClassFlags = {
   readonly quiet: boolean;
 };
 
-/** Structural subset of the legacy `ScoredRootMove` used by root focusing. */
+/** Structural subset of `ScoredRootMove` used by root focusing. */
 export type RootFocusCandidate = {
   readonly inputs: readonly Input[];
   readonly game: { readonly activeColor: number };
@@ -423,9 +423,9 @@ function nonnegativeInteger(value: number, fallback: number): number {
   return Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : fallback;
 }
 
-function rustClamp(value: number, minimum: number, maximum: number): number {
+function clampInteger(value: number, minimum: number, maximum: number): number {
   if (minimum > maximum) {
-    throw new RangeError("root scout budget has invalid Rust clamp bounds");
+    throw new RangeError("root scout budget has invalid clamp bounds");
   }
   return Math.min(maximum, Math.max(minimum, Math.trunc(value)));
 }
@@ -465,8 +465,8 @@ export function focusedRootCandidates<
   const scoutDepth =
     config.enableTwoPassVolatilityFocus || config.depth <= 3
       ? 1
-      : rustClamp(config.depth, 1, ROOT_FOCUS_CONSTANTS.scoutDepth);
-  const scoutShareBp = rustClamp(
+      : clampInteger(config.depth, 1, ROOT_FOCUS_CONSTANTS.scoutDepth);
+  const scoutShareBp = clampInteger(
     10_000 - ROOT_FOCUS_CONSTANTS.focusBudgetShareBp,
     500,
     4_000,
@@ -474,7 +474,7 @@ export function focusedRootCandidates<
   const scoutBudget =
     scoutDepth <= 1
       ? rootMoves.length
-      : rustClamp(
+      : clampInteger(
           Math.trunc((config.maxVisitedNodes * scoutShareBp) / 10_000),
           ROOT_FOCUS_CONSTANTS.scoutMinNodes,
           Math.max(0, config.maxVisitedNodes - 1),

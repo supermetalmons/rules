@@ -178,7 +178,7 @@ export type TurnEngineUtilityValues = {
   readonly evalScore?: number;
 };
 
-/** Lexicographically ordered utility tuple used by the Rust turn engine. */
+/** Lexicographically ordered utility tuple used by the turn engine. */
 export class TurnEngineUtility {
   public readonly winState: number;
   public readonly avoidImmediateLoss: number;
@@ -661,25 +661,6 @@ export function clearTurnEnginePlanCache(): void {
   utilityCache.clear();
   bestPlanCache.clear();
   noPlanCache.clear();
-}
-
-export type TurnEngineCacheSizesForTesting = {
-  readonly continuations: number;
-  readonly oracles: number;
-  readonly utilities: number;
-  readonly bestPlans: number;
-  readonly noPlans: number;
-};
-
-/** Internal cache observability for focused parity tests; not re-exported publicly. */
-export function turnEngineCacheSizesForTesting(): TurnEngineCacheSizesForTesting {
-  return {
-    continuations: continuationCache.size,
-    oracles: oracleCache.size,
-    utilities: utilityCache.size,
-    bestPlans: bestPlanCache.size,
-    noPlans: noPlanCache.size,
-  };
 }
 
 export function turnSnapshotFromGame(game: MonsGame): TurnSnapshot {

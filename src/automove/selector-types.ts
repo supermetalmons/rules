@@ -11,7 +11,7 @@ import type { ScoringWeights } from "./scoring.js";
 export type SmartAutomovePreference = "fast" | "normal" | "pro";
 
 /**
- * Numeric mirror of the legacy Rust `TurnEngineMode` declaration.
+ * Numeric modes used by the turn engine.
  *
  * This value-shaped representation keeps the selector configuration acyclic;
  * the turn-engine module's public enum has the same ordinals.
@@ -24,7 +24,7 @@ export const AUTOMOVE_TURN_ENGINE_MODE = Object.freeze({
 export type AutomoveTurnEngineMode =
   (typeof AUTOMOVE_TURN_ENGINE_MODE)[keyof typeof AUTOMOVE_TURN_ENGINE_MODE];
 
-/** Exact camelCase mirror of the shipping Rust selector configuration. */
+/** Selector configuration shared by search and runtime execution. */
 export type AutomoveSearchConfig = {
   readonly depth: number;
   readonly maxVisitedNodes: number;
@@ -92,13 +92,13 @@ export type AutomoveSearchConfig = {
 };
 
 /**
- * A lossless bridge from the legacy selector config to the current search
+ * A lossless bridge from selector configuration to the current search
  * implementation's constant-backed fields and naming.
  */
 export type AutomoveSearchExecutionConfig = AutomoveSearchConfig & {
   readonly preference: SmartAutomovePreference;
   readonly scoringKey: string;
-  /** Rust exposes this as a per-search execution switch. */
+  /** Per-search execution switch. */
   readonly useTranspositionTable: boolean;
   readonly enableExactRootAnalysis: boolean;
   readonly maxExtensionsPerPath: number;
@@ -156,12 +156,12 @@ type RootObservation = {
   readonly classes: MoveClassFlags;
 };
 
-/** Shared camelCase mirror of the legacy `ScoredRootMove`. */
+/** Shared scored root move shape. */
 export type ScoredRootMove = RootObservation & {
   readonly heuristic: number;
 };
 
-/** Shared camelCase mirror of the legacy `RootEvaluation`. */
+/** Shared root evaluation shape. */
 export type RootEvaluation = RootObservation & {
   readonly score: number;
 };

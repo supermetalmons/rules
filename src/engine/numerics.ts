@@ -1,4 +1,4 @@
-/** The bounds of Rust's `i32` type. */
+/** The bounds of a signed 32-bit integer. */
 export const I32_MIN = -0x8000_0000;
 export const I32_MAX = 0x7fff_ffff;
 export const U32_MAX = 0xffff_ffff;
@@ -7,7 +7,7 @@ const I32_PATTERN = /^[+-]?\d+/u;
 const U64_MASK = (1n << 64n) - 1n;
 
 /**
- * Apply the JavaScript-to-WebAssembly i32 conversion used by wasm-bindgen.
+ * Apply JavaScript's signed 32-bit integer conversion.
  * Fractions truncate, non-finite values become zero, and large values wrap.
  */
 export function toI32(value: number): number {
@@ -88,7 +88,7 @@ export function clampI32(value: number): number {
   return Math.trunc(value);
 }
 
-/** Rust-compatible strict `str::parse::<i32>()`. */
+/** Strict signed 32-bit integer parsing. */
 export function parseI32Strict(value: string): number | undefined {
   const match = I32_PATTERN.exec(value);
   if (match?.[0] !== value) {

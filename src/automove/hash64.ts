@@ -151,16 +151,6 @@ function hash64FromBigInt(value: bigint): Hash64 {
   );
 }
 
-/** BigInt adapter for parity tests; hot-path runtime hashing must not call this. */
-export function hash64FromBigIntForTesting(value: bigint): Hash64 {
-  return hash64FromBigInt(value);
-}
-
-/** BigInt adapter for parity tests; runtime hashing must not call this. */
-export function hash64ToBigIntForTesting(value: Hash64): bigint {
-  return (BigInt(value.hi) << 32n) | BigInt(value.lo);
-}
-
 type Hash64Entry<V> = {
   readonly primaryHi: number;
   readonly primaryLo: number;

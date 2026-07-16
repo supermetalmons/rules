@@ -1702,7 +1702,7 @@ function scoreCompetition(context: RootSelectionContext): boolean {
 }
 
 type SpiritProjectionMap = ReturnType<
-  typeof replyRiskAdvisorPolicy.turnEngineSpiritRootProjections
+  typeof replyRiskAdvisorPolicy.buildSpiritRootProjections
 >;
 
 function projectedSpiritIndices(
@@ -1961,7 +1961,7 @@ function buildRootPolicyCallbacks(
     const key = `${context.perspective}:${context.candidateIndices.join(",")}`;
     const cached = projectionCache.get(key);
     if (cached !== undefined) return cached;
-    const built = replyRiskAdvisorPolicy.turnEngineSpiritRootProjections(
+    const built = replyRiskAdvisorPolicy.buildSpiritRootProjections(
       context.roots,
       context.candidateIndices,
       context.perspective,

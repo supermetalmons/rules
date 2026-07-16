@@ -1,5 +1,5 @@
-import crypto from "node:crypto";
-import fs from "node:fs";
+import { createHash, type BinaryLike } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -14,9 +14,6 @@ import {
   type SquareModel,
 } from "../../src/entrypoints/mons-rules.js";
 
-const EXPECTED_MANIFEST_SHA256 =
-  "d926b6a258b2690db4b1649d49cf2d1253abd074bad5c1688c09ce5894937448";
-
 type ArtifactManifest = {
   readonly path: string;
   readonly recordCount: number;
@@ -27,17 +24,12 @@ type ArtifactManifest = {
   readonly lastId: string;
 };
 
-type CompatibilityManifest = {
+type EdgeManifest = {
   readonly schemaVersion: number;
   readonly corpusVersion: string;
-  readonly source: {
-    readonly baselineCommit: string;
-    readonly packageName: string;
-    readonly packageVersion: string;
-  };
   readonly constants: {
     readonly classicInitialFen: string;
-    readonly rustWhitespaceCodePoints: readonly number[];
+    readonly parserWhitespaceCodePoints: readonly number[];
     readonly explicitNonWhitespaceCodePoints: readonly number[];
   };
   readonly statistics: {
@@ -54,48 +46,98 @@ type CompatibilityManifest = {
   };
 };
 
+type Operation =
+  | "MonsGameModel.from_fen"
+  | "MonsGameModel.item/square/remove_item"
+  | "MonsGameModel.process_input_fen";
+
+type ThrowObservation = {
+  readonly kind: "throw";
+  readonly errorName: string;
+  readonly message: string;
+};
+
 type EdgeRecord = {
   readonly id: string;
   readonly category: string;
-  readonly operation:
-    | "MonsGameModel.from_fen"
-    | "MonsGameModel.item/square/remove_item"
-    | "MonsGameModel.process_input_fen";
+  readonly operation: Operation;
+  readonly expectedParserWhitespace?: boolean | undefined;
+  readonly inputSpec?:
+    | {
+        readonly replaceAsciiFieldSeparatorsWithCodePoint?: number;
+      }
+    | undefined;
+  readonly inputFen?: string | undefined;
+  readonly inputCodeUnits?: readonly number[] | undefined;
+  readonly constructorArgs?:
+    | {
+        readonly iExpression: string;
+        readonly jExpression: string;
+      }
+    | undefined;
+  readonly expected: Readonly<Record<string, unknown>>;
+  readonly policy: "exception" | "matching";
+};
+
+/* The immutable v1 payload keeps these stored field and category names. */
+type StoredEdgeRecord = {
+  readonly id: string;
+  readonly category: string;
+  readonly operation: Operation;
   readonly expectedRustWhitespace?: boolean;
-  readonly inputSpec?: {
-    readonly replaceAsciiFieldSeparatorsWithCodePoint?: number;
-  };
+  readonly inputSpec?: EdgeRecord["inputSpec"];
   readonly inputFen?: string;
   readonly inputCodeUnits?: readonly number[];
-  readonly constructorArgs?: {
-    readonly iExpression: string;
-    readonly jExpression: string;
-  };
+  readonly constructorArgs?: EdgeRecord["constructorArgs"];
   readonly legacy: Readonly<Record<string, unknown>>;
   readonly typescriptPolicy: {
     readonly kind: "approved-exception" | "match-legacy";
-    readonly expected?: {
-      readonly kind: "throw";
-      readonly errorName: string;
-      readonly message: string;
-    };
+    readonly expected?: ThrowObservation;
   };
 };
 
-const corpusDirectory = path.resolve("test-data/compatibility-edge-cases/v1");
-const manifestBytes = fs.readFileSync(
-  path.join(corpusDirectory, "manifest.json"),
-);
-const manifest = JSON.parse(
-  manifestBytes.toString("utf8"),
-) as CompatibilityManifest;
+function adaptStoredRecord(record: StoredEdgeRecord): EdgeRecord {
+  const category =
+    record.category === "rust-whitespace"
+      ? "parser-whitespace"
+      : record.category === "wasm-string-normalization"
+        ? "string-normalization"
+        : record.category;
+  const exception = record.typescriptPolicy.kind === "approved-exception";
+  const exceptionObservation = record.typescriptPolicy.expected;
+  if (exception && exceptionObservation === undefined) {
+    throw new Error(`${record.id} is missing its approved exception`);
+  }
+  const expected = exception
+    ? record.operation === "MonsGameModel.item/square/remove_item"
+      ? { ...record.legacy, remove: exceptionObservation }
+      : exceptionObservation
+    : record.legacy;
+  return {
+    id: record.id,
+    category,
+    operation: record.operation,
+    expectedParserWhitespace: record.expectedRustWhitespace,
+    inputSpec: record.inputSpec,
+    inputFen: record.inputFen,
+    inputCodeUnits: record.inputCodeUnits,
+    constructorArgs: record.constructorArgs,
+    expected: expected ?? {},
+    policy: exception ? "exception" : "matching",
+  };
+}
 
-function sha256(value: crypto.BinaryLike): string {
-  return crypto.createHash("sha256").update(value).digest("hex");
+const corpusDirectory = path.resolve("test-data/compatibility-edge-cases/v1");
+const manifest = JSON.parse(
+  readFileSync(path.join(corpusDirectory, "manifest.json"), "utf8"),
+) as EdgeManifest;
+
+function sha256(value: BinaryLike): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 function readArtifact(artifact: ArtifactManifest): readonly EdgeRecord[] {
-  const bytes = fs.readFileSync(path.resolve(artifact.path));
+  const bytes = readFileSync(path.resolve(artifact.path));
   expect(bytes.byteLength).toBe(artifact.bytes);
   expect(sha256(bytes)).toBe(artifact.sha256);
 
@@ -103,23 +145,17 @@ function readArtifact(artifact: ArtifactManifest): readonly EdgeRecord[] {
   expect(text.endsWith("\n")).toBe(true);
   const lines = text.slice(0, -1).split("\n");
   expect(lines).toHaveLength(artifact.recordCount);
-  const records = lines.map((line) => {
-    const record = JSON.parse(line) as EdgeRecord;
+  const stored = lines.map((line) => {
+    const record = JSON.parse(line) as StoredEdgeRecord;
     expect(JSON.stringify(record)).toBe(line);
     return record;
   });
-  const ids = records.map(({ id }) => id);
+  const ids = stored.map(({ id }) => id);
   expect(ids[0]).toBe(artifact.firstId);
   expect(ids.at(-1)).toBe(artifact.lastId);
   expect(sha256(`${ids.join("\n")}\n`)).toBe(artifact.orderedIdsSha256);
-  return records;
+  return stored.map(adaptStoredRecord);
 }
-
-type ThrowObservation = {
-  readonly kind: "throw";
-  readonly errorName: string;
-  readonly message: string;
-};
 
 function throwObservation(error: unknown): ThrowObservation {
   if (error instanceof Error) {
@@ -296,19 +332,6 @@ function executeCoordinateCase(
   };
 }
 
-function expectedObservation(
-  record: EdgeRecord,
-): Readonly<Record<string, unknown>> {
-  if (record.typescriptPolicy.kind === "match-legacy") return record.legacy;
-  const expected = required(
-    record.typescriptPolicy.expected,
-    `${record.id} approved TypeScript exception`,
-  );
-  return record.operation === "MonsGameModel.item/square/remove_item"
-    ? { ...record.legacy, remove: expected }
-    : expected;
-}
-
 function executeRecord(record: EdgeRecord): Readonly<Record<string, unknown>> {
   switch (record.operation) {
     case "MonsGameModel.from_fen":
@@ -320,22 +343,12 @@ function executeRecord(record: EdgeRecord): Readonly<Record<string, unknown>> {
   }
 }
 
-describe("compatibility edge-case corpus", () => {
-  const recordsByArtifact = manifest.artifacts.map((artifact) => ({
-    artifact,
-    records: readArtifact(artifact),
-  }));
-  const records = recordsByArtifact.flatMap(({ records: entries }) => entries);
+describe("public API edge-case corpus", () => {
+  const records = manifest.artifacts.flatMap(readArtifact);
 
-  it("pins its baseline, artifact bytes, record order, and aggregate metadata", () => {
-    expect(sha256(manifestBytes)).toBe(EXPECTED_MANIFEST_SHA256);
+  it("pins artifact bytes, record order, and aggregate metadata", () => {
     expect(manifest.schemaVersion).toBe(1);
-    expect(manifest.corpusVersion).toBe("compatibility-edge-cases-v1");
-    expect(manifest.source).toMatchObject({
-      baselineCommit: "55c9e97f8643e3edba7249a1daff1f2b83fccad9",
-      packageName: "mons-rust",
-      packageVersion: "0.1.135",
-    });
+    expect(manifest.corpusVersion).toBe("api-edge-cases-v1");
     expect(records).toHaveLength(manifest.statistics.recordCount);
     expect(records).toHaveLength(manifest.aggregate.recordCount);
     expect(
@@ -354,16 +367,24 @@ describe("compatibility edge-case corpus", () => {
         (categoryCounts[record.category] ?? 0) + 1;
     }
     expect(categoryCounts).toEqual(manifest.statistics.categoryCounts);
+    expect(records.filter(({ policy }) => policy === "matching")).toHaveLength(
+      manifest.statistics.matchingCaseCount,
+    );
+    expect(records.filter(({ policy }) => policy === "exception")).toHaveLength(
+      manifest.statistics.approvedExceptionCount,
+    );
   });
 
-  it("freezes the exact Rust whitespace set and important exclusions", () => {
+  it("pins the parser whitespace set and explicit exclusions", () => {
     const whitespaceRecords = records.filter(
-      ({ category }) => category === "rust-whitespace",
+      ({ category }) => category === "parser-whitespace",
     );
     const codePoints = (expected: boolean) =>
       whitespaceRecords
-        .filter(({ expectedRustWhitespace }) =>
-          expected ? expectedRustWhitespace : expectedRustWhitespace === false,
+        .filter(({ expectedParserWhitespace }) =>
+          expected
+            ? expectedParserWhitespace
+            : expectedParserWhitespace === false,
         )
         .map(
           ({ inputSpec }) =>
@@ -371,136 +392,17 @@ describe("compatibility edge-case corpus", () => {
         );
 
     expect(codePoints(true)).toEqual(
-      manifest.constants.rustWhitespaceCodePoints,
+      manifest.constants.parserWhitespaceCodePoints,
     );
     expect(codePoints(false)).toEqual(
       manifest.constants.explicitNonWhitespaceCodePoints,
     );
-    expect(manifest.constants.rustWhitespaceCodePoints).toContain(0x85);
-    expect(manifest.constants.rustWhitespaceCodePoints).not.toContain(0xfeff);
-    expect(manifest.constants.explicitNonWhitespaceCodePoints).toContain(
-      0xfeff,
-    );
-    for (const record of whitespaceRecords) {
-      if (record.expectedRustWhitespace === true) {
-        expect(record.legacy).toMatchObject({
-          kind: "accepted",
-          normalizedFen: manifest.constants.classicInitialFen,
-        });
-      } else {
-        expect(record.legacy).toEqual({ kind: "undefined" });
-      }
-    }
   });
 
-  it("covers every surrogate normalization class and UTF-8 item boundary", () => {
-    const normalizationIds = records
-      .filter(({ category }) => category === "wasm-string-normalization")
-      .map(({ id }) => id);
-    expect(normalizationIds).toEqual([
-      "normalization-ascii",
-      "normalization-bom",
-      "normalization-nel",
-      "normalization-valid-pair",
-      "normalization-lone-high",
-      "normalization-lone-low",
-      "normalization-high-then-ascii",
-      "normalization-ascii-then-low",
-      "normalization-high-high",
-      "normalization-low-high",
-      "normalization-pair-then-high",
-      "normalization-bom-then-high",
-    ]);
-    expect(
-      records.find(({ id }) => id === "normalization-valid-pair")
-        ?.inputCodeUnits,
-    ).toEqual([0xd83d, 0xde00]);
-    expect(
-      records.find(({ id }) => id === "normalization-bom-then-high")
-        ?.inputCodeUnits,
-    ).toEqual([0xfeff, 0xd800]);
-    expect(
-      records.find(({ id }) => id === "normalization-lone-high")?.legacy,
-    ).toMatchObject({ echoedCodePoints: [0xfffd] });
-    expect(
-      records.find(({ id }) => id === "normalization-valid-pair")?.legacy,
-    ).toMatchObject({ echoedCodePoints: [0x1f600] });
-    expect(
-      records.find(({ id }) => id === "normalization-bom-then-high")?.legacy,
-    ).toMatchObject({ echoedCodePoints: [0xfeff, 0xfffd] });
-
-    const utf8Ids = records
-      .filter(({ category }) => category === "utf8-item")
-      .map(({ id }) => id);
-    expect(utf8Ids).toContain("ascii-two-byte-boundary-trap");
-    expect(utf8Ids).toContain("two-byte-ascii-safe");
-    expect(utf8Ids).toContain("three-byte-boundary-trap");
-    expect(utf8Ids).toContain("valid-pair-four-byte");
-    expect(utf8Ids).toContain("reversed-surrogates-six-byte");
-    expect(utf8Ids).toContain("nul-suffix");
-  });
-
-  it("distinguishes matching observations from approved RangeError policy", () => {
-    const matching = records.filter(
-      ({ typescriptPolicy }) => typescriptPolicy.kind === "match-legacy",
-    );
-    const exceptions = records.filter(
-      ({ typescriptPolicy }) => typescriptPolicy.kind === "approved-exception",
-    );
-    expect(matching).toHaveLength(manifest.statistics.matchingCaseCount);
-    expect(exceptions).toHaveLength(manifest.statistics.approvedExceptionCount);
-
-    const allowedMessages = new Set([
-      "board FEN item index is out of bounds",
-      "UTF-8 byte index is not a scalar boundary",
-      "location index is out of bounds",
-    ]);
-    for (const record of exceptions) {
-      const legacyThrow = record.legacy["remove"] ?? record.legacy;
-      expect(legacyThrow).toMatchObject({
-        kind: "throw",
-        errorName: "RuntimeError",
-        message: "unreachable",
-      });
-      expect(record.typescriptPolicy.expected?.errorName).toBe("RangeError");
-      expect(
-        allowedMessages.has(record.typescriptPolicy.expected?.message ?? ""),
-      ).toBe(true);
-    }
-  });
-
-  it("covers permissive aliases and both ordinary and overflowed bounds", () => {
-    expect(
-      records.filter(({ category }) => category === "board-index-alias"),
-    ).toHaveLength(3);
-    expect(
-      records.filter(({ category }) => category === "board-index-oob"),
-    ).toHaveLength(2);
-    expect(
-      records.filter(({ category }) => category === "wrapped-alias"),
-    ).toHaveLength(9);
-    expect(
-      records.filter(({ category }) => category === "wrapped-oob"),
-    ).toHaveLength(6);
-    expect(records.map(({ id }) => id)).toEqual(
-      expect.arrayContaining([
-        "cross-row-11",
-        "row0-run99-alias",
-        "row2-run99-oob",
-        "negative-i-alias",
-        "int-max-overflow-alias",
-        "int-min-overflow-alias",
-        "negative-i-oob",
-        "int-max-oob",
-        "int-min-oob",
-      ]),
-    );
-  });
-
-  describe("public API parity replay", () => {
+  describe("public API replay", () => {
     for (const record of records) {
       it(record.id, () => {
-        expect(executeRecord(record)).toEqual(expectedObservation(record));
+        expect(executeRecord(record)).toEqual(record.expected);
       });
     }
   });

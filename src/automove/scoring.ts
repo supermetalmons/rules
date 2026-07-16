@@ -63,7 +63,7 @@ const MON_BASE_INDICES = new Set(MON_BASE_LOCATIONS.map(locationIndex));
 
 type ScoringDangerSource = {
   readonly location: Location;
-  readonly legacyPlainThreat: boolean;
+  readonly heuristicThreat: boolean;
   readonly exactActionThreat: boolean;
   readonly exactBombThreat: boolean;
 };
@@ -105,7 +105,7 @@ function scoringDangerSourceFlags(
   item: Item,
   mon: Mon,
 ): readonly [boolean, boolean, boolean] {
-  const legacyPlainThreat =
+  const heuristicThreat =
     item.kind !== "mon-with-mana" &&
     (mon.kind === MonKind.Mystic ||
       mon.kind === MonKind.Demon ||
@@ -114,7 +114,7 @@ function scoringDangerSourceFlags(
     mon.kind === MonKind.Mystic || mon.kind === MonKind.Demon;
   const exactBombThreat =
     item.kind === "mon-with-consumable" && item.consumable === Consumable.Bomb;
-  return [legacyPlainThreat, exactActionThreat, exactBombThreat];
+  return [heuristicThreat, exactActionThreat, exactBombThreat];
 }
 
 function scoringBoardSummary(board: Board): ScoringBoardSummary {
@@ -170,12 +170,12 @@ function scoringBoardSummary(board: Board): ScoringBoardSummary {
         if (mon.kind === MonKind.Angel) {
           summary.liveAngelLocations[slot].push(location);
         }
-        const [legacyPlainThreat, exactActionThreat, exactBombThreat] =
+        const [heuristicThreat, exactActionThreat, exactBombThreat] =
           scoringDangerSourceFlags(item, mon);
-        if (legacyPlainThreat || exactActionThreat || exactBombThreat) {
+        if (heuristicThreat || exactActionThreat || exactBombThreat) {
           summary.dangerSources[slot].push({
             location,
-            legacyPlainThreat,
+            heuristicThreat,
             exactActionThreat,
             exactBombThreat,
           });
@@ -432,7 +432,7 @@ export class ScoringEvalContext {
 }
 
 export type ScoringWeights = {
-  readonly useLegacyFormula: boolean;
+  readonly useHeuristicFormula: boolean;
   readonly includeRegularManaMoveWindows: boolean;
   readonly includeMatchPointWindow: boolean;
   readonly nextTurnWindowScaleBp: number;
@@ -493,7 +493,7 @@ function freezeWeights(weights: ScoringWeights): ScoringWeights {
 }
 
 export const DEFAULT_SCORING_WEIGHTS = freezeWeights({
-  useLegacyFormula: true,
+  useHeuristicFormula: true,
   includeRegularManaMoveWindows: false,
   includeMatchPointWindow: false,
   nextTurnWindowScaleBp: 5_000,
@@ -641,7 +641,7 @@ export const TACTICAL_BALANCED_AGGRESSIVE_SCORING_WEIGHTS = freezeWeights({
 
 export const RUNTIME_FAST_DRAINER_CONTEXT_SCORING_WEIGHTS = freezeWeights({
   ...MANA_RACE_LITE_D2_TUNED_SCORING_WEIGHTS,
-  useLegacyFormula: false,
+  useHeuristicFormula: false,
   confirmedScore: 920,
   drainerBestManaPath: 250,
   drainerPickupScoreThisTurn: 210,
@@ -709,13 +709,13 @@ export function evaluatePreferabilityWithContext(
   allowExactStrategic: boolean,
   context: ScoringEvalContext,
 ): number {
-  const useLegacyFormula = allowExactStrategic
-    ? weights.useLegacyFormula
+  const useHeuristicFormula = allowExactStrategic
+    ? weights.useHeuristicFormula
     : true;
   const includeRegularManaMoveWindows =
-    weights.includeRegularManaMoveWindows && !useLegacyFormula;
+    weights.includeRegularManaMoveWindows && !useHeuristicFormula;
   const includeMatchPointWindow =
-    weights.includeMatchPointWindow && !useLegacyFormula;
+    weights.includeMatchPointWindow && !useHeuristicFormula;
   const nextTurnWindowScaleBp = Math.min(
     20_000,
     Math.max(0, toI32(weights.nextTurnWindowScaleBp)),
@@ -725,7 +725,7 @@ export function evaluatePreferabilityWithContext(
     0,
     subI32(MONS_MOVES_PER_TURN, game.monsMovesCount),
   );
-  const exactAnalysis = useLegacyFormula
+  const exactAnalysis = useHeuristicFormula
     ? undefined
     : context.exactAnalysis(game);
   const myExactSummary = exactAnalysis?.colorSummary(color);
@@ -768,13 +768,13 @@ export function evaluatePreferabilityWithContext(
     mon: Mon,
     location: Location,
     multiplier: number,
-    includeLegacyPickupPath: boolean,
+    includeHeuristicPickupPath: boolean,
   ): void => {
     const safety = drainerSafetySnapshotWithContext(
       game.board,
       mon.color,
       location,
-      useLegacyFormula,
+      useHeuristicFormula,
       weights.drainerWalkThreatBoolean !== 0,
       context,
     );
@@ -795,8 +795,8 @@ export function evaluatePreferabilityWithContext(
       addSigned(multiplier, weights.angelGuardingDrainer);
     }
 
-    if (includeLegacyPickupPath || !useLegacyFormula) {
-      const path = useLegacyFormula
+    if (includeHeuristicPickupPath || !useHeuristicFormula) {
+      const path = useHeuristicFormula
         ? bestDrainerPickupPathWithSnapshot(
             context.manaPathSnapshot(game.board),
             mon.color,
@@ -883,10 +883,10 @@ export function evaluatePreferabilityWithContext(
         weights.spiritOnOwnBasePenalty,
       ),
     );
-    const utilityCap = useLegacyFormula ? 4 : 6;
+    const utilityCap = useHeuristicFormula ? 4 : 6;
     let utility: number;
     let pressureBonus: number;
-    if (useLegacyFormula) {
+    if (useHeuristicFormula) {
       utility = spiritActionUtility(game.board, mon.color, location, true);
       pressureBonus = 0;
     } else {
@@ -1013,7 +1013,7 @@ export function evaluatePreferabilityWithContext(
           }
         }
         if (
-          !useLegacyFormula &&
+          !useHeuristicFormula &&
           !MON_BASE_INDICES.has(locationIndex(location))
         ) {
           addSigned(multiplier, weights.activeMon);
@@ -1060,7 +1060,7 @@ export function evaluatePreferabilityWithContext(
               mulI32(weights.regularManaDrainerControl, drainerControl),
             ),
           );
-          if (!useLegacyFormula && manaColor === otherColor(color)) {
+          if (!useHeuristicFormula && manaColor === otherColor(color)) {
             manaBonus = addI32(
               manaBonus,
               mulI32(weights.opponentManaDenial, -drainerControl),
@@ -1086,7 +1086,7 @@ export function evaluatePreferabilityWithContext(
           );
           manaBonus = addI32(
             mulI32(weights.supermanaDrainerControl, drainerControl),
-            useLegacyFormula
+            useHeuristicFormula
               ? 0
               : mulI32(weights.supermanaRaceControl, drainerControl),
           );
@@ -1131,14 +1131,14 @@ export function evaluatePreferabilityWithContext(
         }
 
         const carriesHighValueMana =
-          !useLegacyFormula &&
+          !useHeuristicFormula &&
           mon.kind === MonKind.Drainer &&
           (mana.kind === "supermana" || mana.color !== mon.color);
         const safety = drainerSafetySnapshotWithContext(
           game.board,
           mon.color,
           location,
-          useLegacyFormula,
+          useHeuristicFormula,
           weights.manaCarrierWalkThreatBoolean !== 0 || carriesHighValueMana,
           context,
         );
@@ -1151,7 +1151,7 @@ export function evaluatePreferabilityWithContext(
           addSigned(multiplier, weights.manaCarrierGuarded);
         }
         if (
-          !useLegacyFormula &&
+          !useHeuristicFormula &&
           mon.kind === MonKind.Drainer &&
           carriesHighValueMana
         ) {
@@ -1249,10 +1249,10 @@ export function evaluatePreferabilityWithContext(
               weights.spiritOnOwnBasePenalty,
             ),
           );
-          const utilityCap = useLegacyFormula ? 4 : 6;
+          const utilityCap = useHeuristicFormula ? 4 : 6;
           let utility: number;
           let pressureBonus: number;
-          if (useLegacyFormula) {
+          if (useHeuristicFormula) {
             utility = spiritActionUtility(
               game.board,
               mon.color,
@@ -1277,7 +1277,7 @@ export function evaluatePreferabilityWithContext(
           addSigned(multiplier, pressureBonus);
         }
         if (
-          !useLegacyFormula &&
+          !useHeuristicFormula &&
           !MON_BASE_INDICES.has(locationIndex(location))
         ) {
           addSigned(multiplier, weights.activeMon);
@@ -1289,7 +1289,7 @@ export function evaluatePreferabilityWithContext(
     }
   }
 
-  const myScorePathWindow = useLegacyFormula
+  const myScorePathWindow = useHeuristicFormula
     ? scorePathWindowToAnyPoolForContext(
         game.board,
         context,
@@ -1304,7 +1304,7 @@ export function evaluatePreferabilityWithContext(
         requireExactSummary(myExactSummary),
         includeRegularManaMoveWindows,
       );
-  const opponentScorePathWindow = useLegacyFormula
+  const opponentScorePathWindow = useHeuristicFormula
     ? scorePathWindowToAnyPoolForContext(
         game.board,
         context,
@@ -1329,7 +1329,7 @@ export function evaluatePreferabilityWithContext(
         10_000,
       ),
     );
-    if (!useLegacyFormula) {
+    if (!useHeuristicFormula) {
       addScore(
         scaleByBp(
           divI32(
@@ -1351,7 +1351,7 @@ export function evaluatePreferabilityWithContext(
         10_000,
       ),
     );
-    if (!useLegacyFormula) {
+    if (!useHeuristicFormula) {
       addScore(
         -scaleByBp(
           divI32(
@@ -1368,7 +1368,7 @@ export function evaluatePreferabilityWithContext(
   }
 
   if (game.activeColor === color) {
-    const immediateWindow = useLegacyFormula
+    const immediateWindow = useHeuristicFormula
       ? immediateScoreWindowSummaryForContext(
           game.board,
           context,
@@ -1391,7 +1391,7 @@ export function evaluatePreferabilityWithContext(
         10_000,
       ),
     );
-    if (!useLegacyFormula) {
+    if (!useHeuristicFormula) {
       addScore(
         scaleByBp(
           divI32(
@@ -1454,7 +1454,7 @@ export function evaluatePreferabilityWithContext(
       }
     }
   } else {
-    const opponentImmediateWindow = useLegacyFormula
+    const opponentImmediateWindow = useHeuristicFormula
       ? immediateScoreWindowSummaryForContext(
           game.board,
           context,
@@ -1480,7 +1480,7 @@ export function evaluatePreferabilityWithContext(
         10_000,
       ),
     );
-    if (!useLegacyFormula) {
+    if (!useHeuristicFormula) {
       addScore(
         -scaleByBp(
           divI32(
@@ -1832,18 +1832,20 @@ function spiritActionUtility(
   board: Board,
   spiritColor: Color,
   location: Location,
-  useLegacyFormula: boolean,
+  useHeuristicFormula: boolean,
 ): number {
-  const legacyUtility = spiritReachableLocations(location).filter((target) => {
-    const item = board.item(target);
-    if (item === undefined) {
-      return false;
-    }
-    const mon = itemMon(item);
-    return mon === undefined || !isMonFainted(mon);
-  }).length;
-  if (useLegacyFormula) {
-    return legacyUtility;
+  const heuristicUtility = spiritReachableLocations(location).filter(
+    (target) => {
+      const item = board.item(target);
+      if (item === undefined) {
+        return false;
+      }
+      const mon = itemMon(item);
+      return mon === undefined || !isMonFainted(mon);
+    },
+  ).length;
+  if (useHeuristicFormula) {
+    return heuristicUtility;
   }
   const item = board.item(location);
   const mon = item === undefined ? undefined : itemMon(item);
@@ -1852,7 +1854,7 @@ function spiritActionUtility(
     mon.color !== spiritColor ||
     isMonFainted(mon)
   ) {
-    return legacyUtility;
+    return heuristicUtility;
   }
   const game = new MonsGame(false, board.variant());
   game.board = board.clone();
@@ -1929,7 +1931,7 @@ function drainerDistancesWithContext(
   board: Board,
   color: Color,
   location: Location,
-  useLegacyFormula: boolean,
+  useHeuristicFormula: boolean,
   context: ScoringEvalContext,
 ): readonly [number, number, boolean] {
   const summary = context.boardSummary(board);
@@ -1939,8 +1941,8 @@ function drainerDistancesWithContext(
     minMana = Math.min(minMana, locationDistance(entry.location, location));
   }
   for (const danger of summary.dangerSources[colorSlot(otherColor(color))]) {
-    if (useLegacyFormula) {
-      if (danger.legacyPlainThreat) {
+    if (useHeuristicFormula) {
+      if (danger.heuristicThreat) {
         minDanger = Math.min(
           minDanger,
           locationDistance(danger.location, location),
@@ -1961,7 +1963,7 @@ function drainerDistancesWithContext(
     }
     minDanger = Math.min(minDanger, delta);
   }
-  if (useLegacyFormula) {
+  if (useHeuristicFormula) {
     for (const consumable of summary.looseConsumableLocations) {
       minDanger = Math.min(minDanger, locationDistance(consumable, location));
     }
@@ -1969,7 +1971,7 @@ function drainerDistancesWithContext(
   const angelNearby = summary.liveAngelLocations[colorSlot(color)].some(
     (angel) => locationDistance(angel, location) === 1,
   );
-  return useLegacyFormula
+  return useHeuristicFormula
     ? [minDanger, minMana, angelNearby]
     : [Math.max(1, minDanger), Math.max(1, minMana), angelNearby];
 }
@@ -1978,7 +1980,7 @@ function drainerSafetySnapshotWithContext(
   board: Board,
   color: Color,
   location: Location,
-  useLegacyFormula: boolean,
+  useHeuristicFormula: boolean,
   includeWalkThreat: boolean,
   context: ScoringEvalContext,
 ): DrainerSafetySnapshot {
@@ -1986,10 +1988,10 @@ function drainerSafetySnapshotWithContext(
     board,
     color,
     location,
-    useLegacyFormula,
+    useHeuristicFormula,
     context,
   );
-  const exactDangerThreat = useLegacyFormula
+  const exactDangerThreat = useHeuristicFormula
     ? isDrainerUnderImmediateThreat(board, color, location, angelNearby)
     : context.canAttackTargetOnBoard(
         board,
@@ -2010,7 +2012,7 @@ function drainerSafetySnapshotWithContext(
       angelNearby,
     );
   return {
-    riskDanger: useLegacyFormula
+    riskDanger: useHeuristicFormula
       ? Math.max(1, rawDanger)
       : exactDangerThreat
         ? 1
@@ -2073,13 +2075,6 @@ export function distanceToLocation(
   destination: Location,
 ): number {
   return addI32(locationDistance(location, destination), 1);
-}
-
-export function scoringDistance(
-  location: Location,
-  destination: Destination,
-): number {
-  return distance(location, destination);
 }
 
 function distance(location: Location, destination: Destination): number {

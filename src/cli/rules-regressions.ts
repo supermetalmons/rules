@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { createGunzip } from "node:zlib";
 
@@ -6,12 +7,14 @@ import { outputFen, parseInputArrayFen } from "../engine/fen.js";
 import { forEachByteLine } from "./byte-lines.js";
 import {
   errorMessage,
-  fnv1a64,
   parseCanonicalRuleTestCase,
   type RuleTestCase,
 } from "./regression-support.js";
 
 const EXPECTED_CASE_COUNT = 699_994;
+const EXPECTED_COMPRESSED_BYTES = 27_021_978;
+const EXPECTED_COMPRESSED_SHA256 =
+  "02942e8107a3de160cfa1bf99dc6d1bcc070c94ba4aca650cb0c67530ee2e280";
 const EXPECTED_UNCOMPRESSED_BYTES = 274_843_626;
 const EXPECTED_UNCOMPRESSED_SHA256 =
   "4b5b092987eafe9dad6b2f265b194fcb0f95380f120a6a217d3f5795a1f70f81";
@@ -22,11 +25,11 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
-function replayCase(line: number, id: bigint, testCase: RuleTestCase): void {
+function replayCase(line: number, testCase: RuleTestCase): void {
   const game = MonsGame.fromFen(testCase.fenBefore, false);
   if (game === undefined) {
     fail(
-      `fixture line ${line} (FNV-1a ID ${id}) has an invalid fenBefore:\n` +
+      `fixture line ${line} has an invalid fenBefore:\n` +
         `fenBefore: ${testCase.fenBefore}\ninputFen:  ${testCase.inputFen}`,
     );
   }
@@ -41,7 +44,7 @@ function replayCase(line: number, id: bigint, testCase: RuleTestCase): void {
     actualOutputFen = outputFen(output);
   } catch (error) {
     fail(
-      `fixture line ${line} (FNV-1a ID ${id}) engine error: ${errorMessage(error)}\n` +
+      `fixture line ${line} engine error: ${errorMessage(error)}\n` +
         `fenBefore: ${testCase.fenBefore}\ninputFen:  ${testCase.inputFen}`,
     );
   }
@@ -52,7 +55,7 @@ function replayCase(line: number, id: bigint, testCase: RuleTestCase): void {
     actualFenAfter !== testCase.fenAfter
   ) {
     fail(
-      `fixture line ${line} (FNV-1a ID ${id}) rules mismatch:\n` +
+      `fixture line ${line} rules mismatch:\n` +
         `fenBefore:         ${testCase.fenBefore}\n` +
         `inputFen:          ${testCase.inputFen}\n` +
         `expected output:   ${testCase.outputFen}\n` +
@@ -76,9 +79,15 @@ async function run(): Promise<void> {
   }
 
   let previousRaw: Buffer | undefined;
-  const seenIds = new Set<bigint>();
   let count = 0;
   const compressed = createReadStream(corpusPath);
+  const compressedHash = createHash("sha256");
+  let compressedBytes = 0;
+  compressed.on("data", (chunk: string | Buffer) => {
+    const bytes = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+    compressedBytes += bytes.byteLength;
+    compressedHash.update(bytes);
+  });
   const gunzip = createGunzip();
   compressed.on("error", (error) => gunzip.destroy(error));
   compressed.pipe(gunzip);
@@ -92,44 +101,33 @@ async function run(): Promise<void> {
       fail(`fixture line ${line} is empty`);
     }
 
-    const id = fnv1a64(rawBytes);
     if (previousRaw !== undefined) {
       const ordering = Buffer.compare(rawBytes, previousRaw);
       if (ordering < 0) {
         fail(
-          `out-of-order transition at fixture line ${line} (FNV-1a ID ${id}):\n` +
+          `out-of-order transition at fixture line ${line}:\n` +
             `previous: ${previousRaw.toString("utf8")}\n` +
             `current:  ${rawBytes.toString("utf8")}`,
         );
       }
       if (ordering === 0) {
-        fail(`duplicate transition at fixture line ${line} (FNV-1a ID ${id})`);
+        fail(`duplicate transition at fixture line ${line}`);
       }
     }
-    if (seenIds.has(id)) {
-      fail(
-        `FNV-1a collision at fixture line ${line} (ID ${id}, collision count would exceed zero)`,
-      );
-    }
-    seenIds.add(id);
 
     let raw: string;
     try {
       raw = UTF8_DECODER.decode(rawBytes);
     } catch (error) {
-      fail(
-        `fixture line ${line} (FNV-1a ID ${id}) is not valid UTF-8: ${errorMessage(error)}`,
-      );
+      fail(`fixture line ${line} is not valid UTF-8: ${errorMessage(error)}`);
     }
     let testCase: RuleTestCase;
     try {
       testCase = parseCanonicalRuleTestCase(raw);
     } catch (error) {
-      fail(
-        `invalid fixture JSON at line ${line} (FNV-1a ID ${id}): ${errorMessage(error)}`,
-      );
+      fail(`invalid fixture JSON at line ${line}: ${errorMessage(error)}`);
     }
-    replayCase(line, id, testCase);
+    replayCase(line, testCase);
     previousRaw = Buffer.from(rawBytes);
 
     if (line % PROGRESS_INTERVAL === 0) {
@@ -138,6 +136,18 @@ async function run(): Promise<void> {
       );
     }
   });
+
+  const actualCompressedSha256 = compressedHash.digest("hex");
+  if (compressedBytes !== EXPECTED_COMPRESSED_BYTES) {
+    fail(
+      `compressed byte count mismatch: expected ${EXPECTED_COMPRESSED_BYTES}, got ${compressedBytes}`,
+    );
+  }
+  if (actualCompressedSha256 !== EXPECTED_COMPRESSED_SHA256) {
+    fail(
+      `compressed SHA-256 mismatch: expected ${EXPECTED_COMPRESSED_SHA256}, got ${actualCompressedSha256}`,
+    );
+  }
 
   if (!summary.endsWithLf) {
     fail("rules corpus must end with an LF");
@@ -163,12 +173,6 @@ async function run(): Promise<void> {
       `fixture count mismatch: expected ${EXPECTED_CASE_COUNT}, read ${summary.lineCount}`,
     );
   }
-  if (seenIds.size !== EXPECTED_CASE_COUNT) {
-    fail(
-      `FNV-1a unique ID count mismatch: expected ${EXPECTED_CASE_COUNT}, got ${seenIds.size}`,
-    );
-  }
-
   console.log(`ok: ${EXPECTED_CASE_COUNT} canonical rules transitions passed`);
 }
 

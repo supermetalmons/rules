@@ -122,7 +122,7 @@ function positiveCap(value: number): number {
   return Math.max(Math.trunc(value), 1);
 }
 
-/** Exact selector-to-turn-engine configuration bridge from the legacy runtime. */
+/** Exact selector-to-turn-engine configuration bridge. */
 export function turnEngineConfigFromSearchConfig(
   config: AutomoveSearchExecutionConfig,
 ): TurnEngineConfig {
@@ -1036,7 +1036,7 @@ function projectedPlanIsSafelyCompleted(
 }
 
 /**
- * Conservative post-search macro-plan gate. It preserves the Rust selector's
+ * Conservative post-search macro-plan gate. It preserves the selector's
  * family ordering, safety floor, score-gap caps, and completed-plan escape.
  */
 export function acceptTurnEngineHeadAfterSearch(
@@ -2520,7 +2520,7 @@ export function focusedScoredRootsForRuntime(
 }
 
 /**
- * Exact runtime rank seam for the legacy negative-deny fallback. It performs
+ * Exact runtime rank calculation for the negative-deny fallback. It performs
  * ranking, turn-engine/advisor injection, and the normal scout allocator, then
  * stops before the scored-root loop.
  */
@@ -2941,7 +2941,7 @@ export function clearShippingSelectorCaches(): void {
   clearTurnEnginePlanCache();
 }
 
-/** Shipping Rust-compatible deterministic smart-search selector. */
+/** Production deterministic smart-search selector. */
 export function smartSearchBestInputs(
   game: MonsGame,
   executionConfig: AutomoveSearchExecutionConfig,

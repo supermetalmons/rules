@@ -14,10 +14,7 @@ import {
 import { MonsGame } from "../engine/game.js";
 import { fromLocationIndex } from "../engine/geometry.js";
 import { toI32 } from "../engine/numerics.js";
-import {
-  isRustWhitespaceCodePoint,
-  normalizeRustString,
-} from "../engine/rust-string.js";
+import { toWellFormedString, trimParserWhitespace } from "../engine/text.js";
 import type { SmartAutomovePreference } from "../automove/selector-types.js";
 import {
   type ItemModel,
@@ -33,9 +30,7 @@ import {
   verboseTrackingEntityModelFrom,
 } from "./models.js";
 import { ModelStateMap } from "./model-state-map.js";
-import { coerceOptionalWasmEnum, coerceWasmEnum } from "./wasm-abi.js";
-
-export type { SmartAutomovePreference } from "../automove/selector-types.js";
+import { coerceEnum, coerceOptionalEnum } from "./coercion.js";
 
 export type AutomoveFacadeResult = {
   readonly output: Output;
@@ -86,7 +81,7 @@ export class MonsGameModel {
     initialization: MonsGameModelInitialization,
   );
   public constructor(
-    // eslint-disable-next-line @typescript-eslint/no-useless-default-assignment -- The default preserves the legacy zero constructor arity at runtime.
+    // eslint-disable-next-line @typescript-eslint/no-useless-default-assignment -- The default preserves the zero constructor arity at runtime.
     initialization: MonsGameModelInitialization | undefined = undefined,
   ) {
     gameStates.set(
@@ -131,8 +126,8 @@ export class MonsGameModel {
     flat_moves_string_b: string,
   ): boolean {
     const game = gameState(this);
-    const normalizedMovesW = normalizeRustString(flat_moves_string_w);
-    const normalizedMovesB = normalizeRustString(flat_moves_string_b);
+    const normalizedMovesW = toWellFormedString(flat_moves_string_w);
+    const normalizedMovesB = toWellFormedString(flat_moves_string_b);
     const movesW = normalizedMovesW === "" ? [] : normalizedMovesW.split("-");
     const movesB = normalizedMovesB === "" ? [] : normalizedMovesB.split("-");
     const verificationGame = new MonsGame(
@@ -177,7 +172,7 @@ export class MonsGameModel {
   }
 
   public is_later_than(other_fen: string): boolean {
-    const other = MonsGame.fromFen(normalizeRustString(other_fen), false);
+    const other = MonsGame.fromFen(toWellFormedString(other_fen), false);
     return other === undefined ? true : gameState(this).isLaterThan(other);
   }
 
@@ -189,7 +184,7 @@ export class MonsGameModel {
       kind: "location",
       location: locationModelToEngine(at),
     }));
-    const optionalModifier = coerceOptionalWasmEnum(modifier, Modifier.Cancel);
+    const optionalModifier = coerceOptionalEnum(modifier, Modifier.Cancel);
     if (optionalModifier !== undefined) {
       inputs.push({
         kind: "modifier",
@@ -224,7 +219,7 @@ export class MonsGameModel {
   }
 
   public process_input_fen(input_fen: string): OutputModel {
-    const normalizedInputFen = normalizeRustString(input_fen);
+    const normalizedInputFen = toWellFormedString(input_fen);
     const output = gameState(this).processInput(
       parseInputArrayFen(normalizedInputFen),
       false,
@@ -245,7 +240,7 @@ export class MonsGameModel {
     if (restored === undefined) {
       return undefined;
     }
-    restored.takebackFens = takeback_fens.map(normalizeRustString);
+    restored.takebackFens = takeback_fens.map(toWellFormedString);
     restored.verboseTrackingEntities = [...verboseTrackingEntities];
     restored.withVerboseTracking = game.withVerboseTracking;
     restored.isMovesVerified = game.isMovesVerified;
@@ -287,7 +282,7 @@ export class MonsGameModel {
   }
 
   public static fromFenForSimulation(fen: string): MonsGameModel | undefined {
-    const game = MonsGame.fromFen(normalizeRustString(fen), false);
+    const game = MonsGame.fromFen(toWellFormedString(fen), false);
     if (game === undefined) {
       return undefined;
     }
@@ -340,7 +335,7 @@ export class MonsGameModel {
   }
 
   public static from_fen(fen: string): MonsGameModel | undefined {
-    const game = MonsGame.fromFen(normalizeRustString(fen), true);
+    const game = MonsGame.fromFen(toWellFormedString(fen), true);
     return game === undefined ? undefined : modelFromGame(game);
   }
 
@@ -352,19 +347,17 @@ export class MonsGameModel {
 }
 
 function toGameVariant(value: GameVariant): GameVariant {
-  return coerceWasmEnum(value, GameVariant.CornerChainManaRows);
+  return coerceEnum(value, GameVariant.CornerChainManaRows);
 }
 
 function toColor(value: Color): Color {
-  return coerceWasmEnum(value, Color.Black);
+  return coerceEnum(value, Color.Black);
 }
 
 function normalizeSmartAutomovePreference(
   preference: string,
 ): SmartAutomovePreference {
-  const normalized = asciiLowercase(
-    trimRustWhitespace(normalizeRustString(preference)),
-  );
+  const normalized = asciiLowercase(trimParserWhitespace(preference));
   if (
     normalized === "fast" ||
     normalized === "normal" ||
@@ -372,27 +365,8 @@ function normalizeSmartAutomovePreference(
   ) {
     return normalized;
   }
-  // eslint-disable-next-line @typescript-eslint/only-throw-error -- wasm-bindgen exposed this legacy API error as a primitive string.
+  // eslint-disable-next-line @typescript-eslint/only-throw-error -- This public API error is intentionally a primitive string.
   throw "invalid smart automove mode; expected 'fast', 'normal', or 'pro'";
-}
-
-function trimRustWhitespace(value: string): string {
-  const scalars = Array.from(value);
-  let start = 0;
-  let end = scalars.length;
-  while (
-    start < end &&
-    isRustWhitespaceCodePoint(scalars[start]?.codePointAt(0) ?? -1)
-  ) {
-    start += 1;
-  }
-  while (
-    end > start &&
-    isRustWhitespaceCodePoint(scalars[end - 1]?.codePointAt(0) ?? -1)
-  ) {
-    end -= 1;
-  }
-  return scalars.slice(start, end).join("");
 }
 
 function asciiLowercase(value: string): string {

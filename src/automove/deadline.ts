@@ -1,5 +1,3 @@
-import { PERFORMANCE_CLOCK, type MonotonicClock } from "./types.js";
-
 export const AUTOMOVE_SELECTOR_BUDGET_MS = 650;
 
 type ActiveDeadline = {
@@ -10,10 +8,9 @@ type ActiveDeadline = {
 
 let activeDeadline: ActiveDeadline | undefined;
 let lastOuterDeadlineTimedOut = false;
-let clock: MonotonicClock = PERFORMANCE_CLOCK;
 
 function now(): number {
-  return clock.now();
+  return globalThis.performance.now();
 }
 
 function enterDeadline(budgetMs: number): void {
@@ -137,25 +134,4 @@ export function takePreviousTimeout(): boolean {
 
 export function cacheWriteAllowed(): boolean {
   return !checkpoint();
-}
-
-/** Test-only scoped clock injection; state is restored even when the callback throws. */
-export function withAutomoveClock<T>(
-  testClock: MonotonicClock,
-  operation: () => T,
-): T {
-  const previousClock = clock;
-  clock = testClock;
-  try {
-    return operation();
-  } finally {
-    clock = previousClock;
-  }
-}
-
-/** Clear module state between deterministic single-worker tests. */
-export function resetDeadlineStateForTesting(): void {
-  activeDeadline = undefined;
-  lastOuterDeadlineTimedOut = false;
-  clock = PERFORMANCE_CLOCK;
 }

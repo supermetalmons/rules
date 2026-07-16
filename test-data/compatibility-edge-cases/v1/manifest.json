@@ -1,38 +1,15 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "compatibility-edge-cases-v1",
-  "description": "Immutable public-API observations for string, FEN, malformed-board, and wrapped-coordinate compatibility edges.",
+  "corpusVersion": "api-edge-cases-v1",
+  "description": "Immutable public API observations for string, FEN, malformed-board, and wrapped-coordinate edge cases.",
   "license": "CC0-1.0",
-  "source": {
-    "baselineCommit": "55c9e97f8643e3edba7249a1daff1f2b83fccad9",
-    "packageName": "mons-rust",
-    "packageVersion": "0.1.135",
-    "observationSurface": "public Node package API",
-    "captureMethod": "Temporary baseline package execution; capture tooling and executable artifacts are not retained in this corpus."
-  },
-  "compatibilityPolicy": {
-    "matchingCases": "Acceptance, normalization, return values, wrapped in-range aliases, and state changes must match the baseline observation.",
-    "approvedExceptions": [
-      {
-        "legacy": {
-          "errorName": "RuntimeError",
-          "message": "unreachable"
-        },
-        "typescript": {
-          "errorName": "RangeError",
-          "messages": [
-            "board FEN item index is out of bounds",
-            "UTF-8 byte index is not a scalar boundary",
-            "location index is out of bounds"
-          ]
-        },
-        "scope": "Genuine board bounds failures, invalid UTF-8 slice boundaries, and wrapped location indices outside the 121-cell board."
-      }
-    ]
+  "policy": {
+    "matchingCases": "Acceptance, normalization, return values, wrapped aliases, and state changes must match the stored observation.",
+    "approvedExceptions": "Documented bounds and UTF-8 failures use precise RangeError messages."
   },
   "constants": {
     "classicInitialFen": "0 0 w 0 0 0 0 0 1 n03y0xs0xd0xa0xe0xn03/n11/n11/n04xxmn01xxmn04/n03xxmn01xxmn01xxmn03/xxQn04xxUn04xxQ/n03xxMn01xxMn01xxMn03/n04xxMn01xxMn04/n11/n11/n03E0xA0xD0xS0xY0xn03",
-    "rustWhitespaceCodePoints": [
+    "parserWhitespaceCodePoints": [
       9,
       10,
       11,
@@ -76,7 +53,6 @@
     "lineEnding": "LF",
     "trailingNewline": true,
     "lineOrderHasMeaning": true,
-    "ordering": "Artifact order below, then record order within each artifact; ordered IDs are hash-pinned.",
     "duplicateRecordIdsAllowed": false
   },
   "statistics": {
@@ -84,8 +60,8 @@
     "matchingCaseCount": 76,
     "approvedExceptionCount": 13,
     "categoryCounts": {
-      "rust-whitespace": 33,
-      "wasm-string-normalization": 12,
+      "parser-whitespace": 33,
+      "string-normalization": 12,
       "row-count": 1,
       "permissive-row": 1,
       "board-index-alias": 3,

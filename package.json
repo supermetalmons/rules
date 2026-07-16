@@ -1,22 +1,41 @@
 {
-  "name": "mons-typescript-workspace",
+  "name": "mons-rules",
   "version": "0.2.0",
-  "private": true,
+  "description": "super metal mons",
   "type": "module",
+  "license": "CC0-1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/supermetalmons/rules.git"
+  },
   "engines": {
     "node": "^22.13.0 || >=24.0.0"
   },
+  "files": [
+    "dist/mons-rules.js",
+    "mons-rules.d.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "./dist/mons-rules.js",
+  "module": "./dist/mons-rules.js",
+  "browser": "./dist/mons-rules.js",
+  "types": "./mons-rules.d.ts",
+  "exports": {
+    ".": {
+      "types": "./mons-rules.d.ts",
+      "import": "./dist/mons-rules.js",
+      "require": "./dist/mons-rules.js",
+      "default": "./dist/mons-rules.js"
+    }
+  },
   "scripts": {
-    "assert:pure": "node ./scripts/assert-pure-typescript-repository.mjs",
-    "benchmark:automove": "npm run build:packages && node ./scripts/benchmark-automove.cjs",
-    "build": "npm run build:types && npm run build:packages",
-    "build:packages": "node ./scripts/build-npm-packages.mjs",
-    "build:types": "tsc -p tsconfig.build.json",
+    "build": "esbuild ./src/entrypoints/mons-rules.ts --bundle --format=esm --platform=browser --target=es2020 --minify --keep-names --legal-comments=none --outfile=./dist/mons-rules.js",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && ./scripts/run-rules-tests.sh && npm run test:complete-games && npm run build && node ./scripts/check-package.mjs .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "test": "vitest run --exclude tests/automove/parity-corpus.test.ts",
-    "test:automove-parity": "vitest run tests/automove/parity-corpus.test.ts",
+    "test": "vitest run",
     "test:complete-games": "node ./scripts/run-complete-games.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

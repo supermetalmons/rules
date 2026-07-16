@@ -87,7 +87,7 @@ function freezeWeights(weights: ScoringWeights): ScoringWeights {
 export const RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS =
   freezeWeights({
     ...BALANCED_DISTANCE_SCORING_WEIGHTS,
-    useLegacyFormula: false,
+    useHeuristicFormula: false,
     confirmedScore: 900,
     spiritOnOwnBasePenalty: 260,
     scoreRacePathProgress: 86,
@@ -109,7 +109,7 @@ export const RUNTIME_NORMAL_BALANCED_DISTANCE_SPIRIT_BASE_SCORING_WEIGHTS =
 export const RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS =
   freezeWeights({
     ...TACTICAL_BALANCED_SCORING_WEIGHTS,
-    useLegacyFormula: false,
+    useHeuristicFormula: false,
     confirmedScore: 900,
     spiritOnOwnBasePenalty: 260,
     scoreRacePathProgress: 94,
@@ -131,7 +131,7 @@ export const RUNTIME_NORMAL_TACTICAL_BALANCED_SPIRIT_BASE_SCORING_WEIGHTS =
 export const RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS =
   freezeWeights({
     ...TACTICAL_BALANCED_AGGRESSIVE_SCORING_WEIGHTS,
-    useLegacyFormula: false,
+    useHeuristicFormula: false,
     confirmedScore: 890,
     spiritOnOwnBasePenalty: 260,
     scoreRacePathProgress: 104,
@@ -153,7 +153,7 @@ export const RUNTIME_NORMAL_TACTICAL_BALANCED_AGGRESSIVE_SPIRIT_BASE_SCORING_WEI
 export const RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS =
   freezeWeights({
     ...FINISHER_BALANCED_SOFT_SCORING_WEIGHTS,
-    useLegacyFormula: false,
+    useHeuristicFormula: false,
     confirmedScore: 930,
     spiritOnOwnBasePenalty: 260,
     scoreRacePathProgress: 170,
@@ -174,7 +174,7 @@ export const RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_SPIRIT_BASE_SCORING_WEIGHTS =
 export const RUNTIME_NORMAL_FINISHER_BALANCED_SOFT_AGGRESSIVE_SPIRIT_BASE_SCORING_WEIGHTS =
   freezeWeights({
     ...FINISHER_BALANCED_SOFT_AGGRESSIVE_SCORING_WEIGHTS,
-    useLegacyFormula: false,
+    useHeuristicFormula: false,
     confirmedScore: 940,
     spiritOnOwnBasePenalty: 260,
     scoreRacePathProgress: 195,

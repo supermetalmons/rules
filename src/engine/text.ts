@@ -1,11 +1,9 @@
 /**
- * Convert a JavaScript UTF-16 string to the well-formed scalar sequence that
- * wasm-bindgen would have encoded for a Rust `&str`.
- *
- * Valid surrogate pairs and every non-surrogate code unit are preserved.
- * Unpaired surrogates are replaced individually with U+FFFD.
+ * Convert a JavaScript UTF-16 string to a well-formed Unicode scalar sequence.
+ * Valid surrogate pairs and every non-surrogate code unit are preserved;
+ * unpaired surrogates are replaced individually with U+FFFD.
  */
-export function normalizeRustString(value: string): string {
+export function toWellFormedString(value: string): string {
   let result = "";
   let unchangedStart = 0;
 
@@ -28,8 +26,8 @@ export function normalizeRustString(value: string): string {
   return unchangedStart === 0 ? value : result + value.slice(unchangedStart);
 }
 
-/** Rust's frozen Unicode `char::is_whitespace` set for the retained baseline. */
-export function isRustWhitespaceCodePoint(codePoint: number): boolean {
+/** The parser's stable Unicode whitespace set. */
+export function isParserWhitespaceCodePoint(codePoint: number): boolean {
   return (
     (codePoint >= 0x0009 && codePoint <= 0x000d) ||
     codePoint === 0x0020 ||
@@ -45,14 +43,14 @@ export function isRustWhitespaceCodePoint(codePoint: number): boolean {
   );
 }
 
-export function splitRustWhitespace(value: string): string[] {
-  const normalized = normalizeRustString(value);
+export function splitParserWhitespace(value: string): string[] {
+  const normalized = toWellFormedString(value);
   const result: string[] = [];
   let field = "";
 
   for (const scalar of normalized) {
     const codePoint = scalar.codePointAt(0);
-    if (codePoint !== undefined && isRustWhitespaceCodePoint(codePoint)) {
+    if (codePoint !== undefined && isParserWhitespaceCodePoint(codePoint)) {
       if (field !== "") {
         result.push(field);
         field = "";
@@ -74,9 +72,9 @@ function utf8ScalarLength(codePoint: number): number {
   return 4;
 }
 
-export function rustUtf8ByteLength(value: string): number {
+export function utf8ByteLength(value: string): number {
   let length = 0;
-  for (const scalar of normalizeRustString(value)) {
+  for (const scalar of toWellFormedString(value)) {
     length += utf8ScalarLength(scalar.codePointAt(0) ?? 0);
   }
   return length;
@@ -100,7 +98,7 @@ function utf16IndexAtUtf8Offset(value: string, offset: number): number {
   throw new RangeError("UTF-8 byte index is not a scalar boundary");
 }
 
-export function sliceRustStringByUtf8Bytes(
+export function sliceByUtf8Bytes(
   value: string,
   start: number,
   end: number,
@@ -108,9 +106,29 @@ export function sliceRustStringByUtf8Bytes(
   if (end < start) {
     throw new RangeError("UTF-8 byte index is not a scalar boundary");
   }
-  const normalized = normalizeRustString(value);
+  const normalized = toWellFormedString(value);
   return normalized.slice(
     utf16IndexAtUtf8Offset(normalized, start),
     utf16IndexAtUtf8Offset(normalized, end),
   );
+}
+
+export function trimParserWhitespace(value: string): string {
+  const scalars = Array.from(toWellFormedString(value));
+  let start = 0;
+  let end = scalars.length;
+
+  while (
+    start < end &&
+    isParserWhitespaceCodePoint(scalars[start]?.codePointAt(0) ?? -1)
+  ) {
+    start += 1;
+  }
+  while (
+    end > start &&
+    isParserWhitespaceCodePoint(scalars[end - 1]?.codePointAt(0) ?? -1)
+  ) {
+    end -= 1;
+  }
+  return scalars.slice(start, end).join("");
 }
