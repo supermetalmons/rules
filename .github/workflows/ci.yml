@@ -1,12 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - "**"
-    tags-ignore:
-      - mons-npm-publish-lock
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
