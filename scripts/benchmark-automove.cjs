@@ -11,7 +11,7 @@ const TARGET_MS = 550;
 const EXPECTED_PRO_ROUTE = "l10,7;l9,8";
 
 const repoRoot = path.resolve(__dirname, "..");
-const packageRoot = path.join(repoRoot, "pkg", "node");
+const packageRoot = path.join(repoRoot, "pkg", "mons-rules");
 const packageManifest = require(path.join(packageRoot, "package.json"));
 
 const originalOwnNow = Object.getOwnPropertyDescriptor(performance, "now");

@@ -12,7 +12,7 @@ import {
   type Mon,
   MonsGameModel,
   type SquareModel,
-} from "../../src/entrypoints/mons-rust.js";
+} from "../../src/entrypoints/mons-rules.js";
 
 const EXPECTED_MANIFEST_SHA256 =
   "d926b6a258b2690db4b1649d49cf2d1253abd074bad5c1688c09ce5894937448";

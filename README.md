@@ -1,38 +1,47 @@
-# Mons TypeScript engine
+# Mons rules engine
 
-The Mons rules engine is implemented in strict TypeScript and distributed as two
-dependency-free npm packages:
+The Mons rules engine is implemented in strict TypeScript and distributed as the
+dependency-free `mons-rules` npm package. Its single ES module works in browser
+bundles, Web Workers, Node.js, and Firebase Cloud Functions.
 
-- `mons-web` is an ES module for browsers and bundlers.
-- `mons-rust` is the existing CommonJS package for Node.js. Its historical package
-  name is unchanged for compatibility.
-
-Both packages expose the same 23 named game APIs and the same TypeScript declarations.
+The module exposes 23 named game APIs with matching TypeScript declarations.
 
 ```ts
-import { GameVariant, MonsGameModel } from "mons-web";
+import { GameVariant, MonsGameModel } from "mons-rules";
 
 const game = MonsGameModel.new(GameVariant.Classic);
 const output = game.process_input_fen("l10,5;l9,4");
 ```
 
 ```js
-const { GameVariant, MonsGameModel } = require("mons-rust");
+const { GameVariant, MonsGameModel } = require("mons-rules");
 
 const game = MonsGameModel.new(GameVariant.Classic);
 ```
 
-## Migrating `mons-web` initialization
+## Migrating from the legacy packages
 
-`mons-web` no longer has a default initializer or an `initSync` export. Remove the
-default import and initialization call; named imports are ready to use immediately.
-The generated `InitInput`, `SyncInitInput`, and `InitOutput` TypeScript types are
-removed with those loaders.
+Replace either legacy dependency with `mons-rules` and update the module specifier:
+
+```diff
+-import * as Mons from "mons-web";
++import * as Mons from "mons-rules";
+```
+
+```diff
+-const Mons = require("mons-rust");
++const Mons = require("mons-rules");
+```
+
+The module has no default initializer or `initSync` export. Remove the default
+import and initialization call; named imports are ready to use immediately. The
+generated `InitInput`, `SyncInitInput`, and `InitOutput` TypeScript types are removed
+with those loaders.
 
 ```diff
 -import initMonsWeb, { MonsGameModel } from "mons-web";
 -await initMonsWeb();
-+import { MonsGameModel } from "mons-web";
++import { MonsGameModel } from "mons-rules";
 ```
 
 The named API is otherwise preserved, including enum values, FEN formats, model
@@ -45,10 +54,11 @@ invalid UTF-8 slice boundaries or genuine board/location bounds failures are
 deterministic TypeScript `RangeError`s. Wrapped location indices that resolve inside
 the board remain compatible aliases.
 
-Published JavaScript targets ES2020. The Node package uses Node's built-in performance
-and cryptographic-random services directly; the browser package uses the corresponding
-`globalThis` APIs. Node.js 22.13 through 22.x, or Node.js 24 or newer, is required
-only for repository development and release tooling.
+Published JavaScript targets ES2020 and uses the Web-standard
+`globalThis.performance` and `globalThis.crypto` APIs in every runtime. Node.js 22.13
+through 22.x, or Node.js 24 or newer, is required for Node consumers, repository
+development, and release tooling. These versions support loading the same ES module
+through either `import` or `require`.
 
 ## Validation
 
@@ -76,10 +86,11 @@ of 1,527 complete real-player games. Run `npm run test:complete-games` to replay
 
 ## Release
 
-Run `./publish.sh --check-only` to execute the complete Node-only validation, build
-both package tarballs, and perform npm dry runs without publishing. Publishing is an
-explicit release operation: run `./publish.sh` from a clean worktree only when both
-packages should be released to the `latest` tag.
+Run `./publish.sh --check-only` to execute the complete validation, build the
+`mons-rules` tarball, verify its ES module through browser and Node consumers, and
+perform an npm dry run without publishing. Publishing is an explicit release
+operation: run `./publish.sh` from a clean worktree to release `mons-rules` to the
+`latest` tag.
 
 A real publish acquires the transient `mons-npm-publish-lock` tag on `origin`, or on
 the shared remote named by `MONS_PUBLISH_LOCK_REMOTE`. All publishers must use this

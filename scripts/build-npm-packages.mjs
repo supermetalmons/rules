@@ -11,8 +11,7 @@ const repoRoot = path.resolve(
   "..",
 );
 const packageRoot = path.join(repoRoot, "pkg");
-const webDir = path.join(packageRoot, "web");
-const nodeDir = path.join(packageRoot, "node");
+const packageDir = path.join(packageRoot, "mons-rules");
 const rootManifest = JSON.parse(
   await fs.readFile(path.join(repoRoot, "package.json"), "utf8"),
 );
@@ -23,101 +22,61 @@ const sharedManifest = {
   license: "CC0-1.0",
   repository: {
     type: "git",
-    url: "https://github.com/supermetalmons/mons-rust",
+    url: "git+https://github.com/supermetalmons/rules.git",
   },
 };
 
 await fs.rm(packageRoot, { recursive: true, force: true });
-await Promise.all([
-  fs.mkdir(webDir, { recursive: true }),
-  fs.mkdir(nodeDir, { recursive: true }),
-]);
+await fs.mkdir(packageDir, { recursive: true });
+
+await build({
+  entryPoints: [path.join(repoRoot, "src/entrypoints/mons-rules.ts")],
+  outfile: path.join(packageDir, "mons-rules.js"),
+  bundle: true,
+  format: "esm",
+  platform: "browser",
+  target: ["es2020"],
+  minify: true,
+  keepNames: true,
+  legalComments: "none",
+  sourcemap: false,
+});
 
 await Promise.all([
-  build({
-    entryPoints: [path.join(repoRoot, "src/entrypoints/mons-web.ts")],
-    outfile: path.join(webDir, "mons-web.js"),
-    bundle: true,
-    format: "esm",
-    platform: "browser",
-    target: ["es2020"],
-    minify: true,
-    keepNames: true,
-    legalComments: "none",
-    sourcemap: false,
-  }),
-  build({
-    entryPoints: [path.join(repoRoot, "src/entrypoints/mons-rust.ts")],
-    outfile: path.join(nodeDir, "mons-rust-internal.cjs"),
-    bundle: true,
-    format: "cjs",
-    platform: "node",
-    target: ["es2020"],
-    minify: true,
-    keepNames: true,
-    legalComments: "none",
-    sourcemap: false,
-  }),
-]);
-
-await Promise.all([
+  fs.copyFile(path.join(repoRoot, "LICENSE"), path.join(packageDir, "LICENSE")),
   fs.copyFile(
-    path.join(repoRoot, "src/entrypoints/mons-rust-wrapper.cjs"),
-    path.join(nodeDir, "mons-rust.js"),
-  ),
-  ...[webDir, nodeDir].flatMap((directory) => [
-    fs.copyFile(
-      path.join(repoRoot, "LICENSE"),
-      path.join(directory, "LICENSE"),
-    ),
-    fs.copyFile(
-      path.join(repoRoot, "README.md"),
-      path.join(directory, "README.md"),
-    ),
-  ]),
-  fs.copyFile(
-    path.join(repoRoot, "contracts/legacy/mons-api.d.ts"),
-    path.join(webDir, "mons-web.d.ts"),
+    path.join(repoRoot, "README.md"),
+    path.join(packageDir, "README.md"),
   ),
   fs.copyFile(
     path.join(repoRoot, "contracts/legacy/mons-api.d.ts"),
-    path.join(nodeDir, "mons-rust.d.ts"),
+    path.join(packageDir, "mons-rules.d.ts"),
   ),
 ]);
 
-const webManifest = {
-  name: "mons-web",
+const packageManifest = {
+  name: "mons-rules",
   type: "module",
   ...sharedManifest,
-  files: ["mons-web.js", "mons-web.d.ts", "LICENSE", "README.md"],
-  main: "mons-web.js",
-  types: "mons-web.d.ts",
-};
-const nodeManifest = {
-  name: "mons-rust",
-  ...sharedManifest,
-  files: [
-    "mons-rust.js",
-    "mons-rust-internal.cjs",
-    "mons-rust.d.ts",
-    "LICENSE",
-    "README.md",
-  ],
-  main: "mons-rust.js",
-  types: "mons-rust.d.ts",
+  files: ["mons-rules.js", "mons-rules.d.ts", "LICENSE", "README.md"],
+  main: "./mons-rules.js",
+  module: "./mons-rules.js",
+  browser: "./mons-rules.js",
+  types: "./mons-rules.d.ts",
+  engines: rootManifest.engines,
+  exports: {
+    ".": {
+      types: "./mons-rules.d.ts",
+      import: "./mons-rules.js",
+      require: "./mons-rules.js",
+      default: "./mons-rules.js",
+    },
+  },
 };
 
-await Promise.all([
-  fs.writeFile(
-    path.join(webDir, "package.json"),
-    `${JSON.stringify(webManifest, null, 2)}\n`,
-  ),
-  fs.writeFile(
-    path.join(nodeDir, "package.json"),
-    `${JSON.stringify(nodeManifest, null, 2)}\n`,
-  ),
-]);
-
-console.log(
-  `Built mons-web and mons-rust ${rootManifest.version} in ${packageRoot}`,
+await fs.writeFile(
+  path.join(packageDir, "package.json"),
+  `${JSON.stringify(packageManifest, null, 2)}\n`,
 );
+
+console.log(`Built mons-rules ${rootManifest.version} in ${packageDir}`);

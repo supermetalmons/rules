@@ -48,15 +48,60 @@ if [ "${check_only}" = false ]; then
     npm whoami >/dev/null
 fi
 
+release_package_name="mons-rules"
+
+registry_response_is_not_found() {
+    node -e '
+        try {
+            const response = JSON.parse(process.argv[1]);
+            if (response?.error?.code === "E404") {
+                process.exit(0);
+            }
+        } catch {
+            // The caller reports malformed or unavailable registry data.
+        }
+        process.exit(1);
+    ' "$1"
+}
+
+print_registry_failure_details() {
+    local response="$1"
+    local stderr_file="$2"
+
+    if [ -s "${stderr_file}" ]; then
+        cat "${stderr_file}" >&2
+    fi
+    if [ -n "${response}" ]; then
+        printf '%s\n' "${response}" >&2
+    fi
+}
+
 registry_version_state() {
     local package_name="$1"
     local versions_json
+    local stderr_file
     local state
 
-    if ! versions_json="$(npm view "${package_name}" versions --json)"; then
+    if ! stderr_file="$(mktemp "${TMPDIR:-/tmp}/mons-rules-npm-view.XXXXXX")"; then
+        echo "Could not create temporary storage for the ${package_name} registry response." >&2
+        return 1
+    fi
+
+    if ! versions_json="$(npm view "${package_name}" versions --json 2>"${stderr_file}")"; then
+        if registry_response_is_not_found "${versions_json}"; then
+            rm -f "${stderr_file}"
+            printf '%s\n' "missing"
+            return 0
+        fi
+        print_registry_failure_details "${versions_json}" "${stderr_file}"
+        rm -f "${stderr_file}"
         echo "Could not read published versions for ${package_name}." >&2
         return 1
     fi
+    if [ -s "${stderr_file}" ]; then
+        cat "${stderr_file}" >&2
+    fi
+    rm -f "${stderr_file}"
 
     if ! state="$(node -e '
         try {
@@ -103,12 +148,29 @@ require_release_missing() {
 registry_dist_tags() {
     local package_name="$1"
     local tags_json
+    local stderr_file
     local normalized_tags
 
-    if ! tags_json="$(npm view "${package_name}" dist-tags --json)"; then
+    if ! stderr_file="$(mktemp "${TMPDIR:-/tmp}/mons-rules-npm-view.XXXXXX")"; then
+        echo "Could not create temporary storage for the ${package_name} registry response." >&2
+        return 1
+    fi
+
+    if ! tags_json="$(npm view "${package_name}" dist-tags --json 2>"${stderr_file}")"; then
+        if registry_response_is_not_found "${tags_json}"; then
+            rm -f "${stderr_file}"
+            printf '%s\n' "{}"
+            return 0
+        fi
+        print_registry_failure_details "${tags_json}" "${stderr_file}"
+        rm -f "${stderr_file}"
         echo "Could not read dist-tags for ${package_name}." >&2
         return 1
     fi
+    if [ -s "${stderr_file}" ]; then
+        cat "${stderr_file}" >&2
+    fi
+    rm -f "${stderr_file}"
 
     if ! normalized_tags="$(node -e '
         try {
@@ -130,15 +192,6 @@ registry_dist_tags() {
     fi
 
     printf '%s\n' "${normalized_tags}"
-}
-
-latest_from_dist_tags() {
-    node -e '
-        const tags = JSON.parse(process.argv[1]);
-        if (Object.prototype.hasOwnProperty.call(tags, "latest")) {
-            process.stdout.write(tags.latest);
-        }
-    ' "$1"
 }
 
 require_release_newer_than_latest() {
@@ -172,17 +225,15 @@ require_release_newer_than_latest() {
     ' "${package_name}" "${release_version}" "${dist_tags}"
 }
 
-for package_name in mons-web mons-rust; do
-    if ! require_release_missing "${package_name}"; then
-        exit 1
-    fi
-    if ! package_dist_tags="$(registry_dist_tags "${package_name}")"; then
-        exit 1
-    fi
-    if ! require_release_newer_than_latest "${package_name}" "${package_dist_tags}"; then
-        exit 1
-    fi
-done
+if ! require_release_missing "${release_package_name}"; then
+    exit 1
+fi
+if ! package_dist_tags="$(registry_dist_tags "${release_package_name}")"; then
+    exit 1
+fi
+if ! require_release_newer_than_latest "${release_package_name}" "${package_dist_tags}"; then
+    exit 1
+fi
 
 echo "Checking TypeScript formatting, lint, and types..."
 npm run format:check
@@ -203,18 +254,13 @@ echo "Checking and replaying the complete-games corpus..."
 node ./scripts/check-complete-games.cjs
 npm run test:complete-games
 
-echo "Building and checking npm packages for ${release_version}..."
+echo "Building and checking the npm package for ${release_version}..."
 npm run build
-node ./scripts/assert-release-npm-package.cjs pkg/web web
-node ./scripts/assert-release-npm-package.cjs pkg/node node
+node ./scripts/assert-release-npm-package.cjs pkg/mons-rules
 
-echo "Running npm publication dry runs..."
+echo "Running the npm publication dry run..."
 (
-    cd pkg/web
-    npm publish --dry-run --access public --tag latest
-)
-(
-    cd pkg/node
+    cd pkg/mons-rules
     npm publish --dry-run --access public --tag latest
 )
 
@@ -227,14 +273,8 @@ publish_lock_remote="${MONS_PUBLISH_LOCK_REMOTE:-origin}"
 publish_lock_ref="refs/tags/mons-npm-publish-lock"
 publish_lock_oid=""
 publish_lock_acquired=false
-mons_web_dist_tags=""
-mons_web_previous_latest=""
-mons_rust_dist_tags=""
-mons_rust_previous_latest=""
-mons_web_publish_started=false
-mons_web_publish_completed=false
-mons_rust_publish_started=false
-mons_rust_publish_completed=false
+release_dist_tags=""
+release_publish_started=false
 
 print_stale_lock_recovery() {
     local lock_oid="$1"
@@ -263,7 +303,7 @@ release_publish_lock() {
 
     cat >&2 <<EOF
 Could not release the npm publication lock ${publish_lock_ref} on ${publish_lock_remote}.
-The packages' registry state is unaffected, but future releases will remain blocked.
+The package's registry state is unaffected, but future releases will remain blocked.
 EOF
     print_stale_lock_recovery "${publish_lock_oid}" >&2
     return 1
@@ -340,22 +380,6 @@ acquire_publish_lock() {
     return 1
 }
 
-print_latest_recovery() {
-    local package_name="$1"
-    local previous_latest="$2"
-    local dist_tags="$3"
-
-    printf '\n%s dist-tags before this publication attempt:\n  %s\n' "${package_name}" "${dist_tags}"
-    printf 'If its current latest tag still points to %s, run:\n' "${release_version}"
-    if [ -n "${previous_latest}" ]; then
-        printf '  if [ "$(npm view %s dist-tags.latest)" = "%s" ]; then npm dist-tag add "%s@%s" latest; fi\n' \
-            "${package_name}" "${release_version}" "${package_name}" "${previous_latest}"
-    else
-        printf '  if [ "$(npm view %s dist-tags.latest)" = "%s" ]; then npm dist-tag rm %s latest; fi\n' \
-            "${package_name}" "${release_version}" "${package_name}"
-    fi
-}
-
 publication_failed() {
     local status="$1"
     trap - EXIT HUP INT TERM
@@ -363,25 +387,16 @@ publication_failed() {
     {
         cat <<EOF
 Publication did not complete. Inspect the registry before retrying:
-  npm view mons-web@${release_version} version
-  npm view mons-rust@${release_version} version
-  npm view mons-web dist-tags.latest
-  npm view mons-rust dist-tags.latest
+  npm view ${release_package_name}@${release_version} version
+  npm view ${release_package_name} dist-tags.latest
 
-Retry a missing package to latest only if ${release_version} is still newer than
-that package's current latest tag. Never retry to latest when the current latest is equal or newer;
-prepare a new, higher release version instead.
+Retry the missing package to latest only if ${release_version} is still newer than
+its current latest tag. Never retry to latest when the current latest is equal or
+newer; prepare a new, higher release version instead.
 EOF
-        if [ "${mons_web_publish_completed}" = true ]; then
-            print_latest_recovery mons-web "${mons_web_previous_latest}" "${mons_web_dist_tags}"
-        elif [ "${mons_web_publish_started}" = true ]; then
-            printf '\nThe mons-web publish command started but npm did not confirm completion.\n'
-            printf 'No automatic dist-tag recovery is shown because registry changes cannot be safely attributed.\n'
-        fi
-        if [ "${mons_rust_publish_completed}" = true ]; then
-            print_latest_recovery mons-rust "${mons_rust_previous_latest}" "${mons_rust_dist_tags}"
-        elif [ "${mons_rust_publish_started}" = true ]; then
-            printf '\nThe mons-rust publish command started but npm did not confirm completion.\n'
+        if [ "${release_publish_started}" = true ]; then
+            printf '\nThe %s publish command started but npm did not confirm completion.\n' \
+                "${release_package_name}"
             printf 'No automatic dist-tag recovery is shown because registry changes cannot be safely attributed.\n'
         fi
     } >&2
@@ -399,62 +414,28 @@ trap 'publication_failed 129' HUP
 trap 'publication_failed 130' INT
 trap 'publication_failed 143' TERM
 
-echo "Rechecking both package registry states and snapshotting their dist-tags..."
-if ! require_release_missing mons-web; then
+echo "Rechecking the package registry state and validating its dist-tags..."
+if ! require_release_missing "${release_package_name}"; then
     exit 1
 fi
-if ! mons_web_dist_tags="$(registry_dist_tags mons-web)"; then
+if ! release_dist_tags="$(registry_dist_tags "${release_package_name}")"; then
     exit 1
 fi
-if ! require_release_newer_than_latest mons-web "${mons_web_dist_tags}"; then
+if ! require_release_newer_than_latest "${release_package_name}" "${release_dist_tags}"; then
     exit 1
 fi
-mons_web_previous_latest="$(latest_from_dist_tags "${mons_web_dist_tags}")"
-
-if ! require_release_missing mons-rust; then
-    exit 1
-fi
-if ! mons_rust_dist_tags="$(registry_dist_tags mons-rust)"; then
-    exit 1
-fi
-if ! require_release_newer_than_latest mons-rust "${mons_rust_dist_tags}"; then
-    exit 1
-fi
-mons_rust_previous_latest="$(latest_from_dist_tags "${mons_rust_dist_tags}")"
-
-echo "Publishing mons-web@${release_version} to latest..."
-mons_web_publish_started=true
+echo "Publishing ${release_package_name}@${release_version} to latest..."
+release_publish_started=true
 (
-    cd pkg/web
+    cd pkg/mons-rules
     npm publish --access public --tag latest
 )
-mons_web_publish_completed=true
-
-echo "Rechecking mons-rust registry state and refreshing its dist-tags..."
-if ! require_release_missing mons-rust; then
-    exit 1
-fi
-if ! mons_rust_dist_tags="$(registry_dist_tags mons-rust)"; then
-    exit 1
-fi
-if ! require_release_newer_than_latest mons-rust "${mons_rust_dist_tags}"; then
-    exit 1
-fi
-mons_rust_previous_latest="$(latest_from_dist_tags "${mons_rust_dist_tags}")"
-
-echo "Publishing mons-rust@${release_version} to latest..."
-mons_rust_publish_started=true
-(
-    cd pkg/node
-    npm publish --access public --tag latest
-)
-mons_rust_publish_completed=true
 
 trap - EXIT HUP INT TERM
 
 if ! release_publish_lock; then
-    echo "Both packages were published, but the npm publication lock requires manual cleanup." >&2
+    echo "${release_package_name}@${release_version} was published, but the npm publication lock requires manual cleanup." >&2
     exit 1
 fi
 
-echo "Published mons-web@${release_version} and mons-rust@${release_version} to latest."
+echo "Published ${release_package_name}@${release_version} to latest."

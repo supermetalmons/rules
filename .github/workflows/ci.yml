@@ -32,5 +32,4 @@ jobs:
       - run: node ./scripts/check-complete-games.cjs
       - run: npm run test:complete-games
       - run: npm run build
-      - run: node ./scripts/assert-release-npm-package.cjs pkg/web web
-      - run: node ./scripts/assert-release-npm-package.cjs pkg/node node
+      - run: node ./scripts/assert-release-npm-package.cjs pkg/mons-rules

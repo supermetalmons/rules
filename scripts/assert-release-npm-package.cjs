@@ -12,26 +12,21 @@ const esbuild = require("esbuild");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const packageDir = path.resolve(process.argv[2] ?? "");
-const target = process.argv[3];
-
-assert(["web", "node"].includes(target), "target must be web or node");
 assert(
   fs.statSync(packageDir).isDirectory(),
   `package directory missing: ${packageDir}`,
 );
 
-const packageBase = target === "web" ? "mons-web" : "mons-rust";
-const expectedFiles =
-  target === "web"
-    ? ["LICENSE", "README.md", "mons-web.d.ts", "mons-web.js", "package.json"]
-    : [
-        "LICENSE",
-        "README.md",
-        "mons-rust-internal.cjs",
-        "mons-rust.d.ts",
-        "mons-rust.js",
-        "package.json",
-      ];
+const packageBase = "mons-rules";
+const expectedFiles = [
+  "LICENSE",
+  "README.md",
+  "mons-rules.d.ts",
+  "mons-rules.js",
+  "package.json",
+];
+const esmEntry = `./${packageBase}.js`;
+const typesEntry = `./${packageBase}.d.ts`;
 const expectedPublicExports = [
   "AvailableMoveKind",
   "Color",
@@ -72,65 +67,52 @@ const sourceManifest = JSON.parse(
   fs.readFileSync(path.join(packageDir, "package.json"), "utf8"),
 );
 
-if (target === "web") {
-  assert.doesNotMatch(
-    rootManifest.version,
-    /^0\.1\./,
-    "removing the mons-web initializers requires a release outside the 0.1.x line",
-  );
-}
-
-assert.equal(
-  sourceManifest.name,
-  packageBase,
-  `${target} package name changed`,
+assert.doesNotMatch(
+  rootManifest.version,
+  /^0\.1\./,
+  "the initializer-free TypeScript package requires a release outside the 0.1.x line",
 );
+
+assert.equal(sourceManifest.name, packageBase, "package name changed");
 assert.equal(
   sourceManifest.version,
   rootManifest.version,
-  `${target} package version differs from root package.json`,
+  "package version differs from root package.json",
 );
-assert.equal(sourceManifest.main, `${packageBase}.js`);
-assert.equal(sourceManifest.types, `${packageBase}.d.ts`);
+assert.equal(sourceManifest.main, esmEntry);
+assert.equal(sourceManifest.module, esmEntry);
+assert.equal(sourceManifest.browser, esmEntry);
+assert.equal(sourceManifest.types, typesEntry);
 assert.equal(sourceManifest.description, "super metal mons");
 assert.equal(sourceManifest.license, "CC0-1.0");
 assert.deepEqual(sourceManifest.repository, {
   type: "git",
-  url: "https://github.com/supermetalmons/mons-rust",
+  url: "git+https://github.com/supermetalmons/rules.git",
 });
 assert.deepEqual(
   sourceManifest.files,
-  target === "web"
-    ? ["mons-web.js", "mons-web.d.ts", "LICENSE", "README.md"]
-    : [
-        "mons-rust.js",
-        "mons-rust-internal.cjs",
-        "mons-rust.d.ts",
-        "LICENSE",
-        "README.md",
-      ],
-  `${target} package files metadata changed`,
+  ["mons-rules.js", "mons-rules.d.ts", "LICENSE", "README.md"],
+  "package files metadata changed",
 );
 assert.equal(
   sourceManifest.dependencies,
   undefined,
   "runtime dependencies are forbidden",
 );
-assert.equal(
-  sourceManifest.exports,
-  undefined,
-  "an exports map would restrict compatibility",
-);
-assert.equal(
-  sourceManifest.engines,
-  undefined,
-  "published packages retain no engines field",
-);
+assert.deepEqual(sourceManifest.exports, {
+  ".": {
+    types: typesEntry,
+    import: esmEntry,
+    require: esmEntry,
+    default: esmEntry,
+  },
+});
+assert.deepEqual(sourceManifest.engines, {
+  node: "^22.13.0 || >=24.0.0",
+});
 for (const field of [
   "bundledDependencies",
-  "browser",
   "devDependencies",
-  "module",
   "optionalDependencies",
   "peerDependencies",
   "private",
@@ -143,7 +125,7 @@ for (const field of [
     `published packages retain no ${field} field`,
   );
 }
-assert.equal(sourceManifest.type, target === "web" ? "module" : undefined);
+assert.equal(sourceManifest.type, "module");
 
 function canonicalizeDeclarations(source) {
   const lines = source
@@ -194,7 +176,7 @@ function run(command, args, options = {}) {
 }
 
 const temporaryRoot = fs.mkdtempSync(
-  path.join(os.tmpdir(), `mons-${target}-package-check-`),
+  path.join(os.tmpdir(), "mons-rules-package-check-"),
 );
 try {
   const packDir = path.join(temporaryRoot, "pack");
@@ -207,20 +189,13 @@ try {
   assert.equal(packReports.length, 1, "npm pack must report one package");
   const report = packReports[0];
   const actualFiles = report.files.map(({ path: file }) => file).sort();
-  assert.deepEqual(
-    actualFiles,
-    expectedFiles,
-    `${target} npm tar surface changed`,
-  );
+  assert.deepEqual(actualFiles, expectedFiles, "npm tar surface changed");
   assert.equal(report.name, packageBase);
   assert.equal(report.version, rootManifest.version);
+  assert(report.size <= 150_000, `packed size ${report.size} exceeds 150000`);
   assert(
-    report.size <= 325_000,
-    `${target} packed size ${report.size} exceeds 325000`,
-  );
-  assert(
-    report.unpackedSize <= 925_000,
-    `${target} unpacked size ${report.unpackedSize} exceeds 925000`,
+    report.unpackedSize <= 500_000,
+    `unpacked size ${report.unpackedSize} exceeds 500000`,
   );
   for (const { path: file } of report.files) {
     assert(
@@ -237,7 +212,7 @@ try {
   assert.equal(
     semanticDeclarationHash(path.join(packedPackageDir, `${packageBase}.d.ts`)),
     expectedSemanticTypeHash,
-    `${target} public declarations changed`,
+    "public declarations changed",
   );
 
   const installDir = path.join(temporaryRoot, "consumer");
@@ -252,8 +227,13 @@ try {
     { cwd: installDir },
   );
 
-  const esmSmoke = `
-    import * as api from ${JSON.stringify(packageBase)};
+  function runtimeSmoke(moduleSpecifier, identityCheck = "") {
+    return `
+    import { createRequire } from "node:module";
+    import * as api from ${JSON.stringify(moduleSpecifier)};
+    ${identityCheck}
+    if (typeof globalThis.crypto?.getRandomValues !== "function") throw new Error("Web Crypto global is unavailable");
+    if (typeof globalThis.performance?.now !== "function") throw new Error("performance global is unavailable");
     const keys = Object.keys(api).filter((key) => key !== "default" && key !== "module.exports").sort();
     if (JSON.stringify(keys) !== ${JSON.stringify(JSON.stringify(expectedPublicExports))}) throw new Error("bad exports: " + keys);
     const expectedClasses = ${JSON.stringify(expectedClassContract)};
@@ -311,6 +291,12 @@ try {
     for (const enumName of ["AvailableMoveKind", "Color", "Consumable", "EventModelKind", "GameVariant", "ItemModelKind", "ManaKind", "Modifier", "MonKind", "NextInputKind", "OutputModelKind", "SquareModelKind"]) {
       if (!Object.isFrozen(api[enumName])) throw new Error(enumName + " is not frozen");
     }
+    const randomGame = api.MonsGameModel.new(api.GameVariant.Classic);
+    const randomFen = randomGame.fen();
+    const randomOutput = randomGame.automove();
+    if (randomOutput.kind !== api.OutputModelKind.Events || randomGame.fen() === randomFen) {
+      throw new Error("random automove did not use the Web Crypto global");
+    }
     const game = api.MonsGameModel.new(api.GameVariant.Classic);
     const openingFen = game.fen();
     const nelFen = openingFen.replaceAll(" ", "\u0085");
@@ -359,7 +345,7 @@ try {
     if (copied.consumable !== undefined) throw new Error("optional enum sentinel drift");
     if (event.item?.consumable !== api.Consumable.Bomb) throw new Error("DTO getter copy leaked a mutation");
 
-    if (api.winner.length !== 4 || api.winner.name !== ${JSON.stringify(target === "web" ? "winner" : "")}) {
+    if (api.winner.length !== 4 || api.winner.name !== "winner") {
       throw new Error("winner function descriptor drift");
     }
     const ownPerformanceNow = Object.getOwnPropertyDescriptor(performance, "now");
@@ -395,32 +381,17 @@ try {
     }
     if (api.winner(game.fen(), game.fen(), "", "") !== "") throw new Error("winner mismatch");
   `;
-  run(process.execPath, ["--input-type=module", "--eval", esmSmoke], {
+  }
+
+  const nodeSmoke = runtimeSmoke(
+    packageBase,
+    `const requiredApi = createRequire(import.meta.url)(${JSON.stringify(packageBase)});
+     if (requiredApi !== api) throw new Error("require/import module namespace identity drift");
+     if (requiredApi.MonsGameModel !== api.MonsGameModel) throw new Error("require/import class identity drift");`,
+  );
+  run(process.execPath, ["--input-type=module", "--eval", nodeSmoke], {
     cwd: installDir,
   });
-
-  if (target === "node") {
-    const requireSmoke = `
-      Object.defineProperty(globalThis, "crypto", { configurable: true, value: undefined });
-      Object.defineProperty(globalThis, "performance", { configurable: true, value: undefined });
-      const api = require(${JSON.stringify(packageBase)});
-      const keys = Object.keys(api).sort();
-      if (JSON.stringify(keys) !== ${JSON.stringify(JSON.stringify(expectedPublicExports))}) throw new Error("bad exports: " + keys);
-      if (api.winner.name !== "" || api.winner.length !== 4) throw new Error("CommonJS winner descriptor drift");
-      const game = api.MonsGameModel.new(api.GameVariant.Classic);
-      if (game.fen().length === 0) throw new Error("empty FEN");
-      const sourceFen = game.fen();
-      const smart = game.smartAutomove("fast");
-      if (smart.kind !== api.OutputModelKind.Events || game.fen() !== sourceFen) {
-        throw new Error("Node smart automove depends on browser globals");
-      }
-      const random = game.automove();
-      if (random.kind !== api.OutputModelKind.Events || game.fen() === sourceFen) {
-        throw new Error("Node random automove depends on browser globals");
-      }
-    `;
-    run(process.execPath, ["--eval", requireSmoke], { cwd: installDir });
-  }
 
   const consumerSource = `
     import { Color, GameVariant, Location, MonsGameModel, winner } from ${JSON.stringify(packageBase)};
@@ -432,6 +403,19 @@ try {
     void color;
   `;
   fs.writeFileSync(path.join(installDir, "consumer.ts"), consumerSource);
+  const commonJsConsumerSource = `
+    import api = require(${JSON.stringify(packageBase)});
+    const game: api.MonsGameModel = api.MonsGameModel.new(api.GameVariant.Classic);
+    const color: api.Color = game.active_color();
+    const at: api.Location = new api.Location(0, 0);
+    game.square(at);
+    api.winner(game.fen(), game.fen(), "", "");
+    void color;
+  `;
+  fs.writeFileSync(
+    path.join(installDir, "commonjs-consumer.cts"),
+    commonJsConsumerSource,
+  );
   fs.writeFileSync(
     path.join(installDir, "tsconfig.json"),
     `${JSON.stringify(
@@ -444,7 +428,7 @@ try {
           strict: true,
           target: "ES2022",
         },
-        files: ["consumer.ts"],
+        files: ["consumer.ts", "commonjs-consumer.cts"],
       },
       null,
       2,
@@ -460,42 +444,38 @@ try {
     { cwd: installDir },
   );
 
-  if (target === "web") {
-    esbuild.buildSync({
-      absWorkingDir: installDir,
-      entryPoints: ["consumer.ts"],
-      bundle: true,
-      platform: "browser",
-      format: "esm",
-      target: "es2020",
-      write: false,
-    });
-    fs.writeFileSync(
-      path.join(installDir, "worker.ts"),
-      `import { MonsGameModel, GameVariant } from "mons-web"; self.onmessage = () => postMessage(MonsGameModel.new(GameVariant.Classic).fen());\n`,
-    );
-    esbuild.buildSync({
-      absWorkingDir: installDir,
-      entryPoints: ["worker.ts"],
-      bundle: true,
-      platform: "browser",
-      format: "esm",
-      target: "es2020",
-      write: false,
-    });
-  }
+  esbuild.buildSync({
+    absWorkingDir: installDir,
+    entryPoints: ["consumer.ts"],
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    target: "es2020",
+    write: false,
+  });
+  fs.writeFileSync(
+    path.join(installDir, "worker.ts"),
+    `import { MonsGameModel, GameVariant } from "mons-rules"; self.onmessage = () => postMessage(MonsGameModel.new(GameVariant.Classic).fen());\n`,
+  );
+  esbuild.buildSync({
+    absWorkingDir: installDir,
+    entryPoints: ["worker.ts"],
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    target: "es2020",
+    write: false,
+  });
 
-  const directEntry = path.join(packageDir, `${packageBase}.js`);
-  if (target === "web") {
-    const source = `
+  const directEntry = path.join(packedPackageDir, `${packageBase}.js`);
+  const source = `
       const api = await import(${JSON.stringify(pathToFileURL(directEntry).href)});
       if ("default" in api || "initSync" in api) throw new Error("removed initializer leaked");
-    `;
-    run(process.execPath, ["--input-type=module", "--eval", source]);
-  }
+  `;
+  run(process.execPath, ["--input-type=module", "--eval", source]);
 
   console.log(
-    `${target} npm package passed: packed=${report.size} unpacked=${report.unpackedSize}`,
+    `mons-rules npm package passed: packed=${report.size} unpacked=${report.unpackedSize}`,
   );
 } finally {
   fs.rmSync(temporaryRoot, { recursive: true, force: true });

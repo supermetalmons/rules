@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import * as api from "../../src/entrypoints/mons-rust.js";
+import * as api from "../../src/entrypoints/mons-rules.js";
 
 const EXPECTED_RUNTIME_CONTRACT_SHA256 =
   "3ceb65633db4e783b879a86ade932480d66d3069eb0442fd79d16ae5e28e063c";

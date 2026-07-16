@@ -10,8 +10,12 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const PACKAGE_NAMES = ["mons-web", "mons-rust"] as const;
+const PACKAGE_NAMES = ["mons-rules"] as const;
 type PackageName = (typeof PACKAGE_NAMES)[number];
+
+const REGISTRY_NOT_FOUND = Object.freeze({
+  error: Object.freeze({ code: "E404" }),
+});
 
 type PublishHarnessOptions = {
   readonly version?: string;
@@ -74,6 +78,7 @@ function writeRegistryResponses(
 function createPublishHarness(
   options: PublishHarnessOptions = {},
 ): PublishHarness {
+  const releaseVersion = options.version ?? "0.2.0";
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "mons-publish-test-"));
   const binDir = path.join(root, "bin");
   const scriptsDir = path.join(root, "scripts");
@@ -85,12 +90,15 @@ function createPublishHarness(
   fs.mkdirSync(binDir);
   fs.mkdirSync(scriptsDir);
   fs.mkdirSync(responseDir);
-  fs.mkdirSync(path.join(root, "pkg", "web"), { recursive: true });
-  fs.mkdirSync(path.join(root, "pkg", "node"), { recursive: true });
+  fs.mkdirSync(path.join(root, "pkg", "mons-rules"), { recursive: true });
   fs.copyFileSync(path.resolve("publish.sh"), path.join(root, "publish.sh"));
   fs.writeFileSync(
     path.join(root, "package.json"),
-    `${JSON.stringify({ version: options.version ?? "0.2.0" })}\n`,
+    `${JSON.stringify({ version: releaseVersion })}\n`,
+  );
+  fs.writeFileSync(
+    path.join(root, "pkg", "mons-rules", "package.json"),
+    `${JSON.stringify({ name: "mons-rules", version: releaseVersion })}\n`,
   );
 
   for (const packageName of PACKAGE_NAMES) {
@@ -204,7 +212,19 @@ next_registry_response() {
     if [ ! -f "\${response_path}" ]; then
         response_path="\${PUBLISH_TEST_RESPONSE_DIR}/\${kind}-\${package_name}-default"
     fi
-    cat "\${response_path}"
+    response="$(cat "\${response_path}")"
+    printf '%s\n' "\${response}"
+    if node -e '
+        const response = JSON.parse(process.argv[1]);
+        const code = response?.error?.code;
+        if (code) {
+            console.error("npm error code " + code);
+            process.exit(0);
+        }
+        process.exit(1);
+    ' "\${response}"; then
+        return 1
+    fi
 }
 
 if [ "\${1:-}" = "whoami" ]; then
@@ -216,17 +236,30 @@ fi
 if [ "\${1:-}" = "view" ] && [ "\${3:-}" = "dist-tags" ]; then
     next_registry_response dist-tags "$2"
 fi
-if [ "$*" = "publish --access public --tag latest" ]; then
-    if [ "$(basename "$PWD")" = "web" ]; then
-        if [ -n "\${PUBLISH_TEST_WEB_PUBLISH_GATE:-}" ]; then
-            : > "\${PUBLISH_TEST_WEB_PUBLISH_GATE}.started"
-            while [ ! -f "\${PUBLISH_TEST_WEB_PUBLISH_GATE}.release" ]; do
-                sleep 0.01
-            done
-        fi
-        exit "\${PUBLISH_TEST_WEB_PUBLISH_STATUS:-0}"
+if [ "\${1:-}" = "publish" ]; then
+    if [ "$PWD" != "\${PUBLISH_TEST_PACKAGE_DIR}" ]; then
+        printf 'npm publish ran from %s instead of %s\n' \
+            "$PWD" "\${PUBLISH_TEST_PACKAGE_DIR}" >&2
+        exit 91
     fi
-    exit "\${PUBLISH_TEST_RUST_PUBLISH_STATUS:-0}"
+    package_name="$(node -p "require('./package.json').name" 2>/dev/null)" || {
+        printf 'npm publish could not read the package manifest\n' >&2
+        exit 92
+    }
+    if [ "\${package_name}" != "mons-rules" ]; then
+        printf 'npm publish received package %s instead of mons-rules\n' \
+            "\${package_name}" >&2
+        exit 93
+    fi
+fi
+if [ "$*" = "publish --access public --tag latest" ]; then
+    if [ -n "\${PUBLISH_TEST_PUBLISH_GATE:-}" ]; then
+        : > "\${PUBLISH_TEST_PUBLISH_GATE}.started"
+        while [ ! -f "\${PUBLISH_TEST_PUBLISH_GATE}.release" ]; do
+            sleep 0.01
+        done
+    fi
+    exit "\${PUBLISH_TEST_PUBLISH_STATUS:-0}"
 fi
 `,
   );
@@ -242,12 +275,10 @@ fi
     PUBLISH_TEST_LOCK_DIR: lockDir,
     PUBLISH_TEST_LOCK_RELEASE_STATUS: String(options.lockReleaseStatus ?? 0),
     PUBLISH_TEST_LOG: logPath,
+    PUBLISH_TEST_PACKAGE_DIR: path.join(root, "pkg", "mons-rules"),
     PUBLISH_TEST_RESPONSE_DIR: responseDir,
-    PUBLISH_TEST_RUST_PUBLISH_STATUS: String(
-      options.publishStatuses?.["mons-rust"] ?? 0,
-    ),
-    PUBLISH_TEST_WEB_PUBLISH_STATUS: String(
-      options.publishStatuses?.["mons-web"] ?? 0,
+    PUBLISH_TEST_PUBLISH_STATUS: String(
+      options.publishStatuses?.["mons-rules"] ?? 0,
     ),
     PUBLISH_TEST_WHOAMI_STATUS: String(whoamiStatus),
     ...overrides,
@@ -322,15 +353,13 @@ describe("publish.sh", () => {
 
       const calls = harness.calls();
       expect(calls).not.toContain("whoami");
-      expect(calls).toContain("view mons-web versions --json");
-      expect(calls).toContain("view mons-web dist-tags --json");
-      expect(calls).toContain("view mons-rust versions --json");
-      expect(calls).toContain("view mons-rust dist-tags --json");
+      expect(calls).toContain("view mons-rules versions --json");
+      expect(calls).toContain("view mons-rules dist-tags --json");
       expect(calls).toContain("run typecheck");
       expect(calls).toContain("run build");
       expect(
         calls.match(/publish --dry-run --access public --tag latest/g),
-      ).toHaveLength(2);
+      ).toHaveLength(1);
       expect(harness.gitCalls()).not.toContain("commit-tree");
       expect(harness.gitCalls()).not.toContain(
         "refs/tags/mons-npm-publish-lock",
@@ -345,10 +374,10 @@ describe("publish.sh", () => {
     try {
       const result = harness.run([]);
       expect(result.status, result.stderr).toBe(0);
-      expect(realPublishCalls(harness.calls())).toHaveLength(2);
+      expect(realPublishCalls(harness.calls())).toHaveLength(1);
       expect(
-        harness.calls().match(/view mons-rust dist-tags --json/g),
-      ).toHaveLength(3);
+        harness.calls().match(/view mons-rules dist-tags --json/g),
+      ).toHaveLength(2);
 
       const gitCalls = harness.gitCalls();
       const acquiredOid =
@@ -386,9 +415,9 @@ describe("publish.sh", () => {
 
   it("serializes concurrent publication processes with the shared lock", async () => {
     const harness = createPublishHarness();
-    const publishGate = path.join(harness.root, "web-publish-gate");
+    const publishGate = path.join(harness.root, "rules-publish-gate");
     const first = harness.start([], {
-      PUBLISH_TEST_WEB_PUBLISH_GATE: publishGate,
+      PUBLISH_TEST_PUBLISH_GATE: publishGate,
     });
     try {
       await waitForFile(`${publishGate}.started`);
@@ -418,13 +447,13 @@ describe("publish.sh", () => {
     { label: "older than", latest: "0.3.0" },
   ])("rejects a release $label the current latest", ({ latest }) => {
     const harness = createPublishHarness({
-      distTags: { "mons-web": [{ latest }] },
+      distTags: { "mons-rules": [{ latest }] },
     });
     try {
       const result = harness.run(["--check-only"]);
       expect(result.status).toBe(1);
       expect(result.stderr).toContain(
-        `mons-web@0.2.0 must be newer than its current latest version ${latest}.`,
+        `mons-rules@0.2.0 must be newer than its current latest version ${latest}.`,
       );
       expect(harness.calls()).not.toContain("run typecheck");
     } finally {
@@ -451,11 +480,10 @@ describe("publish.sh", () => {
     }
   });
 
-  it("allows packages that do not have a latest tag", () => {
+  it("allows a package that does not have a latest tag", () => {
     const harness = createPublishHarness({
       distTags: {
-        "mons-web": [{ next: "0.3.0-beta.1" }],
-        "mons-rust": [{}],
+        "mons-rules": [{ next: "0.3.0-beta.1" }],
       },
     });
     try {
@@ -469,31 +497,31 @@ describe("publish.sh", () => {
   it("rejects malformed registry dist-tag versions", () => {
     const harness = createPublishHarness({
       distTags: {
-        "mons-web": [{ latest: "0.1.0", next: "v0.3.0" }],
+        "mons-rules": [{ latest: "0.1.0", next: "v0.3.0" }],
       },
     });
     try {
       const result = harness.run(["--check-only"]);
       expect(result.status).toBe(1);
       expect(result.stderr).toContain(
-        'mons-web dist-tag "next" has a noncanonical SemVer value: "v0.3.0".',
+        'mons-rules dist-tag "next" has a noncanonical SemVer value: "v0.3.0".',
       );
     } finally {
       fs.rmSync(harness.root, { force: true, recursive: true });
     }
   });
 
-  it("snapshots and validates both fresh latest tags before either real publish", () => {
+  it("revalidates the latest tag after acquiring the publish lock", () => {
     const harness = createPublishHarness({
       distTags: {
-        "mons-rust": [{ latest: "0.1.0" }, { latest: "0.2.0" }],
+        "mons-rules": [{ latest: "0.1.0" }, { latest: "0.2.0" }],
       },
     });
     try {
       const result = harness.run([]);
       expect(result.status).toBe(1);
       expect(result.stderr).toContain(
-        "mons-rust@0.2.0 must be newer than its current latest version 0.2.0.",
+        "mons-rules@0.2.0 must be newer than its current latest version 0.2.0.",
       );
       expect(realPublishCalls(harness.calls())).toHaveLength(0);
       expect(harness.gitCalls()).toMatch(
@@ -504,69 +532,17 @@ describe("publish.sh", () => {
     }
   });
 
-  it("revalidates the second latest tag after publishing the first package", () => {
-    const harness = createPublishHarness({
-      distTags: {
-        "mons-rust": [
-          { latest: "0.1.0" },
-          { latest: "0.1.0" },
-          { latest: "0.2.0" },
-        ],
-      },
-    });
-    try {
-      const result = harness.run([]);
-      expect(result.status).toBe(1);
-      expect(result.stderr).toContain(
-        "mons-rust@0.2.0 must be newer than its current latest version 0.2.0.",
-      );
-      expect(realPublishCalls(harness.calls())).toHaveLength(1);
-      expect(result.stderr).toContain(
-        "mons-web dist-tags before this publication attempt",
-      );
-      expect(result.stderr).toContain(
-        "Never retry to latest when the current latest is equal or newer",
-      );
-      expect(result.stderr).not.toContain(
-        "npm publish --access public --tag latest",
-      );
-    } finally {
-      fs.rmSync(harness.root, { force: true, recursive: true });
-    }
-  });
-
-  it("retains the second-package exact-version recheck", () => {
+  it("rechecks the exact version after acquiring the publish lock", () => {
     const harness = createPublishHarness({
       versions: {
-        "mons-rust": [[], [], ["0.2.0"]],
+        "mons-rules": [[], ["0.2.0"]],
       },
     });
     try {
       const result = harness.run([]);
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain("mons-rust@0.2.0 is already published.");
-      expect(realPublishCalls(harness.calls())).toHaveLength(1);
-    } finally {
-      fs.rmSync(harness.root, { force: true, recursive: true });
-    }
-  });
-
-  it("does not attribute registry changes when npm fails to confirm a publish", () => {
-    const harness = createPublishHarness({
-      publishStatuses: { "mons-web": 73 },
-    });
-    try {
-      const result = harness.run([]);
-      expect(result.status).toBe(73);
-      expect(result.stderr).toContain(
-        "The mons-web publish command started but npm did not confirm completion.",
-      );
-      expect(result.stderr).toContain(
-        "registry changes cannot be safely attributed",
-      );
-      expect(result.stderr).not.toContain(
-        "mons-web dist-tags before this publication attempt",
-      );
+      expect(result.stderr).toContain("mons-rules@0.2.0 is already published.");
+      expect(realPublishCalls(harness.calls())).toHaveLength(0);
       expect(harness.gitCalls()).toMatch(
         /--force-with-lease=refs\/tags\/mons-npm-publish-lock:[0-9]{40} origin :refs\/tags\/mons-npm-publish-lock/,
       );
@@ -575,21 +551,69 @@ describe("publish.sh", () => {
     }
   });
 
-  it("reports only the confirmed package when the second publish is uncertain", () => {
+  it("publishes a package that is not yet present in the registry", () => {
     const harness = createPublishHarness({
-      publishStatuses: { "mons-rust": 74 },
+      versions: {
+        "mons-rules": [REGISTRY_NOT_FOUND, REGISTRY_NOT_FOUND],
+      },
+      distTags: {
+        "mons-rules": [REGISTRY_NOT_FOUND, REGISTRY_NOT_FOUND],
+      },
     });
     try {
       const result = harness.run([]);
-      expect(result.status).toBe(74);
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stderr).not.toContain("npm error code E404");
+      expect(realPublishCalls(harness.calls())).toHaveLength(1);
+      expect(
+        harness.calls().match(/view mons-rules versions --json/g),
+      ).toHaveLength(2);
+      expect(
+        harness.calls().match(/view mons-rules dist-tags --json/g),
+      ).toHaveLength(2);
+    } finally {
+      fs.rmSync(harness.root, { force: true, recursive: true });
+    }
+  });
+
+  it("does not treat non-E404 registry failures as an unpublished package", () => {
+    const harness = createPublishHarness({
+      versions: {
+        "mons-rules": [{ error: { code: "E500" } }],
+      },
+    });
+    try {
+      const result = harness.run(["--check-only"]);
+      expect(result.status).toBe(1);
       expect(result.stderr).toContain(
-        "mons-web dist-tags before this publication attempt",
+        "Could not read published versions for mons-rules.",
+      );
+      expect(result.stderr).toContain("npm error code E500");
+      expect(harness.calls()).not.toContain("run typecheck");
+    } finally {
+      fs.rmSync(harness.root, { force: true, recursive: true });
+    }
+  });
+
+  it("does not attribute registry changes when npm fails to confirm a publish", () => {
+    const harness = createPublishHarness({
+      publishStatuses: { "mons-rules": 73 },
+    });
+    try {
+      const result = harness.run([]);
+      expect(result.status).toBe(73);
+      expect(result.stderr).toContain(
+        "The mons-rules publish command started but npm did not confirm completion.",
       );
       expect(result.stderr).toContain(
-        "The mons-rust publish command started but npm did not confirm completion.",
+        "registry changes cannot be safely attributed",
       );
       expect(result.stderr).not.toContain(
-        "mons-rust dist-tags before this publication attempt",
+        "mons-rules dist-tags before this publication attempt",
+      );
+      expect(result.stderr).not.toContain("npm dist-tag");
+      expect(harness.gitCalls()).toMatch(
+        /--force-with-lease=refs\/tags\/mons-npm-publish-lock:[0-9]{40} origin :refs\/tags\/mons-npm-publish-lock/,
       );
     } finally {
       fs.rmSync(harness.root, { force: true, recursive: true });
@@ -601,10 +625,12 @@ describe("publish.sh", () => {
     try {
       const result = harness.run([]);
       expect(result.status).toBe(1);
-      expect(realPublishCalls(harness.calls())).toHaveLength(2);
+      expect(realPublishCalls(harness.calls())).toHaveLength(1);
       expect(result.stderr).toContain(
-        "Both packages were published, but the npm publication lock requires manual cleanup.",
+        "mons-rules@0.2.0 was published, but the npm publication lock requires manual cleanup.",
       );
+      expect(result.stderr).not.toContain("Publication did not complete");
+      expect(result.stderr).not.toContain("npm dist-tag");
       expect(result.stderr).toContain("future releases will remain blocked");
       expect(result.stderr).toContain(
         "git fetch --no-tags origin refs/tags/mons-npm-publish-lock",
