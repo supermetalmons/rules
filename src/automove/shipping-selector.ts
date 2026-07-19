@@ -1035,6 +1035,100 @@ function projectedPlanIsSafelyCompleted(
   );
 }
 
+type TurnEngineHeadUtility = ReturnType<typeof turnEngineSelectedUtility>;
+
+type TurnEngineHeadAcceptanceContext = {
+  readonly game: MonsGame;
+  readonly perspective: Color;
+  readonly config: AutomoveSearchExecutionConfig;
+  readonly plan: TurnPlan;
+  readonly candidateIndex: number;
+  readonly candidate: RootEvaluation;
+  readonly selected: RootEvaluation;
+  readonly macroMode: boolean;
+  readonly candidateUnsafe: boolean;
+  readonly selectedUnsafe: boolean;
+  readonly candidateProgress: boolean;
+  readonly selectedProgress: boolean;
+  readonly exactContext: ReturnType<typeof exactOpportunityContext>;
+  readonly scoreGap: number;
+  readonly sameTurnWindowBetter: boolean;
+  readonly drainerAttackBetter: boolean;
+  readonly scoresNowBetter: boolean;
+  readonly safetyRecoverBetter: boolean;
+  readonly spiritWindowBetter: boolean;
+  readonly spiritDevelopmentBetter: boolean;
+  readonly candidateSpiritTactical: boolean;
+  readonly progressBetter: boolean;
+  readonly selectedSpiritPhase: boolean;
+  readonly candidateFamily: TurnPlanFamily;
+  readonly selectedFamily: TurnPlanFamily;
+  readonly selectedUtilityValue: () => TurnEngineHeadUtility;
+  readonly candidateUtilityValue: () => TurnEngineHeadUtility;
+  readonly blackSpiritPair: boolean;
+  readonly whiteSpiritSetupGain: boolean;
+  readonly blackTurnSixRouteChangePlainSpirit: boolean;
+};
+
+type TurnEngineHeadFamilyPolicyContext = {
+  readonly selectedUtility: TurnEngineHeadUtility;
+  readonly pickupUpgrade: boolean;
+  readonly strategicAxesBetter: boolean;
+  readonly projectedDeferredRecoveryWithoutConcreteGain: boolean;
+  readonly safeRootBlocksPlainSpirit: boolean;
+  readonly safeRootBlocksPlainSpiritProgress: boolean;
+  readonly plainSpiritSiblingRegresses: boolean;
+  readonly allowNonConcreteWhiteProgress: boolean;
+  readonly whiteSetupRecoveryBlocksUtilityOverride: boolean;
+};
+
+function passesTurnEngineMacroDominanceGuard(
+  context: TurnEngineHeadAcceptanceContext,
+): boolean {
+  const {
+    game,
+    plan,
+    candidate,
+    macroMode,
+    selectedProgress,
+    candidateFamily,
+    selectedFamily,
+    selectedUtilityValue,
+    candidateUtilityValue,
+    blackTurnSixRouteChangePlainSpirit,
+    whiteSpiritSetupGain,
+  } = context;
+  if (!macroMode) return true;
+
+  const selectedUtility = selectedUtilityValue();
+  const candidateUtility = candidateUtilityValue();
+  const blackNonConcreteWindowBlocksSpiritProgress =
+    game.activeColor === Color.Black &&
+    game.turnNumber <= 6 &&
+    (plan.headFamily === TurnPlanFamily.SafeSupermanaProgress ||
+      plan.headFamily === TurnPlanFamily.SafeOpponentManaProgress) &&
+    plan.goalFamily === TurnPlanFamily.ImmediateScore &&
+    candidateFamily === TurnPlanFamily.ManaTempo &&
+    selectedFamily === TurnPlanFamily.SpiritImpact &&
+    isCurrentProNonConcreteManaWindowRoot(candidate) &&
+    selectedProgress &&
+    compareUtilityPrimaryAxes(plan.headUtility, selectedUtility) < 0;
+  if (blackNonConcreteWindowBlocksSpiritProgress) return false;
+  const planDominates =
+    compareUtilityPrimaryAxes(plan.utility, selectedUtility) > 0 &&
+    (plan.utility.strictlyDominatesOverrideAxes(selectedUtility) ||
+      plan.headUtility.strictlyDominatesOverrideAxes(selectedUtility));
+  const candidateDominates =
+    compareUtilityPrimaryAxes(candidateUtility, selectedUtility) > 0 &&
+    candidateUtility.strictlyDominatesOverrideAxes(selectedUtility);
+  return (
+    blackTurnSixRouteChangePlainSpirit ||
+    whiteSpiritSetupGain ||
+    planDominates ||
+    candidateDominates
+  );
+}
+
 /**
  * Conservative post-search macro-plan gate. It preserves the selector's
  * family ordering, safety floor, score-gap caps, and completed-plan escape.
@@ -1208,38 +1302,71 @@ export function acceptTurnEngineHeadAfterSearch(
       64,
     );
 
-  if (macroMode) {
-    const selectedUtility = selectedUtilityValue();
-    const candidateUtility = candidateUtilityValue();
-    const blackNonConcreteWindowBlocksSpiritProgress =
-      game.activeColor === Color.Black &&
-      game.turnNumber <= 6 &&
-      (plan.headFamily === TurnPlanFamily.SafeSupermanaProgress ||
-        plan.headFamily === TurnPlanFamily.SafeOpponentManaProgress) &&
-      plan.goalFamily === TurnPlanFamily.ImmediateScore &&
-      candidateFamily === TurnPlanFamily.ManaTempo &&
-      selectedFamily === TurnPlanFamily.SpiritImpact &&
-      isCurrentProNonConcreteManaWindowRoot(candidate) &&
-      selectedProgress &&
-      compareUtilityPrimaryAxes(plan.headUtility, selectedUtility) < 0;
-    if (blackNonConcreteWindowBlocksSpiritProgress) return false;
-    const planDominates =
-      compareUtilityPrimaryAxes(plan.utility, selectedUtility) > 0 &&
-      (plan.utility.strictlyDominatesOverrideAxes(selectedUtility) ||
-        plan.headUtility.strictlyDominatesOverrideAxes(selectedUtility));
-    const candidateDominates =
-      compareUtilityPrimaryAxes(candidateUtility, selectedUtility) > 0 &&
-      candidateUtility.strictlyDominatesOverrideAxes(selectedUtility);
-    if (
-      !blackTurnSixRouteChangePlainSpirit &&
-      !whiteSpiritSetupGain &&
-      !planDominates &&
-      !candidateDominates
-    ) {
-      return false;
-    }
-  }
+  const context: TurnEngineHeadAcceptanceContext = {
+    game,
+    perspective,
+    config,
+    plan,
+    candidateIndex,
+    candidate,
+    selected,
+    macroMode,
+    candidateUnsafe,
+    selectedUnsafe,
+    candidateProgress,
+    selectedProgress,
+    exactContext,
+    scoreGap,
+    sameTurnWindowBetter,
+    drainerAttackBetter,
+    scoresNowBetter,
+    safetyRecoverBetter,
+    spiritWindowBetter,
+    spiritDevelopmentBetter,
+    candidateSpiritTactical,
+    progressBetter,
+    selectedSpiritPhase,
+    candidateFamily,
+    selectedFamily,
+    selectedUtilityValue,
+    candidateUtilityValue,
+    blackSpiritPair,
+    whiteSpiritSetupGain,
+    blackTurnSixRouteChangePlainSpirit,
+  };
+  if (!passesTurnEngineMacroDominanceGuard(context)) return false;
+  return acceptTurnEngineHeadAfterOrderedGuards(context);
+}
 
+function acceptTurnEngineHeadAfterOrderedGuards(
+  context: TurnEngineHeadAcceptanceContext,
+): boolean {
+  const {
+    game,
+    perspective,
+    config,
+    plan,
+    candidateIndex,
+    candidate,
+    selected,
+    macroMode,
+    candidateUnsafe,
+    selectedUnsafe,
+    candidateProgress,
+    selectedProgress,
+    exactContext,
+    scoreGap,
+    sameTurnWindowBetter,
+    drainerAttackBetter,
+    scoresNowBetter,
+    candidateSpiritTactical,
+    progressBetter,
+    selectedSpiritPhase,
+    candidateFamily,
+    selectedFamily,
+    selectedUtilityValue,
+    whiteSpiritSetupGain,
+  } = context;
   const narrowUnsafeBlackManaScore =
     macroMode &&
     plan.headFamily === TurnPlanFamily.ImmediateScore &&
@@ -2181,6 +2308,58 @@ export function acceptTurnEngineHeadAfterSearch(
   }
   if (projectedOverride) return true;
 
+  return acceptTurnEngineHeadByModeAndFamily(context, {
+    selectedUtility,
+    pickupUpgrade,
+    strategicAxesBetter,
+    projectedDeferredRecoveryWithoutConcreteGain,
+    safeRootBlocksPlainSpirit,
+    safeRootBlocksPlainSpiritProgress,
+    plainSpiritSiblingRegresses,
+    allowNonConcreteWhiteProgress,
+    whiteSetupRecoveryBlocksUtilityOverride,
+  });
+}
+
+function acceptTurnEngineHeadByModeAndFamily(
+  context: TurnEngineHeadAcceptanceContext,
+  policy: TurnEngineHeadFamilyPolicyContext,
+): boolean {
+  const {
+    game,
+    config,
+    plan,
+    candidateIndex,
+    candidate,
+    selected,
+    candidateUnsafe,
+    selectedUnsafe,
+    candidateProgress,
+    selectedProgress,
+    scoreGap,
+    sameTurnWindowBetter,
+    drainerAttackBetter,
+    scoresNowBetter,
+    safetyRecoverBetter,
+    spiritWindowBetter,
+    spiritDevelopmentBetter,
+    progressBetter,
+    selectedSpiritPhase,
+    selectedFamily,
+    blackSpiritPair,
+    blackTurnSixRouteChangePlainSpirit,
+  } = context;
+  const {
+    selectedUtility,
+    pickupUpgrade,
+    strategicAxesBetter,
+    projectedDeferredRecoveryWithoutConcreteGain,
+    safeRootBlocksPlainSpirit,
+    safeRootBlocksPlainSpiritProgress,
+    plainSpiritSiblingRegresses,
+    allowNonConcreteWhiteProgress,
+    whiteSetupRecoveryBlocksUtilityOverride,
+  } = policy;
   switch (modeFromConfig(config)) {
     case TurnEngineMode.ProV1:
       switch (plan.headFamily) {

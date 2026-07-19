@@ -31,6 +31,7 @@ import {
 } from "./models.js";
 import { ModelStateMap } from "./model-state-map.js";
 import { coerceEnum, coerceOptionalEnum } from "./coercion.js";
+import { replayInterleavedMoves } from "./replay.js";
 
 export type AutomoveFacadeResult = {
   readonly output: Output;
@@ -135,27 +136,8 @@ export class MonsGameModel {
       game.variant(),
     );
 
-    let whiteIndex = 0;
-    let blackIndex = 0;
-    while (whiteIndex < movesW.length || blackIndex < movesB.length) {
-      if (verificationGame.activeColor === Color.White) {
-        const move = movesW[whiteIndex];
-        if (move === undefined) {
-          return false;
-        }
-        verificationGame.processInput(parseInputArrayFen(move), false, false);
-        whiteIndex += 1;
-      } else {
-        const move = movesB[blackIndex];
-        if (move === undefined) {
-          return false;
-        }
-        verificationGame.processInput(parseInputArrayFen(move), false, false);
-        blackIndex += 1;
-      }
-    }
-
-    if (verificationGame.fen() !== game.fen()) {
+    const replay = replayInterleavedMoves(verificationGame, movesW, movesB);
+    if (replay.status !== "complete" || verificationGame.fen() !== game.fen()) {
       return false;
     }
 

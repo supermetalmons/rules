@@ -13,10 +13,14 @@ function now(): number {
   return globalThis.performance.now();
 }
 
+function nonnegativeDuration(durationMs: number): number {
+  return Math.max(durationMs, 0);
+}
+
 function enterDeadline(budgetMs: number): void {
   if (activeDeadline === undefined) {
     activeDeadline = {
-      endMs: now() + Math.max(budgetMs, 0),
+      endMs: now() + nonnegativeDuration(budgetMs),
       timedOut: false,
       nesting: 1,
     };
@@ -51,6 +55,19 @@ export function withDeadlineIfAbsent<T>(
   }
 }
 
+function runWithStandaloneSubdeadline<T>(
+  budgetMs: number,
+  operation: () => T,
+): T | undefined {
+  let completed: T | undefined;
+  withDeadlineIfAbsent(budgetMs, () => {
+    if (checkpoint()) return;
+    const result = operation();
+    if (!checkpoint()) completed = result;
+  });
+  return completed;
+}
+
 function restoreOuterDeadline(outer: ActiveDeadline): boolean {
   const currentTime = now();
   const childTimedOut =
@@ -62,26 +79,17 @@ function restoreOuterDeadline(outer: ActiveDeadline): boolean {
   return childTimedOut;
 }
 
-/** Run under a shorter child deadline and restore the outer deadline afterward. */
-export function withCooperativeSubdeadline<T>(
+function runWithNestedSubdeadline<T>(
+  outerDeadline: ActiveDeadline,
   budgetMs: number,
   operation: () => T,
 ): T | undefined {
-  if (activeDeadline === undefined) {
-    let completed: T | undefined;
-    withDeadlineIfAbsent(budgetMs, () => {
-      if (checkpoint()) return;
-      const result = operation();
-      if (!checkpoint()) completed = result;
-    });
-    return completed;
-  }
   if (checkpoint()) return undefined;
 
-  const outer = { ...activeDeadline };
-  activeDeadline.endMs = Math.min(
-    activeDeadline.endMs,
-    now() + Math.max(budgetMs, 0),
+  const outer = { ...outerDeadline };
+  outerDeadline.endMs = Math.min(
+    outerDeadline.endMs,
+    now() + nonnegativeDuration(budgetMs),
   );
   if (checkpoint()) {
     restoreOuterDeadline(outer);
@@ -99,6 +107,17 @@ export function withCooperativeSubdeadline<T>(
   }
 }
 
+/** Run under a shorter child deadline and restore the outer deadline afterward. */
+export function withCooperativeSubdeadline<T>(
+  budgetMs: number,
+  operation: () => T,
+): T | undefined {
+  const outerDeadline = activeDeadline;
+  return outerDeadline === undefined
+    ? runWithStandaloneSubdeadline(budgetMs, operation)
+    : runWithNestedSubdeadline(outerDeadline, budgetMs, operation);
+}
+
 /** Poll the active clock. Once reached, cancellation remains sticky. */
 export function checkpoint(): boolean {
   if (activeDeadline === undefined) return false;
@@ -114,7 +133,7 @@ export function checkpoint(): boolean {
 export function checkpointWithReserve(reserveMs: number): boolean {
   if (activeDeadline === undefined) return false;
   if (activeDeadline.timedOut) return true;
-  if (now() + Math.max(reserveMs, 0) >= activeDeadline.endMs) {
+  if (now() + nonnegativeDuration(reserveMs) >= activeDeadline.endMs) {
     activeDeadline.timedOut = true;
     return true;
   }

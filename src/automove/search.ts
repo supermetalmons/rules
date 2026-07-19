@@ -58,7 +58,7 @@ export type RankedChild = {
   readonly classes: MoveClassFlags;
 };
 
-type SearchStats = {
+type SearchNodeAccounting = {
   visitedNodes: number;
   cacheHits: number;
   quiescenceNodes: number;
@@ -70,7 +70,7 @@ type SearchContext = {
   readonly config: SearchConfig;
   readonly transposition: Hash64Table<TranspositionEntry>;
   readonly extensionNodeBudget: number;
-  readonly stats: SearchStats;
+  readonly stats: SearchNodeAccounting;
 };
 
 export type RootEvaluation = {
@@ -138,7 +138,7 @@ function cachedPreferability(
   game: MonsGame,
   perspective: Color,
   config: SearchConfig,
-  stats: SearchStats,
+  stats: SearchNodeAccounting,
   stateHash = exactSearchStateHash(game),
 ): number {
   const tag = perspective;
@@ -489,6 +489,7 @@ function boundedSearch(
   extensionsRemaining: number,
   context: SearchContext,
 ): number {
+  // Terminal, cancellation, and node-budget gates.
   const terminal = terminalSearchScore(
     game,
     context.perspective,
@@ -514,6 +515,8 @@ function boundedSearch(
   let beta = betaValue;
   const alphaBefore = alpha;
   const betaBefore = beta;
+
+  // Reuse a sufficiently deep transposition entry to narrow this node.
   let preferredChildHash: Hash64 | undefined;
   const entry = context.config.useTranspositionTable
     ? context.transposition.get(stateHash)
@@ -531,6 +534,7 @@ function boundedSearch(
     }
   }
 
+  // Apply the optional shallow static cutoff before child expansion.
   const maximizing = game.activeColor === context.perspective;
   if (
     context.config.enableFutilityPruning &&
@@ -548,6 +552,7 @@ function boundedSearch(
     }
   }
 
+  // Expand children in deterministic ranked order.
   const children = rankedChildren(game, context, stateHash, preferredChildHash);
   if (children.length === 0) return staticScore(game, stateHash, context);
   let value = maximizing ? -0x8000_0000 : 0x7fff_ffff;
@@ -605,6 +610,7 @@ function boundedSearch(
     value = staticScore(game, stateHash, context);
   }
 
+  // Store only a complete, non-cancelled node result.
   if (
     context.config.useTranspositionTable &&
     !stoppedByBudget &&
@@ -628,7 +634,10 @@ function boundedSearch(
   return value;
 }
 
-function newContext(perspective: Color, config: SearchConfig): SearchContext {
+function createSearchContext(
+  perspective: Color,
+  config: SearchConfig,
+): SearchContext {
   return {
     perspective,
     config,
@@ -683,13 +692,59 @@ function betterEvaluation(
   );
 }
 
+type FocusedRootEvaluationRun = {
+  readonly evaluations: readonly RootEvaluation[];
+  readonly best: RootEvaluation | undefined;
+};
+
+function evaluateFocusedRoots(
+  candidates: readonly RootCandidate[],
+  context: SearchContext,
+): FocusedRootEvaluationRun {
+  const evaluations: RootEvaluation[] = [];
+  let best: RootEvaluation | undefined;
+  let alpha = -0x8000_0000;
+  for (const candidate of candidates) {
+    if (
+      context.stats.visitedNodes >= context.config.maxVisitedNodes ||
+      checkpoint()
+    ) {
+      break;
+    }
+    context.stats.visitedNodes += 1;
+    const score =
+      context.config.depth <= 1
+        ? candidate.heuristic
+        : boundedSearch(
+            candidate.game,
+            candidate.stateHash,
+            context.config.depth - 1,
+            alpha,
+            0x7fff_ffff,
+            context.config.maxExtensionsPerPath,
+            context,
+          );
+    const evaluation: RootEvaluation = {
+      candidate,
+      score,
+      nodesAfter: context.stats.visitedNodes,
+    };
+    evaluations.push(evaluation);
+    if (best === undefined || betterEvaluation(evaluation, best)) {
+      best = evaluation;
+    }
+    alpha = Math.max(alpha, score);
+  }
+  return { evaluations, best };
+}
+
 export function evaluateSearchScore(
   game: MonsGame,
   perspective: Color,
   depth: number,
   config: SearchConfig,
 ): number {
-  const context = newContext(perspective, config);
+  const context = createSearchContext(perspective, config);
   const stateHash = exactSearchStateHash(game);
   return boundedSearch(
     game,
@@ -741,7 +796,7 @@ export function focusRootCandidatesForSearch(
             options.qualifiesDrainerSafetyRecoveryPlan,
         }),
     evaluateDeeperScout: (scout) => {
-      scoutContext ??= newContext(perspective, {
+      scoutContext ??= createSearchContext(perspective, {
         ...scout.config,
         useTranspositionTable: scout.useTranspositionTable,
       });
@@ -791,39 +846,9 @@ export function searchRootCandidates(
     options,
   );
   const candidates = focused.candidates;
-  const context = newContext(perspective, config);
+  const context = createSearchContext(perspective, config);
   context.stats.visitedNodes = focused.scoutVisitedNodes;
-  const evaluations: RootEvaluation[] = [];
-  let best: RootEvaluation | undefined;
-  let alpha = -0x8000_0000;
-  for (const candidate of candidates) {
-    if (context.stats.visitedNodes >= config.maxVisitedNodes || checkpoint()) {
-      break;
-    }
-    context.stats.visitedNodes += 1;
-    const score =
-      config.depth <= 1
-        ? candidate.heuristic
-        : boundedSearch(
-            candidate.game,
-            candidate.stateHash,
-            config.depth - 1,
-            alpha,
-            0x7fff_ffff,
-            config.maxExtensionsPerPath,
-            context,
-          );
-    const evaluation: RootEvaluation = {
-      candidate,
-      score,
-      nodesAfter: context.stats.visitedNodes,
-    };
-    evaluations.push(evaluation);
-    if (best === undefined || betterEvaluation(evaluation, best)) {
-      best = evaluation;
-    }
-    alpha = Math.max(alpha, score);
-  }
+  const { evaluations, best } = evaluateFocusedRoots(candidates, context);
   if (game.fen() !== sourceFen) {
     throw new Error("bounded search mutated its source game");
   }

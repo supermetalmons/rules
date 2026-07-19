@@ -1,7 +1,8 @@
 import { Color } from "../engine/domain.js";
-import { colorFen, parseInputArrayFen } from "../engine/fen.js";
+import { colorFen } from "../engine/fen.js";
 import { MonsGame } from "../engine/game.js";
 import { toWellFormedString } from "../engine/text.js";
+import { replayInterleavedMoves } from "./replay.js";
 
 /** Validate two submitted end states and their independent move histories. */
 export function winner(
@@ -38,37 +39,29 @@ export function winner(
   }
 
   const game = new MonsGame(false, gameW.variant());
-  let whiteIndex = 0;
-  let blackIndex = 0;
-  while (whiteIndex < movesW.length || blackIndex < movesB.length) {
-    if (game.activeColor === Color.White) {
-      const move = movesW[whiteIndex];
-      if (move === undefined) {
-        return "x";
-      }
-      game.processInput(parseInputArrayFen(move), false, false);
-      whiteIndex += 1;
-    } else {
-      const move = movesB[blackIndex];
-      if (move === undefined) {
-        return "x";
-      }
-      game.processInput(parseInputArrayFen(move), false, false);
-      blackIndex += 1;
-    }
+  let winnerResult: string | undefined;
+  replayInterleavedMoves(
+    game,
+    movesW,
+    movesB,
+    (replayedGame, { whiteMovesProcessed, blackMovesProcessed }) => {
+      const winnerColor = replayedGame.winnerColor();
+      if (winnerColor === undefined) return true;
 
-    const winnerColor = game.winnerColor();
-    if (winnerColor === Color.White) {
-      return whiteIndex === movesW.length && normalizedFenW === game.fen()
-        ? colorFen(winnerColor)
-        : "x";
-    }
-    if (winnerColor === Color.Black) {
-      return blackIndex === movesB.length && normalizedFenB === game.fen()
-        ? colorFen(winnerColor)
-        : "x";
-    }
-  }
+      const submittedAllWinnerMoves =
+        winnerColor === Color.White
+          ? whiteMovesProcessed === movesW.length
+          : blackMovesProcessed === movesB.length;
+      const submittedWinnerFen =
+        winnerColor === Color.White ? normalizedFenW : normalizedFenB;
+      winnerResult =
+        submittedAllWinnerMoves && submittedWinnerFen === replayedGame.fen()
+          ? colorFen(winnerColor)
+          : "x";
+      return false;
+    },
+  );
+  if (winnerResult !== undefined) return winnerResult;
 
   return "x";
 }

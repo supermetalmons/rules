@@ -217,19 +217,19 @@ function namedEnum(value: object): Readonly<Record<string, number>> {
   );
 }
 
-function memberArities(owner: object): Readonly<Record<string, number | null>> {
-  return Object.fromEntries(
-    Object.getOwnPropertyNames(owner).map((key) => {
-      const descriptor = Object.getOwnPropertyDescriptor(owner, key);
-      if (descriptor === undefined) throw new Error(`missing ${key}`);
-      return [
-        key,
-        "value" in descriptor && typeof descriptor.value === "function"
-          ? descriptor.value.length
-          : null,
-      ];
-    }),
-  );
+function memberArities(
+  owner: object,
+): readonly (readonly [string, number | null])[] {
+  return Object.getOwnPropertyNames(owner).map((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(owner, key);
+    if (descriptor === undefined) throw new Error(`missing ${key}`);
+    return [
+      key,
+      "value" in descriptor && typeof descriptor.value === "function"
+        ? descriptor.value.length
+        : null,
+    ];
+  });
 }
 
 describe("public API", () => {
@@ -255,21 +255,17 @@ describe("public API", () => {
       expect(constructor.name, name).toBe(name);
       expect(constructor.length, name).toBe(length);
       expect(
-        Object.fromEntries(
-          Object.entries(memberArities(constructor)).filter(
-            ([key]) => !["length", "name", "prototype"].includes(key),
-          ),
+        memberArities(constructor).filter(
+          ([key]) => !["length", "name", "prototype"].includes(key),
         ),
         `${name} static members`,
-      ).toEqual(staticMembers);
+      ).toEqual(Object.entries(staticMembers));
       expect(
-        Object.fromEntries(
-          Object.entries(memberArities(constructor.prototype)).filter(
-            ([key]) => key !== "constructor",
-          ),
+        memberArities(constructor.prototype).filter(
+          ([key]) => key !== "constructor",
         ),
         `${name} prototype members`,
-      ).toEqual(prototypeMembers);
+      ).toEqual(Object.entries(prototypeMembers));
     }
   });
 

@@ -16,6 +16,7 @@ import {
   inputEquals,
   inputKey,
   isMonFainted,
+  isSpiritTargetAllowed,
   itemConsumable,
   itemKey,
   itemMana,
@@ -234,12 +235,6 @@ function cloneOutput(output: Output): Output {
   }
 }
 
-function cloneStageResult(result: StageResult): StageResult {
-  return result === undefined
-    ? undefined
-    : [result[0].map(cloneEvent), result[1].map(cloneNextInput)];
-}
-
 function boundedCacheInsert<T>(
   cache: Map<string, T>,
   key: string,
@@ -332,6 +327,22 @@ export class MonsGame {
     this.#processInputCache = createProcessInputCache();
   }
 
+  /**
+   * Copy only the scalar state represented by game FEN. Callers keep board,
+   * history, tracking, and cache ownership explicit.
+   */
+  #copyFenFieldsFrom(state: GameFenState): void {
+    this.whiteScore = state.whiteScore;
+    this.blackScore = state.blackScore;
+    this.activeColor = state.activeColor;
+    this.actionsUsedCount = state.actionsUsedCount;
+    this.manaMovesCount = state.manaMovesCount;
+    this.monsMovesCount = state.monsMovesCount;
+    this.whitePotionsCount = state.whitePotionsCount;
+    this.blackPotionsCount = state.blackPotionsCount;
+    this.turnNumber = state.turnNumber;
+  }
+
   static #fromBoard(withVerboseTracking: boolean, board: Board): MonsGame {
     return new MonsGame(withVerboseTracking, board.variant(), {
       [MONS_GAME_BOARD_INITIALIZATION]: board,
@@ -347,15 +358,7 @@ export class MonsGame {
 
   public static newSimulationState(state: GameFenState): MonsGame {
     const game = MonsGame.#fromBoard(false, state.board);
-    game.whiteScore = state.whiteScore;
-    game.blackScore = state.blackScore;
-    game.activeColor = state.activeColor;
-    game.actionsUsedCount = state.actionsUsedCount;
-    game.manaMovesCount = state.manaMovesCount;
-    game.monsMovesCount = state.monsMovesCount;
-    game.whitePotionsCount = state.whitePotionsCount;
-    game.blackPotionsCount = state.blackPotionsCount;
-    game.turnNumber = state.turnNumber;
+    game.#copyFenFieldsFrom(state);
     game.#trackTakebackHistory = false;
     return game;
   }
@@ -369,15 +372,7 @@ export class MonsGame {
       return undefined;
     }
     const game = MonsGame.#fromBoard(withVerboseTracking, state.board);
-    game.whiteScore = state.whiteScore;
-    game.blackScore = state.blackScore;
-    game.activeColor = state.activeColor;
-    game.actionsUsedCount = state.actionsUsedCount;
-    game.manaMovesCount = state.manaMovesCount;
-    game.monsMovesCount = state.monsMovesCount;
-    game.whitePotionsCount = state.whitePotionsCount;
-    game.blackPotionsCount = state.blackPotionsCount;
-    game.turnNumber = state.turnNumber;
+    game.#copyFenFieldsFrom(state);
     game.takebackFens = [];
     game.isMovesVerified = false;
     game.verboseTrackingEntities = [];
@@ -393,15 +388,7 @@ export class MonsGame {
       this.withVerboseTracking,
       this.board.clone(),
     );
-    game.whiteScore = this.whiteScore;
-    game.blackScore = this.blackScore;
-    game.activeColor = this.activeColor;
-    game.actionsUsedCount = this.actionsUsedCount;
-    game.manaMovesCount = this.manaMovesCount;
-    game.monsMovesCount = this.monsMovesCount;
-    game.whitePotionsCount = this.whitePotionsCount;
-    game.blackPotionsCount = this.blackPotionsCount;
-    game.turnNumber = this.turnNumber;
+    game.#copyFenFieldsFrom(this);
     game.takebackFens = [...this.takebackFens];
     game.isMovesVerified = this.isMovesVerified;
     game.verboseTrackingEntities = this.verboseTrackingEntities.map(
@@ -416,18 +403,12 @@ export class MonsGame {
   }
 
   public cloneForSimulation(): MonsGame {
-    const simulation = MonsGame.newSimulationState({
-      board: this.board.cloneForSimulation(),
-      whiteScore: this.whiteScore,
-      blackScore: this.blackScore,
-      activeColor: this.activeColor,
-      actionsUsedCount: this.actionsUsedCount,
-      manaMovesCount: this.manaMovesCount,
-      monsMovesCount: this.monsMovesCount,
-      whitePotionsCount: this.whitePotionsCount,
-      blackPotionsCount: this.blackPotionsCount,
-      turnNumber: this.turnNumber,
-    });
+    const simulation = MonsGame.#fromBoard(
+      false,
+      this.board.cloneForSimulation(),
+    );
+    simulation.#copyFenFieldsFrom(this);
+    simulation.#trackTakebackHistory = false;
     simulation.isMovesVerified = this.isMovesVerified;
     return simulation;
   }
@@ -478,15 +459,7 @@ export class MonsGame {
 
   #updateWith(otherGame: MonsGame): void {
     this.board = otherGame.board.clone();
-    this.whiteScore = otherGame.whiteScore;
-    this.blackScore = otherGame.blackScore;
-    this.activeColor = otherGame.activeColor;
-    this.actionsUsedCount = otherGame.actionsUsedCount;
-    this.manaMovesCount = otherGame.manaMovesCount;
-    this.monsMovesCount = otherGame.monsMovesCount;
-    this.whitePotionsCount = otherGame.whitePotionsCount;
-    this.blackPotionsCount = otherGame.blackPotionsCount;
-    this.turnNumber = otherGame.turnNumber;
+    this.#copyFenFieldsFrom(otherGame);
     this.invalidateProcessInputCache();
   }
 
@@ -924,8 +897,7 @@ export class MonsGame {
                     if (item === undefined) {
                       return false;
                     }
-                    const targetMon = itemMon(item);
-                    return targetMon === undefined || !isMonFainted(targetMon);
+                    return isSpiritTargetAllowed(item);
                   },
                 ),
               );
@@ -1075,9 +1047,7 @@ export class MonsGame {
       targetLocation,
     )}`;
     if (this.#processInputCache.secondStage.has(cacheKey)) {
-      return cloneStageResult(
-        this.#processInputCache.secondStage.get(cacheKey),
-      );
+      return this.#processInputCache.secondStage.get(cacheKey);
     }
     const computed = this.#processSecondInputUncached(
       kind,
@@ -1088,7 +1058,7 @@ export class MonsGame {
     boundedCacheInsert(
       this.#processInputCache.secondStage,
       cacheKey,
-      cloneStageResult(computed),
+      computed,
       SECOND_STAGE_CACHE_CAPACITY,
     );
     return computed;
@@ -1544,7 +1514,7 @@ export class MonsGame {
         : itemKey(thirdInput.actorMonItem)
     }|${itemKey(startItem)}|${locationIndex(startLocation)}|${locationIndex(targetLocation)}`;
     if (this.#processInputCache.thirdStage.has(cacheKey)) {
-      return cloneStageResult(this.#processInputCache.thirdStage.get(cacheKey));
+      return this.#processInputCache.thirdStage.get(cacheKey);
     }
     const computed = this.#processThirdInputUncached(
       thirdInput,
@@ -1555,7 +1525,7 @@ export class MonsGame {
     boundedCacheInsert(
       this.#processInputCache.thirdStage,
       cacheKey,
-      cloneStageResult(computed),
+      computed,
       THIRD_STAGE_CACHE_CAPACITY,
     );
     return computed;

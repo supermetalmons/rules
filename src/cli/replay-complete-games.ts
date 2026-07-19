@@ -7,7 +7,9 @@ import { MonsGame } from "../engine/game.js";
 import { parseInputArrayFen } from "../engine/fen.js";
 import { forEachByteLine } from "./byte-lines.js";
 import {
+  decodeUtf8Strict,
   errorMessage,
+  fail,
   isRecord,
   terminalEventMembershipError,
   type TerminalEventKind,
@@ -60,10 +62,6 @@ type CompleteGameRecord = {
   readonly gameVariant: VariantName;
   readonly turns: readonly (readonly string[])[];
 };
-
-function fail(message: string): never {
-  throw new Error(message);
-}
 
 function isVariantName(value: string): value is VariantName {
   return Object.hasOwn(VARIANT_BY_NAME, value);
@@ -237,7 +235,7 @@ async function run(): Promise<void> {
       }
       let raw: string;
       try {
-        raw = new TextDecoder("utf-8", { fatal: true }).decode(rawBytes);
+        raw = decodeUtf8Strict(rawBytes);
       } catch (error) {
         fail(`line ${line} is not valid UTF-8: ${errorMessage(error)}`);
       }

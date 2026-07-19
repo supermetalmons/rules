@@ -28,6 +28,7 @@ import {
   type ExactTurnTacticalProjection,
 } from "./exact.js";
 import { Hash64Table, type Hash64 } from "./hash64.js";
+import { hasMaterialEvent } from "./transitions.js";
 
 const MOVE_EFFICIENCY_SNAPSHOT_CACHE_MAX_ENTRIES = 16_384;
 const UNKNOWN_STEPS = BOARD_SIZE + 4;
@@ -35,6 +36,12 @@ const NO_EFFECT_ROOT_PENALTY = 120;
 const LOW_IMPACT_ROOT_PENALTY = 40;
 const SPIRIT_DEPLOY_EFFICIENCY_BONUS = 90;
 const SPIRIT_ACTION_TARGET_DELTA_WEIGHT = 22;
+const MOVE_EFFICIENCY_TACTICAL_PROJECTION_FLAGS =
+  EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS |
+  EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS |
+  EXACT_TURN_TACTICAL_NEED_SPIRIT_SCORE |
+  EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL |
+  EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW;
 
 /** Value snapshot used by both root and child move ordering. */
 export type MoveEfficiencySnapshot = {
@@ -105,16 +112,6 @@ function defaultTacticalProjection(
     spiritAssistedDenialValue: 0,
     sameTurnScoreWindowValue,
   };
-}
-
-function moveEfficiencyTacticalProjectionFlags(): number {
-  return (
-    EXACT_TURN_TACTICAL_NEED_SUPERMANA_PROGRESS |
-    EXACT_TURN_TACTICAL_NEED_OPPONENT_MANA_PROGRESS |
-    EXACT_TURN_TACTICAL_NEED_SPIRIT_SCORE |
-    EXACT_TURN_TACTICAL_NEED_SPIRIT_DENIAL |
-    EXACT_TURN_TACTICAL_NEED_SCORE_WINDOW
-  );
 }
 
 export function distanceToAnyPoolStepsForEfficiency(
@@ -199,20 +196,24 @@ function approximateSameTurnScoreWindowValue(
   return best;
 }
 
-function buildMoveEfficiencySnapshot(
+type MoveEfficiencySnapshotBuilder = {
+  -readonly [Key in keyof MoveEfficiencySnapshot]: MoveEfficiencySnapshot[Key];
+};
+
+function initializeMoveEfficiencySnapshot(
   game: MonsGame,
   perspective: Color,
+  opponent: Color,
   includeTacticalExact: boolean,
   includeStrategicExact: boolean,
   stateHash: Hash64,
-): MoveEfficiencySnapshot {
-  const opponent = otherColor(perspective);
+): MoveEfficiencySnapshotBuilder {
   const strategic = includeStrategicExact
     ? exactStrategicAnalysis(game)
     : undefined;
   const mySummary = strategic?.colorSummary(perspective);
   const opponentSummary = strategic?.colorSummary(opponent);
-  const tacticalFlags = moveEfficiencyTacticalProjectionFlags();
+  const tacticalFlags = MOVE_EFFICIENCY_TACTICAL_PROJECTION_FLAGS;
   const myTurnSummary =
     includeTacticalExact && game.activeColor === perspective
       ? exactTurnTacticalProjectionWithSearchHash(
@@ -238,9 +239,6 @@ function buildMoveEfficiencySnapshot(
             approximateSameTurnScoreWindowValue(game, opponent),
         );
 
-  let myBestCarrierSteps = mySummary?.bestCarrierSteps ?? UNKNOWN_STEPS;
-  let opponentBestCarrierSteps =
-    opponentSummary?.bestCarrierSteps ?? UNKNOWN_STEPS;
   const myBestDrainerToManaSteps =
     mySummary?.bestDrainerToManaSteps ??
     approximateBestDrainerToManaSteps(game, perspective) ??
@@ -249,60 +247,17 @@ function buildMoveEfficiencySnapshot(
     opponentSummary?.bestDrainerToManaSteps ??
     approximateBestDrainerToManaSteps(game, opponent) ??
     UNKNOWN_STEPS;
-  let myCarrierCount = 0;
-  let opponentCarrierCount = 0;
-  let mySpiritOnBase = false;
-  let opponentSpiritOnBase = false;
-  const mySpiritBase = game.board.base({
-    kind: MonKind.Spirit,
-    color: perspective,
-    cooldown: 0,
-  });
-  const opponentSpiritBase = game.board.base({
-    kind: MonKind.Spirit,
-    color: opponent,
-    cooldown: 0,
-  });
-
-  for (const [location, item] of game.board.occupied()) {
-    if (item.kind === "mon-with-mana") {
-      if (isMonFainted(item.mon)) continue;
-      const poolSteps = subI32(
-        distanceToAnyPoolStepsForEfficiency(location),
-        1,
-      );
-      if (item.mon.color === perspective) {
-        myCarrierCount = addI32(myCarrierCount, 1);
-        myBestCarrierSteps = Math.min(myBestCarrierSteps, poolSteps);
-      } else {
-        opponentCarrierCount = addI32(opponentCarrierCount, 1);
-        opponentBestCarrierSteps = Math.min(
-          opponentBestCarrierSteps,
-          poolSteps,
-        );
-      }
-      continue;
-    }
-    if (item.kind !== "mon" && item.kind !== "mon-with-consumable") {
-      continue;
-    }
-    if (isMonFainted(item.mon) || item.mon.kind !== MonKind.Spirit) continue;
-    if (item.mon.color === perspective) {
-      mySpiritOnBase = locationEquals(location, mySpiritBase);
-    } else {
-      opponentSpiritOnBase = locationEquals(location, opponentSpiritBase);
-    }
-  }
 
   return {
-    myBestCarrierSteps,
-    opponentBestCarrierSteps,
+    myBestCarrierSteps: mySummary?.bestCarrierSteps ?? UNKNOWN_STEPS,
+    opponentBestCarrierSteps:
+      opponentSummary?.bestCarrierSteps ?? UNKNOWN_STEPS,
     myBestDrainerToManaSteps,
     opponentBestDrainerToManaSteps,
-    myCarrierCount,
-    opponentCarrierCount,
-    mySpiritOnBase,
-    opponentSpiritOnBase,
+    myCarrierCount: 0,
+    opponentCarrierCount: 0,
+    mySpiritOnBase: false,
+    opponentSpiritOnBase: false,
     mySpiritActionTargets: mySummary?.spirit.utility ?? 0,
     opponentSpiritActionTargets: opponentSummary?.spirit.utility ?? 0,
     mySameTurnScoreValue:
@@ -342,6 +297,83 @@ function buildMoveEfficiencySnapshot(
     opponentSafeOpponentManaProgressSteps:
       opponentTurnSummary.safeOpponentManaProgressSteps ?? UNKNOWN_STEPS,
   };
+}
+
+function observeMoveEfficiencyBoard(
+  game: MonsGame,
+  perspective: Color,
+  opponent: Color,
+  snapshot: MoveEfficiencySnapshotBuilder,
+): void {
+  const mySpiritBase = game.board.base({
+    kind: MonKind.Spirit,
+    color: perspective,
+    cooldown: 0,
+  });
+  const opponentSpiritBase = game.board.base({
+    kind: MonKind.Spirit,
+    color: opponent,
+    cooldown: 0,
+  });
+
+  for (const [location, item] of game.board.occupied()) {
+    if (item.kind === "mon-with-mana") {
+      if (isMonFainted(item.mon)) continue;
+      const poolSteps = subI32(
+        distanceToAnyPoolStepsForEfficiency(location),
+        1,
+      );
+      if (item.mon.color === perspective) {
+        snapshot.myCarrierCount = addI32(snapshot.myCarrierCount, 1);
+        snapshot.myBestCarrierSteps = Math.min(
+          snapshot.myBestCarrierSteps,
+          poolSteps,
+        );
+      } else {
+        snapshot.opponentCarrierCount = addI32(
+          snapshot.opponentCarrierCount,
+          1,
+        );
+        snapshot.opponentBestCarrierSteps = Math.min(
+          snapshot.opponentBestCarrierSteps,
+          poolSteps,
+        );
+      }
+      continue;
+    }
+    if (item.kind !== "mon" && item.kind !== "mon-with-consumable") {
+      continue;
+    }
+    if (isMonFainted(item.mon) || item.mon.kind !== MonKind.Spirit) continue;
+    if (item.mon.color === perspective) {
+      snapshot.mySpiritOnBase = locationEquals(location, mySpiritBase);
+    } else {
+      snapshot.opponentSpiritOnBase = locationEquals(
+        location,
+        opponentSpiritBase,
+      );
+    }
+  }
+}
+
+function buildMoveEfficiencySnapshot(
+  game: MonsGame,
+  perspective: Color,
+  includeTacticalExact: boolean,
+  includeStrategicExact: boolean,
+  stateHash: Hash64,
+): MoveEfficiencySnapshot {
+  const opponent = otherColor(perspective);
+  const snapshot = initializeMoveEfficiencySnapshot(
+    game,
+    perspective,
+    opponent,
+    includeTacticalExact,
+    includeStrategicExact,
+    stateHash,
+  );
+  observeMoveEfficiencyBoard(game, perspective, opponent, snapshot);
+  return snapshot;
 }
 
 /** Cached builder used for the parent/before side of ordering deltas. */
@@ -446,24 +478,6 @@ export function hasRoundtripMonMove(events: readonly Event[]): boolean {
   return false;
 }
 
-function hasMaterialEvent(events: readonly Event[]): boolean {
-  return events.some((event) => {
-    switch (event.kind) {
-      case "mana-scored":
-      case "pickup-mana":
-      case "mon-fainted":
-      case "use-potion":
-      case "pickup-bomb":
-      case "pickup-potion":
-      case "bomb-attack":
-      case "bomb-explosion":
-        return true;
-      default:
-        return false;
-    }
-  });
-}
-
 export function isNoEffectTurnTransition(
   game: MonsGame,
   simulatedGame: MonsGame,
@@ -534,27 +548,12 @@ export function manaHandoffPenalty(
   return penalty;
 }
 
-/**
- * Complete weighted snapshot delta. Passing a before-snapshot captured for a
- * different perspective intentionally preserves the established child order.
- */
-export function moveEfficiencyDeltaFromBeforeSnapshotWithAfterSnapshot(
-  game: MonsGame,
-  simulatedGame: MonsGame,
-  perspective: Color,
-  events: readonly Event[],
+function applyCarrierAndDrainerEfficiencyDelta(
   before: MoveEfficiencySnapshot,
   after: MoveEfficiencySnapshot,
-  policy: MoveEfficiencyDeltaPolicy,
+  initialDelta: number,
 ): number {
-  const {
-    isRoot,
-    applyBacktrackPenalty,
-    applyRootManaHandoffGuard,
-    rootBacktrackPenalty,
-    rootManaHandoffPenalty,
-  } = policy;
-  let delta = 0;
+  let delta = initialDelta;
   delta = addI32(
     delta,
     stepProgressDelta(
@@ -599,6 +598,15 @@ export function moveEfficiencyDeltaFromBeforeSnapshotWithAfterSnapshot(
     delta,
     mulI32(subI32(after.opponentCarrierCount, before.opponentCarrierCount), 48),
   );
+  return delta;
+}
+
+function applySpiritEfficiencyDelta(
+  before: MoveEfficiencySnapshot,
+  after: MoveEfficiencySnapshot,
+  initialDelta: number,
+): number {
+  let delta = initialDelta;
   if (before.mySpiritOnBase && !after.mySpiritOnBase) {
     delta = addI32(delta, SPIRIT_DEPLOY_EFFICIENCY_BONUS);
   }
@@ -622,6 +630,15 @@ export function moveEfficiencyDeltaFromBeforeSnapshotWithAfterSnapshot(
       Math.trunc(SPIRIT_ACTION_TARGET_DELTA_WEIGHT / 2),
     ),
   );
+  return delta;
+}
+
+function applyScoreWindowEfficiencyDelta(
+  before: MoveEfficiencySnapshot,
+  after: MoveEfficiencySnapshot,
+  initialDelta: number,
+): number {
+  let delta = initialDelta;
   delta = addI32(
     delta,
     mulI32(subI32(after.mySameTurnScoreValue, before.mySameTurnScoreValue), 55),
@@ -656,6 +673,15 @@ export function moveEfficiencyDeltaFromBeforeSnapshotWithAfterSnapshot(
       75,
     ),
   );
+  return delta;
+}
+
+function applySafeProgressEfficiencyDelta(
+  before: MoveEfficiencySnapshot,
+  after: MoveEfficiencySnapshot,
+  initialDelta: number,
+): number {
+  let delta = initialDelta;
   if (!before.mySafeSupermanaProgress && after.mySafeSupermanaProgress) {
     delta = addI32(delta, 140);
   }
@@ -710,29 +736,70 @@ export function moveEfficiencyDeltaFromBeforeSnapshotWithAfterSnapshot(
       30,
     ),
   );
+  return delta;
+}
 
-  if (isRoot) {
-    const rootCompensatesHandoff =
-      events.some((event) => event.kind === "mana-scored") ||
-      eventsIncludeOpponentDrainerFainted(events, perspective);
-    if (applyRootManaHandoffGuard && !rootCompensatesHandoff) {
-      delta = subI32(
-        delta,
-        manaHandoffPenalty(events, perspective, rootManaHandoffPenalty),
-      );
-    }
-    if (isNoEffectTurnTransition(game, simulatedGame, events)) {
-      delta = subI32(delta, NO_EFFECT_ROOT_PENALTY);
-    } else if (!hasMaterialEvent(events) && delta <= 0) {
-      delta = subI32(delta, LOW_IMPACT_ROOT_PENALTY);
-    }
-    if (
-      applyBacktrackPenalty &&
-      rootBacktrackPenalty > 0 &&
-      hasRoundtripMonMove(events)
-    ) {
-      delta = subI32(delta, rootBacktrackPenalty);
-    }
+function applyRootEfficiencyPenalties(
+  game: MonsGame,
+  simulatedGame: MonsGame,
+  perspective: Color,
+  events: readonly Event[],
+  policy: MoveEfficiencyDeltaPolicy,
+  initialDelta: number,
+): number {
+  let delta = initialDelta;
+  const rootCompensatesHandoff =
+    events.some((event) => event.kind === "mana-scored") ||
+    eventsIncludeOpponentDrainerFainted(events, perspective);
+  if (policy.applyRootManaHandoffGuard && !rootCompensatesHandoff) {
+    delta = subI32(
+      delta,
+      manaHandoffPenalty(events, perspective, policy.rootManaHandoffPenalty),
+    );
+  }
+  if (isNoEffectTurnTransition(game, simulatedGame, events)) {
+    delta = subI32(delta, NO_EFFECT_ROOT_PENALTY);
+  } else if (!hasMaterialEvent(events) && delta <= 0) {
+    delta = subI32(delta, LOW_IMPACT_ROOT_PENALTY);
+  }
+  if (
+    policy.applyBacktrackPenalty &&
+    policy.rootBacktrackPenalty > 0 &&
+    hasRoundtripMonMove(events)
+  ) {
+    delta = subI32(delta, policy.rootBacktrackPenalty);
+  }
+  return delta;
+}
+
+/**
+ * Complete weighted snapshot delta. Passing a before-snapshot captured for a
+ * different perspective intentionally preserves the established child order.
+ */
+export function moveEfficiencyDeltaFromBeforeSnapshotWithAfterSnapshot(
+  game: MonsGame,
+  simulatedGame: MonsGame,
+  perspective: Color,
+  events: readonly Event[],
+  before: MoveEfficiencySnapshot,
+  after: MoveEfficiencySnapshot,
+  policy: MoveEfficiencyDeltaPolicy,
+): number {
+  let delta = 0;
+  delta = applyCarrierAndDrainerEfficiencyDelta(before, after, delta);
+  delta = applySpiritEfficiencyDelta(before, after, delta);
+  delta = applyScoreWindowEfficiencyDelta(before, after, delta);
+  delta = applySafeProgressEfficiencyDelta(before, after, delta);
+
+  if (policy.isRoot) {
+    delta = applyRootEfficiencyPenalties(
+      game,
+      simulatedGame,
+      perspective,
+      events,
+      policy,
+      delta,
+    );
   }
 
   return delta;

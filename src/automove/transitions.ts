@@ -19,6 +19,30 @@ export type LegalInputTransition = {
   readonly events: readonly Event[];
 };
 
+const MATERIAL_EVENT_KINDS: readonly Event["kind"][] = Object.freeze([
+  "mana-scored",
+  "pickup-mana",
+  "mon-fainted",
+  "use-potion",
+  "pickup-bomb",
+  "pickup-potion",
+  "bomb-attack",
+  "bomb-explosion",
+]);
+
+const QUIESCENCE_TACTICAL_EVENT_KINDS: readonly Event["kind"][] = Object.freeze(
+  [
+    "mana-scored",
+    "pickup-mana",
+    "mon-fainted",
+    "use-potion",
+    "bomb-attack",
+    "bomb-explosion",
+    "spirit-target-move",
+    "supermana-back-to-base",
+  ],
+);
+
 function compareNumber(left: number, right: number): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
@@ -64,6 +88,21 @@ export function compareInputChains(
   return compareNumber(left.length, right.length);
 }
 
+function appendAppliedTransition(
+  game: MonsGame,
+  inputs: readonly Input[],
+  events: readonly Event[],
+  transitions: LegalInputTransition[],
+): void {
+  const afterGame = game.cloneForSimulation();
+  const appliedEvents = afterGame.applyAndAddResultingEvents(events);
+  transitions.push({
+    inputs: inputs.map(cloneInput),
+    game: afterGame,
+    events: appliedEvents,
+  });
+}
+
 function collectLegalTransitions(
   game: MonsGame,
   partialInputs: Input[],
@@ -91,13 +130,7 @@ function collectLegalTransitions(
     case "invalid-input":
       return;
     case "events": {
-      const afterGame = game.cloneForSimulation();
-      const appliedEvents = afterGame.applyAndAddResultingEvents(output.events);
-      transitions.push({
-        inputs: partialInputs.map(cloneInput),
-        game: afterGame,
-        events: appliedEvents,
-      });
+      appendAppliedTransition(game, partialInputs, output.events, transitions);
       return;
     }
     case "locations-to-start-from":
@@ -154,6 +187,22 @@ export function enumerateLegalTransitions(
   return transitions;
 }
 
+function locationMask(locations: readonly Location[]): Uint8Array {
+  const mask = new Uint8Array(BOARD_CELLS);
+  for (const at of locations) mask[locationIndex(at)] = 1;
+  return mask;
+}
+
+function startsAtMaskedLocation(
+  transition: LegalInputTransition,
+  mask: Uint8Array,
+): boolean {
+  const first = transition.inputs[0];
+  return (
+    first?.kind === "location" && mask[locationIndex(first.location)] === 1
+  );
+}
+
 export function enumerateLegalTransitionsWithPriority(
   game: MonsGame,
   maxMoves: number,
@@ -164,8 +213,7 @@ export function enumerateLegalTransitionsWithPriority(
     return enumerateLegalTransitions(game, maxMoves, startOptions);
   }
 
-  const priorityMask = new Uint8Array(BOARD_CELLS);
-  for (const at of priorityLocations) priorityMask[locationIndex(at)] = 1;
+  const priorityMask = locationMask(priorityLocations);
   const priorityBudget = Math.max(
     Math.floor(maxMoves / 2),
     Math.max(0, maxMoves - 60),
@@ -178,11 +226,7 @@ export function enumerateLegalTransitionsWithPriority(
     maxMoves,
     startOptions,
   )) {
-    const first = transition.inputs[0];
-    const isPriority =
-      first?.kind === "location" &&
-      priorityMask[locationIndex(first.location)] === 1;
-    if (isPriority) {
+    if (startsAtMaskedLocation(transition, priorityMask)) {
       if (priority.length < priorityBudget) priority.push(transition);
     } else if (others.length < remainingBudget) {
       others.push(transition);
@@ -225,13 +269,7 @@ function collectLexicographicBounded(
   if (output.kind === "events") {
     if (allowedFirstLocations !== undefined && partialInputs.length === 0)
       return;
-    const afterGame = game.cloneForSimulation();
-    const events = afterGame.applyAndAddResultingEvents(output.events);
-    transitions.push({
-      inputs: partialInputs.map(cloneInput),
-      game: afterGame,
-      events,
-    });
+    appendAppliedTransition(game, partialInputs, output.events, transitions);
     return;
   }
 
@@ -273,11 +311,10 @@ export function enumerateLegalTransitionsLexicographicBounded(
   allowedFirstLocations?: readonly Location[],
 ): LegalInputTransition[] {
   if (maxMoves <= 0 || checkpoint()) return [];
-  let mask: Uint8Array | undefined;
-  if (allowedFirstLocations !== undefined) {
-    mask = new Uint8Array(BOARD_CELLS);
-    for (const at of allowedFirstLocations) mask[locationIndex(at)] = 1;
-  }
+  const mask =
+    allowedFirstLocations === undefined
+      ? undefined
+      : locationMask(allowedFirstLocations);
   const transitions: LegalInputTransition[] = [];
   collectLexicographicBounded(
     game.cloneForSimulation(),
@@ -308,34 +345,19 @@ export function applyInputsForSearchWithEvents(
     : undefined;
 }
 
+function hasEventKind(
+  events: readonly Event[],
+  kinds: readonly Event["kind"][],
+): boolean {
+  return events.some((event) => kinds.includes(event.kind));
+}
+
 export function hasMaterialEvent(events: readonly Event[]): boolean {
-  return events.some((event) =>
-    [
-      "mana-scored",
-      "pickup-mana",
-      "mon-fainted",
-      "use-potion",
-      "pickup-bomb",
-      "pickup-potion",
-      "bomb-attack",
-      "bomb-explosion",
-    ].includes(event.kind),
-  );
+  return hasEventKind(events, MATERIAL_EVENT_KINDS);
 }
 
 export function isQuiescenceTacticalTransition(
   events: readonly Event[],
 ): boolean {
-  return events.some((event) =>
-    [
-      "mana-scored",
-      "pickup-mana",
-      "mon-fainted",
-      "use-potion",
-      "bomb-attack",
-      "bomb-explosion",
-      "spirit-target-move",
-      "supermana-back-to-base",
-    ].includes(event.kind),
-  );
+  return hasEventKind(events, QUIESCENCE_TACTICAL_EVENT_KINDS);
 }

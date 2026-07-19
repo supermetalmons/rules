@@ -6,7 +6,9 @@ import { MonsGame } from "../engine/game.js";
 import { outputFen, parseInputArrayFen } from "../engine/fen.js";
 import { forEachByteLine } from "./byte-lines.js";
 import {
+  decodeUtf8Strict,
   errorMessage,
+  fail,
   parseCanonicalRuleTestCase,
   type RuleTestCase,
 } from "./regression-support.js";
@@ -19,11 +21,6 @@ const EXPECTED_UNCOMPRESSED_BYTES = 274_843_626;
 const EXPECTED_UNCOMPRESSED_SHA256 =
   "4b5b092987eafe9dad6b2f265b194fcb0f95380f120a6a217d3f5795a1f70f81";
 const PROGRESS_INTERVAL = 100_000;
-const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true });
-
-function fail(message: string): never {
-  throw new Error(message);
-}
 
 function replayCase(line: number, testCase: RuleTestCase): void {
   const game = MonsGame.fromFen(testCase.fenBefore, false);
@@ -117,7 +114,7 @@ async function run(): Promise<void> {
 
     let raw: string;
     try {
-      raw = UTF8_DECODER.decode(rawBytes);
+      raw = decodeUtf8Strict(rawBytes);
     } catch (error) {
       fail(`fixture line ${line} is not valid UTF-8: ${errorMessage(error)}`);
     }

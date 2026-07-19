@@ -4,6 +4,7 @@ import {
   Consumable,
   MonKind,
   isMonFainted,
+  isSpiritTargetAllowed,
   itemMon,
   manaScore,
   otherColor,
@@ -750,6 +751,62 @@ export function evaluatePreferabilityWithContext(
     score = mulI32(score, weights.confirmedScore);
   }
 
+  score = scorePreferabilityBoardItems(
+    game,
+    color,
+    weights,
+    context,
+    useHeuristicFormula,
+    supermanaBase,
+    remainingMonMovesForActive,
+    exactAnalysis,
+    myExactSummary,
+    opponentExactSummary,
+    score,
+  );
+  score = scorePreferabilityRaceWindows(
+    game,
+    color,
+    weights,
+    context,
+    useHeuristicFormula,
+    includeRegularManaMoveWindows,
+    myExactSummary,
+    opponentExactSummary,
+    score,
+  );
+  return scorePreferabilityImmediateWindows(
+    game,
+    color,
+    weights,
+    context,
+    useHeuristicFormula,
+    includeRegularManaMoveWindows,
+    includeMatchPointWindow,
+    nextTurnWindowScaleBp,
+    remainingMonMovesForActive,
+    myExactSummary,
+    opponentExactSummary,
+    myScoreNow,
+    opponentScoreNow,
+    score,
+  );
+}
+
+function scorePreferabilityBoardItems(
+  game: MonsGame,
+  color: Color,
+  weights: ScoringWeights,
+  context: ScoringEvalContext,
+  useHeuristicFormula: boolean,
+  supermanaBase: Location,
+  remainingMonMovesForActive: number,
+  exactAnalysis: ExactStrategicAnalysis | undefined,
+  myExactSummary: ExactColorSummary | undefined,
+  opponentExactSummary: ExactColorSummary | undefined,
+  initialScore: number,
+): number {
+  let score = initialScore;
   const addScore = (value: number): void => {
     score = addI32(score, value);
   };
@@ -887,7 +944,7 @@ export function evaluatePreferabilityWithContext(
     let utility: number;
     let pressureBonus: number;
     if (useHeuristicFormula) {
-      utility = spiritActionUtility(game.board, mon.color, location, true);
+      utility = heuristicSpiritActionUtility(game.board, location);
       pressureBonus = 0;
     } else {
       const spirit = exactSummaryForScoring(
@@ -1253,12 +1310,7 @@ export function evaluatePreferabilityWithContext(
           let utility: number;
           let pressureBonus: number;
           if (useHeuristicFormula) {
-            utility = spiritActionUtility(
-              game.board,
-              mon.color,
-              location,
-              true,
-            );
+            utility = heuristicSpiritActionUtility(game.board, location);
             pressureBonus = 0;
           } else {
             const spirit = exactSummaryForScoring(
@@ -1289,6 +1341,21 @@ export function evaluatePreferabilityWithContext(
     }
   }
 
+  return score;
+}
+
+function scorePreferabilityRaceWindows(
+  game: MonsGame,
+  color: Color,
+  weights: ScoringWeights,
+  context: ScoringEvalContext,
+  useHeuristicFormula: boolean,
+  includeRegularManaMoveWindows: boolean,
+  myExactSummary: ExactColorSummary | undefined,
+  opponentExactSummary: ExactColorSummary | undefined,
+  initialScore: number,
+): number {
+  let score = initialScore;
   const myScorePathWindow = useHeuristicFormula
     ? scorePathWindowToAnyPoolForContext(
         game.board,
@@ -1320,7 +1387,8 @@ export function evaluatePreferabilityWithContext(
         includeRegularManaMoveWindows,
       );
   if (myScorePathWindow.bestSteps !== undefined) {
-    addScore(
+    score = addI32(
+      score,
       scaleByBp(
         divI32(
           weights.scoreRacePathProgress,
@@ -1330,7 +1398,8 @@ export function evaluatePreferabilityWithContext(
       ),
     );
     if (!useHeuristicFormula) {
-      addScore(
+      score = addI32(
+        score,
         scaleByBp(
           divI32(
             mulI32(weights.scoreRaceMultiPath, myScorePathWindow.multiPressure),
@@ -1342,7 +1411,8 @@ export function evaluatePreferabilityWithContext(
     }
   }
   if (opponentScorePathWindow.bestSteps !== undefined) {
-    addScore(
+    score = addI32(
+      score,
       -scaleByBp(
         divI32(
           weights.opponentScoreRacePathProgress,
@@ -1352,7 +1422,8 @@ export function evaluatePreferabilityWithContext(
       ),
     );
     if (!useHeuristicFormula) {
-      addScore(
+      score = addI32(
+        score,
         -scaleByBp(
           divI32(
             mulI32(
@@ -1367,6 +1438,26 @@ export function evaluatePreferabilityWithContext(
     }
   }
 
+  return score;
+}
+
+function scorePreferabilityImmediateWindows(
+  game: MonsGame,
+  color: Color,
+  weights: ScoringWeights,
+  context: ScoringEvalContext,
+  useHeuristicFormula: boolean,
+  includeRegularManaMoveWindows: boolean,
+  includeMatchPointWindow: boolean,
+  nextTurnWindowScaleBp: number,
+  remainingMonMovesForActive: number,
+  myExactSummary: ExactColorSummary | undefined,
+  opponentExactSummary: ExactColorSummary | undefined,
+  myScoreNow: number,
+  opponentScoreNow: number,
+  initialScore: number,
+): number {
+  let score = initialScore;
   if (game.activeColor === color) {
     const immediateWindow = useHeuristicFormula
       ? immediateScoreWindowSummaryForContext(
@@ -1385,14 +1476,16 @@ export function evaluatePreferabilityWithContext(
           requireExactSummary(myExactSummary),
           includeRegularManaMoveWindows && game.playerCanMoveMana(),
         );
-    addScore(
+    score = addI32(
+      score,
       scaleByBp(
         mulI32(weights.immediateScoreWindow, immediateWindow.bestScore),
         10_000,
       ),
     );
     if (!useHeuristicFormula) {
-      addScore(
+      score = addI32(
+        score,
         scaleByBp(
           divI32(
             mulI32(
@@ -1411,7 +1504,8 @@ export function evaluatePreferabilityWithContext(
         requireExactSummary(opponentExactSummary),
         includeRegularManaMoveWindows,
       );
-      addScore(
+      score = addI32(
+        score,
         -scaleByBp(
           divI32(
             mulI32(
@@ -1426,7 +1520,8 @@ export function evaluatePreferabilityWithContext(
           10_000,
         ),
       );
-      addScore(
+      score = addI32(
+        score,
         -scaleByBp(
           divI32(
             mulI32(
@@ -1443,13 +1538,13 @@ export function evaluatePreferabilityWithContext(
       );
       if (includeMatchPointWindow) {
         if (addI32(myScoreNow, immediateWindow.bestScore) >= TARGET_SCORE) {
-          addScore(weights.immediateWinningCarrier);
+          score = addI32(score, weights.immediateWinningCarrier);
         }
         if (
           addI32(opponentScoreNow, opponentNextTurnWindow.bestScore) >=
           TARGET_SCORE
         ) {
-          addScore(-weights.immediateWinningCarrier);
+          score = addI32(score, -weights.immediateWinningCarrier);
         }
       }
     }
@@ -1471,7 +1566,8 @@ export function evaluatePreferabilityWithContext(
           requireExactSummary(opponentExactSummary),
           includeRegularManaMoveWindows && game.playerCanMoveMana(),
         );
-    addScore(
+    score = addI32(
+      score,
       -scaleByBp(
         mulI32(
           weights.opponentImmediateScoreWindow,
@@ -1481,7 +1577,8 @@ export function evaluatePreferabilityWithContext(
       ),
     );
     if (!useHeuristicFormula) {
-      addScore(
+      score = addI32(
+        score,
         -scaleByBp(
           divI32(
             mulI32(
@@ -1500,7 +1597,8 @@ export function evaluatePreferabilityWithContext(
         requireExactSummary(myExactSummary),
         includeRegularManaMoveWindows,
       );
-      addScore(
+      score = addI32(
+        score,
         scaleByBp(
           divI32(
             mulI32(
@@ -1512,7 +1610,8 @@ export function evaluatePreferabilityWithContext(
           10_000,
         ),
       );
-      addScore(
+      score = addI32(
+        score,
         scaleByBp(
           divI32(
             mulI32(
@@ -1532,10 +1631,10 @@ export function evaluatePreferabilityWithContext(
           addI32(opponentScoreNow, opponentImmediateWindow.bestScore) >=
           TARGET_SCORE
         ) {
-          addScore(-weights.immediateWinningCarrier);
+          score = addI32(score, -weights.immediateWinningCarrier);
         }
         if (addI32(myScoreNow, myNextTurnWindow.bestScore) >= TARGET_SCORE) {
-          addScore(weights.immediateWinningCarrier);
+          score = addI32(score, weights.immediateWinningCarrier);
         }
       }
     }
@@ -1828,44 +1927,19 @@ function exactSpiritPressureBonus(
   return bonus;
 }
 
-function spiritActionUtility(
+function heuristicSpiritActionUtility(
   board: Board,
-  spiritColor: Color,
   location: Location,
-  useHeuristicFormula: boolean,
 ): number {
-  const heuristicUtility = spiritReachableLocations(location).filter(
-    (target) => {
-      const item = board.item(target);
-      if (item === undefined) {
-        return false;
-      }
-      const mon = itemMon(item);
-      return mon === undefined || !isMonFainted(mon);
-    },
-  ).length;
-  if (useHeuristicFormula) {
-    return heuristicUtility;
+  let utility = 0;
+  for (const target of spiritReachableLocations(location)) {
+    const item = board.item(target);
+    if (item === undefined) continue;
+    if (isSpiritTargetAllowed(item)) {
+      utility += 1;
+    }
   }
-  const item = board.item(location);
-  const mon = item === undefined ? undefined : itemMon(item);
-  if (
-    mon?.kind !== MonKind.Spirit ||
-    mon.color !== spiritColor ||
-    isMonFainted(mon)
-  ) {
-    return heuristicUtility;
-  }
-  const game = new MonsGame(false, board.variant());
-  game.board = board.clone();
-  game.activeColor = spiritColor;
-  game.turnNumber = 2;
-  return Math.max(
-    exactStrategicAnalysis(game).colorSummary(spiritColor).spirit.utility,
-    spiritReachableLocations(location).filter(
-      (target) => board.item(target) !== undefined,
-    ).length,
-  );
+  return utility;
 }
 
 function colorSlot(color: Color): 0 | 1 {

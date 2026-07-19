@@ -7,6 +7,7 @@ import {
   cloneInput,
   inputChainKey,
   isMonFainted,
+  isSpiritTargetAllowed,
   itemConsumable,
   itemMana,
   itemMon,
@@ -3338,11 +3339,6 @@ function actorCanBombTargetNow(
   );
 }
 
-function spiritTargetAllowed(item: Item): boolean {
-  const mon = itemMon(item);
-  return mon === undefined || !isMonFainted(mon);
-}
-
 function spiritDestinationAllowed(
   board: Board,
   targetItem: Item,
@@ -4805,7 +4801,7 @@ function spiritImpactSeeds(
     for (const target of spiritReachableLocations(spirit)) {
       if (checkpoint()) return [];
       const targetItem = game.board.item(target);
-      if (targetItem === undefined || !spiritTargetAllowed(targetItem))
+      if (targetItem === undefined || !isSpiritTargetAllowed(targetItem))
         continue;
       for (const destination of nearbyLocations(target)) {
         if (checkpoint()) return [];

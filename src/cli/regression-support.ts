@@ -5,6 +5,8 @@ const RULE_CASE_KEYS = [
   "outputFen",
 ] as const;
 
+const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true });
+
 export type RuleTestCase = {
   readonly fenAfter: string;
   readonly fenBefore: string;
@@ -20,6 +22,15 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+export function fail(message: string): never {
+  throw new Error(message);
+}
+
+/** Decode one complete UTF-8 record, rejecting malformed byte sequences. */
+export function decodeUtf8Strict(bytes: Uint8Array): string {
+  return UTF8_DECODER.decode(bytes);
 }
 
 export function parseCanonicalRuleTestCase(raw: string): RuleTestCase {

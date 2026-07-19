@@ -434,35 +434,35 @@ function isCurrentPro(config: RootFocusConfig): boolean {
   return config.turnEngineMode === 1 && config.enableTurnEngineSelector;
 }
 
-export function focusedRootCandidates<
-  Candidate extends RootFocusCandidate,
-  Config extends RootFocusConfig,
->(
-  options: RootFocusOptions<Candidate, Config>,
-): FocusedRootCandidatesResult<Candidate> {
-  const {
-    config,
-    perspective,
-    priorityInputs,
-    forcedInputs,
-    useTranspositionTable,
-  } = options;
-  let rootMoves = [...options.rootMoves];
-  if (options.checkpoint?.() === true) {
-    return { candidates: [], scoutVisitedNodes: 0 };
-  }
-  if (
-    !config.enableTwoPassRootAllocation ||
-    rootMoves.length <= ROOT_FOCUS_CONSTANTS.focusCount ||
-    config.depth <= 1
-  ) {
-    return {
-      candidates: prioritizeRootInputs(rootMoves, priorityInputs, forcedInputs),
-      scoutVisitedNodes: 0,
+type RootScoutRun =
+  | {
+      readonly status: "finished";
+      readonly scores: readonly (number | undefined)[];
+      readonly visitedNodes: number;
+    }
+  | {
+      readonly status: "cancelled";
+      readonly visitedNodes: number;
     };
-  }
 
-  const scoutDepth =
+type RankedRootIndex = readonly [index: number, score: number];
+
+function prioritizedRootResult<Candidate extends RootFocusCandidate>(
+  rootMoves: readonly Candidate[],
+  priorityInputs: readonly (readonly Input[])[] | undefined,
+  forcedInputs: readonly Input[] | undefined,
+): FocusedRootCandidatesResult<Candidate> {
+  return {
+    candidates: prioritizeRootInputs(rootMoves, priorityInputs, forcedInputs),
+    scoutVisitedNodes: 0,
+  };
+}
+
+function createRootScoutConfig<Config extends RootFocusConfig>(
+  config: Config,
+  rootCount: number,
+): Config | undefined {
+  const depth =
     config.enableTwoPassVolatilityFocus || config.depth <= 3
       ? 1
       : clampInteger(config.depth, 1, ROOT_FOCUS_CONSTANTS.scoutDepth);
@@ -471,110 +471,130 @@ export function focusedRootCandidates<
     500,
     4_000,
   );
-  const scoutBudget =
-    scoutDepth <= 1
-      ? rootMoves.length
-      : clampInteger(
-          Math.trunc((config.maxVisitedNodes * scoutShareBp) / 10_000),
-          ROOT_FOCUS_CONSTANTS.scoutMinNodes,
-          Math.max(0, config.maxVisitedNodes - 1),
-        );
-  if (scoutBudget < rootMoves.length) {
-    return {
-      candidates: prioritizeRootInputs(rootMoves, priorityInputs, forcedInputs),
-      scoutVisitedNodes: 0,
-    };
+  let budget = rootCount;
+  if (depth > 1) {
+    const maximumBudget = Math.max(0, config.maxVisitedNodes - 1);
+    if (maximumBudget < ROOT_FOCUS_CONSTANTS.scoutMinNodes) return undefined;
+    budget = clampInteger(
+      Math.trunc((config.maxVisitedNodes * scoutShareBp) / 10_000),
+      ROOT_FOCUS_CONSTANTS.scoutMinNodes,
+      maximumBudget,
+    );
   }
-
-  const scoutConfig = {
+  if (budget < rootCount) return undefined;
+  return {
     ...config,
-    depth: scoutDepth,
-    maxVisitedNodes: scoutBudget,
+    depth,
+    maxVisitedNodes: budget,
     enableSelectiveExtensions: false,
     enableQuietReductions: false,
-  } as Config;
-  let scoutVisitedNodes = 0;
-  let scoutAlpha = I32_MIN;
-  const scoutScores = Array.from<number>({ length: rootMoves.length }).fill(
-    I32_MIN,
+  };
+}
+
+function runRootScout<
+  Candidate extends RootFocusCandidate,
+  Config extends RootFocusConfig,
+>(
+  options: RootFocusOptions<Candidate, Config>,
+  rootMoves: readonly Candidate[],
+  scoutConfig: Config,
+): RootScoutRun {
+  let visitedNodes = 0;
+  let alpha = I32_MIN;
+  const scores: (number | undefined)[] = Array.from(
+    { length: rootMoves.length },
+    () => undefined,
   );
-  let bestScoutScore = I32_MIN;
 
   for (const [index, candidate] of rootMoves.entries()) {
     if (options.checkpoint?.() === true) {
-      return { candidates: [], scoutVisitedNodes };
+      return { status: "cancelled", visitedNodes };
     }
-    if (scoutDepth > 1 && scoutVisitedNodes >= scoutConfig.maxVisitedNodes) {
+    if (
+      scoutConfig.depth > 1 &&
+      visitedNodes >= scoutConfig.maxVisitedNodes
+    ) {
       break;
     }
     let score: number;
-    if (scoutDepth > 1) {
-      scoutVisitedNodes += 1;
+    if (scoutConfig.depth > 1) {
+      visitedNodes += 1;
       const evaluation = options.evaluateDeeperScout({
         candidate,
         candidateIndex: index,
-        perspective,
-        depth: scoutDepth - 1,
-        alpha: scoutAlpha,
-        visitedNodes: scoutVisitedNodes,
+        perspective: options.perspective,
+        depth: scoutConfig.depth - 1,
+        alpha,
+        visitedNodes,
         config: scoutConfig,
-        useTranspositionTable,
+        useTranspositionTable: options.useTranspositionTable,
       });
       score = toI32(evaluation.score);
-      scoutVisitedNodes = Math.min(
+      visitedNodes = Math.min(
         scoutConfig.maxVisitedNodes,
         Math.max(
-          scoutVisitedNodes,
-          nonnegativeInteger(evaluation.visitedNodes, scoutVisitedNodes),
+          visitedNodes,
+          nonnegativeInteger(evaluation.visitedNodes, visitedNodes),
         ),
       );
     } else {
       score = rootFocusScoutScore(candidate);
     }
     if (options.cancelled?.() === true) {
-      return { candidates: [], scoutVisitedNodes };
+      return { status: "cancelled", visitedNodes };
     }
-    scoutScores[index] = score;
-    bestScoutScore = Math.max(bestScoutScore, score);
-    scoutAlpha = Math.max(scoutAlpha, score);
+    scores[index] = score;
+    alpha = Math.max(alpha, score);
   }
 
-  const focusCount = Math.min(
-    ROOT_FOCUS_CONSTANTS.focusCount,
-    rootMoves.length,
-  );
-  const rankedIndices: [number, number][] = rootMoves.map(
-    (candidate, index) => {
-      const scoutScore = valueAt(scoutScores, index);
-      return [
-        index,
-        scoutScore === I32_MIN ? rootFocusScoutScore(candidate) : scoutScore,
-      ];
-    },
-  );
-  rankedIndices.sort((left, right) =>
+  return { status: "finished", scores, visitedNodes };
+}
+
+function effectiveScoutScore(
+  candidate: RootFocusCandidate,
+  scoutScore: number | undefined,
+): number {
+  return scoutScore ?? rootFocusScoutScore(candidate);
+}
+
+function rankedRootIndices(
+  rootMoves: readonly RootFocusCandidate[],
+  scoutScores: readonly (number | undefined)[],
+): RankedRootIndex[] {
+  const ranked: RankedRootIndex[] = rootMoves.map((candidate, index) => {
+    return [index, effectiveScoutScore(candidate, scoutScores[index])];
+  });
+  ranked.sort((left, right) =>
     compareRankedRootIndices(rootMoves, left, right),
   );
+  return ranked;
+}
 
-  if (rankedIndices.length >= focusCount) {
-    const bestScore = rankedIndices[0]?.[1] ?? I32_MIN;
-    const kthScore = rankedIndices[focusCount - 1]?.[1] ?? I32_MIN;
-    if (
-      saturatingSubI32(bestScore, kthScore) <=
-      ROOT_FOCUS_CONSTANTS.narrowSpreadFallback
-    ) {
-      rootMoves = rankedIndices.map(([index]) => valueAt(rootMoves, index));
-      return {
-        candidates: prioritizeRootInputs(
-          rootMoves,
-          priorityInputs,
-          forcedInputs,
-        ),
-        scoutVisitedNodes: 0,
-      };
-    }
-  }
+function hasNarrowScoutSpread(
+  rankedIndices: readonly RankedRootIndex[],
+  focusCount: number,
+): boolean {
+  if (rankedIndices.length < focusCount) return false;
+  const bestScore = rankedIndices[0]?.[1] ?? I32_MIN;
+  const kthScore = rankedIndices[focusCount - 1]?.[1] ?? I32_MIN;
+  return (
+    saturatingSubI32(bestScore, kthScore) <=
+    ROOT_FOCUS_CONSTANTS.narrowSpreadFallback
+  );
+}
 
+function selectFocusedRootIndices<
+  Candidate extends RootFocusCandidate,
+  Config extends RootFocusConfig,
+>(
+  options: RootFocusOptions<Candidate, Config>,
+  rootMoves: readonly Candidate[],
+  rankedIndices: readonly RankedRootIndex[],
+  scoutScores: readonly (number | undefined)[],
+  effectiveBestScore: number,
+  focusCount: number,
+): boolean[] {
+  const { config, forcedInputs, perspective, priorityInputs } = options;
   const selected = Array.from<boolean>({ length: rootMoves.length }).fill(
     false,
   );
@@ -617,7 +637,9 @@ export function focusedRootCandidates<
   }
 
   for (const [index, score] of rankedIndices) {
-    if (addI32(score, ROOT_FOCUS_CONSTANTS.focusScoreMargin) < bestScoutScore) {
+    if (
+      addI32(score, ROOT_FOCUS_CONSTANTS.focusScoreMargin) < effectiveBestScore
+    ) {
       continue;
     }
     selected[index] = true;
@@ -667,14 +689,11 @@ export function focusedRootCandidates<
   if (config.enableTwoPassVolatilityFocus) {
     const volatilityRanked = rootMoves
       .map((candidate, index) => {
-        const scoutScore = valueAt(scoutScores, index);
+        const scoutScore = scoutScores[index];
         return {
           index,
           volatility: rootVolatilityScore(candidate),
-          scoutScore:
-            scoutScore === I32_MIN
-              ? rootFocusScoutScore(candidate)
-              : scoutScore,
+          scoutScore: effectiveScoutScore(candidate, scoutScore),
         };
       })
       .filter(({ volatility }) => volatility > 0)
@@ -701,7 +720,7 @@ export function focusedRootCandidates<
         }
         if (
           addI32(scoutScore, ROOT_FOCUS_CONSTANTS.focusScoreMargin) <
-          bestScoutScore
+          effectiveBestScore
         ) {
           continue;
         }
@@ -710,23 +729,68 @@ export function focusedRootCandidates<
     }
   }
 
-  if (!selected.some(Boolean)) {
-    return {
-      candidates: prioritizeRootInputs(rootMoves, priorityInputs, forcedInputs),
-      scoutVisitedNodes: 0,
-    };
+  return selected;
+}
+
+export function focusedRootCandidates<
+  Candidate extends RootFocusCandidate,
+  Config extends RootFocusConfig,
+>(
+  options: RootFocusOptions<Candidate, Config>,
+): FocusedRootCandidatesResult<Candidate> {
+  const { config, priorityInputs, forcedInputs } = options;
+  const rootMoves = [...options.rootMoves];
+  if (options.checkpoint?.() === true) {
+    return { candidates: [], scoutVisitedNodes: 0 };
+  }
+  if (
+    !config.enableTwoPassRootAllocation ||
+    rootMoves.length <= ROOT_FOCUS_CONSTANTS.focusCount ||
+    config.depth <= 1
+  ) {
+    return prioritizedRootResult(rootMoves, priorityInputs, forcedInputs);
   }
 
-  const focusedWithScores: [number, number][] = selected.flatMap(
+  const scoutConfig = createRootScoutConfig(config, rootMoves.length);
+  if (scoutConfig === undefined) {
+    return prioritizedRootResult(rootMoves, priorityInputs, forcedInputs);
+  }
+  const scout = runRootScout(options, rootMoves, scoutConfig);
+  if (scout.status === "cancelled") {
+    return { candidates: [], scoutVisitedNodes: scout.visitedNodes };
+  }
+
+  const focusCount = Math.min(
+    ROOT_FOCUS_CONSTANTS.focusCount,
+    rootMoves.length,
+  );
+  const rankedIndices = rankedRootIndices(rootMoves, scout.scores);
+  if (hasNarrowScoutSpread(rankedIndices, focusCount)) {
+    const rankedRoots = rankedIndices.map(([index]) =>
+      valueAt(rootMoves, index),
+    );
+    return prioritizedRootResult(rankedRoots, priorityInputs, forcedInputs);
+  }
+
+  const selected = selectFocusedRootIndices(
+    options,
+    rootMoves,
+    rankedIndices,
+    scout.scores,
+    rankedIndices[0]?.[1] ?? I32_MIN,
+    focusCount,
+  );
+
+  if (!selected.some(Boolean)) {
+    return prioritizedRootResult(rootMoves, priorityInputs, forcedInputs);
+  }
+
+  const focusedWithScores: RankedRootIndex[] = selected.flatMap(
     (isSelected, index) => {
       if (!isSelected) return [];
       const candidate = valueAt(rootMoves, index);
-      const scoutScore = valueAt(scoutScores, index);
       return [
-        [
-          index,
-          scoutScore === I32_MIN ? rootFocusScoutScore(candidate) : scoutScore,
-        ],
+        [index, effectiveScoutScore(candidate, scout.scores[index])],
       ];
     },
   );
@@ -736,6 +800,6 @@ export function focusedRootCandidates<
   const focused = focusedWithScores.map(([index]) => valueAt(rootMoves, index));
   return {
     candidates: prioritizeRootInputs(focused, priorityInputs, forcedInputs),
-    scoutVisitedNodes: Math.min(scoutVisitedNodes, config.maxVisitedNodes),
+    scoutVisitedNodes: Math.min(scout.visitedNodes, config.maxVisitedNodes),
   };
 }

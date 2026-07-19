@@ -12,6 +12,7 @@ import {
   cloneMana,
   cloneMon,
   isMonFainted,
+  isSpiritTargetAllowed,
   itemConsumable,
   itemMana,
   itemMon,
@@ -2165,11 +2166,6 @@ function reachableSpiritPositions(
   return result;
 }
 
-function spiritTargetAllowed(item: Item): boolean {
-  const mon = itemMon(item);
-  return mon === undefined || !isMonFainted(mon);
-}
-
 function spiritDestinationAllowed(
   board: Board,
   targetItem: Item,
@@ -2272,7 +2268,7 @@ function exactPassiveSpiritSummary(
         const targetItem = board.item(target);
         if (
           targetItem === undefined ||
-          !spiritTargetAllowed(targetItem) ||
+          !isSpiritTargetAllowed(targetItem) ||
           !nearbyLocations(target).some((destination) =>
             spiritDestinationAllowed(board, targetItem, destination),
           )
@@ -2725,7 +2721,7 @@ function exactTacticalSpiritSummaryUncached(
       for (const target of spiritReachableLocations(spiritPosition)) {
         if (checkpoint()) return defaultSpiritSummary();
         const targetItem = actionBoard.item(target);
-        if (targetItem === undefined || !spiritTargetAllowed(targetItem))
+        if (targetItem === undefined || !isSpiritTargetAllowed(targetItem))
           continue;
         for (const destination of nearbyLocations(target)) {
           if (checkpoint()) return defaultSpiritSummary();

@@ -322,6 +322,11 @@ export function itemMon(item: Item): Mon | undefined {
   }
 }
 
+export function isSpiritTargetAllowed(item: Item): boolean {
+  const mon = itemMon(item);
+  return mon === undefined || !isMonFainted(mon);
+}
+
 export function itemMana(item: Item): Mana | undefined {
   switch (item.kind) {
     case "mana":
