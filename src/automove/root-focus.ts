@@ -510,10 +510,7 @@ function runRootScout<
     if (options.checkpoint?.() === true) {
       return { status: "cancelled", visitedNodes };
     }
-    if (
-      scoutConfig.depth > 1 &&
-      visitedNodes >= scoutConfig.maxVisitedNodes
-    ) {
+    if (scoutConfig.depth > 1 && visitedNodes >= scoutConfig.maxVisitedNodes) {
       break;
     }
     let score: number;
@@ -789,9 +786,7 @@ export function focusedRootCandidates<
     (isSelected, index) => {
       if (!isSelected) return [];
       const candidate = valueAt(rootMoves, index);
-      return [
-        [index, effectiveScoutScore(candidate, scout.scores[index])],
-      ];
+      return [[index, effectiveScoutScore(candidate, scout.scores[index])]];
     },
   );
   focusedWithScores.sort((left, right) =>
