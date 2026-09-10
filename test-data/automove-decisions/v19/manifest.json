@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "automove-decisions-v19",
+  "description": "Deterministic public suggestMove decisions for the approved Normal-only heuristic futility-envelope cache.",
+  "fixedClockNowMs": 0,
+  "corpusFile": "decisions.jsonl",
+  "corpusSha256": "4e31760134f262f9e1d8e35b8111066c3be05fd8a82e5b05b822d6e48e0b03c4",
+  "corpusBytes": 21921,
+  "orderedIdsSha256": "3c3e6062268009985d9c947fb05cea4586af8b81909a68025dd364ef15564ad6",
+  "stateCount": 13,
+  "decisionCount": 39,
+  "preferenceOrder": [
+    "fast",
+    "normal",
+    "pro"
+  ],
+  "variantOrder": [
+    "Classic",
+    "SwappedManaRows",
+    "OffsetArcManaRows",
+    "CenterSpokeManaRows",
+    "AlternatingManaRows",
+    "InnerWedgeManaRows",
+    "OuterWedgeManaRows",
+    "BentCenterManaRows",
+    "OuterEdgeManaRows",
+    "SplitFlankManaRows",
+    "ForwardBridgeManaRows",
+    "CornerChainManaRows"
+  ],
+  "selection": {
+    "initialVariantStates": 12,
+    "retainedRegressionStates": 1
+  },
+  "changesFromV18": {
+    "fastObservations": 0,
+    "normalObservations": 2,
+    "proObservations": 0
+  },
+  "candidate": {
+    "sourceTreeSha256": "618a9f4fdb8edad0314eb3839bfc004eaafcb2c0f0d951728e8d994f627f5095",
+    "publicBundleSha256": "c0b48f0d6852325b0b25692a4fbedf1202f37b1f6df82a14d8952e578ac50314",
+    "finalCandidateVerdictSha256": "fc8e524ea875182cb9cabd60a4da64d40e9df029e5a5f1abf1d9807452e1bf8f",
+    "independentResultAuditSha256": "8143f11c6155bae8bfb5b7c935e3e5bb4b5d3175116a38294dab8e2d2a56785b"
+  },
+  "sourceTreeHashMethod": "SHA-256 of sorted source-file SHA256, two spaces, path relative to src, newline.",
+  "finalPerformanceVerdictSha256": "9984cc509a6f2725ee86776cf3da72166d7b11848d1f0141a69616c786550e7f"
+}

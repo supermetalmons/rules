@@ -1,10 +1,10 @@
 import { BOARD_CELLS } from "../engine/board/geometry.js";
-import { ACTIONS_PER_TURN, MANA_MOVES_PER_TURN, MONS_MOVES_PER_TURN } from "../engine/board/config.js";
-import { COLOR_COUNT, Z_SCALAR_HI, Z_SCALAR_LO, at, i32 } from "./board.js";
+import { COLOR_COUNT, at, i32 } from "./board.js";
 import { WIN_VALUE, evaluateWithTables } from "./evaluation.js";
 import {
   DEFAULT_EVAL_TABLES,
   DEFAULT_WEIGHTS,
+  NORMAL_WEIGHTS,
   memoizedEvalTables,
   memoizedNormalizedEvalWeights,
   type EvalTables,
@@ -30,7 +30,7 @@ import {
   type NormalizedSearchTuning,
   type SearchLimits,
 } from "./search-tuning.js";
-import { TranspositionTable } from "./transposition.js";
+import { TranspositionTable, scalarIndex, stateKeyLo, stateKeyHi } from "./transposition.js";
 
 const EVAL_CACHE_BITS = 16;
 const EVAL_CACHE_ENTRIES = 1 << EVAL_CACHE_BITS;
@@ -40,6 +40,7 @@ const FLAG_EXACT = 0;
 const FLAG_LOWER = 1;
 const FLAG_UPPER = 2;
 const FLAG_MOVE_ONLY = 3;
+const FUTILITY_UPPER_TAG = 1 << 30;
 const TABLE_GENERATION_MASK = 0x3f_ffff;
 const TIMEOUT_CHECK_MASK = 2_047;
 const TACTICAL_THRESHOLD = 1 << 15;
@@ -48,25 +49,6 @@ const KEY_KILLER_A = 1 << 24;
 const KEY_KILLER_B = 1 << 23;
 const INFINITY_SCORE = WIN_VALUE * 2;
 const NO_TIMEOUT = (): boolean => false;
-const ACTIVE_STATES = COLOR_COUNT;
-const MONS_MOVE_STATES = MONS_MOVES_PER_TURN + 1;
-const MANA_MOVE_STATES = MANA_MOVES_PER_TURN + 1;
-const ACTION_STATES = ACTIONS_PER_TURN + 1;
-const FIRST_TURN_STATES = 2;
-const POTION_BUCKET_STATES = 4;
-const SCALAR_STATE_COUNT =
-  ACTIVE_STATES *
-  MONS_MOVE_STATES *
-  MANA_MOVE_STATES *
-  ACTION_STATES *
-  FIRST_TURN_STATES *
-  POTION_BUCKET_STATES *
-  POTION_BUCKET_STATES;
-
-if (Z_SCALAR_LO.length !== Z_SCALAR_HI.length || Z_SCALAR_LO.length < SCALAR_STATE_COUNT) {
-  throw new RangeError("fast scalar hash table is too small for the configured state space");
-}
-
 type SearchOutcome = {
   readonly move: number;
   readonly score: number;
@@ -80,6 +62,7 @@ type RootSearchOutcome = {
   readonly score: number;
   readonly selective: boolean;
   readonly verifiedChallenger?: boolean;
+  readonly provenWin?: boolean;
 };
 
 export function orderMoves(
@@ -237,15 +220,13 @@ export class FastSearcher {
   readonly #killers = new Int32Array(MAX_PLY * 2);
   readonly #history = new Int32Array(COLOR_COUNT * BOARD_CELLS * BOARD_CELLS);
   readonly #moveAtPly = new Int32Array(MAX_PLY + 1);
-  readonly #evalKeyLo = new Int32Array(EVAL_CACHE_ENTRIES);
-  readonly #evalKeyHi = new Int32Array(EVAL_CACHE_ENTRIES);
-  readonly #evalEpochs = new Int32Array(EVAL_CACHE_ENTRIES);
-  readonly #evalValues = new Float64Array(EVAL_CACHE_ENTRIES);
+  readonly #evalCache = new Int32Array(EVAL_CACHE_ENTRIES * 4);
   #evalEpoch = 0;
   #evalCacheWeights: EvalWeights | undefined;
   #evalCacheThreat = 0;
   #evalCacheSquares: ArrayLike<number> | undefined;
   #tables: EvalTables = DEFAULT_EVAL_TABLES;
+  #cacheFutilityUpper = false;
   #tuning: NormalizedSearchTuning = DEFAULT_TUNING;
   #windowThreat = 0;
   #nodes = 0;
@@ -253,6 +234,7 @@ export class FastSearcher {
   #stopped = false;
   #unsupported = false;
   #selectiveEpoch = 0;
+  #turnEpoch = 0;
   #checkTimeout: () => boolean = NO_TIMEOUT;
 
   public constructor() {
@@ -280,7 +262,9 @@ export class FastSearcher {
     const normalizedLimits = memoizedSearchLimits(limits);
     const normalizedWeights = memoizedNormalizedEvalWeights(weights);
     this.#unsupported = false;
+    this.#cacheFutilityUpper = false;
     this.#selectiveEpoch = 0;
+    this.#turnEpoch = 0;
     if (positionWinner(this.root) !== -1) {
       return {
         move: 0,
@@ -292,6 +276,7 @@ export class FastSearcher {
     }
 
     this.#tables = memoizedEvalTables(normalizedWeights);
+    this.#cacheFutilityUpper = normalizedWeights === NORMAL_WEIGHTS;
     const tuning = normalizedLimits.tuning;
     this.#tuning = tuning;
     this.#windowThreat = tuning.winsNextTurnThreat;
@@ -309,7 +294,7 @@ export class FastSearcher {
       this.#evalCacheSquares = this.root.squares;
       if (this.#evalEpoch >= EVAL_CACHE_EPOCH_LIMIT) {
         this.#evalEpoch = 0;
-        this.#evalEpochs.fill(0);
+        this.#evalCache.fill(0);
       }
       this.#evalEpoch += 1;
     }
@@ -339,10 +324,11 @@ export class FastSearcher {
           alphaStart = bestScore - tuning.aspirationDelta;
           betaStart = bestScore + tuning.aspirationDelta;
         }
-        let outcome = this.#searchRoot(depth, bestMove, alphaStart, betaStart);
+        let outcome = this.#searchRoot(depth, bestMove, alphaStart, betaStart, bestMove);
         let widenings = 0;
         while (
           !this.#isStopped() &&
+          outcome.provenWin !== true &&
           outcome.move !== 0 &&
           (outcome.score <= alphaStart || outcome.score >= betaStart) &&
           (alphaStart > -INFINITY_SCORE || betaStart < INFINITY_SCORE)
@@ -355,7 +341,7 @@ export class FastSearcher {
           if (outcome.score >= betaStart) {
             betaStart = widenings >= 2 ? INFINITY_SCORE : outcome.score + widened;
           }
-          outcome = this.#searchRoot(depth, outcome.move, alphaStart, betaStart);
+          outcome = this.#searchRoot(depth, outcome.move, alphaStart, betaStart, bestMove);
         }
         if (outcome.move === 0) break;
         if (this.#isStopped()) {
@@ -386,6 +372,7 @@ export class FastSearcher {
     } finally {
       this.#table.deactivate();
       this.#tables = DEFAULT_EVAL_TABLES;
+      this.#cacheFutilityUpper = false;
       this.#tuning = DEFAULT_TUNING;
       this.#windowThreat = 0;
       this.#checkTimeout = NO_TIMEOUT;
@@ -397,7 +384,13 @@ export class FastSearcher {
     if (this.#table.generation > TABLE_GENERATION_MASK) this.#table.clear();
   }
 
-  #searchRoot(depth: number, previousBest: number, alphaStart: number, betaStart: number): RootSearchOutcome {
+  #searchRoot(
+    depth: number,
+    previousBest: number,
+    alphaStart: number,
+    betaStart: number,
+    completedIncumbent: number,
+  ): RootSearchOutcome {
     const position = at(this.#positions, 0);
     const buffer = at(this.#moves, 0);
     const count = generateMoves(position, buffer, at(this.#orderKeys, 0));
@@ -429,6 +422,7 @@ export class FastSearcher {
     for (let index = 0; index < count; index += 1) {
       if (index >= 2) this.#selectBest(buffer, rootKeys, index, count);
       const move = i32(buffer, index);
+      const turnEpoch = this.#turnEpoch;
       const winner = this.#prepareChild(position, move, 0);
       let score: number;
       let selectiveEpoch = this.#selectiveEpoch;
@@ -441,6 +435,9 @@ export class FastSearcher {
         score = this.#searchPreparedChild(position, winner, 0, depth - 1, alpha, alpha + 1);
         selective = this.#selectiveEpoch !== selectiveEpoch;
         if (score > alpha && !this.#isStopped()) {
+          if (!selective && this.#turnEpoch === turnEpoch && score >= WIN_VALUE - MAX_PLY) {
+            return { move, score, selective: false, provenWin: true };
+          }
           selectiveEpoch = this.#selectiveEpoch;
           score = this.#searchPreparedChild(position, winner, 0, depth - 1, alpha, betaStart);
           fullWindowCompleted = true;
@@ -454,9 +451,10 @@ export class FastSearcher {
         bestSelective = selective;
         bestVerifiedChallenger =
           fullWindowCompleted &&
-          previousBest !== 0 &&
-          i32(buffer, 0) === previousBest &&
-          move !== previousBest;
+          score > alpha &&
+          completedIncumbent !== 0 &&
+          i32(buffer, 0) === completedIncumbent &&
+          move !== completedIncumbent;
         if (score > alpha) alpha = score;
       }
       if (alpha >= betaStart) break;
@@ -479,6 +477,7 @@ export class FastSearcher {
     child.copyFrom(parent);
     this.#moveAtPly[ply] = move;
     const winner = applyFastMove(child, move);
+    if (child.active !== parent.active) this.#turnEpoch += 1;
     if (winner === FAST_MOVE_UNREPRESENTABLE) {
       this.#unsupported = true;
       this.#stopped = true;
@@ -530,7 +529,12 @@ export class FastSearcher {
       if (storedDepth >= depth) {
         const score = i32(table.score, slot) / 2;
         const flag = slotInfo & 3;
-        if (
+        if ((slotInfo & FUTILITY_UPPER_TAG) !== 0) {
+          if (this.#cacheFutilityUpper && storedDepth === depth && flag === FLAG_UPPER && score <= alpha) {
+            this.#selectiveEpoch += 1;
+            return score;
+          }
+        } else if (
           flag === FLAG_EXACT ||
           (flag === FLAG_LOWER && score >= beta) ||
           (flag === FLAG_UPPER && score <= alpha)
@@ -543,7 +547,12 @@ export class FastSearcher {
     const tuning = this.#tuning;
     const buffer = at(this.#moves, ply);
     let count = generateMoves(position, buffer, at(this.#orderKeys, ply));
-    if (count === 0) return this.#staticScore(position, keyLo, keyHi);
+    if (count === 0)
+      return this.#staticScore(
+        position,
+        keyLo ^ Math.imul(commutingMove, 0x27d4eb2d),
+        keyHi ^ Math.imul(commutingMove, 0x165667b1),
+      );
     const keys = at(this.#orderKeys, ply);
     count = orderMoves(
       buffer,
@@ -567,6 +576,8 @@ export class FastSearcher {
     if (this.#isStopped()) return 0;
     let futilityKnown = false;
     let futile = false;
+    let futilityEnvelope = 0;
+    let usedFutilityPruning = false;
 
     let bestScore = -INFINITY_SCORE;
     let bestMove = 0;
@@ -579,11 +590,18 @@ export class FastSearcher {
         let pruned = index >= moveLimit;
         if (!pruned && futilityEnabled) {
           if (!futilityKnown) {
-            futile =
-              this.#evaluateStatic(position, keyLo, keyHi) + tuning.futilityMargin * depth <= alphaInput;
+            futilityEnvelope =
+              this.#evaluateStatic(
+                position,
+                keyLo ^ Math.imul(commutingMove, 0x27d4eb2d),
+                keyHi ^ Math.imul(commutingMove, 0x165667b1),
+              ) +
+              tuning.futilityMargin * depth;
+            futile = futilityEnvelope <= alphaInput;
             futilityKnown = true;
           }
           pruned = futile;
+          if (futile) usedFutilityPruning = true;
         }
         if (pruned) {
           this.#selectiveEpoch += 1;
@@ -621,14 +639,23 @@ export class FastSearcher {
     if (bestMove === 0) return this.#staticScore(position);
 
     const subtreeSelective = this.#selectiveEpoch !== selectiveEpoch;
-    const flag = subtreeSelective
+    let flag = subtreeSelective
       ? FLAG_MOVE_ONLY
       : bestScore >= beta
         ? FLAG_LOWER
         : bestScore <= alphaInput
           ? FLAG_UPPER
           : FLAG_EXACT;
-    const storedScore = bestScore;
+    let storedScore = bestScore;
+    let futilityTag = 0;
+    if (this.#cacheFutilityUpper && usedFutilityPruning && bestScore <= alphaInput) {
+      const upper = bestScore > futilityEnvelope ? bestScore : futilityEnvelope;
+      if (upper < WIN_VALUE - MAX_PLY && upper > -WIN_VALUE + MAX_PLY) {
+        flag = FLAG_UPPER;
+        storedScore = upper;
+        futilityTag = FUTILITY_UPPER_TAG;
+      }
+    }
     const entryDepth = depth;
     if (storedScore < WIN_VALUE - MAX_PLY && storedScore > -WIN_VALUE + MAX_PLY) {
       const storedDepth = (slotInfo >> 2) & 63;
@@ -639,16 +666,14 @@ export class FastSearcher {
         table.keyLo[slot] = keyLo;
         table.keyHi[slot] = keyHi;
         table.score[slot] = storedScore * 2;
-        table.info[slot] = (table.generation << 8) | (entryDepth << 2) | flag;
+        table.info[slot] = futilityTag | (table.generation << 8) | (entryDepth << 2) | flag;
         table.move[slot] = bestMove;
       }
     }
     return bestScore;
   }
 
-  // Mon sub-moves on four distinct squares commute exactly, so every permutation of a
-  // commuting chain reaches the same position; keeping only the ascending order removes
-  // the duplicates at the source while every set of moves stays reachable.
+  // Disjoint mon sub-moves commute, so one ascending permutation preserves every reachable move set.
   #commutingMonMoveContext(position: FastPosition, ply: number): number {
     if (ply === 0) return 0;
     const previous = i32(this.#moveAtPly, ply - 1);
@@ -683,25 +708,25 @@ export class FastSearcher {
       keyLo = stateKeyLo(position, scalar);
       keyHi = stateKeyHi(position, scalar);
     }
-    const slot = (keyLo ^ (keyHi * 3)) & EVAL_CACHE_MASK;
+    const slot = ((keyLo ^ (keyHi * 3)) & EVAL_CACHE_MASK) << 2;
+    const cache = this.#evalCache;
     let value: number;
     if (
-      i32(this.#evalEpochs, slot) === this.#evalEpoch &&
-      i32(this.#evalKeyLo, slot) === keyLo &&
-      i32(this.#evalKeyHi, slot) === keyHi
+      i32(cache, slot + 2) === this.#evalEpoch &&
+      i32(cache, slot) === keyLo &&
+      i32(cache, slot + 1) === keyHi
     ) {
-      value = this.#evalValues[slot] ?? 0;
+      value = i32(cache, slot + 3) / 2;
     } else {
       value = evaluateWithTables(position, this.#tables, this.#windowThreat);
-      this.#evalKeyLo[slot] = keyLo;
-      this.#evalKeyHi[slot] = keyHi;
-      this.#evalValues[slot] = value;
-      this.#evalEpochs[slot] = this.#evalEpoch;
+      if (value > MAX_NONTERMINAL_SCORE) value = MAX_NONTERMINAL_SCORE;
+      else if (value < -MAX_NONTERMINAL_SCORE) value = -MAX_NONTERMINAL_SCORE;
+      cache[slot] = keyLo;
+      cache[slot + 1] = keyHi;
+      cache[slot + 2] = this.#evalEpoch;
+      cache[slot + 3] = value * 2;
     }
-    const score = position.active === 0 ? value : -value;
-    if (score > MAX_NONTERMINAL_SCORE) return MAX_NONTERMINAL_SCORE;
-    if (score < -MAX_NONTERMINAL_SCORE) return -MAX_NONTERMINAL_SCORE;
-    return score;
+    return position.active === 0 ? value : -value;
   }
 
   #staticScore(position: FastPosition, precomputedKeyLo?: number, precomputedKeyHi?: number): number {
@@ -739,40 +764,4 @@ export class FastSearcher {
     keys[bestSlot] = i32(keys, index);
     keys[index] = bestKey;
   }
-}
-
-function scalarIndex(position: FastPosition): number {
-  const whitePotions = i32(position.potions, 0);
-  const blackPotions = i32(position.potions, 1);
-  const whitePotionBucket = whitePotions > 2 ? 3 : whitePotions;
-  const blackPotionBucket = blackPotions > 2 ? 3 : blackPotions;
-  let scalar = blackPotionBucket;
-  scalar = whitePotionBucket + POTION_BUCKET_STATES * scalar;
-  scalar = (position.firstTurn ? 1 : 0) + FIRST_TURN_STATES * scalar;
-  scalar = position.actionsUsed + ACTION_STATES * scalar;
-  scalar = position.manaMoves + MANA_MOVE_STATES * scalar;
-  scalar = position.monsMoves + MONS_MOVE_STATES * scalar;
-  return position.active + ACTIVE_STATES * scalar;
-}
-
-function stateKeyLo(position: FastPosition, scalar: number, commutingMove = 0): number {
-  return (
-    position.hashLo ^
-    i32(Z_SCALAR_LO, scalar) ^
-    (position.whiteScore * 0x9e3779b1) ^
-    (position.blackScore * 0x7f4a7c15) ^
-    i32(position.potions, 0) ^
-    Math.imul(commutingMove, 0x27d4eb2d)
-  );
-}
-
-function stateKeyHi(position: FastPosition, scalar: number, commutingMove = 0): number {
-  return (
-    position.hashHi ^
-    i32(Z_SCALAR_HI, scalar) ^
-    (position.whiteScore * 0x85ebca6b) ^
-    (position.blackScore * 0xc2b2ae35) ^
-    i32(position.potions, 1) ^
-    Math.imul(commutingMove, 0x165667b1)
-  );
 }

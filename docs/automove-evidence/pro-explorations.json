@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "closedAt": "2026-09-10",
+  "scope": "Historical experiment dispositions, not recommendations to resume them. All unfinished Pro work stopped at user request.",
+  "historicalDispositions": [
+    {
+      "experiment": "pro-budget-family-v1",
+      "sourceReportSha256": "2b35b661a5264a4982cc369fbacc259789cc8712ab9b2d709960d84f58c465b1",
+      "status": "REJECTED_DEVELOPMENT_ELIGIBILITY",
+      "interpretation": "None of the three arms meets the predeclared development eligibility rule. Small positive margins for A2100 and O2100 are insufficient; this does not prove equality or weakness. Retain every outcome and prepared source. Further work must investigate a substantive new mechanism, with independent correctness, speed and fresh strength validation before promotion."
+    },
+    {
+      "experiment": "pro-cache-priced-work-v1",
+      "sourceReportSha256": "16d8663fef1ce699f51d84e47300beb47a39cc8b0b59bbf834cbe4deab373356",
+      "status": "REJECTED_DEVELOPMENT_STRENGTH",
+      "candidateId": "COLDMISS4",
+      "interpretation": "The single complete preregistered development look failed both strength conditions. Correct execution, raw/priced accounting and valid replay do not establish stronger play. The candidate remains isolated and is not promoted."
+    },
+    {
+      "experiment": "pro-cached-leaf-win-score",
+      "sourceReportSha256": "684148542b8bd13162e1555784aee50c5bebe70c61c30188e1f3e63f8a962b71",
+      "status": "PARKED_DEVELOPMENT_FAIL_NO_EXTENSION"
+    },
+    {
+      "experiment": "pro-carrier-pst-pilot-v1",
+      "sourceReportSha256": "88b08b2c5212bbdcb59f5e1ab21d5e0bd8efcc9803a8a93d6563ed14e617756d",
+      "status": "TERMINAL_INTRINSIC_REJECTION",
+      "reason": "One fixed fivefold recipe converged but failed every predictive qualification gate. No hyperparameter retry, refit, source integration, game qualification, speed measurement or fresh reserve use allowed for this recipe."
+    },
+    {
+      "experiment": "pro-clock-census-v1",
+      "sourceReportSha256": "ba2fe9eb40bd35ab5969f9afd6cf7c0fe94a3b6c8336830e9f5c279d0fd81885",
+      "status": "CLOSED_COMPLETE_DESCRIPTIVE"
+    },
+    {
+      "experiment": "pro-continuation-observation-v1",
+      "sourceReportSha256": "97334a1e3af71234932840db01a3d191d4d7072f9f626660148f20cbe0bbe7ee",
+      "status": "CLOSED_SHADOW_RANK_SCREEN_REJECTED",
+      "interpretation": "The fixed joint predecessor-conditioned destination-pooling score had sufficient prior reuse and hypothetical key changes, but improved no root cutoff-rank mean. Six roots tied and two worsened; its equal-root rank ratio was above1 instead of at most.99. This fails the prespecified opportunity screen. It does not establish a causal playing-strength effect because actual search order stayed unchanged."
+    },
+    {
+      "experiment": "pro-cpu-opportunity-profile-v1",
+      "sourceReportSha256": "625bfdadbfd885b9ce12ce7d38537bfa065d2c7f1625f019893c245f82240b21",
+      "status": "BASELINE_PROFILE_COMPLETE_OPPORTUNITIES_IDENTIFIED"
+    },
+    {
+      "experiment": "pro-descending-mon-context-v1",
+      "sourceReportSha256": "fd07c70d2161de6c82d011545ee43155ccf8417875ff04da5ad5e23033ad001b",
+      "status": "REJECTED_FIXED_DEPTH_WORK_SCREEN",
+      "interpretation": "The exact filter representative passed the finite source/correctness controls, but did not reduce equal-depth charged work by the prespecified1%; aggregate work increased42415units. No physical slowdown or playing-strength inference is made."
+    },
+    {
+      "experiment": "pro-direct-i32-v1",
+      "sourceReportSha256": "301c0a0448eac5d37e2c128cb76b8815067a942583b558034b94ef09d65e9c8a",
+      "status": "CLOSED_WARM_PERFORMANCE_REJECTED",
+      "candidateId": "DIRECT76",
+      "interpretation": "Fixed-work parity and incremental Pro wall/CPU gains passed. The original public Pro p95 upper95 ratio exceeds1 under the frozen zero-epsilon criterion, so the complete warm qualification fails. This is failure to establish the required no-slowdown bound, not evidence of stronger play."
+    },
+    {
+      "experiment": "pro-early-mana-candidate-v1",
+      "sourceReportSha256": "f5bec9385f579f281f4af3e32885560a59433f641d9682afdf051db0d016e63b",
+      "status": "PARKED_UNQUALIFIED_MIXED_MECHANISM_EVIDENCE"
+    },
+    {
+      "experiment": "pro-eval-cache-profile-v1",
+      "sourceReportSha256": "102fe5966a081c90754da06a65a76d93986ca24d9d12318b1e5c1b6003c56dfd",
+      "status": "PROFILE_CLOSED_OPPORTUNITY_PASS"
+    },
+    {
+      "experiment": "pro-exhausted-mon-context-v1",
+      "sourceReportSha256": "71d4d7f8bbaf7d36f2c4b18c08702b8d2d1f6c4a5cd43023719732098991cb5a",
+      "status": "REJECTED_FIXED_DEPTH_WORK_SCREEN",
+      "interpretation": "The exact context equivalence is valid, but this fixed prototype did not reduce aggregate charged work by the prespecified1%; work increased870units. This is not a physical slowdown or playing-strength measurement."
+    },
+    {
+      "experiment": "pro-iir-v1",
+      "sourceReportSha256": "60fa5cd7268235d9d9dd0a128a739151336e97554fff61eab88f9743374abd2c",
+      "status": "CLOSED_FAILED_FROZEN_WARM_GATE",
+      "candidateId": "NO_TT_IIR4_V1",
+      "reason": "Fast public p95 upper block-ratio bound exceeds1 despite median below1. This fails the predeclared all18 no-slowdown requirement, without proving true slowdown."
+    },
+    {
+      "experiment": "pro-killer-color-v1",
+      "sourceReportSha256": "031e873414aaf8dc64d0d97df89a036365e1350f3fdb2bcc4da3a3736e79a00e",
+      "status": "REJECTED_QUALIFICATION_EFFECT_GATE",
+      "candidateId": "PLY_COLOR_KILLERS_V1",
+      "reason": "All16primary move/signed-score/depth/node outcomes match baseline, so the predeclared minimum-two-root effect gate fails. The synthetic witness proves a structural possibility, not a strength or speed benefit."
+    },
+    {
+      "experiment": "pro-leaf-pst-order",
+      "sourceReportSha256": "a4e851160386bf3980380d5d368984d49eea1810241a89cd34c38b6371edb594",
+      "status": "SUPERSEDED_SOURCE_DRAFT_NEVER_EXECUTED",
+      "reason": "New optional ordering context needed nullish-safe and full typed PST/cell-storage checks. Native owned context was valid; malformed supplied context could throw or inject NaN."
+    },
+    {
+      "experiment": "pro-leaf-pst-order-v2",
+      "sourceReportSha256": "799ed2e0b75a035e977b37e2ee59488249f3b480655b3662adffd046cdfb6e0c",
+      "status": "PARKED_AFTER_SINGLE_DEVELOPMENT_FAIL",
+      "decision": "Development gate failed. No extension, retry, excluded pairs, equivalent optimization rescue, speed trial, fresh trial or promotion for this policy. Preserve all evidence."
+    },
+    {
+      "experiment": "pro-mon-response-lut-v1",
+      "sourceReportSha256": "da7ba0f21bb518b15f410bc382974134573ccf68d0346c70917b23c4c94a1be8",
+      "status": "CLOSED_SCREEN_FAILED",
+      "candidateId": "MON_RESPONSE_18",
+      "decision": "Reject this one destination-response LUT recipe. It preserves tested behavior but increases measured fixed-work cost in all three modes. Every strict mode/metric gate failed. No alternate layout, rerun, extension or threshold change will rescue this recipe."
+    },
+    {
+      "experiment": "pro-multicut-v1",
+      "sourceReportSha256": "2d0dcd00a1fa88382e91621d127120a6b7196f42d16a9707e850b3a853c51c6a",
+      "status": "CLOSED_NO_QUALIFICATION_EFFECT",
+      "candidateId": "PRO_MULTICUT_V1",
+      "interpretation": "No admitted primary move, signed-score, depth or node-count change on the sixteen frozen roots. This valid negative closes the exact recipe; it is not proof that probes were globally inactive or of equal physical cost."
+    },
+    {
+      "experiment": "pro-mystic-commutation-census-v1",
+      "sourceReportSha256": "e4bf7d242e250bb635a06b8a9c7ad85ce97558982dfdc5ca918e08178e6cf2f1",
+      "status": "PARKED_LOW_OPPORTUNITY",
+      "decision": "No candidate pruning/search study for this exact predicate on this opportunity evidence. No widening,retry,replacementchildren or thresholdchanges based on outcome."
+    },
+    {
+      "experiment": "pro-normal-evaluator-ftb",
+      "sourceReportSha256": "3985755a062c3698e90dc7f46ddef6b70ca7fcd5c1a2685a2f55e52c163459e7",
+      "status": "PARKED_AFTER_DEVELOPMENT_FAIL_NO_EXTENSION"
+    },
+    {
+      "experiment": "pro-odd-network-v1",
+      "sourceReportSha256": "eaaca4b052d96fe2aab31cd8ab86704864c7cfb16cd377438d45a1a5a03e81e7",
+      "status": "CLOSED_DEVELOPMENT_REJECTED",
+      "candidateId": "ODD8",
+      "conclusion": "The completed original exposed development workload does not establish the required Pro improvement. Improved out-of-fold teacher agreement did not qualify the model for downstream testing."
+    },
+    {
+      "experiment": "pro-plain-suffix-v1",
+      "sourceReportSha256": "baa740bacea1ba1d2d804c933cab8ec9f3db897fcbe352d683a5fe3f9d9926db",
+      "status": "CLOSED_AFTER_VALID_WARM_TIMING_FAILURE",
+      "candidateId": "PLAIN_SUFFIX_V1"
+    },
+    {
+      "experiment": "pro-promoted-quiet-learning",
+      "sourceReportSha256": "1f1461b369e6d9921350224d01ec6cb4e3773f777c7708ba55348dfb2955b98c",
+      "status": "PARKED_AFTER_DEVELOPMENT_FAIL_NO_EXTENSION"
+    },
+    {
+      "experiment": "pro-resource-tempo-startup-v2",
+      "sourceReportSha256": "4eadd48dbb74c40c08e1105b3c756629bc6293a56555787e3c3aa37ef63e769e",
+      "status": "REJECTED_FRESH_STRENGTH"
+    },
+    {
+      "experiment": "pro-same-turn-continuation-census-v1",
+      "sourceReportSha256": "f03c8565b1c8cc98d4e4a3eab776dd83d65b665dc7eafe77f33b35cfb37e2b62",
+      "status": "CLOSED_COMPLETE_SOURCE_DESIGN_ADMITTED"
+    },
+    {
+      "experiment": "pro-same-turn-continuation-policy-v1",
+      "sourceReportSha256": "02c59f989c5c23e4cd906dcede214ad80249f498aff9781479c56f8bd7e31739",
+      "status": "REJECTED_QUALIFICATION_EFFECT_GATE",
+      "candidateId": "CONTINUATION_REPLY_V1"
+    },
+    {
+      "experiment": "pro-score-pair-rc-v1",
+      "sourceReportSha256": "c0db9d052f38251847ae78bbfc7f306ca0014a66bde27a3f47be1f2b339889fa",
+      "status": "CLOSED_INTRINSIC_REJECTED_VERIFIED",
+      "reason": "Complete quantized OOF predictions increased component-averaged clipped teacher regret. Pair loss, bootstrap and accuracy improvements do not override the required selected-child gate.",
+      "interpretation": "Historical teacher static predictions only; no playing-strength or speed qualification. Exact frozen recipe remains closed without rescue. The full user goal remains active; accepted Fast/Normal improvements are preserved and Pro is still unproved."
+    },
+    {
+      "experiment": "pro-score-role-pilot-v1",
+      "sourceReportSha256": "5de1baaef6cec6856216821d16753801113c0e9ecaf06c5e6a1218a9ab51b901",
+      "status": "CLOSED_INTRINSIC_REJECTED",
+      "conclusion": "The frozen score-lead/trail five-kind PST contrast failed every predictive qualification gate despite complete data integrity, adequate training-only support and converged fold solvers. Pair loss and mean teacher rank worsened, concordance fell, top1 stayed169/507, and only3/5 fold losses were nonworse."
+    },
+    {
+      "experiment": "pro-scout-rfp-v1",
+      "sourceReportSha256": "ffe98dd1dbc32576e67e7a4104f168da72acc78a5c9a6f87d4c1c4191fee3bae",
+      "status": "CLOSED_FAILED_FROZEN_COLD_GATE",
+      "candidateId": "SCOUT_RFP_FM900_V1",
+      "interpretation": "The strict predeclared cold Pro p95 confidence bound was not established. This is not proof of true physical slowdown. Passing mean timings and warm criteria do not override the all-row rule. No stronger-Pro result was obtained."
+    },
+    {
+      "experiment": "pro-spirit-history",
+      "sourceReportSha256": "c69e75c3f23e75deca37adfc2ec7fada1bcba4454a93461c02deec0458807736",
+      "status": "SUPERSEDED_SOURCE_DRAFT_NEVER_EXECUTED"
+    },
+    {
+      "experiment": "pro-spirit-history-v2",
+      "sourceReportSha256": "241d7a5f5ffe1bd4a6ef17f00ee8ee721d6c12bf0726a671bee7125b5eee1de2",
+      "status": "PARKED_AFTER_DEVELOPMENT_FAIL_NO_EXTENSION"
+    },
+    {
+      "experiment": "pro-spirit-opportunity-qualification-v1",
+      "sourceReportSha256": "c9c345429d15c43408258196879d555078822195b471ee8d09eac31b8c796c2e",
+      "status": "REJECTED_AFTER_COMPLETE_DEVELOPMENT",
+      "candidateId": "spirit-opportunity-b2048",
+      "reason": "The complete prespecified Pro development campaign tied 256 to 256 games and 37 to 37 decisive pairs. It has no positive paired margin and misses the one-sided exact paired-sign threshold of 0.10. Correctness and outcome integrity PASS do not supply strength qualification."
+    },
+    {
+      "experiment": "pro-spirit-win-leaf-pilot-v1",
+      "sourceReportSha256": "c0f0ca1d732fcb0605d6b02bf455d2249808e0db546bfe4fa8887741a59b3752",
+      "status": "BOTH_RECIPES_REJECTED_AFTER_COMPLETE_OPPORTUNITY_CENSUS"
+    },
+    {
+      "experiment": "pro-trusted-bound-chain",
+      "sourceReportSha256": "f6da8b2791cb6649fc04aebc628b339fdf61e87fe2111bcce8e8cbae97e4c751",
+      "status": "rejected-before-matches",
+      "reason": "Trusting legacy TT flags, including depth-mismatched and silently reduced results, can invent bound validity. Superseded by separate stored certificates."
+    }
+  ],
+  "relativeHistory": {
+    "status": "STOPPED_UNFINISHED_AT_USER_REQUEST",
+    "policy": "Canonical Pro only; completed internal quiet-child visits add depth squared to trials and, on final-score beta cutoff, successes; cache floor(8191*successes/trials). Coupled halving at 2^30 and Pro-only lazy/reset storage.",
+    "policySha256": "15d2788beb67a0fcf9822c2a628b83b12b64c2a266a053d877a085989ac59f25",
+    "qualificationAuditSha256": "6d4da83274089263cc0df1eeb29a85c91ff0b4ebfd32faf1c69e9758a5fc1f38",
+    "independentReviewSha256": "18dbb1e3563bf5b4aca14570dc9ceb56836857483f7d80e203b2c5d89695b1e5",
+    "integrityVerdict": "PASS",
+    "queryAttempts": 53,
+    "ruleApplications": 102,
+    "goldenMatches": 26,
+    "changedPrimaryRoots": [1, 3],
+    "changes": [
+      {
+        "index": 1,
+        "before": {
+          "move": 16703848,
+          "score": 6727,
+          "depth": 8,
+          "nodes": 2000000,
+          "supported": true
+        },
+        "after": {
+          "move": 16693608,
+          "score": 6727,
+          "depth": 8,
+          "nodes": 2000000,
+          "supported": true
+        },
+        "changedFields": ["move"]
+      },
+      {
+        "index": 3,
+        "before": {
+          "move": 16753560,
+          "score": -12146,
+          "depth": 8,
+          "nodes": 2000000,
+          "supported": true
+        },
+        "after": {
+          "move": 16753560,
+          "score": -11764,
+          "depth": 8,
+          "nodes": 2000000,
+          "supported": true
+        },
+        "changedFields": ["score"]
+      }
+    ],
+    "speedMeasured": false,
+    "strengthMeasured": false,
+    "integrated": false,
+    "note": "Qualification established a behavioral difference on two roots only. The fixed-cost benchmark was prepared but never built or run; no superiority claim."
+  }
+}

@@ -75,6 +75,13 @@ move cannot be applied, `suggestion` returns the first deterministic complete
 legal move. Suggestions must remain legal and leave the source game
 byte-for-byte unchanged.
 
+A completed winning scout with no turn handoff or selective pruning ends
+search immediately in every mode. It skips the full-window re-search and
+aspiration widening that would only refine the winning score. Static
+evaluations and stored nonterminal bounds cannot reach the terminal score
+band. The handoff guard excludes cross-turn claims whose suggestion tree
+may omit a legal early mana defense.
+
 The shipped search keeps aspiration windows for Fast and Normal, bounded
 transposition data for selective nodes, deterministic ordering for commuting
 mon sub-moves, stable preselection of the two highest-priority moves, cached
@@ -89,8 +96,35 @@ equal-valued custom weights never allocate or run it. Transposition scores use
 doubled fixed-point Int32 units so the residual's half-point values retain exact
 bounds.
 
+Static evaluation keys exclude the previous commuting mon move, allowing
+interior nodes and leaves to share evaluations of the same position.
+Transposition keys retain that context because it changes the moves searched.
+Each evaluation-cache entry packs both key words, its epoch, and a doubled
+score into 16 bytes. Symmetric nonterminal clamping before storage preserves
+custom-weight saturation and Pro's half-point scores while reducing cache
+storage by 20%.
+Mystic and Demon threat estimates respect an active attacker's remaining
+actions and potions; carried bombs retain their independent availability.
+
+Normal also stores a tagged heuristic upper estimate after its own futility
+pruning omits a quiet tail. Reuse requires the same depth and an alpha at least
+as high as that estimate. The tag separates these entries from verified bounds
+and preserves selectivity on every hit.
+
+The Normal-only v19 promotion retained the 184,000-work-unit cap and 150 ms
+budget. A single planned validation on 512 baseline-generated opening positions
+finished 533–491 over 1,024 colour-swapped games: 84 pair wins, 365 splits, and
+63 pair losses (exact one-sided paired sign p = 0.04935036). Independent replay
+verified all 58,831 plies with zero invalid, cutoff, or unfinished games.
+Four balanced timing blocks on 32 states gave Normal fixed/public mean latency
+ratios of 0.94436/0.94651 and p95 ratios of 0.96694/0.95942 against the original
+v18 implementation. Pro's fixed p95 ratio of 1.000347 failed the overall timing
+gate; this promotion establishes Normal's improvement. The Pro exploration
+was closed without a strength or no-slowdown claim; see the
+[automove closeout](automove-experiments.md) for retained results and findings.
+
 The active deterministic contract is
-[automove decisions v18](../test-data/automove-decisions/v18/README.md): 13
+[automove decisions v19](../test-data/automove-decisions/v19/README.md): 13
 states across all three preferences, or 39 decisions, with
 `performance.now()` fixed at zero. The READMEs and manifests beside every
 protected automove corpus contain the historical provenance; do not duplicate
@@ -137,7 +171,7 @@ were +13 and +27. An independent result audit replayed every recorded trace
 through both rules bundles and reconstructed the same outcomes and exact
 statistics.
 
-The promoted public bundle is byte-identical to the audited candidate bundle.
+At the v18 promotion, the public bundle was byte-identical to the audited candidate bundle.
 A 425-case trace audit found identical node, evaluation, allocation, legality,
 and timeout lifecycles; Fast and Normal decisions were exact, while all 39
 verified-challenger activations were Pro-only and authenticated. The final

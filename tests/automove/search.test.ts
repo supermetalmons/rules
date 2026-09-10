@@ -266,7 +266,7 @@ describe("packed automove search", () => {
 
     expect(outcome).toEqual({
       move: 16_730_856,
-      score: -14_732.5,
+      score: -14_631.5,
       depth: 7,
       nodes: 2_000_000,
       supported: true,

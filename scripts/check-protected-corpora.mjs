@@ -121,6 +121,12 @@ const protectedFiles = Object.freeze({
     "5bc194f15516a9c275807415910c95b2e62ce63df9e575ac93e1dd93013197eb",
   "test-data/complete-games/v1/manifest.json":
     "7002d2fab95f311cc27c34ff588f5d1d94685ffd5b6212936375fe86f7527fe9",
+  "test-data/automove-decisions/v19/README.md":
+    "cf15428913d9dbb29c7d22c952895bbd167f670481565df39429aa9463cb891a",
+  "test-data/automove-decisions/v19/decisions.jsonl":
+    "4e31760134f262f9e1d8e35b8111066c3be05fd8a82e5b05b822d6e48e0b03c4",
+  "test-data/automove-decisions/v19/manifest.json":
+    "1eac5e2825a2081258abb7e689bba673e3cd57fa6d188e846c6d6bb554ca85b0",
 });
 
 const protectedDirectories = Object.freeze(

@@ -34,7 +34,12 @@ import {
   u8,
 } from "./board.js";
 import { rethrowFastWorkspaceAllocation } from "./allocation.js";
-import { awakeAngelGuards, manaMoveAllowed, type FastPosition } from "./state.js";
+import {
+  awakeAngelGuards,
+  canUseAction,
+  manaMoveAllowed,
+  type FastPosition,
+} from "./state.js";
 import {
   DISTANCE_TABLE_SIZE,
   THREAT_BUCKETS,
@@ -226,6 +231,7 @@ function estimatedAttackSteps(
     return UNREACHABLE_DISTANCE;
   }
   const enemy = ownerColor ^ 1;
+  const actionAvailable = enemy !== position.active || canUseAction(position);
   let best = UNREACHABLE_DISTANCE;
   const attackTables = attackTablesFor(position.squares);
 
@@ -242,7 +248,7 @@ function estimatedAttackSteps(
       if (steps < best) best = steps;
       continue;
     }
-    if (kind !== KIND_MYSTIC && kind !== KIND_DEMON) continue;
+    if ((kind !== KIND_MYSTIC && kind !== KIND_DEMON) || !actionAvailable) continue;
     if (guarded) continue;
     if (cellCooldown(cell) !== 0) continue;
     if (consumable !== 0) continue;
