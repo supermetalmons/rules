@@ -53,15 +53,15 @@ fresh replay or reproduction of the benchmarks.
 
 ## Pro exploration findings
 
-| Approach                                                          | Outcome and useful finding                                                                                                                                                        |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tactical extensions, quiescence, evaluation and resource features | Several candidates changed play but failed development or fresh strength gates. Better local predictions did not establish better play.                                           |
-| History, piece/destination ordering and continuation heuristics   | Many failed development or opportunity screens; color-specific killers and the tested continuation policy produced no qualifying primary-result change.                           |
-| Learned residuals and teacher-based ranking                       | Carrier/score-role and score-pair recipes failed predictive gates; the odd network failed subsequent development strength. Teacher agreement is insufficient by itself.           |
-| Work accounting, budgets and low-level optimizations              | Budget and priced-work variants failed strength eligibility. Lookup tables increased cost; direct access and internal iterative reductions failed strict timing bounds.           |
-| Reverse futility and suffix changes                               | The tested scout reverse-futility recipe passed warm checks but failed the cold Pro p95 bound. The suffix recipe failed warm timing. Neither established stronger Pro play.       |
-| Multi-cut                                                         | Correctness qualification passed, but none of 16 primary results changed; the effect gate failed.                                                                                 |
-| Relative history                                                  | Qualification passed: one move and one score changed across 16 roots, with all 53 calls and 102 recorded replays valid. Speed and strength testing never ran; stopped unfinished. |
+| Approach                                                          | Outcome and useful finding                                                                                                                                                                       |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tactical extensions, quiescence, evaluation and resource features | Several candidates changed play but failed development or fresh strength gates. Better local predictions did not establish better play.                                                          |
+| History, piece/destination ordering and continuation heuristics   | Many failed development or opportunity screens; color-specific killers and the tested continuation policy produced no qualifying primary-result change.                                          |
+| Learned residuals and teacher-based ranking                       | Carrier/score-role and score-pair recipes failed predictive gates; the odd network failed subsequent development strength. Teacher agreement is insufficient by itself.                          |
+| Work accounting, budgets and low-level optimizations              | Budget and priced-work variants failed strength eligibility. Lookup tables increased cost; direct access and internal iterative reductions failed strict timing bounds.                          |
+| Reverse futility and suffix changes                               | The tested scout reverse-futility recipe passed warm checks but failed the cold Pro p95 bound. The suffix recipe failed warm timing. Neither established stronger Pro play.                      |
+| Multi-cut                                                         | Correctness qualification passed, but none of 16 primary results changed; the effect gate failed.                                                                                                |
+| Relative history                                                  | Correctness passed; the 6,144-call warm test failed the speed gate. Pro mean latency was 0.88% higher for fixed work and 0.98% higher through the public API. Cold tests and games were skipped. |
 
 [Experiment dispositions](automove-evidence/pro-explorations.json) preserve
 the specific failed, descriptive, superseded, and unfinished outcomes.

@@ -207,7 +207,7 @@
     }
   ],
   "relativeHistory": {
-    "status": "STOPPED_UNFINISHED_AT_USER_REQUEST",
+    "status": "CLOSED_FAILED_WARM_SPEED_GATE",
     "policy": "Canonical Pro only; completed internal quiet-child visits add depth squared to trials and, on final-score beta cutoff, successes; cache floor(8191*successes/trials). Coupled halving at 2^30 and Pro-only lazy/reset storage.",
     "policySha256": "15d2788beb67a0fcf9822c2a628b83b12b64c2a266a053d877a085989ac59f25",
     "qualificationAuditSha256": "6d4da83274089263cc0df1eeb29a85c91ff0b4ebfd32faf1c69e9758a5fc1f38",
@@ -255,9 +255,33 @@
         "changedFields": ["score"]
       }
     ],
-    "speedMeasured": false,
+    "speedMeasured": true,
     "strengthMeasured": false,
     "integrated": false,
-    "note": "Qualification established a behavioral difference on two roots only. The fixed-cost benchmark was prepared but never built or run; no superiority claim."
+    "note": "The exact recipe was restored and passed correctness, but failed the warm speed gate: Pro mean latency was about 0.88% higher for fixed work and 0.98% higher through the public API. Cold tests and games were not run. This is a workload-specific speed rejection, not a playing-strength result; disposable test artifacts were removed.",
+    "warmTest": {
+      "date": "2026-09-10",
+      "baselineCommit": "1d93b0138291207300638022e5f20cffddf84fe3",
+      "correctness": "PASS",
+      "warmups": 384,
+      "measuredCalls": 6144,
+      "failedComparisons": 18,
+      "totalComparisons": 18,
+      "criterion": "Eight blocks; median and one-sided 95% geometric-mean upper ratio must both be <= 1; no exclusions or epsilon.",
+      "proMeanLatencyRatios": {
+        "fixed": {
+          "median": 1.0088080762878042,
+          "upper95": 1.0108251369686976
+        },
+        "public": {
+          "median": 1.009761075951018,
+          "upper95": 1.013231192329393
+        }
+      },
+      "coldTestsRun": false,
+      "strengthGames": 0,
+      "resultSha256": "99d8d5a55aff18d2025eeb887adb8405ac506dad16cb39822b847f0ac5d97290",
+      "independentReviewSha256": "63c9f2aebce2250a327edf4e7686ef7d1daf483ef8ea303a92b6ab2390f1f62d"
+    }
   }
 }
