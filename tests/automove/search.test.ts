@@ -24,9 +24,8 @@ import {
 } from "../../src/automove/state.js";
 import {
   FAST_SEARCH_TUNING,
+  NORMAL_SEARCH_TUNING,
   PACKED_SELECTION_PROFILES,
-  PRO_SEARCH_TUNING,
-  STRATEGIC_SEARCH_TUNING,
 } from "../../src/automove/selector.js";
 import { GameVariant } from "../../src/engine/board/config.js";
 import { BOARD_CELLS } from "../../src/engine/board/geometry.js";
@@ -62,7 +61,7 @@ describe("packed automove search", () => {
         limits: {
           maxDepth: 40,
           maxNodes: 184_000,
-          tuning: STRATEGIC_SEARCH_TUNING,
+          tuning: NORMAL_SEARCH_TUNING,
         },
       },
       pro: {
@@ -71,7 +70,7 @@ describe("packed automove search", () => {
         limits: {
           maxDepth: 40,
           maxNodes: 2_000_000,
-          tuning: PRO_SEARCH_TUNING,
+          tuning: DEFAULT_TUNING,
         },
       },
     });
@@ -83,8 +82,8 @@ describe("packed automove search", () => {
     ).toBe(true);
     expect([
       FAST_SEARCH_TUNING.winsNextTurnThreat,
-      STRATEGIC_SEARCH_TUNING.winsNextTurnThreat,
-      PRO_SEARCH_TUNING.winsNextTurnThreat,
+      NORMAL_SEARCH_TUNING.winsNextTurnThreat,
+      DEFAULT_TUNING.winsNextTurnThreat,
     ]).toEqual([2_500, 0, 0]);
   });
 

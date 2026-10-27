@@ -3,7 +3,6 @@ import {
   MonKind,
   immutableItem,
   isMonFainted,
-  itemEquals,
   itemMon,
   type Item,
   type Mon,
@@ -185,22 +184,6 @@ export class Board {
     const colorIndex = boardColorIndex(color);
     if (colorIndex === undefined) return undefined;
     return detachedLocation(this.getCategoryDerived().awakeAngelLocations[colorIndex]);
-  }
-
-  /** @internal Compare board storage without allocating public snapshots. */
-  public itemsEqual(other: Board): boolean {
-    for (let index = 0; index < BOARD_CELLS; index += 1) {
-      const leftItem = this.storage.itemSlots[index];
-      const rightItem = other.storage.itemSlots[index];
-      if (leftItem === undefined || rightItem === undefined) {
-        if (leftItem !== rightItem) {
-          return false;
-        }
-      } else if (!itemEquals(leftItem, rightItem)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private getOccupiedEntries(): readonly BoardEntry[] {

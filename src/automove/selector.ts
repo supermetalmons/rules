@@ -11,7 +11,11 @@ import {
   NORMAL_WEIGHTS,
 } from "./evaluation-weights.js";
 import { FastSearcher } from "./search.js";
-import type { SearchLimits, SearchTuning } from "./search-tuning.js";
+import {
+  DEFAULT_TUNING,
+  type SearchLimits,
+  type SearchTuning,
+} from "./search-tuning.js";
 import { FastPosition } from "./state.js";
 
 type WeakFastSearcher = {
@@ -26,46 +30,19 @@ export type AutomoveClock = () => number;
 
 export type AutomovePreference = "fast" | "normal" | "pro";
 
-export const STRATEGIC_SEARCH_TUNING = Object.freeze({
-  lateMoveReduction: true,
+export const NORMAL_SEARCH_TUNING = Object.freeze({
+  ...DEFAULT_TUNING,
   lateMoveIndex: 2,
   lateMoveDeepIndex: 6,
-  moveCountPruning: true,
-  moveCountDepth: 3,
   moveCountBase: 7,
   moveCountFactor: 7,
-  futilityMargin: 900,
   aspirationDelta: 600,
   aspirationMinDepth: 2,
-  winsNextTurnThreat: 0,
 }) satisfies SearchTuning;
 
 export const FAST_SEARCH_TUNING = Object.freeze({
-  lateMoveReduction: true,
-  lateMoveIndex: 2,
-  lateMoveDeepIndex: 6,
-  moveCountPruning: true,
-  moveCountDepth: 3,
-  moveCountBase: 7,
-  moveCountFactor: 7,
-  futilityMargin: 900,
-  aspirationDelta: 600,
-  aspirationMinDepth: 2,
+  ...NORMAL_SEARCH_TUNING,
   winsNextTurnThreat: 2500,
-}) satisfies SearchTuning;
-
-export const PRO_SEARCH_TUNING = Object.freeze({
-  lateMoveReduction: true,
-  lateMoveIndex: 3,
-  lateMoveDeepIndex: 8,
-  moveCountPruning: true,
-  moveCountDepth: 3,
-  moveCountBase: 4,
-  moveCountFactor: 5,
-  futilityMargin: 900,
-  aspirationDelta: 0,
-  aspirationMinDepth: 3,
-  winsNextTurnThreat: 0,
 }) satisfies SearchTuning;
 
 export const PACKED_SELECTION_PROFILES = Object.freeze({
@@ -84,7 +61,7 @@ export const PACKED_SELECTION_PROFILES = Object.freeze({
     limits: Object.freeze({
       maxDepth: 40,
       maxNodes: 184_000,
-      tuning: STRATEGIC_SEARCH_TUNING,
+      tuning: NORMAL_SEARCH_TUNING,
     }) satisfies SearchLimits,
   }),
   pro: Object.freeze({
@@ -93,7 +70,7 @@ export const PACKED_SELECTION_PROFILES = Object.freeze({
     limits: Object.freeze({
       maxDepth: 40,
       maxNodes: 2_000_000,
-      tuning: PRO_SEARCH_TUNING,
+      tuning: DEFAULT_TUNING,
     }) satisfies SearchLimits,
   }),
 });

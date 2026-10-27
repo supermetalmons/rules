@@ -32,14 +32,6 @@ const largeModuleReasons = new Map<string, string>([
     "engine/game/event-compilation.ts",
     "Staged event compilation stays cohesive to preserve emitted event order.",
   ],
-  [
-    "engine/game/mons-game.ts",
-    "Game mutation, history, and query-cache invalidation have one owner.",
-  ],
-  [
-    "engine/model/domain.ts",
-    "Domain values, copying, equality, keys, and API enum identity share one leaf.",
-  ],
 ]);
 
 const engineAreaDependencies = new Map<string, ReadonlySet<string>>([

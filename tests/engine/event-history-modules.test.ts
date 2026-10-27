@@ -339,15 +339,15 @@ describe("failed engine input application", () => {
       { i: 9, j: 2 },
     );
     const before = stateSnapshot(source);
-    const expected = source.fork();
-    const expectedEvents = expected.applyAndAddResultingEvents([event]);
+    const simulation = source.fork();
+    const events = simulation.applyAndAddResultingEvents([event]);
 
-    const simulation = source.forkAndApplyEventsForSimulation([event]);
-
-    expect(simulation?.events).toEqual(expectedEvents);
-    expect(simulation?.game.fen()).toBe(expected.fen());
-    expect(simulation?.game.takebackFens).toEqual([]);
-    expect(simulation?.game.verboseTrackingEntities).toEqual([]);
+    expect(events).toEqual([event]);
+    expect(simulation.board.get(event.from)).toBeUndefined();
+    expect(simulation.board.get(event.to)).toEqual(event.item);
+    expect(simulation.monsMovesCount).toBe(1);
+    expect(simulation.takebackFens).toEqual([]);
+    expect(simulation.verboseTrackingEntities).toEqual([]);
     expect(stateSnapshot(source)).toEqual(before);
   });
 

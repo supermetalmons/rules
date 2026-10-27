@@ -14,16 +14,9 @@ import {
   monId,
 } from "../../src/automove/board.js";
 import type { FastPosition, FastPositionSnapshot } from "../../src/automove/state.js";
-import { Board } from "../../src/engine/board/storage.js";
-import type { GameFenState } from "../../src/engine/codec/game-board.js";
-import type { Input, Item } from "../../src/engine/model/domain.js";
-import { gameFen, parseGameFen } from "../../src/engine/codec/game-board.js";
-import { MonsGame } from "../../src/engine/game/mons-game.js";
-import {
-  BOARD_CELLS,
-  locationIndex,
-  type Location,
-} from "../../src/engine/board/geometry.js";
+import type { Input } from "../../src/engine/model/domain.js";
+import { BOARD_CELLS, type Location } from "../../src/engine/board/geometry.js";
+export { gameWith } from "../helpers/game.js";
 
 export function locationInput(at: Location): Input {
   return { kind: "location", location: at };
@@ -103,28 +96,4 @@ export function expectFastPositionInvariants(
   expect([...position.manaIndices], label).toEqual([...expectedManaIndices]);
   expect(position.hashLo, label).toBe(hashLo);
   expect(position.hashHi, label).toBe(hashHi);
-}
-
-export function gameWith(
-  entries: readonly (readonly [Location, Item])[],
-  overrides: Partial<Omit<GameFenState, "board">> = {},
-): MonsGame {
-  const initial = parseGameFen(new MonsGame(false).fen());
-  if (initial === undefined) throw new Error("initial game FEN must parse");
-  const items: (Item | undefined)[] = Array.from(
-    { length: BOARD_CELLS },
-    () => undefined,
-  );
-  for (const [at, item] of entries) items[locationIndex(at)] = item;
-  const game = MonsGame.fromFen(
-    gameFen({
-      ...initial,
-      turnNumber: 2,
-      ...overrides,
-      board: Board.fromItems(items, initial.board.variant),
-    }),
-    false,
-  );
-  if (game === undefined) throw new Error("test game FEN must parse");
-  return game;
 }

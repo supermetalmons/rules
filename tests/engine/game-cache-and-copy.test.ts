@@ -38,13 +38,7 @@ import {
   RulesQueryCache,
   type InputStageResult,
 } from "../../src/engine/game/query-cache.js";
-
-function replaceItems(
-  game: MonsGame,
-  items: readonly (readonly [Location, Item])[],
-): void {
-  game.replaceBoardItems(items);
-}
+import { gameWith } from "../helpers/game.js";
 
 function withFenState(
   game: MonsGame,
@@ -54,10 +48,12 @@ function withFenState(
   if (state === undefined) {
     throw new Error("test game must have a parseable FEN");
   }
-  return MonsGame.newSimulationState({ ...state, ...replacement });
+  const restored = MonsGame.fromFen(gameFen({ ...state, ...replacement }));
+  if (restored === undefined) throw new Error("test game FEN must parse");
+  return restored.fork();
 }
 
-function demonAdditionalStepGame(): {
+function demonAdditionalStepGame(destinationItem?: Item): {
   readonly game: MonsGame;
   readonly pair: readonly Input[];
   readonly chain: readonly Input[];
@@ -67,12 +63,12 @@ function demonAdditionalStepGame(): {
   const destination = location(5, 6);
   const demon = createMon(MonKind.Demon, Color.White, 0);
   const defender = createMon(MonKind.Mystic, Color.Black, 0);
-  let game = new MonsGame(false, GameVariant.Classic);
-  replaceItems(game, [
+  const items: (readonly [Location, Item])[] = [
     [start, monItem(demon)],
     [target, monWithManaItem(defender, regularMana(Color.Black))],
-  ]);
-  game = withFenState(game, { turnNumber: 2 });
+  ];
+  if (destinationItem !== undefined) items.push([destination, destinationItem]);
+  const game = gameWith(items).fork();
 
   const pair: readonly Input[] = [
     { kind: "location", location: start },
@@ -89,16 +85,7 @@ function demonConsumableSelectionGame(): {
   readonly game: MonsGame;
   readonly chain: readonly Input[];
 } {
-  const scenario = demonAdditionalStepGame();
-  const destination = scenario.chain[2];
-  if (destination?.kind !== "location") {
-    throw new Error("demon scenario must end at a location");
-  }
-  scenario.game.replaceBoardItems([
-    ...scenario.game.board.entries(),
-    [destination.location, consumableItem(Consumable.BombOrPotion)],
-  ]);
-  return { game: scenario.game, chain: scenario.chain };
+  return demonAdditionalStepGame(consumableItem(Consumable.BombOrPotion));
 }
 
 function expectSameQueryResult(
@@ -397,11 +384,14 @@ describe("MonsGame staged-input caches", () => {
   });
 
   it("applies a move from warmed stage caches identically to a cold state", () => {
-    const { game, chain } = demonAdditionalStepGame();
+    const { game, pair, chain } = demonAdditionalStepGame();
     const warm = game.fork();
     const cold = game.fork();
     cold.invalidateProcessInputCache();
 
+    warm.processInput([], true, false);
+    warm.processInput(pair.slice(0, 1), true, false);
+    warm.processInput(pair, true, false);
     mutableEvents(warm.processInput(chain, true, false), "warmed third-stage query");
 
     const warmOutput = warm.processInput(chain, false, false);
@@ -410,6 +400,12 @@ describe("MonsGame staged-input caches", () => {
     expect(warmOutput).toEqual(coldOutput);
     expect(warm.fen()).toBe(cold.fen());
     expect(warm.fen()).not.toBe(game.fen());
+
+    const restored = MonsGame.fromFen(warm.fen());
+    if (restored === undefined) throw new Error("updated game FEN must parse");
+    for (const input of [[], pair.slice(0, 1), pair, chain]) {
+      expectSameQueryResult(warm, restored, input);
+    }
   });
 
   it("returns independent second- and third-stage result arrays", () => {
@@ -544,6 +540,16 @@ describe("MonsGame serialized state copying", () => {
       ],
     });
     expect(source.canTakeback(source.activeColor)).toBe(true);
+    const sourceFen = source.fen();
+    const sourceTakebackFens = source.takebackFens;
+    const sourceTracking = source.verboseTrackingEntities;
+    const movedFrom = location(0, 5);
+    const movedTo = location(1, 5);
+    const movedItem = source.board.get(movedFrom);
+    const move: readonly Input[] = [
+      { kind: "location", location: movedFrom },
+      { kind: "location", location: movedTo },
+    ];
 
     const copy = source.copy();
     expect(copy.fen()).toBe(source.fen());
@@ -557,11 +563,14 @@ describe("MonsGame serialized state copying", () => {
     expect(copy.verboseTrackingEntities[0]?.events).not.toBe(
       source.verboseTrackingEntities[0]?.events,
     );
-    copy.replaceBoardItems([
-      ...copy.board.entries(),
-      [removedAt, manaItem(regularMana(Color.White))],
-    ]);
-    expect(source.board.get(removedAt)).toBeUndefined();
+    expect(copy.processInput(move, false, false).kind).toBe("events");
+    expect(copy.board.get(movedFrom)).toBeUndefined();
+    expect(copy.board.get(movedTo)).toEqual(movedItem);
+    expect(source.board.get(movedFrom)).toEqual(movedItem);
+    expect(source.board.get(movedTo)).toBeUndefined();
+    expect(source.fen()).toBe(sourceFen);
+    expect(source.takebackFens).toEqual(sourceTakebackFens);
+    expect(source.verboseTrackingEntities).toEqual(sourceTracking);
 
     const simulation = source.fork();
     expect(simulation.fen()).toBe(source.fen());
@@ -571,20 +580,16 @@ describe("MonsGame serialized state copying", () => {
     expect(simulation.takebackFens).toEqual([]);
     expect(simulation.verboseTrackingEntities).toEqual([]);
     expect(simulation.canTakeback(source.activeColor)).toBe(false);
-    simulation.replaceBoardItems([
-      ...simulation.board.entries(),
-      [removedAt, manaItem(regularMana(Color.White))],
-    ]);
-    expect(source.board.get(removedAt)).toBeUndefined();
-
-    const parsedState = parseGameFen(source.fen());
-    expect(parsedState).toBeDefined();
-    if (parsedState === undefined) {
-      return;
-    }
-    const hydratedSimulation = MonsGame.newSimulationState(parsedState);
-    expect(hydratedSimulation.fen()).toBe(source.fen());
-    expect(hydratedSimulation.canTakeback(source.activeColor)).toBe(false);
+    expect(simulation.processInput(move, false, false).kind).toBe("events");
+    expect(simulation.board.get(movedFrom)).toBeUndefined();
+    expect(simulation.board.get(movedTo)).toEqual(movedItem);
+    expect(simulation.takebackFens).toEqual([]);
+    expect(simulation.verboseTrackingEntities).toEqual([]);
+    expect(source.board.get(movedFrom)).toEqual(movedItem);
+    expect(source.board.get(movedTo)).toBeUndefined();
+    expect(source.fen()).toBe(sourceFen);
+    expect(source.takebackFens).toEqual(sourceTakebackFens);
+    expect(source.verboseTrackingEntities).toEqual(sourceTracking);
 
     const restored = MonsGame.fromFen(source.fen(), true);
     expect(restored).toBeDefined();
@@ -593,6 +598,13 @@ describe("MonsGame serialized state copying", () => {
     expect(restored?.takebackFens).toEqual([]);
     expect(restored?.verboseTrackingEntities).toEqual([]);
     expect(restored?.isMovesVerified).toBe(false);
+
+    const hydratedSimulation = restored?.fork();
+    expect(hydratedSimulation?.fen()).toBe(source.fen());
+    expect(hydratedSimulation?.canTakeback(source.activeColor)).toBe(false);
+    expect(hydratedSimulation?.processInput(move, false, false).kind).toBe("events");
+    expect(hydratedSimulation?.takebackFens).toEqual([]);
+    expect(hydratedSimulation?.verboseTrackingEntities).toEqual([]);
   });
 });
 

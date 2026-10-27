@@ -209,14 +209,6 @@ export function createMon(kind: MonKind, color: Color, cooldown: number): Mon {
   return Object.freeze({ kind, color, cooldown });
 }
 
-function monEquals(left: Mon, right: Mon): boolean {
-  return (
-    left.kind === right.kind &&
-    left.color === right.color &&
-    left.cooldown === right.cooldown
-  );
-}
-
 export function isMonFainted(mon: Mon): boolean {
   return mon.cooldown > 0;
 }
@@ -233,13 +225,6 @@ export function decreaseMonCooldown(mon: Mon): Mon {
 
 export function regularMana(color: Color): RegularMana {
   return Object.freeze({ kind: "regular", color });
-}
-
-export function manaEquals(left: Mana, right: Mana): boolean {
-  if (left.kind === "supermana") {
-    return right.kind === "supermana";
-  }
-  return right.kind === "regular" && left.color === right.color;
 }
 
 export function manaScoreForOwnership(
@@ -531,29 +516,6 @@ export function itemConsumable(item: Item): Consumable | undefined {
     case "mana":
     case "mon-with-mana":
       return undefined;
-  }
-}
-
-export function itemEquals(left: Item, right: Item): boolean {
-  switch (left.kind) {
-    case "mon":
-      return right.kind === "mon" && monEquals(left.mon, right.mon);
-    case "mana":
-      return right.kind === "mana" && manaEquals(left.mana, right.mana);
-    case "mon-with-mana":
-      return (
-        right.kind === "mon-with-mana" &&
-        monEquals(left.mon, right.mon) &&
-        manaEquals(left.mana, right.mana)
-      );
-    case "mon-with-consumable":
-      return (
-        right.kind === "mon-with-consumable" &&
-        monEquals(left.mon, right.mon) &&
-        left.consumable === right.consumable
-      );
-    case "consumable":
-      return right.kind === "consumable" && left.consumable === right.consumable;
   }
 }
 

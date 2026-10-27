@@ -24,7 +24,6 @@ export class TranspositionTable {
   public score: Int32Array = EMPTY_TT_ARRAY;
   public info: Int32Array = EMPTY_TT_ARRAY;
   public move: Int32Array = EMPTY_TT_ARRAY;
-  public entries = 0;
   public generation = 1;
   public mask = 0;
 
@@ -53,7 +52,6 @@ export class TranspositionTable {
     this.score = score;
     this.info = info;
     this.move = move;
-    this.entries = 0;
     this.generation = 1;
     this.mask = DEFAULT_TRANSPOSITION_CAPACITY - 1;
     return true;
@@ -65,7 +63,6 @@ export class TranspositionTable {
     this.score.fill(0);
     this.info.fill(0);
     this.move.fill(0);
-    this.entries = 0;
     this.generation = 1;
   }
 }

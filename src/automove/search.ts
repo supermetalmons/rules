@@ -250,10 +250,6 @@ export class FastSearcher {
     return at(this.#positions, 0);
   }
 
-  public get size(): number {
-    return this.#table.entries;
-  }
-
   public search(
     limits: SearchLimits,
     checkTimeout: () => boolean,
@@ -660,9 +656,6 @@ export class FastSearcher {
     if (storedScore < WIN_VALUE - MAX_PLY && storedScore > -WIN_VALUE + MAX_PLY) {
       const storedDepth = (slotInfo >> 2) & 63;
       if (!slotMatches || entryDepth >= storedDepth) {
-        if (slotInfo === 0 && i32(table.info, slot) === 0) {
-          table.entries += 1;
-        }
         table.keyLo[slot] = keyLo;
         table.keyHi[slot] = keyHi;
         table.score[slot] = storedScore * 2;

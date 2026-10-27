@@ -24,7 +24,7 @@ import {
 import { gameFen, parseGameFen, type GameFenState } from "../codec/game-board.js";
 import { applyRulesEvents, canApplyRulesEvents } from "../rules/event-reducer.js";
 import type { MutableRulesState } from "../rules/state.js";
-import { BOARD_CELLS, locationIndex, type Location } from "../board/geometry.js";
+import { locationIndex, type Location } from "../board/geometry.js";
 import { CACHE_MISS, RulesQueryCache, type InputStageResult } from "./query-cache.js";
 import {
   GameHistory,
@@ -166,13 +166,6 @@ export class MonsGame {
     return new MonsGame(withVerboseTracking, board.variant, board);
   }
 
-  public static newSimulationState(state: GameFenState): MonsGame {
-    const game = MonsGame.#fromBoard(false, state.board);
-    game.#copyFenFieldsFrom(state);
-    game.#history.setTakebackTracking(false);
-    return game;
-  }
-
   public static fromFen(
     fen: string,
     withVerboseTracking = false,
@@ -209,31 +202,8 @@ export class MonsGame {
     return this.board.variant;
   }
 
-  public replaceBoardItems(items: Iterable<readonly [Location, Item]>): void {
-    const itemArray: (Item | undefined)[] = Array.from(
-      { length: BOARD_CELLS },
-      () => undefined,
-    );
-    for (const [at, item] of items) {
-      itemArray[locationIndex(at)] = item;
-    }
-    const board = Board.fromItems(itemArray, this.variant());
-    this.#state.board = board;
-    this.#history.resetForBoardReplacement();
-    this.invalidateProcessInputCache();
-  }
-
-  public setTakebackHistoryTracking(enabled: boolean): void {
-    this.#history.setTakebackTracking(enabled);
-    this.invalidateProcessInputCache();
-  }
-
   public invalidateProcessInputCache(): void {
     this.#queryCache.invalidate();
-  }
-
-  public setVerboseTracking(enabled: boolean): void {
-    this.#history.setVerboseTracking(enabled);
   }
 
   #updateWith(otherGame: MonsGame): void {
@@ -500,30 +470,11 @@ export class MonsGame {
   }
 
   public applyAndAddResultingEvents(events: readonly Event[]): Event[] | undefined {
-    return this.#applyAndAddResultingEvents(
-      events,
-      this.#history.eventApplicationTrackingEnabled,
-    );
-  }
-
-  /** @internal Fork and apply without creating history snapshots. */
-  public forkAndApplyEventsForSimulation(
-    events: readonly Event[],
-  ): { readonly game: MonsGame; readonly events: Event[] } | undefined {
-    const game = this.fork();
-    const appliedEvents = game.#applyAndAddResultingEvents(events, false);
-    return appliedEvents === undefined ? undefined : { game, events: appliedEvents };
-  }
-
-  #applyAndAddResultingEvents(
-    events: readonly Event[],
-    trackHistory: boolean,
-  ): Event[] | undefined {
     if (!canApplyRulesEvents(this.#state, events)) {
       return undefined;
     }
     this.invalidateProcessInputCache();
-    if (!trackHistory) {
+    if (!this.#history.eventApplicationTrackingEnabled) {
       return applyRulesEvents(this.#state, events).events;
     }
     const snapshotFen = (): string => this.fen();

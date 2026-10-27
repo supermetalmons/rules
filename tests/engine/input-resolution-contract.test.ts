@@ -18,18 +18,12 @@ import {
   type NextInput,
   type NextInputKind as NextInputKindValue,
 } from "../../src/engine/model/domain.js";
-import { parseGameFen } from "../../src/engine/codec/game-board.js";
 import { MonsGame } from "../../src/engine/game/mons-game.js";
 import { location, type Location } from "../../src/engine/board/geometry.js";
+import { gameWith } from "../helpers/game.js";
 
 function gameAtTurnTwo(items: readonly (readonly [Location, Item])[]): MonsGame {
-  const source = new MonsGame(false, GameVariant.Classic);
-  source.replaceBoardItems(items);
-  const state = parseGameFen(source.fen());
-  if (state === undefined) {
-    throw new Error("test game must have a parseable FEN");
-  }
-  return MonsGame.newSimulationState({ ...state, turnNumber: 2 });
+  return gameWith(items).fork();
 }
 
 function locationOption(i: number, j: number, kind: NextInputKindValue): NextInput {

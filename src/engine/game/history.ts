@@ -85,14 +85,6 @@ export class GameHistory {
   }
 
   public resetForLoadedFen(): void {
-    this.#resetUnverified();
-  }
-
-  public resetForBoardReplacement(): void {
-    this.#resetUnverified();
-  }
-
-  #resetUnverified(): void {
     this.#takebackFens = [];
     this.#trackingEntries = [];
     this.#movesVerified = false;
@@ -114,16 +106,6 @@ export class GameHistory {
         this.#trackingEntries = [];
       }
     }
-  }
-
-  public setTakebackTracking(enabled: boolean): void {
-    this.#takebackTrackingEnabled = enabled;
-    if (!enabled) this.#takebackFens = [];
-  }
-
-  public setVerboseTracking(enabled: boolean): void {
-    this.#verboseTrackingEnabled = enabled;
-    if (!enabled) this.#trackingEntries = [];
   }
 
   public canTakeback(activeColor: Color, requestedColor: Color): boolean {

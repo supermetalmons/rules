@@ -102,7 +102,6 @@ const TEST_MEMBERS = String.raw`  #futilityModeBeforeReset = false;
     this.#table.move = new Int32Array(64);
     this.#table.mask = 63;
     this.#table.generation = 1;
-    this.#table.entries = 0;
     const key = () => {
       const scalar = scalarIndex(this.root);
       const lo = stateKeyLo(this.root, scalar);
